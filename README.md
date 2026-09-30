@@ -10,7 +10,7 @@ A WordPress plugin for managing and displaying podcasts on Elementor websites. B
 |---|---|---|---|
 | 1 — Podcast Engine | Settings, episodes (CPT), audio/artwork handling, RSS feed | No | No |
 | 2 — UI Components | Renderer (one player engine, cards, rows, hero, chapters, transcript, subscribe links), shortcodes, Global Podcast Styles, presets | No | No |
-| 3 — Elementor Presentation | Category, 10 widgets, style controls, current-episode context | Yes | Only via presets |
+| 3 — Elementor Presentation | Category, 11 widgets, style controls, current-episode context | Yes | Only via presets |
 
 `businesstuning.at` is the **first design preset / reference implementation** (`business-tuning` preset), never hardcoded identity. The generic engine never depends on it.
 
@@ -50,7 +50,7 @@ includes/
   Elementor/
     Integration.php             category + widget registration
     Widgets.php                 widget registry
-    Widgets/*.php               10 widgets
+    Widgets/*.php               11 widgets
   helpers.php                   epm_esc_xml()
 admin/views/                    dashboard.php, settings.php, design.php
 admin/css/js                    epm-admin.*

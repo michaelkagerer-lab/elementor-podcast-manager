@@ -170,7 +170,7 @@ $preset_extras = [
 
 		<h2><?php esc_html_e( 'Colors', 'elementor-podcast-manager' ); ?></h2>
 		<table class="form-table" role="presentation">
-			<?php foreach ( [ 'accent' => __( 'Accent color', 'elementor-podcast-manager' ), 'on_accent' => __( 'On-accent color', 'elementor-podcast-manager' ), 'text' => __( 'Text color', 'elementor-podcast-manager' ), 'muted' => __( 'Muted text', 'elementor-podcast-manager' ), 'background' => __( 'Background', 'elementor-podcast-manager' ), 'surface' => __( 'Surface', 'elementor-podcast-manager' ), 'border_color' => __( 'Border color', 'elementor-podcast-manager' ) ] as $key => $label ) : ?>
+			<?php foreach ( [ 'accent' => __( 'Accent color', 'elementor-podcast-manager' ), 'on_accent' => __( 'Text on accent', 'elementor-podcast-manager' ), 'text' => __( 'Text color', 'elementor-podcast-manager' ), 'muted' => __( 'Muted text', 'elementor-podcast-manager' ), 'background' => __( 'Background', 'elementor-podcast-manager' ), 'surface' => __( 'Surface', 'elementor-podcast-manager' ), 'border_color' => __( 'Border color', 'elementor-podcast-manager' ) ] as $key => $label ) : ?>
 				<tr>
 					<th scope="row"><label for="epm-d-<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></label></th>
 					<td><input type="color" id="epm-d-<?php echo esc_attr( $key ); ?>" name="epm_design_settings[<?php echo esc_attr( $key ); ?>]" value="<?php echo esc_attr( (string) $design[ $key ] ); ?>" /></td>

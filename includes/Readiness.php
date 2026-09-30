@@ -33,6 +33,20 @@ final class Readiness {
 	}
 
 	/**
+	 * Create a settings deep link only for users who can open that screen.
+	 *
+	 * @param string $field Settings field id.
+	 * @return string
+	 */
+	private static function settings_field_url( string $field ): string {
+		if ( ! Capabilities::can_manage_podcast() ) {
+			return '';
+		}
+
+		return admin_url( 'admin.php?page=epm-settings#epm-s-' . rawurlencode( $field ) );
+	}
+
+	/**
 	 * Build the full readiness report.
 	 *
 	 * @return array{ready: bool, errors: int, warnings: int, checks: array<int, array{status: string, label: string, message: string}>}
@@ -45,6 +59,7 @@ final class Readiness {
 				'status'  => $status,
 				'label'   => $label,
 				'message' => $message,
+				'url'     => '',
 			];
 		};
 
@@ -54,6 +69,7 @@ final class Readiness {
 		$title = trim( (string) $settings->get( 'title' ) );
 		if ( '' === $title ) {
 			$add( 'error', __( 'Podcast title', 'elementor-podcast-manager' ), __( 'Enter a podcast title in Podcast Settings.', 'elementor-podcast-manager' ) );
+			$checks[ count( $checks ) - 1 ]['url'] = self::settings_field_url( 'title' );
 		} else {
 			$add( 'ok', __( 'Podcast title', 'elementor-podcast-manager' ), $title );
 		}
@@ -61,6 +77,7 @@ final class Readiness {
 		$description = trim( (string) wp_strip_all_tags( (string) $settings->get( 'description' ) ) );
 		if ( '' === $description ) {
 			$add( 'error', __( 'Podcast description', 'elementor-podcast-manager' ), __( 'Enter a podcast description in Podcast Settings.', 'elementor-podcast-manager' ) );
+			$checks[ count( $checks ) - 1 ]['url'] = self::settings_field_url( 'desc' );
 		} else {
 			$add( 'ok', __( 'Podcast description', 'elementor-podcast-manager' ), __( 'Present.', 'elementor-podcast-manager' ) );
 		}
@@ -68,6 +85,7 @@ final class Readiness {
 		$author = trim( (string) $settings->get( 'author' ) );
 		if ( '' === $author ) {
 			$add( 'warning', __( 'Podcast author', 'elementor-podcast-manager' ), __( 'Recommended: set the author shown in directories.', 'elementor-podcast-manager' ) );
+			$checks[ count( $checks ) - 1 ]['url'] = self::settings_field_url( 'author' );
 		} else {
 			$add( 'ok', __( 'Podcast author', 'elementor-podcast-manager' ), $author );
 		}
@@ -75,6 +93,7 @@ final class Readiness {
 		$owner_email = trim( (string) $settings->get( 'owner_email' ) );
 		if ( '' === $owner_email || ! is_email( $owner_email ) ) {
 			$add( 'error', __( 'Owner email', 'elementor-podcast-manager' ), __( 'Directories require a valid owner email address.', 'elementor-podcast-manager' ) );
+			$checks[ count( $checks ) - 1 ]['url'] = self::settings_field_url( 'owner-email' );
 		} else {
 			$add( 'ok', __( 'Owner email', 'elementor-podcast-manager' ), $owner_email );
 		}
@@ -82,6 +101,7 @@ final class Readiness {
 		$owner_name = trim( (string) $settings->get( 'owner_name' ) );
 		if ( '' === $owner_name ) {
 			$add( 'warning', __( 'Owner name', 'elementor-podcast-manager' ), __( 'Recommended: set the podcast owner name.', 'elementor-podcast-manager' ) );
+			$checks[ count( $checks ) - 1 ]['url'] = self::settings_field_url( 'owner-name' );
 		} else {
 			$add( 'ok', __( 'Owner name', 'elementor-podcast-manager' ), $owner_name );
 		}
@@ -90,6 +110,7 @@ final class Readiness {
 		$category = trim( (string) $settings->get( 'category' ) );
 		if ( '' === $category ) {
 			$add( 'warning', __( 'Category', 'elementor-podcast-manager' ), __( 'No category set. Directories use it for discovery.', 'elementor-podcast-manager' ) );
+			$checks[ count( $checks ) - 1 ]['url'] = self::settings_field_url( 'category' );
 		} elseif ( ! in_array( $category, self::apple_categories(), true ) ) {
 			$add(
 				'warning',
@@ -100,6 +121,7 @@ final class Readiness {
 					$category
 				)
 			);
+			$checks[ count( $checks ) - 1 ]['url'] = self::settings_field_url( 'category' );
 		} else {
 			$add( 'ok', __( 'Category', 'elementor-podcast-manager' ), $category );
 		}
@@ -111,6 +133,7 @@ final class Readiness {
 		$artwork_id = (int) $settings->get( 'artwork_id' );
 		if ( $artwork_id <= 0 ) {
 			$add( 'error', __( 'Podcast artwork', 'elementor-podcast-manager' ), __( 'Upload podcast artwork in Podcast Settings. Directories require it.', 'elementor-podcast-manager' ) );
+			$checks[ count( $checks ) - 1 ]['url'] = self::settings_field_url( 'artwork_id' );
 		} else {
 			$meta   = wp_get_attachment_metadata( $artwork_id );
 			$width  = is_array( $meta ) ? (int) ( $meta['width'] ?? 0 ) : 0;
@@ -128,8 +151,10 @@ final class Readiness {
 							$height
 						)
 					);
+					$checks[ count( $checks ) - 1 ]['url'] = self::settings_field_url( 'artwork_id' );
 				} elseif ( $width !== $height ) {
 					$add( 'warning', __( 'Podcast artwork', 'elementor-podcast-manager' ), __( 'Artwork should be square.', 'elementor-podcast-manager' ) );
+					$checks[ count( $checks ) - 1 ]['url'] = self::settings_field_url( 'artwork_id' );
 				} else {
 					$add( 'ok', __( 'Podcast artwork', 'elementor-podcast-manager' ), sprintf( __( '%d×%d px', 'elementor-podcast-manager' ), $width, $height ) );
 				}
@@ -142,6 +167,7 @@ final class Readiness {
 		$episodes    = epm()->episodes->get_episodes( [ 'posts_per_page' => -1 ] );
 		$distributable = 0;
 		$seen_urls     = [];
+		Episodes::prime_attachments( $episodes );
 
 		foreach ( $episodes as $post ) {
 			$data = epm()->episodes->get_public_data( $post );
@@ -157,6 +183,7 @@ final class Readiness {
 					sprintf( __( 'Episode: %s', 'elementor-podcast-manager' ), $data['title'] ),
 					__( 'No audio attached — excluded from the feed.', 'elementor-podcast-manager' )
 				);
+				$checks[ count( $checks ) - 1 ]['url'] = get_edit_post_link( $post->ID, 'raw' );
 				continue;
 			}
 
@@ -166,6 +193,7 @@ final class Readiness {
 					sprintf( __( 'Episode: %s', 'elementor-podcast-manager' ), $data['title'] ),
 					__( 'The audio attachment is missing or not a supported audio file.', 'elementor-podcast-manager' )
 				);
+				$checks[ count( $checks ) - 1 ]['url'] = get_edit_post_link( $post->ID, 'raw' );
 				continue;
 			}
 
@@ -177,6 +205,7 @@ final class Readiness {
 					sprintf( __( 'Episode: %s', 'elementor-podcast-manager' ), $data['title'] ),
 					__( 'Audio format is for internal storage only (not MP3/M4A) — excluded from the feed.', 'elementor-podcast-manager' )
 				);
+				$checks[ count( $checks ) - 1 ]['url'] = get_edit_post_link( $post->ID, 'raw' );
 				continue;
 			}
 
@@ -198,6 +227,7 @@ final class Readiness {
 						$seen_urls[ $enclosure['url'] ]
 					)
 				);
+				$checks[ count( $checks ) - 1 ]['url'] = get_edit_post_link( $post->ID, 'raw' );
 				continue;
 			}
 			$seen_urls[ $enclosure['url'] ] = $data['title'];
@@ -207,6 +237,7 @@ final class Readiness {
 
 		if ( 0 === $distributable ) {
 			$add( 'error', __( 'Distributable episodes', 'elementor-podcast-manager' ), __( 'No episode with distribution-ready audio (MP3/M4A) is published yet.', 'elementor-podcast-manager' ) );
+			$checks[ count( $checks ) - 1 ]['url'] = admin_url( 'post-new.php?post_type=' . EpisodePostType::CPT );
 		} else {
 			$add(
 				'ok',
@@ -242,8 +273,8 @@ final class Readiness {
 	 *
 	 * @return string
 	 */
-	public static function render_html(): string {
-		$report = self::report();
+	public static function render_html( ?array $report = null ): string {
+		$report = $report ?? self::report();
 
 		$out = '<div class="epm-readiness">';
 		$out .= '<p class="epm-readiness__summary">';
@@ -260,7 +291,15 @@ final class Readiness {
 		$out .= '<ul class="epm-readiness__list">';
 		foreach ( $report['checks'] as $check ) {
 			$out .= '<li class="epm-readiness__item epm-readiness__item--' . esc_attr( $check['status'] ) . '">';
-			$out .= '<strong>' . esc_html( $check['label'] ) . ':</strong> ';
+			$out .= '<strong>';
+			if ( ! empty( $check['url'] ) ) {
+				$out .= '<a href="' . esc_url( $check['url'] ) . '">';
+			}
+			$out .= esc_html( $check['label'] );
+			if ( ! empty( $check['url'] ) ) {
+				$out .= '</a>';
+			}
+			$out .= ':</strong> ';
 			$out .= esc_html( $check['message'] );
 			$out .= '</li>';
 		}

@@ -188,6 +188,7 @@ final class Admin {
 		$latest_data  = $latest ? epm()->episodes->get_data( $latest ) : null;
 		$count        = epm()->episodes->count_published();
 		$artwork      = $settings->artwork_url( 'medium' );
+		$readiness    = Readiness::report();
 
 		require EPM_PATH . 'admin/views/dashboard.php';
 	}

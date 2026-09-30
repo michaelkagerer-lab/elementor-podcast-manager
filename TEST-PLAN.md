@@ -8,7 +8,7 @@
 
 Scope: `assets/js/epm-player.js` (rewritten), `assets/css/epm-frontend.css`
 (additions), `includes/Assets.php` (early registration + localization),
-`get_script_depends()` / `get_style_depends()` on the 10 widgets.
+`get_script_depends()` / `get_style_depends()` on the 11 widgets.
 
 ## F4 — Idempotent initialization
 
@@ -97,10 +97,27 @@ Scope: `assets/js/epm-player.js` (rewritten), `assets/css/epm-frontend.css`
 26. Zoom to 200% and 360px width: player stacks without overlap; sticky bar
     remains operable.
 
-## Known scope notes for the verifier
+## F16 — Admin capabilities and guided setup
 
-- Text-only widgets still call `\EPM\Assets::enqueue()` in `render()`
-  (pre-existing), which loads the player JS even though they no longer
-  declare it via `get_script_depends()`. Consider removing those calls in a
-  follow-up; shortcodes still need the `Assets::enqueue()` path.
-- `Renderer.php` markup was frozen for this task and not modified.
+27. With default capability filters, an administrator and an editor can open
+    Podcast → Dashboard, Episodes and Add Episode; both can create and edit an
+    episode. A role without `edit_posts` cannot access episode management.
+28. Configure `epm_cap_manage_episodes` to a dedicated primitive capability:
+    only users granted that capability can manage episodes, while normal
+    WordPress `edit_posts` checks remain unaffected.
+29. With missing podcast metadata, readiness links take podcast managers to
+    the matching field. Episode editors without settings access see actionable
+    check text without links to inaccessible settings.
+30. `[podcast_latest_cta]` renders a link and enqueues the stylesheet without
+    enqueuing `epm-player`; player and episode-list shortcodes enqueue it.
+
+## Asset lifecycle notes for the verifier
+
+- Text-only Elementor widgets call `\EPM\Assets::enqueue_style()` and
+  declare only the stylesheet dependency. Player/list/latest/chapters
+  widgets declare the player script dependency.
+- `[podcast_latest_cta]` renders only a link and loads the stylesheet without
+  the player script. Player and episode-list shortcodes still load the shared
+  playback engine.
+- The renderer markup is shared by widgets and shortcodes; changes to its
+  playback contract should be verified against the scenarios above.

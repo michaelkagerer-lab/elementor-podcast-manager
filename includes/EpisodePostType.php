@@ -42,10 +42,17 @@ final class EpisodePostType {
 		// episode operation (menus, list, editor, meta saves, uploads, REST).
 		// Defaults to edit_posts so administrators and editors keep working.
 		$manage = Capabilities::manage_episodes();
-		$caps   = [];
+		// Meta capabilities must be distinct from primitive capabilities.
+		// Mapping edit_post directly to edit_posts makes WordPress treat the
+		// primitive edit_posts check as a meta-cap check and deny it without
+		// a post ID (which hides the episode admin menu).
+		$caps = [
+			'edit_post'   => 'epm_edit_episode',
+			'read_post'   => 'epm_read_episode',
+			'delete_post' => 'epm_delete_episode',
+		];
 		foreach (
 			[
-				'edit_post', 'read_post', 'delete_post',
 				'edit_posts', 'edit_others_posts', 'edit_private_posts', 'edit_published_posts',
 				'publish_posts', 'read_private_posts',
 				'delete_posts', 'delete_others_posts', 'delete_private_posts', 'delete_published_posts',

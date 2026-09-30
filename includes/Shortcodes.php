@@ -155,7 +155,7 @@ final class Shortcodes {
 			'podcast_latest_cta'
 		);
 
-		Assets::enqueue();
+		Assets::enqueue_style();
 
 		return epm()->renderer->latest_cta(
 			[
