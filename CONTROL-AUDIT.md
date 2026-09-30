@@ -140,7 +140,9 @@ Note: excerpts follow `--epm-meta-size`; there is no separate excerpt typography
 - `includes/Elementor/Widgets/SubscribeLinksWidget.php` — icon-size/gap/hover rewired to dedicated tokens.
 - `includes/Elementor/Widgets/GuestWidget.php` — new `guest_image_size` control.
 
-## Open follow-ups (for the main agent, out of this task's file scope)
+## Follow-ups
 
-1. `admin/views/design.php` hardcodes its color field list — add an "On-accent color" field for `on_accent` (sanitize + presets already handle it).
-2. Real-environment verification still required: browser computed styles, Elementor editor registration/save/reopen, two client designs, feed + player runtime behavior.
+- `admin/views/design.php` exposes the `on_accent` token as “Text on accent”.
+- Runtime checks now cover plugin activation, Elementor widget registration,
+  admin rendering and permissions, RSS generation, and CTA asset loading; the
+  browser and device scenarios remain listed in `TEST-PLAN.md`.

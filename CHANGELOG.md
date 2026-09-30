@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- Distribution readiness primes episode media attachments in bulk and links
+  each problem to the screen where it is fixed (the podcast settings field,
+  the episode, or the hosting screen); links only appear for users who can
+  open that screen.
+- The latest-episode CTA shortcode loads its stylesheet without loading the
+  audio player JavaScript.
+- The dashboard provides guided setup links, readiness progress
+  (“x of y checks complete”), and a first-episode empty state; the design
+  token for text on the accent color is labelled “Text on accent”.
+- Episode capabilities: the same bug was fixed independently in 1.2.0 (see
+  below); the 1.2.0 fix is kept because it also guards against a filtered
+  meta capability.
+
+### Verified
+- WordPress with PHP 8.3 activates the plugin; Elementor 4.3.3 registers all
+  11 widgets; administrator/editor episode permissions and admin dashboard
+  rendering work; the plain-permalink RSS query serves a parseable feed with a
+  playable MP3 enclosure.
+- Remaining browser, audio-control, and accessibility checks are in
+  `TEST-PLAN.md`; results are recorded in `docs/VERIFICATION-UNRELEASED.md`.
+
 ## 1.2.0 — 2026-09-30
 
 Runtime-verified release. The plugin was installed in WordPress 7.1 +
@@ -128,6 +152,7 @@ Code-review repair release. All 18 review findings addressed; see
 - `urn:uuid:` GUIDs for new episodes.
 
 ### Changed
-- Minimum: WordPress 6.2+, PHP 8.1+ (as declared in the plugin header).
+- Minimum: WordPress 6.2+, PHP 8.1+ (as declared in the plugin header);
+  Elementor is needed only for widgets.
 - 11 Elementor widgets (was 10).
 - Deactivation remains non-destructive; uninstall deletion remains opt-in.

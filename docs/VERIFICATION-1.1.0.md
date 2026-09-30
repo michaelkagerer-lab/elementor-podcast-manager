@@ -18,7 +18,7 @@ possible. Nothing below is presented as a runtime result.
 - Grep audits:
   - `--epm-*` tokens: 23 consumed, each defined once at `:root`
     (CSS fallback) + `DesignSettings::output_tokens()`; 0 self-references.
-  - `add_style_source_control()`: exactly 1 per widget (10 widgets).
+  - `add_style_source_control()`: exactly 1 per widget (11 widgets).
   - `get_script_depends()`: only player/list/latest/chapters widgets;
     `get_style_depends()`: all 11 widgets.
   - No remaining `location.reload()` in admin audio flows.

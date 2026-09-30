@@ -215,6 +215,131 @@
 	max-width: 160px;
 	height: auto;
 	border-radius: 8px;
+	box-shadow: 0 10px 28px rgba(17, 24, 39, 0.12);
+}
+
+.epm-dashboard .epm-card {
+	border-color: #e2e8f0;
+	border-radius: 12px;
+	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+	padding: 24px;
+}
+
+.epm-dashboard .epm-card h2 {
+	font-size: 16px;
+	font-weight: 650;
+	letter-spacing: -0.01em;
+	margin-bottom: 8px;
+}
+
+.epm-dashboard__podcast {
+	background: linear-gradient(145deg, #fff 0%, #f8fafc 100%);
+}
+
+.epm-dashboard__podcast h2 {
+	font-size: 22px !important;
+	letter-spacing: -0.025em !important;
+}
+
+.epm-dashboard__artwork-note {
+	color: #64748b;
+	font-size: 12px;
+	margin-top: -8px;
+}
+
+.epm-dashboard__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 18px;
+}
+
+.epm-dashboard .button {
+	border-radius: 6px;
+	min-height: 34px;
+	padding: 2px 12px;
+}
+
+.epm-dashboard .button-primary {
+	background: #1d4ed8;
+	border-color: #1d4ed8;
+}
+
+.epm-dashboard .button-primary:hover,
+.epm-dashboard .button-primary:focus {
+	background: #1e40af;
+	border-color: #1e40af;
+}
+
+.epm-dashboard__readiness {
+	background: #fbfdff;
+}
+
+.epm-readiness__heading {
+	align-items: flex-start;
+	display: flex;
+	justify-content: space-between;
+	gap: 24px;
+}
+
+.epm-readiness__count {
+	align-items: baseline;
+	background: #eff6ff;
+	border: 1px solid #dbeafe;
+	border-radius: 8px;
+	color: #1d4ed8;
+	display: inline-flex;
+	flex: 0 0 auto;
+	gap: 3px;
+	padding: 6px 10px;
+}
+
+.epm-readiness__count > [aria-hidden="true"] {
+	align-items: baseline;
+	display: inline-flex;
+	gap: 3px;
+}
+
+.epm-readiness__count strong {
+	font-size: 17px;
+	font-variant-numeric: tabular-nums;
+}
+
+.epm-readiness__count strong + span {
+	color: #64748b;
+	font-size: 12px;
+}
+
+.epm-readiness__list {
+	max-height: 420px;
+}
+
+.epm-readiness__item {
+	padding: 10px 4px;
+}
+
+.epm-readiness__item strong {
+	color: #1e293b;
+}
+
+.epm-empty-state {
+	align-items: flex-start;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 14px 0 2px;
+}
+
+.epm-empty-state__icon {
+	color: #94a3b8;
+	font-size: 24px;
+	height: 24px;
+	width: 24px;
+}
+
+.epm-empty-state p {
+	color: #64748b;
+	margin: 0 0 4px;
 }
 
 .epm-dashboard__meta {
@@ -224,6 +349,21 @@
 .epm-feed-row code {
 	font-size: 13px;
 	word-break: break-all;
+}
+
+@media screen and (max-width: 782px) {
+	.epm-dashboard__grid {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 12px;
+	}
+
+	.epm-dashboard .epm-card {
+		padding: 18px;
+	}
+
+	.epm-readiness__heading {
+		gap: 12px;
+	}
 }
 
 .epm-design .epm-card {

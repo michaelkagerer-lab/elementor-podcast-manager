@@ -51,7 +51,7 @@ final class EpisodePostType {
 		// map_meta_cap, WordPress registers whatever they are mapped to as a
 		// site-wide meta capability — mapping them to "edit_posts" made every
 		// edit_posts check (posts, Elementor templates, episodes) fail for
-		// every user, administrators included.
+		// every user, administrators included, and hid the episode menu.
 		$manage = self::primitive_cap( Capabilities::manage_episodes() );
 		$caps   = [];
 		if ( 'edit_posts' !== $manage ) {

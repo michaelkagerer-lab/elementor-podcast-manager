@@ -20,6 +20,7 @@ use EPM\Categories;
 use EPM\EpisodePostType;
 use EPM\Episodes;
 use EPM\Feed;
+use EPM\PodcastSettings;
 use EPM\Readiness;
 
 final class EPM_Test_Runner {
@@ -503,6 +504,60 @@ $t->test(
 		$t->assert( false !== strpos( $labels, 'WAV only' ), 'WAV warning' );
 		$t->assert( false !== strpos( $labels, 'No Audio Yet' ), 'no-audio warning' );
 		$t->assert( $report['ready'], 'fixtures are distribution-ready' );
+	}
+);
+
+$t->test(
+	'readiness links problems to the screen that fixes them, only for users who can open it',
+	static function ( EPM_Test_Runner $t ) {
+		$stored  = get_option( PodcastSettings::OPTION );
+		$changed = is_array( $stored ) ? $stored : [];
+
+		$changed['owner_email'] = '';
+		update_option( PodcastSettings::OPTION, $changed );
+
+		$find = static function ( array $report, string $label ): ?array {
+			foreach ( $report['checks'] as $check ) {
+				if ( $label === $check['label'] ) {
+					return $check;
+				}
+			}
+			return null;
+		};
+
+		$admin = get_users(
+			[
+				'role'   => 'administrator',
+				'number' => 1,
+				'fields' => 'ID',
+			]
+		);
+		wp_set_current_user( (int) $admin[0] );
+		$check = $find( Readiness::report(), 'Owner email' );
+		$t->assert( null !== $check && 'error' === $check['status'], 'missing owner email is an error' );
+		$t->assert( false !== strpos( (string) $check['url'], 'page=epm-settings#epm-s-owner-email' ), 'admin gets the settings link' );
+		$t->assert( false !== strpos( Readiness::render_html(), 'epm-s-owner-email' ), 'link rendered' );
+
+		$editor = username_exists( 'epm_test_editor' );
+		if ( $editor ) {
+			wp_set_current_user( (int) $editor );
+			$check = $find( Readiness::report(), 'Owner email' );
+			$t->same( '', $check['url'] ?? null, 'no link to a screen the editor cannot open' );
+		}
+
+		wp_set_current_user( 0 );
+		update_option( PodcastSettings::OPTION, $stored );
+	}
+);
+
+$t->test(
+	'the latest-episode CTA shortcode loads the stylesheet but not the player script',
+	static function ( EPM_Test_Runner $t ) {
+		wp_dequeue_script( 'epm-player' );
+		wp_dequeue_style( 'epm-frontend' );
+		do_shortcode( '[podcast_latest_cta]' );
+		$t->assert( wp_style_is( 'epm-frontend', 'enqueued' ), 'stylesheet enqueued' );
+		$t->assert( ! wp_script_is( 'epm-player', 'enqueued' ), 'player script not enqueued' );
 	}
 );
 

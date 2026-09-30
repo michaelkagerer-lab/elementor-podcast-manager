@@ -124,7 +124,7 @@ $settings = epm()->settings->all();
 		<h2><?php esc_html_e( 'Artwork', 'elementor-podcast-manager' ); ?></h2>
 		<table class="form-table" role="presentation">
 			<tr>
-				<th scope="row"><?php esc_html_e( 'Podcast artwork', 'elementor-podcast-manager' ); ?></th>
+				<th scope="row" id="epm-s-artwork_id"><?php esc_html_e( 'Podcast artwork', 'elementor-podcast-manager' ); ?></th>
 				<td>
 					<?php $this->media_field( 'artwork_id', (int) $settings['artwork_id'], __( 'Choose podcast artwork', 'elementor-podcast-manager' ) ); ?>
 					<p class="description"><?php esc_html_e( 'Square image, at least 1400×1400 px recommended for podcast directories.', 'elementor-podcast-manager' ); ?></p>
