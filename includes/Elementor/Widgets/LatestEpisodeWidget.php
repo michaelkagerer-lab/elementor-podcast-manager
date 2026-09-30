@@ -157,7 +157,20 @@ final class LatestEpisodeWidget extends Widget_Base {
 		);
 
 		$this->add_style_source_control();
-		$this->add_token_color( 'latest_background', __( 'Background', 'elementor-podcast-manager' ), '--epm-latest-background', '{{WRAPPER}} .epm-latest' );
+		// A background also brings inner padding, so the content does not
+		// sit on the colored edge (Elementor prints it only when a color
+		// is set).
+		$this->add_control(
+			'latest_background',
+			[
+				'label'     => __( 'Background', 'elementor-podcast-manager' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => [
+					'{{WRAPPER}} .epm-latest' => '--epm-latest-background: {{VALUE}}; --epm-latest-padding: var(--epm-gap, 24px);',
+				],
+				'condition' => $this->custom_condition(),
+			]
+		);
 		$this->add_token_color( 'latest_text', __( 'Text Color', 'elementor-podcast-manager' ), '--epm-text', '{{WRAPPER}} .epm-latest' );
 		$this->add_token_color( 'latest_muted', __( 'Muted Text Color', 'elementor-podcast-manager' ), '--epm-text-muted', '{{WRAPPER}} .epm-latest' );
 		$this->add_token_color( 'latest_accent', __( 'Accent Color', 'elementor-podcast-manager' ), '--epm-accent', '{{WRAPPER}} .epm-latest' );

@@ -9,7 +9,7 @@
  *
  * Designed pages are never touched. Nothing is added when:
  * - "Episode pages → Add player and show notes automatically" is off
- *   (Podcast Settings), or the epm_auto_embed filter returns false;
+ *   (Podcast settings), or the epm_auto_embed filter returns false;
  * - an Elementor Pro Theme Builder single template renders the episode
  *   (the template places the podcast widgets itself);
  * - the episode itself is built with Elementor;
@@ -172,6 +172,9 @@ final class EpisodeTemplate {
 			'show_download'       => true,
 			// Copy link, copy link at the current position, embed code.
 			'show_share'          => true,
+			// Pause and seek stay at hand while reading the show notes
+			// and transcript below (hidden until something plays).
+			'sticky'              => true,
 		];
 
 		return (array) apply_filters( 'epm_auto_embed_player_args', $args, $episode );

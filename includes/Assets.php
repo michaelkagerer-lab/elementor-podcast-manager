@@ -126,7 +126,7 @@ final class Assets {
 					/* translators: %s: playback speed, e.g. 1.5× */
 					'speedChanged' => __( 'Playback speed: %s', 'elementor-podcast-manager' ),
 					/* translators: 1: elapsed time, e.g. 1:05, 2: total duration, e.g. 42:10 */
-					'seekValue'    => __( '%1$s of %2$s', 'elementor-podcast-manager' ),
+					'seekValue'    => _x( '%1$s of %2$s', 'player position', 'elementor-podcast-manager' ),
 					// Share menu feedback (announced to screen readers).
 					'linkCopied'   => __( 'Link copied', 'elementor-podcast-manager' ),
 					/* translators: %s: playback position, e.g. 12:34 */

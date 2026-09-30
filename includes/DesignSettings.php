@@ -473,6 +473,45 @@ final class DesignSettings {
 	}
 
 	/**
+	 * Extra variables for designs on a dark background.
+	 *
+	 * A white image outline and a lighter error red stay visible on dark
+	 * backgrounds. Sections that paint no surface of their own (show notes,
+	 * chapters, transcript, guest, header, row lists, subscribe links,
+	 * pagination, hero) get the design background and inner padding, so
+	 * their light text stays readable when the theme's page is light. The
+	 * values refer to --epm-background and --epm-gap: printed on :root
+	 * they resolve to the design's values, and the Design screen preview
+	 * (which sets the tokens on its canvas) resolves them the same way.
+	 *
+	 * The Design screen preview takes the same list
+	 * (Admin::design_dark_vars()), so the preview and the site cannot
+	 * drift.
+	 *
+	 * @return array<string, string> Property => value.
+	 */
+	public static function dark_vars(): array {
+		$vars = [
+			'--epm-image-outline' => 'oklch(1 0 0 / 0.1)',
+			'--epm-danger'        => '#f87171',
+		];
+
+		/**
+		 * Whether dark designs give standalone sections the design
+		 * background and padding. Sites whose pages are already dark can
+		 * turn it off, so sections line up with the rest of the content.
+		 *
+		 * @param bool $enabled Default true.
+		 */
+		if ( apply_filters( 'epm_dark_section_surface', true ) ) {
+			$vars['--epm-section-background'] = 'var(--epm-background, #ffffff)';
+			$vars['--epm-section-padding']    = 'var(--epm-gap, 24px)';
+		}
+
+		return $vars;
+	}
+
+	/**
 	 * Output the design tokens as CSS custom properties on :root.
 	 *
 	 * Printed once per request (wp_head, or wp_footer as a fallback). The
@@ -511,11 +550,8 @@ final class DesignSettings {
 			'--epm-track'         => (string) sanitize_hex_color( (string) $t['track_color'] ),
 		];
 
-		// Dark designs: white image outline and a lighter error red, so both
-		// stay visible on dark backgrounds.
 		if ( self::is_dark( (string) $t['background'] ) ) {
-			$vars['--epm-image-outline'] = 'oklch(1 0 0 / 0.1)';
-			$vars['--epm-danger']        = '#f87171';
+			$vars = array_merge( $vars, self::dark_vars() );
 		}
 
 		$css = ':root{';

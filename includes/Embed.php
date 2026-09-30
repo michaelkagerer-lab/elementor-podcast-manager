@@ -38,7 +38,9 @@ final class Embed {
 	public function init(): void {
 		// After redirect_canonical (10), before the template loader.
 		add_action( 'template_redirect', [ $this, 'maybe_render' ], 20 );
-		add_filter( 'oembed_response_data', [ $this, 'response_data' ], 10, 2 );
+		// After core's get_oembed_response_data_rich() (10), which builds
+		// the iframe HTML from its own height.
+		add_filter( 'oembed_response_data', [ $this, 'response_data' ], 11, 2 );
 	}
 
 	/**
@@ -96,8 +98,10 @@ final class Embed {
 	}
 
 	/**
-	 * oEmbed response: announce the card's height, so the embedding site
-	 * sizes the frame right before the first height message arrives.
+	 * oEmbed response: announce the card's height, and build the iframe
+	 * HTML with it, so the embedding site sizes the frame right before the
+	 * first height message arrives (and consumers that ignore the message
+	 * never keep an oversized frame).
 	 *
 	 * @param array    $data Response data.
 	 * @param \WP_Post $post Embedded post.
@@ -106,6 +110,12 @@ final class Embed {
 	public function response_data( $data, $post ) {
 		if ( is_array( $data ) && $post instanceof \WP_Post && EpisodePostType::CPT === $post->post_type ) {
 			$data['height'] = self::HEIGHT;
+			if ( isset( $data['html'] ) ) {
+				$html = get_post_embed_html( (int) ( $data['width'] ?? 600 ), self::HEIGHT, $post );
+				if ( is_string( $html ) && '' !== $html ) {
+					$data['html'] = $html;
+				}
+			}
 		}
 
 		return $data;

@@ -180,7 +180,7 @@ final class SubscribeLinksWidget extends Widget_Base {
 		);
 
 		if ( '' === $html ) {
-			$this->editor_placeholder( __( 'Add platform links under Podcast → Podcast Settings → Distribution.', 'elementor-podcast-manager' ) );
+			$this->editor_placeholder( __( 'Add platform links under Podcast → Podcast settings → Platform links.', 'elementor-podcast-manager' ) );
 			return;
 		}
 

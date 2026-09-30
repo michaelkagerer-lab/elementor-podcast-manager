@@ -29,7 +29,9 @@
  *                                the accessible name stays)
  *     [data-epm-volume]          volume range input
  *   [data-epm-card-play="{id}"]  card/row play buttons (data-epm-src, data-epm-title);
- *                                label in .epm-list-play__label (Play/Pause/Retry)
+ *                                .epm-list-play__label holds all three words
+ *                                (Play/Pause/Retry); CSS shows one from the
+ *                                button's .is-playing / .has-error class
  *   [data-epm-chapters]          chapter list (data-epm-episode-id/src/title)
  *     [data-epm-seek="{sec}"]    chapter seek buttons
  *   [data-epm-sticky]            footer sticky shell (hidden until playback);
@@ -71,7 +73,8 @@
 		seekValue: '',
 		linkCopied: '',
 		linkAtCopied: '',
-		embedCopied: ''
+		embedCopied: '',
+		startsAt: ''
 	};
 
 	var CONFIG = {
@@ -309,7 +312,9 @@
 			}
 		});
 
-		// Metadata may already be loaded (preload="metadata").
+		// Metadata may already be loaded (preload="metadata", audio on this
+		// site). Audio on another host is preload="none": the position is
+		// restored on "loaded", after the first press.
 		if (this.audio.readyState >= 1) {
 			this._restorePosition();
 		}
@@ -956,13 +961,10 @@
 			var title = btn.dataset.epmTitle || '';
 			btn.classList.toggle('is-playing', playing);
 			btn.classList.toggle('has-error', failed);
-			// The visible label is the state signal; no aria-pressed.
+			// The visible label is the state signal; no aria-pressed. The
+			// label's three words switch with the classes above (CSS).
 			btn.removeAttribute('aria-pressed');
 			setLabel(btn, 'aria-label', title ? fill(named, title) : text);
-			var label = btn.querySelector('.epm-list-play__label') || btn.querySelector('span:not([aria-hidden])');
-			if (label && text) {
-				label.textContent = text;
-			}
 		});
 	}
 
@@ -1650,7 +1652,36 @@
 		if (controller) {
 			startApplied = true;
 			controller.cue(seconds);
+			cueHint(root, controller);
 		}
+	}
+
+	/**
+	 * Name the cued position on the page player's play button ("Play
+	 * episode, Starts at 1:05") until the episode first plays.
+	 */
+	function cueHint(root, controller) {
+		var play = root.querySelector('[data-epm-play]');
+		var hint = fill(STR.startsAt, formatTime(controller.getTime()));
+		var base = play ? (play.dataset.labelPlay || STR.playEpisode) : '';
+		if (!play || !hint || !base) {
+			return;
+		}
+		play.dataset.labelPlay = base + ', ' + hint;
+		if (!controller.isPlaying()) {
+			play.setAttribute('aria-label', play.dataset.labelPlay);
+		}
+		var done = false;
+		// Subscribed after the player view, so on "play" this runs last.
+		controller.subscribe({
+			el: play,
+			onEvent: function (c, eventName) {
+				if (!done && eventName === 'play') {
+					done = true;
+					play.dataset.labelPlay = base;
+				}
+			}
+		});
 	}
 
 	/* ------------------------------------------------------------------ */

@@ -191,7 +191,7 @@ trait WidgetHelpers {
 				'type'    => Controls_Manager::SELECT,
 				'default' => 'global',
 				'options' => [
-					'global' => __( 'Use Global Podcast Styles', 'elementor-podcast-manager' ),
+					'global' => __( 'Use Podcast → Design styles', 'elementor-podcast-manager' ),
 					'custom' => __( 'Custom', 'elementor-podcast-manager' ),
 				],
 			]

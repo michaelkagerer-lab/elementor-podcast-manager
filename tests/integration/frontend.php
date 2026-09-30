@@ -1,7 +1,9 @@
 <?php
 /**
  * Integration tests for the frontend components (1.3.0): timestamp links,
- * the share menu, episode embeds, the video facade and topic filters.
+ * the share menu, episode embeds, the video facade, topic filters, audio
+ * preloading, the sticky player for lists, row lists and the section
+ * surface of dark designs.
  * Executed inside WordPress after the fixtures were seeded:
  *
  *   wp eval-file tests/integration/frontend.php
@@ -16,6 +18,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use EPM\Assets;
+use EPM\DesignSettings;
 use EPM\Embed;
 use EPM\EpisodePostType;
 use EPM\Episodes;
@@ -229,6 +233,19 @@ $t->test(
 );
 
 $t->test(
+	'the oEmbed iframe HTML has the announced height, not the WordPress default',
+	static function ( EPM_Test_Runner $t ) use ( $fx ) {
+		$data = get_oembed_response_data( $fx['ep1'], 600 );
+		$t->same( Embed::HEIGHT, (int) $data['height'], 'height' );
+		$t->assert( (bool) preg_match( '/<iframe [^>]*width="600" height="' . Embed::HEIGHT . '"/', (string) $data['html'] ), 'iframe height: ' . substr( (string) $data['html'], 0, 300 ) );
+		$t->assert( false === strpos( (string) $data['html'], 'height="338"' ), 'no 338px frame' );
+
+		$page = get_oembed_response_data( $fx['shortcodes_page'], 600 );
+		$t->assert( Embed::HEIGHT !== (int) $page['height'] && false !== strpos( (string) $page['html'], 'height="' . (int) $page['height'] . '"' ), 'pages keep the WordPress card' );
+	}
+);
+
+$t->test(
 	'the embed document is a playable player card with only podcast assets',
 	static function ( EPM_Test_Runner $t ) use ( $fx ) {
 		$ep1 = epm()->episodes->get_public_data( $fx['ep1'] );
@@ -414,6 +431,172 @@ $t->test(
 	}
 );
 
+WP_CLI::log( 'Players and lists' );
+
+$t->test(
+	'audio on another host is not requested before play (preload="none")',
+	static function ( EPM_Test_Runner $t ) use ( $fx ) {
+		$ep      = epm()->episodes->get_public_data( $fx['ep1'] );
+		$preload = static function ( array $episode ): string {
+			return preg_match( '/<audio preload="([^"]*)" src="/', epm()->renderer->player( $episode ), $m ) ? $m[1] : '';
+		};
+
+		$t->same( 'metadata', $preload( $ep ), 'Media Library file on this site' );
+		$host = (string) wp_parse_url( home_url(), PHP_URL_HOST );
+		$t->same( 'metadata', $preload( array_merge( $ep, [ 'audio_url' => str_replace( '//' . $host, '//' . strtoupper( $host ), (string) $ep['audio_url'] ) ] ) ), 'host compared case-insensitively' );
+		$t->same( 'metadata', $preload( array_merge( $ep, [ 'audio_url' => '/wp-content/uploads/ep1.mp3' ] ) ), 'relative address' );
+		foreach ( [ 'https://dts.podtrac.com/redirect.mp3/example.com/ep1.mp3', 'https://anchor.fm/s/1/podcast/play/2/ep1.mp3', 'https://cdn.example.org/wp-content/uploads/ep1.mp3' ] as $url ) {
+			$t->same( 'none', $preload( array_merge( $ep, [ 'audio_url' => $url ] ) ), $url );
+		}
+
+		$auto  = static function () {
+			return 'auto';
+		};
+		$bogus = static function () {
+			return 'eager" onload="x';
+		};
+		add_filter( 'epm_player_preload', $auto );
+		$t->same( 'auto', $preload( $ep ), 'filterable' );
+		remove_filter( 'epm_player_preload', $auto );
+		add_filter( 'epm_player_preload', $bogus );
+		$t->same( 'none', $preload( $ep ), 'unknown filter values fall back to none' );
+		remove_filter( 'epm_player_preload', $bogus );
+	}
+);
+
+$t->test(
+	'list play buttons, chapter lists and the episode page bring the sticky player',
+	static function ( EPM_Test_Runner $t ) use ( $fx ) {
+		$flag = new ReflectionProperty( Assets::class, 'sticky_requested' );
+		$flag->setAccessible( true );
+		$saved    = $flag->getValue();
+		$renderer = epm()->renderer;
+		$ep1      = epm()->episodes->get_public_data( $fx['ep1'] );
+		$requests = static function ( callable $render ) use ( $flag ): bool {
+			$flag->setValue( null, false );
+			$render();
+			return (bool) $flag->getValue();
+		};
+		$args     = [];
+		$capture  = static function ( $player_args ) use ( &$args ) {
+			$args = $player_args;
+			return $player_args;
+		};
+
+		try {
+			$t->assert( ! $requests( static fn() => $renderer->player( $ep1 ) ), 'a player keeps the opt-in' );
+			$t->assert( $requests( static fn() => $renderer->player( $ep1, [ 'sticky' => true ] ) ), 'a sticky player' );
+			$t->assert( ! $requests( static fn() => $renderer->player( $ep1, [ 'show_chapters_link' => true ] ) ), 'chapters inside a player follow the player' );
+			$t->assert( $requests( static fn() => $renderer->episode_row( $ep1 ) ), 'row play button' );
+			$t->assert( $requests( static fn() => $renderer->episode_card( $ep1 ) ), 'card play button' );
+			$t->assert( $requests( static fn() => $renderer->chapters( $ep1 ) ), 'chapter list without a player' );
+			$t->assert( $requests( static fn() => do_shortcode( '[podcast_chapters id="' . $fx['ep1'] . '"]' ) ), 'chapters shortcode' );
+
+			add_filter( 'epm_auto_embed_player_args', $capture );
+			$page = $requests(
+				static fn() => epm_test_as_episode_page(
+					(int) $fx['ep2'],
+					static fn() => ( new EpisodeTemplate() )->filter_content( '<p>x</p>' )
+				)
+			);
+			$t->assert( $page && true === ( $args['sticky'] ?? null ), 'automatic episode page player is sticky' );
+
+			add_filter( 'epm_sticky_player_for_lists', '__return_false' );
+			$t->assert( ! $requests( static fn() => $renderer->episode_row( $ep1 ) ), 'filter: rows opt out' );
+			$t->assert( ! $requests( static fn() => $renderer->chapters( $ep1 ) ), 'filter: chapters opt out' );
+		} finally {
+			remove_filter( 'epm_auto_embed_player_args', $capture );
+			remove_filter( 'epm_sticky_player_for_lists', '__return_false' );
+			$flag->setValue( null, $saved );
+		}
+	}
+);
+
+$t->test(
+	'list play buttons carry all three labels in one cell, so the width never changes',
+	static function ( EPM_Test_Runner $t ) use ( $fx ) {
+		$ep1  = epm()->episodes->get_public_data( $fx['ep1'] );
+		$html = epm()->renderer->list_play_button( $ep1, 'epm-episode-row__play' );
+		$t->assert( (bool) preg_match( '#<span class="epm-list-play__label"><span class="epm-list-play__text--play">Play</span><span class="epm-list-play__text--pause" aria-hidden="true">Pause</span><span class="epm-list-play__text--retry" aria-hidden="true">Retry</span></span></button>$#', $html ), $html );
+		$t->assert( false !== strpos( $html, 'aria-label="Play Episode One: Hello' ), 'the name carries the state' );
+	}
+);
+
+$t->test(
+	'row lists reserve the number column only when a listed episode has a number',
+	static function ( EPM_Test_Runner $t ) use ( $fx ) {
+		$renderer = epm()->renderer;
+		$none     = [ get_post( $fx['wav'] ), get_post( $fx['no_audio'] ) ];
+		$mixed    = [ get_post( $fx['wav'] ), get_post( $fx['ep1'] ) ];
+		$numbered = static function ( string $html ): bool {
+			return false !== strpos( $html, 'epm-episode-list--numbered' );
+		};
+
+		$t->assert( ! $numbered( $renderer->episode_list( $none, [ 'layout' => 'list' ] ) ), 'no numbers: no column' );
+		$t->assert( ! $numbered( $renderer->episode_list( $none, [ 'layout' => 'editorial-rows' ] ) ), 'no numbers: editorial rows' );
+		$t->assert( $numbered( $renderer->episode_list( $mixed, [ 'layout' => 'list' ] ) ), 'one number: the column is kept for every row' );
+		$t->assert( $numbered( $renderer->episode_list( $mixed, [ 'layout' => 'editorial-rows' ] ) ), 'editorial rows' );
+		$t->assert( ! $numbered( $renderer->episode_list( $mixed, [ 'layout' => 'list', 'show_episode_number' => false ] ) ), 'numbers switched off' );
+		$t->assert( ! $numbered( $renderer->episode_list( $mixed, [ 'layout' => 'cards' ] ) ), 'cards' );
+		$t->same( 2, substr_count( $renderer->episode_list( $mixed, [ 'layout' => 'list' ] ), '<article class="epm-episode-row' ), 'every episode is listed' );
+	}
+);
+
+$t->test(
+	'dark designs give standalone sections the design background and padding',
+	static function ( EPM_Test_Runner $t ) {
+		$tokens = static function ( string $preset ): string {
+			$values = array_merge( DesignSettings::defaults(), (array) ( epm()->presets->get( $preset )['tokens'] ?? [] ) );
+			$filter = static function () use ( $values ) {
+				return $values;
+			};
+			add_filter( 'pre_option_' . DesignSettings::OPTION, $filter );
+			ob_start();
+			( new DesignSettings() )->output_tokens();
+			$css = html_entity_decode( (string) ob_get_clean(), ENT_QUOTES );
+			remove_filter( 'pre_option_' . DesignSettings::OPTION, $filter );
+			return $css;
+		};
+
+		foreach ( [ 'night-studio', 'midnight', 'business-tuning' ] as $dark ) {
+			$css = $tokens( $dark );
+			$t->assert( false !== strpos( $css, '--epm-section-background:var(--epm-background' ), $dark . ': section background' );
+			$t->assert( false !== strpos( $css, '--epm-section-padding:var(--epm-gap' ), $dark . ': section padding' );
+		}
+		$t->assert( false === strpos( $tokens( 'neutral' ), '--epm-section-' ), 'light designs set nothing' );
+
+		add_filter( 'epm_dark_section_surface', '__return_false' );
+		try {
+			$css = $tokens( 'night-studio' );
+			$t->assert( false === strpos( $css, '--epm-section-' ), 'sites with dark pages can opt out' );
+			$t->assert( false !== strpos( $css, '--epm-image-outline' ), 'the other dark tokens stay' );
+		} finally {
+			remove_filter( 'epm_dark_section_surface', '__return_false' );
+		}
+
+		// Without a :root value the hero falls through to the section surface.
+		$sheet = (string) file_get_contents( EPM_PATH . 'assets/css/epm-frontend.css' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		$t->assert( (bool) preg_match( '/:where\(:root\) \{([^}]*)\}/', $sheet, $root ), ':root fallback block found' );
+		$t->assert( false === strpos( $root[1] ?? '', '--epm-hero-background' ) && false === strpos( $root[1] ?? '', '--epm-latest-background' ), 'no :root value for the widget backgrounds' );
+	}
+);
+
+if ( defined( 'ELEMENTOR_VERSION' ) ) {
+	$t->test(
+		'the hero and latest-episode Background controls also set inner padding',
+		static function ( EPM_Test_Runner $t ) {
+			$types  = \Elementor\Plugin::$instance->widgets_manager->get_widget_types();
+			// By ID: outside the editor Elementor keeps style controls apart.
+			$hero   = (array) $types['epm-podcast-hero']->get_controls( 'hero_background' );
+			$latest = (array) $types['epm-latest-episode']->get_controls( 'latest_background' );
+			$t->same( '--epm-hero-background: {{VALUE}}; --epm-hero-padding: calc(var(--epm-gap, 24px) * 1.5);', $hero['selectors']['{{WRAPPER}} .epm-podcast-hero'] ?? null, 'hero' );
+			$t->same( '--epm-latest-background: {{VALUE}}; --epm-latest-padding: var(--epm-gap, 24px);', $latest['selectors']['{{WRAPPER}} .epm-latest'] ?? null, 'latest episode' );
+			$t->same( [ 'style_source' => 'custom' ], $hero['condition'] ?? null, 'hero: Custom style source only' );
+			$t->same( [ 'style_source' => 'custom' ], $latest['condition'] ?? null, 'latest: Custom style source only' );
+		}
+	);
+}
+
 WP_CLI::log( 'Strings' );
 
 $t->test(
@@ -428,6 +611,7 @@ $t->test(
 		}
 		$t->assert( count( $values ) >= 10, 'keys parsed' );
 		$t->same( [], array_filter( $values ), 'no English fallbacks in the script' );
+		$t->assert( array_key_exists( 'startsAt', $values ), 'the ?t= cue string is used by the engine' );
 
 		$data = (string) wp_scripts()->get_data( 'epm-player', 'data' );
 		foreach ( array_keys( $values ) as $key ) {
