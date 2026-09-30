@@ -286,6 +286,7 @@ final class Readiness {
 			$out .= '<span class="epm-status epm-status--missing">' . esc_html__( 'Not ready', 'elementor-podcast-manager' ) . '</span>';
 		}
 		if ( $report['warnings'] > 0 ) {
+			/* translators: %d: number of warnings */
 			$out .= ' <span class="epm-readiness__warnings">' . esc_html( sprintf( _n( '%d warning', '%d warnings', $report['warnings'], 'elementor-podcast-manager' ), $report['warnings'] ) ) . '</span>';
 		}
 		$out .= '</p>';

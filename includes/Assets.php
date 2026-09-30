@@ -105,6 +105,7 @@ final class Assets {
 					'playPause'    => __( 'Play or pause', 'elementor-podcast-manager' ),
 					'audioError'   => __( 'This audio could not be loaded. Check your connection and try again.', 'elementor-podcast-manager' ),
 					'retry'        => __( 'Retry', 'elementor-podcast-manager' ),
+					/* translators: %s: playback speed, e.g. 1.5× */
 					'speedChanged' => __( 'Playback speed: %s', 'elementor-podcast-manager' ),
 				],
 			]

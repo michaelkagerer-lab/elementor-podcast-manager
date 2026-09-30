@@ -125,12 +125,16 @@ final class Admin {
 	 * @return array
 	 */
 	public function bulk_updated_messages( array $bulk_messages, array $bulk_counts ): array {
-		/* translators: %s: number of episodes */
 		$bulk_messages[ EpisodePostType::CPT ] = [
+			/* translators: %s: number of episodes */
 			'updated'   => _n( '%s episode updated.', '%s episodes updated.', $bulk_counts['updated'], 'elementor-podcast-manager' ),
+			/* translators: %s: number of episodes */
 			'locked'    => _n( '%s episode not updated, somebody is editing it.', '%s episodes not updated, somebody is editing them.', $bulk_counts['locked'], 'elementor-podcast-manager' ),
+			/* translators: %s: number of episodes */
 			'deleted'   => _n( '%s episode permanently deleted.', '%s episodes permanently deleted.', $bulk_counts['deleted'], 'elementor-podcast-manager' ),
+			/* translators: %s: number of episodes */
 			'trashed'   => _n( '%s episode moved to the Trash.', '%s episodes moved to the Trash.', $bulk_counts['trashed'], 'elementor-podcast-manager' ),
+			/* translators: %s: number of episodes */
 			'untrashed' => _n( '%s episode restored from the Trash.', '%s episodes restored from the Trash.', $bulk_counts['untrashed'], 'elementor-podcast-manager' ),
 		];
 

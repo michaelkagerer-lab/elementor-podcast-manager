@@ -239,6 +239,14 @@ tests/                  test suites (see tests/README.md)
 
 It fails on any PHP notice from the plugin. CI runs it on PHP 8.1–8.4. See [tests/README.md](tests/README.md).
 
+## Translations
+
+All UI strings use the `elementor-podcast-manager` text domain. The template is `languages/elementor-podcast-manager.pot`; place `elementor-podcast-manager-{locale}.po/.mo` files in `languages/` (or `wp-content/languages/plugins/`). Regenerate the template after changing strings:
+
+```bash
+wp i18n make-pot . languages/elementor-podcast-manager.pot --exclude=tests,docs
+```
+
 ## Uninstall
 
 Deactivation only flushes rewrite rules. Data is deleted on uninstall only when `EPM_DELETE_DATA` is defined or `epm_delete_data_on_uninstall` returns true.

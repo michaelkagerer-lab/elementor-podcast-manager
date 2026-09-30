@@ -198,6 +198,7 @@ final class Renderer {
 
 			case 'season':
 				$season = (string) ( $episode['season_number'] ?? '' );
+				/* translators: %s: season number */
 				return '' === $season ? '' : esc_html( sprintf( __( 'Season %s', 'elementor-podcast-manager' ), $season ) );
 
 			case 'date':
@@ -315,6 +316,7 @@ final class Renderer {
 
 		foreach ( $chapters as $chapter ) {
 			$out .= '<li class="epm-chapters__item">';
+			/* translators: %s: chapter timestamp, e.g. 12:30 */
 			$out .= '<button type="button" class="epm-chapters__time" data-epm-seek="' . esc_attr( (string) $chapter['seconds'] ) . '" aria-label="' . esc_attr( sprintf( __( 'Skip to %s', 'elementor-podcast-manager' ), $chapter['time'] ) ) . '">';
 			$out .= esc_html( $chapter['time'] );
 			$out .= '</button>';
