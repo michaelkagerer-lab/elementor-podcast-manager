@@ -1,28 +1,174 @@
 # Changelog
 
-## Unreleased
+## 1.3.0 — 2026-09-30
+
+Hosting release. The plugin can host a show on the website, as before,
+or act as the website of a show hosted at Spotify for Creators or any
+other host, and it can move a show in either direction. Guides:
+`docs/HOSTING.md`, `docs/DISTRIBUTION.md`; design system: `DESIGN.md`;
+upgrade notes: `MIGRATION.md`.
+
+### Added
+- Hosting modes (Podcast → Hosting & import, option `epm_hosting`).
+  *This website* publishes the feed as before. *Another podcast host*
+  mirrors the host's episodes into WordPress, keeps them in sync and
+  answers `/podcast/feed/` and every other feed address of the site with
+  a `301` to the host's feed (on by default, can be turned off).
+- Host registry (`includes/Providers.php`, filter `epm_hosting_providers`):
+  28 hosts plus "another WordPress site" and "another host", recognized by
+  feed address and `<generator>`, with where-to-find-the-feed help and
+  redirect instructions (Spotify for Creators' steps as Spotify documents
+  them).
+- Feed import (Hosting & import, setup assistant, WP-CLI): accepts a feed
+  address, an Apple Podcasts show link (iTunes lookup API) or a web page
+  with `<link rel="alternate">`; recognizes bot-protection pages and
+  Spotify show links; tolerant RSS parser (`includes/FeedParser.php`) for
+  feeds from any host; paged feeds via `atom:link rel="next"` (up to 50
+  pages, `epm_import_max_pages`); 50 MB response limit
+  (`epm_feed_max_bytes`); batched AJAX job continued by WP-Cron
+  (`epm_import_continue`); one import or sync at a time.
+- Import mapping: GUIDs kept as the source lists them, duplicate GUIDs
+  skipped after the first, show notes (plain text gets paragraphs and
+  links), numbers, types, explicit flag, durations, audio URL/type/length,
+  episode image, first `podcast:person` guest; Podcasting 2.0 JSON and
+  Podlove chapters and HTML/WebVTT/SRT/text transcripts converted into the
+  plugin's fields; optional copy of audio and images into the Media
+  Library (also for episodes mirrored earlier); optional filling of empty
+  Podcast Settings from the channel. Future-dated items are scheduled;
+  undated and `itunes:block` items become drafts.
+- Local edits win: per-field hashes of what the importer wrote; a sync
+  only overwrites fields that were not edited on the site.
+- Sync (cron `epm_sync_feed`, hourly, twice daily or daily; *Sync now*;
+  `wp podcast sync`): conditional GET with the stored ETag/Last-Modified;
+  up to 25 new episodes per run (`epm_sync_batch_limit`) with a follow-up
+  run; an empty feed never changes anything, and a scheduled run stops
+  when a feed of 10 or more episodes suddenly lists fewer than half;
+  follows `itunes:new-feed-url` and 301/308 moves (never https → http);
+  optional unpublishing of episodes the host removed (within the feed's
+  time window, after one day); backoff up to 24 hours after failures and
+  an admin notice after three.
+- Moving a show here: locked feeds (`podcast:locked`) need ownership
+  confirmation; the show's `podcast:guid` is adopted (or derived from the
+  old feed address); when the move import finishes, the feed episode limit
+  is lifted if needed, *This show moved here* is turned on (the feed then
+  carries `itunes:new-feed-url` with its own address) and the feed is
+  locked.
+- External audio: episodes can use an audio URL (`_epm_audio_url`,
+  `_epm_audio_type`, `_epm_audio_length`, REST-writable) when no Media
+  Library file is attached. Players, the feed, "latest episode"
+  (`Episodes::audio_meta_query()`) and the readiness report use it. The
+  host's episode image (`_epm_artwork_url`) is shown on the site and used
+  as feed item artwork when no Media Library image exists.
+- Setup assistant (Podcast → Setup assistant) with three paths: host on
+  this website, move my podcast here, keep my current host. Opens once
+  after activation on a site without a podcast; a dismissible notice on
+  the plugin's screens until the podcast is set up; optional podcast page
+  built from shortcodes.
+- Distribution center (Podcast → Distribution, `includes/Directories.php`,
+  filter `epm_directories`): submission steps, requirements and progress
+  for Apple Podcasts, Spotify, YouTube & YouTube Music, Amazon Music &
+  Audible, Podcast Index, iHeartRadio, Pocket Casts, Deezer, Podcast
+  Addict, Pandora & SiriusXM, TuneIn, podcast.de, Listen Notes, and the
+  apps that list a show automatically (Overcast, Castro, Castbox,
+  Goodpods, Player FM, Fountain). Listing links become platform links.
+  *Test feed and audio delivery* checks the feed, HTTPS, `HEAD` and
+  byte-range answers.
+- Download statistics for self-hosted feeds: OP3, Podtrac or another
+  prefix service in front of every enclosure URL (`epm_stats_services`).
+- Feed: `podcast:medium`, `podcast:person` (host from Podcast Settings,
+  guest per episode), `podcast:trailer` for trailer episodes.
+- Podcast Index notification (`hub/pubnotify`) one minute after a
+  self-hosted episode is published on a site that allows search engines
+  (cron `epm_ping_podcast_index`, filter `epm_ping_podcast_index`).
+- Structured data: schema.org `PodcastEpisode` JSON-LD and `og:audio` on
+  episode pages, `PodcastSeries` on the episode archive (filters
+  `epm_structured_data`, `epm_structured_data_series`,
+  `epm_structured_data_episode`).
+- WP-CLI: `wp podcast import <feed> [--move] [--copy-media] [--draft]
+  [--show-details] [--owner]`, `wp podcast sync [--force]`,
+  `wp podcast status`.
+- Platform glyphs for subscribe links and the Distribution screen
+  (`includes/BrandIcons.php`, Simple Icons 16.33.0, CC0-1.0; brands that
+  asked Simple Icons for removal get a neutral icon). Link service
+  registry with URL detection (`epm_link_services`); links saved as
+  "Custom" are matched to a known service.
+- Readiness report for external mode (host feed, sync status, redirect)
+  and for audio URLs (HTTPS, unknown size).
+- Design options (Podcast → Design) and tokens: button shape
+  (`--epm-button-radius`: rounded 8px, pill 999px, square 2px), font
+  family (`--epm-font`: inherit, system, serif, rounded, mono), shadow
+  (`--epm-shadow`: none, soft, lifted) and timeline track color
+  (`--epm-track`); easing tokens `--epm-ease-out`, `--epm-ease-in-out`,
+  `--epm-ease-drawer`; dark designs get `--epm-danger` and
+  `--epm-image-outline` variants.
+- Presets `clean-light`, `soft-voice`, `warm-paper`, `ink-mono`,
+  `night-studio` and `midnight`, derived from the DESIGN.md analyses in
+  the awesome-design-md collection (MIT): values only, generic names.
+  Every preset meets text ≥ 7:1, muted ≥ 4.5:1, on-accent ≥ 4.5:1 and
+  track ≥ 3:1 (measured).
+- `DESIGN.md`: the plugin's design system in the awesome-design-md
+  format, with an agent guide for new components and presets.
+- Admin component library `admin/css/epm-app.css` for the new screens:
+  native wp-admin look (admin color scheme, core buttons), motion only
+  under `prefers-reduced-motion: no-preference`.
+- Podcast Settings → Feed status: *This show moved here from another
+  host*.
+
+### Changed
+- `epm_distribution_audio_mimes` also distributes `audio/aac`,
+  `video/mp4`, `video/x-m4v` and `video/quicktime` by default, so imported
+  shows keep every episode. Upload types are unchanged.
+- The feed discovery `<link>`, the RSS subscribe link and the structured
+  data point to the public feed (the host's feed in external mode).
+- Platform link service choices come from the link registry (more
+  services); the 1.2.0 keys stay valid.
+- Deactivation also clears the plugin's scheduled events. Uninstall
+  always removes the scheduled events, temporary import files, the import
+  job and lock and the activation flag; opt-in data deletion also removes
+  `epm_hosting`, `epm_sync_state`, `epm_setup` and `epm_distribution`.
+- Text buttons follow the button shape token. Designs saved before 1.3.0
+  keep pill-shaped buttons; new designs default to rounded.
+- Requirements unchanged: PHP 8.1+, WordPress 6.2+. Import and sync also
+  need outbound HTTPS requests, a writable uploads folder and WP-Cron.
 
 ### Fixed
-- Distribution readiness primes episode media attachments in bulk and links
-  each problem to the screen where it is fixed (the podcast settings field,
-  the episode, or the hosting screen); links only appear for users who can
-  open that screen.
+- Distribution readiness primes episode media attachments in bulk; each
+  problem links to the screen where it is fixed (the podcast settings
+  field, the episode, or the hosting screen), and links only appear for
+  users who can open that screen.
 - The latest-episode CTA shortcode loads its stylesheet without loading the
   audio player JavaScript.
-- The dashboard provides guided setup links, readiness progress
-  (“x of y checks complete”), and a first-episode empty state; the design
-  token for text on the accent color is labelled “Text on accent”.
-- Episode capabilities: the same bug was fixed independently in 1.2.0 (see
-  below); the 1.2.0 fix is kept because it also guards against a filtered
+- Dashboard: readiness progress (“x of y checks complete”) and a
+  first-episode empty state; the design token for text on the accent color
+  is labelled “Text on accent”.
+- Episode capabilities: the same bug was fixed independently on the `work`
+  branch; the 1.2.0 fix is kept because it also guards against a filtered
   meta capability.
 
 ### Verified
 - WordPress with PHP 8.3 activates the plugin; Elementor 4.3.3 registers all
   11 widgets; administrator/editor episode permissions and admin dashboard
   rendering work; the plain-permalink RSS query serves a parseable feed with a
-  playable MP3 enclosure.
-- Remaining browser, audio-control, and accessibility checks are in
-  `TEST-PLAN.md`; results are recorded in `docs/VERIFICATION-UNRELEASED.md`.
+  playable MP3 enclosure (`docs/VERIFICATION-UNRELEASED.md`).
+
+### Security
+- Feeds, pages, linked chapter/transcript files and media downloads go
+  through `wp_safe_remote_get` / `download_url` (no requests to private
+  networks), with timeouts and size limits. Only the delivery check
+  requests the site's own feed and audio with loopback allowed.
+- XML is parsed with network access disabled (`LIBXML_NONET`) and without
+  loading external entities or DTDs.
+- Imported HTML (show notes, descriptions, transcripts) always passes
+  `wp_kses_post`, also for administrators with `unfiltered_html` and in
+  cron; titles and plain fields are sanitized as text.
+- Every import, sync, setup and distribution endpoint checks a nonce and
+  the podcast capability (`epm_cap_manage_podcast`).
+- The import's temporary feed file has a random name in
+  `uploads/epm-import/` with `index.php` and a deny-all `.htaccess`, and
+  is deleted when the import ends; only files inside that folder are
+  ever deleted.
+- Locked feeds are not moved without the owner's confirmation; the docs
+  warn against importing private or paid feeds.
 
 ## 1.2.0 — 2026-09-30
 
