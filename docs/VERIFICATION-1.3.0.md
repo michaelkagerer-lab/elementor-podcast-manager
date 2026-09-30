@@ -6,11 +6,10 @@ a real service.
 
 ## Code under test
 
-Branch `claude/festive-knuth-jsma3u` at `89c0474` plus the uncommitted
-fixes of the final 1.3.0 review round (47 code and test files, see the "Fixed" and
-"Security" entries of the 1.3.0 changelog). The code was not changed
-during the run (checked with a hash of the working-tree diff before and
-after).
+Branch `claude/festive-knuth-jsma3u` with the fixes of the final 1.3.0
+review round (commits `0eca591`, `ab683ab`, `a2dee7e`; see the "Fixed"
+and "Security" entries of the 1.3.0 changelog). The code was not changed
+during the run.
 
 ## Environment
 
@@ -29,11 +28,11 @@ after).
   24 hosts and publishing tools, bot-protection pages and synthetic edge
   cases. No request left the machine.
 
-Command, run once on a freshly provisioned site after the review fixes
-were done:
+Command, run on a freshly provisioned site after the review fixes were
+done:
 
 ```bash
-WP_DIR=/tmp/epm-wp-docs WP_PORT=8904 tests/run-all.sh
+WP_DIR=/tmp/epm-wp-lead WP_PORT=8910 tests/run-all.sh
 ```
 
 ## Results
@@ -42,34 +41,28 @@ WP_DIR=/tmp/epm-wp-docs WP_PORT=8904 tests/run-all.sh
 |---|---|
 | Lint | passed (`php -l` on every PHP file, `node --check` on every script) |
 | `integration/run.php` | 167 assertions passed, 0 failed (23 tests) |
-| `integration/admin.php` | 320 assertions passed, **3 failed** (29 tests, 1 failed — see below) |
+| `integration/admin.php` | 331 assertions passed, 0 failed (29 tests) |
 | `integration/frontend.php` | 204 assertions passed, 0 failed (21 tests) |
-| `integration/hosting.php` | 1119 assertions passed, 0 failed (74 tests) |
+| `integration/hosting.php` | 1123 assertions passed, 0 failed (75 tests) |
 | `http/run.sh` | 42 checks passed, 0 failed |
 | `e2e/run.mjs` | 40 checks passed (player 13, Elementor editor 6, episode admin 9, Elementor page and sticky player 7, design presets/export/import 5) |
 | `e2e/admin.mjs` | 68 checks passed (Design screen 36, episode editor 27, episode list 5) |
-| `e2e/frontend.mjs` | 86 checks passed (share menu 19, timestamp links 14, embed 11, card buttons and sticky bar 7, video facade 9, sticky bar for lists and chapters 6, remote audio 4, design system on the page 16) |
+| `e2e/frontend.mjs` | 87 checks passed (share menu 19, timestamp links 14, embed 11, card buttons and sticky bar 7, video facade 9, sticky bar for lists and chapters 6, remote audio 4, design system on the page 17) |
 | `e2e/setup.mjs` | 120 checks passed (activation 6, keep the current host by keyboard 40, host here at 390 px 19, move a locked show 22, Hosting & import 21, Distribution 12) |
 | PHP notices from the plugin | none |
-| **Overall** | **failed**: `integration/admin.php` |
+| **Overall** | **passed** (exit code 0) |
 
-Totals: 1813 integration assertions (1810 passed), 42 HTTP checks, 314
-browser checks.
+Totals: 1825 integration assertions, 42 HTTP checks, 315 browser checks,
+all passed. The only PHP notices in the log come from Elementor itself
+(a PHP 8.4 deprecation in `atomic-global-styles.php`).
 
-### The failure
+### Fixed during verification
 
-`integration/admin.php` → "the Design preview table produces the same
-variables as the site for every preset" fails for the three dark presets
-(`business-tuning`, `night-studio`, `midnight`). The site prints
-`--epm-section-background` and `--epm-section-padding` for dark designs
-(`DesignSettings::dark_vars()`, added in the final review round), but the
-Design screen's preview table still uses its own list
-(`Admin::design_dark_vars()`: image outline and danger color only). The
-site's output is right; the Design screen preview of a dark preset lacks
-the section surface and padding on its episode rows and subscribe links.
-Fix: `Admin::design_dark_vars()` should return
-`DesignSettings::dark_vars()`, as the docblock of `dark_vars()` already
-says. The fix and a re-run of `integration/admin.php` are open.
+A first run found that the Design screen's preview of the three dark
+presets (`business-tuning`, `night-studio`, `midnight`) lacked the section
+surface the site prints: `Admin::design_dark_vars()` kept its own list.
+It now returns `DesignSettings::dark_vars()`, and `integration/admin.php`
+checks every preset against the site's output.
 
 ### Continuous integration
 
@@ -77,8 +70,8 @@ GitHub Actions (`.github/workflows/tests.yml`: lint on PHP 8.1–8.4,
 integration and HTTP on PHP 8.1 and 8.4, browser suites) passed on
 `89c0474` (run 12). The run before (`07cdfc0`, run 11) failed on PHP 8.1
 because whether an SRT upload was accepted depended on the server's file
-type detection; `89c0474` fixed that. The uncommitted review fixes have
-not run in CI yet.
+type detection; `89c0474` fixed that. The review-round commits run in CI
+on the pull request.
 
 ## What was verified, and how
 
@@ -92,12 +85,12 @@ not run in CI yet.
 | Import: GUIDs byte-for-byte (`%`-escapes), dates with wrong weekdays, chapters, transcripts, transcript files kept or copied, drafts, duplicates, re-import, show details, `podcast:guid` on a move, lock ownership and renewal, cancelling, audio that could not be copied | `integration/hosting.php`, `e2e/setup.mjs` (setup assistant and Hosting & import with progress and the not-copied list) |
 | Sync: 304s, local edits kept and editor saves ignored, deleted episodes, truncated/empty feeds, removed episodes, feed moves, no https → http, a redirect to this site switching to *This website*, back-off, schedule | `integration/hosting.php` |
 | External mode: 301 from every feed address, blog feed untouched, discovery link, 200 again when off or self-hosted; the mode needs a feed address | HTTP, `integration/hosting.php`, `e2e/setup.mjs` |
-| Moving a mirrored show here (confirmation, switch to *This website*) | `e2e/setup.mjs` |
+| Moving a mirrored show here (confirmation, switch to *This website*); readiness warning while imported audio still loads from the old host | `e2e/setup.mjs`, `integration/hosting.php` |
 | Setup assistant: three paths, keyboard only, 390 px, inline errors tied to fields, focus on each step, locked-feed consent | `e2e/setup.mjs` |
 | Distribution: progress, live count, primary button, listing link → subscribe button, field errors | `e2e/setup.mjs`, `integration/hosting.php` |
 | Transcript files: SRT type on every server, aliases, editor picker filling the text, feed tags with `rel="captions"` | `integration/admin.php`, `integration/hosting.php` |
 | Topics: taxonomy, capabilities (contributors assign, editors manage), menu, filters, chips | `integration/admin.php`, `integration/frontend.php` |
-| Editor: next number, paste chapters (add, replace, half-filled rows), video help, audio and transcript files the user may read, episode search | `integration/admin.php`, `e2e/admin.mjs` |
+| Editor: next number, paste chapters (add, replace, half-filled rows), video help, audio and transcript files the user may read (editor save, AJAX and REST `meta`), episode search | `integration/admin.php`, `e2e/admin.mjs` |
 | Quick Edit and Bulk Edit (*Number from*), default hidden columns | `integration/admin.php`, `e2e/admin.mjs` |
 | Design screen: presets, dialog, live preview, contrast check (eight pairs, every preset passes), unsaved-changes warning, save bar, export/import validation, 390 px | `integration/admin.php`, `e2e/admin.mjs` |
 | Share menu (keyboard, clipboard, position link, embed code, manual copy) | `integration/frontend.php`, `e2e/frontend.mjs` (clipboard permission granted in Chromium) |
@@ -105,7 +98,7 @@ not run in CI yet.
 | Embed card (iframe code, oEmbed height and HTML, only podcast assets, fits a 200px frame down to 320 px, the focus ring of the linked title, height message) | `integration/frontend.php`, `e2e/frontend.mjs` (the embedding site's message was simulated) |
 | Video facade (no third-party request before play, only youtube-nocookie.com after play, focus moves into the video) | `integration/frontend.php`, `e2e/frontend.mjs` (third-party requests refused and recorded) |
 | Sticky player for lists, chapters and the episode page; remote audio only on play | `integration/frontend.php`, `e2e/frontend.mjs` |
-| Dark designs on a light theme page, Elementor Kit rules, row alignment, list button widths | `integration/frontend.php`, `e2e/frontend.mjs` |
+| Dark designs on a light theme page (sections, the Episode Metadata line, the note under a video), Elementor Kit rules, row alignment, list button widths | `integration/frontend.php`, `e2e/frontend.mjs` |
 | Preset contrast ratios | computed with the WCAG formula for every preset (table in `DESIGN.md`) and by `integration/admin.php` |
 | Translations | `wp i18n make-pot` (below) |
 
@@ -117,13 +110,10 @@ not run in CI yet.
 wp i18n make-pot . languages/elementor-podcast-manager.pot --exclude=tests,docs,node_modules --domain=elementor-podcast-manager
 ```
 
-1123 strings (33 with plural forms, 9 with context; 67 used in admin
-scripts). WP-CLI warned about four script strings with placeholders but
-no translator comment (`admin/js/epm-admin.js`: "Next free number in
-season %1$s: %2$d", "Next free number: %d"; `admin/js/epm-design.js`:
-the two contrast announcements) and about strings that carry different
-translator comments in different files ("%s ago", "%1$s of %2$s", "The
-feed could not be loaded: %s"). The strings are extracted either way.
+1130 strings, generated without warnings: every string with placeholders
+has a translator comment, strings used in several files share one
+comment, and the player's "%1$s of %2$s" has its own context
+(`player position`).
 
 ## Not verified (needs real devices, services, licenses or people)
 
