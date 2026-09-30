@@ -161,6 +161,7 @@ final class LatestEpisodeWidget extends Widget_Base {
 		$this->add_token_color( 'latest_text', __( 'Text Color', 'elementor-podcast-manager' ), '--epm-text', '{{WRAPPER}} .epm-latest' );
 		$this->add_token_color( 'latest_muted', __( 'Muted Text Color', 'elementor-podcast-manager' ), '--epm-text-muted', '{{WRAPPER}} .epm-latest' );
 		$this->add_token_color( 'latest_accent', __( 'Accent Color', 'elementor-podcast-manager' ), '--epm-accent', '{{WRAPPER}} .epm-latest' );
+		$this->add_button_shape_control( 'latest_button_shape', '{{WRAPPER}} .epm-latest' );
 
 		$this->add_group_control(
 			Group_Control_Typography::get_type(),

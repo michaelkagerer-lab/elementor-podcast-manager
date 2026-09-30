@@ -179,6 +179,8 @@ final class PodcastHeroWidget extends Widget_Base {
 			]
 		);
 
+		$this->add_button_shape_control( 'hero_button_shape', '{{WRAPPER}} .epm-podcast-hero' );
+
 		$this->add_group_control(
 			Group_Control_Typography::get_type(),
 			[

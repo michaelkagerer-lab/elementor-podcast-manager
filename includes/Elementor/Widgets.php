@@ -36,6 +36,7 @@ final class Widgets {
 			Widgets\TranscriptWidget::class,
 			Widgets\ShowNotesWidget::class,
 			Widgets\ChaptersWidget::class,
+			Widgets\EpisodeVideoWidget::class,
 		];
 
 		foreach ( $widgets as $widget_class ) {

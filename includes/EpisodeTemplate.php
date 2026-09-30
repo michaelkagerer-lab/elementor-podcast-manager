@@ -3,8 +3,9 @@
  * Automatic episode page content (Layer 2).
  *
  * Makes /podcast/{slug}/ a complete episode page with ANY theme and
- * without Elementor Pro: the player is added above the episode
- * description, and guest, show notes, chapters and transcript below it.
+ * without Elementor Pro: the player (with its share menu) and the video,
+ * if the episode has one, are added above the episode description; topics,
+ * guest, show notes, chapters and transcript below it.
  *
  * Designed pages are never touched. Nothing is added when:
  * - "Episode pages → Add player and show notes automatically" is off
@@ -169,6 +170,8 @@ final class EpisodeTemplate {
 			'show_description'    => false,
 			'show_chapters_link'  => false,
 			'show_download'       => true,
+			// Copy link, copy link at the current position, embed code.
+			'show_share'          => true,
 		];
 
 		return (array) apply_filters( 'epm_auto_embed_player_args', $args, $episode );
@@ -218,9 +221,13 @@ final class EpisodeTemplate {
 		 */
 		$parts = (array) apply_filters(
 			'epm_auto_embed_parts',
-			[ 'player', 'content', 'guest', 'show_notes', 'chapters', 'transcript' ],
+			[ 'player', 'video', 'content', 'topics', 'guest', 'show_notes', 'chapters', 'transcript' ],
 			$episode
 		);
+
+		// The theme prints the episode title as the page's H1, so section
+		// headings continue the outline at H2.
+		$section = [ 'heading_tag' => 'h2' ];
 
 		$html = '';
 		foreach ( $parts as $part ) {
@@ -228,20 +235,33 @@ final class EpisodeTemplate {
 				case 'player':
 					$html .= $renderer->player( $episode, $this->player_args( $episode ) );
 					break;
+				case 'video':
+					// Click-to-load: nothing loads from the platform before play.
+					$html .= $renderer->video( $episode );
+					break;
 				case 'content':
 					$html .= $content;
 					break;
+				case 'topics':
+					$html .= $renderer->topics( $episode );
+					break;
 				case 'guest':
-					$html .= $renderer->guest( $episode, [ 'show_bio' => true ] );
+					$html .= $renderer->guest(
+						$episode,
+						$section + [
+							'show_bio' => true,
+							'heading'  => __( 'Guest', 'elementor-podcast-manager' ),
+						]
+					);
 					break;
 				case 'show_notes':
-					$html .= $renderer->show_notes( $episode );
+					$html .= $renderer->show_notes( $episode, $section );
 					break;
 				case 'chapters':
-					$html .= $renderer->chapters( $episode );
+					$html .= $renderer->chapters( $episode, $section );
 					break;
 				case 'transcript':
-					$html .= $renderer->transcript( $episode, [ 'collapsible' => true ] );
+					$html .= $renderer->transcript( $episode, $section + [ 'collapsible' => true ] );
 					break;
 			}
 		}
