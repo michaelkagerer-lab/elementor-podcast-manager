@@ -43,6 +43,7 @@ final class AdminPages {
 		add_action( 'wp_ajax_epm_setup_save', [ $this, 'ajax_setup_save' ] );
 		add_action( 'wp_ajax_epm_distribution_save', [ $this, 'ajax_distribution_save' ] );
 		add_action( 'wp_ajax_epm_setup_dismiss', [ $this, 'ajax_setup_dismiss' ] );
+		add_action( 'wp_ajax_epm_server_check', [ $this, 'ajax_server_check' ] );
 		add_filter( 'plugin_action_links_' . plugin_basename( EPM_FILE ), [ $this, 'plugin_links' ] );
 	}
 
@@ -549,6 +550,102 @@ final class AdminPages {
 		}
 
 		wp_send_json_success( Directories::save_progress( $id, $status, $url ) );
+	}
+
+	/**
+	 * AJAX: check how the feed and the newest episode's audio are served.
+	 *
+	 * @return void
+	 */
+	public function ajax_server_check(): void {
+		$this->guard();
+		wp_send_json_success( [ 'checks' => self::server_check() ] );
+	}
+
+	/**
+	 * Delivery checks directories run before accepting a show: the feed
+	 * answers with XML over HTTPS; the audio answers HEAD with a size and
+	 * an audio type, and byte-range requests with 206 (Apple Podcasts and
+	 * Pandora require both for streaming and seeking).
+	 *
+	 * Requests go to this site's own addresses and the audio of its newest
+	 * episode, chosen by an administrator, so loopback requests are allowed.
+	 *
+	 * @return array<int, array{status: string, label: string, message: string}>
+	 */
+	public static function server_check(): array {
+		$checks = [];
+		$add    = static function ( string $status, string $label, string $message ) use ( &$checks ) {
+			$checks[] = [
+				'status'  => $status,
+				'label'   => $label,
+				'message' => $message,
+			];
+		};
+		$args   = [
+			'timeout'     => 15,
+			'redirection' => 5,
+			'user-agent'  => 'ElementorPodcastManager/' . EPM_VERSION . ' (delivery check)',
+		];
+
+		// --- Feed ---
+		$feed     = Hosting::public_feed_url();
+		$response = wp_remote_get( $feed, $args );
+		if ( is_wp_error( $response ) ) {
+			$add( 'error', __( 'Feed', 'elementor-podcast-manager' ), sprintf( /* translators: %s: error */ __( 'The feed could not be loaded: %s', 'elementor-podcast-manager' ), $response->get_error_message() ) );
+		} else {
+			$code = (int) wp_remote_retrieve_response_code( $response );
+			$type = strtolower( (string) wp_remote_retrieve_header( $response, 'content-type' ) );
+			$body = ltrim( (string) wp_remote_retrieve_body( $response ) );
+			if ( 200 !== $code ) {
+				$add( 'error', __( 'Feed', 'elementor-podcast-manager' ), sprintf( /* translators: %d: HTTP status */ __( 'The feed answers with HTTP status %d instead of 200.', 'elementor-podcast-manager' ), $code ) );
+			} elseif ( false === strpos( substr( $body, 0, 500 ), '<rss' ) && 0 !== strpos( $body, '<?xml' ) ) {
+				$add( 'error', __( 'Feed', 'elementor-podcast-manager' ), __( 'The feed address returns something other than RSS. A caching or security plugin may be replacing it; exclude the feed address from it.', 'elementor-podcast-manager' ) );
+			} else {
+				$add( 'ok', __( 'Feed', 'elementor-podcast-manager' ), sprintf( /* translators: %s: content type */ __( 'Loads correctly (%s).', 'elementor-podcast-manager' ), '' !== $type ? $type : 'XML' ) );
+			}
+		}
+		if ( 0 !== stripos( $feed, 'https://' ) ) {
+			$add( 'warning', __( 'HTTPS', 'elementor-podcast-manager' ), __( 'The feed address uses http://. Apple Podcasts and Spotify expect HTTPS; turn on HTTPS for your site before submitting.', 'elementor-podcast-manager' ) );
+		}
+
+		// --- Audio of the newest episode ---
+		$latest = epm()->episodes->get_latest( true );
+		$data   = $latest ? epm()->episodes->get_public_data( $latest ) : null;
+		if ( null === $data || empty( $data['has_audio'] ) ) {
+			$add( 'warning', __( 'Audio', 'elementor-podcast-manager' ), __( 'Publish an episode with audio to test how the audio is served.', 'elementor-podcast-manager' ) );
+			return $checks;
+		}
+
+		$audio = (string) $data['audio_url'];
+		$head  = wp_remote_head( $audio, $args );
+		if ( is_wp_error( $head ) ) {
+			$add( 'error', __( 'Audio (HEAD)', 'elementor-podcast-manager' ), sprintf( /* translators: %s: error */ __( 'The audio did not answer a HEAD request: %s', 'elementor-podcast-manager' ), $head->get_error_message() ) );
+		} else {
+			$code   = (int) wp_remote_retrieve_response_code( $head );
+			$length = (int) wp_remote_retrieve_header( $head, 'content-length' );
+			$type   = strtolower( (string) wp_remote_retrieve_header( $head, 'content-type' ) );
+			if ( 200 !== $code ) {
+				$add( 'error', __( 'Audio (HEAD)', 'elementor-podcast-manager' ), sprintf( /* translators: %d: HTTP status */ __( 'The audio answers a HEAD request with HTTP status %d instead of 200.', 'elementor-podcast-manager' ), $code ) );
+			} elseif ( $length <= 0 ) {
+				$add( 'warning', __( 'Audio (HEAD)', 'elementor-podcast-manager' ), __( 'The server does not report the file size (Content-Length). Apps need it to show download progress.', 'elementor-podcast-manager' ) );
+			} elseif ( '' !== $type && 0 !== strpos( $type, 'audio/' ) && 0 !== strpos( $type, 'video/' ) ) {
+				$add( 'warning', __( 'Audio (HEAD)', 'elementor-podcast-manager' ), sprintf( /* translators: %s: content type */ __( 'The audio is served as %s. It should be served with an audio type such as audio/mpeg.', 'elementor-podcast-manager' ), $type ) );
+			} else {
+				$add( 'ok', __( 'Audio (HEAD)', 'elementor-podcast-manager' ), sprintf( /* translators: 1: file size, 2: content type */ __( '%1$s, %2$s.', 'elementor-podcast-manager' ), size_format( $length ), '' !== $type ? $type : '?' ) );
+			}
+		}
+
+		$range = wp_remote_get( $audio, array_merge( $args, [ 'headers' => [ 'Range' => 'bytes=0-1' ], 'limit_response_size' => 1024 ] ) );
+		if ( is_wp_error( $range ) ) {
+			$add( 'error', __( 'Audio (byte ranges)', 'elementor-podcast-manager' ), sprintf( /* translators: %s: error */ __( 'The range request failed: %s', 'elementor-podcast-manager' ), $range->get_error_message() ) );
+		} elseif ( 206 === (int) wp_remote_retrieve_response_code( $range ) ) {
+			$add( 'ok', __( 'Audio (byte ranges)', 'elementor-podcast-manager' ), __( 'Supported: listeners can seek and apps can stream.', 'elementor-podcast-manager' ) );
+		} else {
+			$add( 'error', __( 'Audio (byte ranges)', 'elementor-podcast-manager' ), __( 'The server ignores byte-range requests. Apple Podcasts rejects such shows. Ask your web host to enable range requests for audio files, or serve the audio from a CDN or storage bucket.', 'elementor-podcast-manager' ) );
+		}
+
+		return $checks;
 	}
 
 	/**

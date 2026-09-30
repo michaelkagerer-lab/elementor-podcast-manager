@@ -89,6 +89,7 @@
 		form.addEventListener( 'change', function ( event ) {
 			if ( event.target.name === 'epm_hosting[mode]' ) {
 				$( '[data-external-only]', form ).hidden = event.target.value !== 'external';
+				$( '[data-self-only]', form ).hidden = event.target.value === 'external';
 			}
 			if ( event.target.name === 'epm_hosting[provider]' ) {
 				var provider = app.providers[ event.target.value ] || app.providers.other;

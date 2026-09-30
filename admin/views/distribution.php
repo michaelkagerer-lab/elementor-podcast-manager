@@ -121,6 +121,14 @@ $epm_icon = static function ( array $dir ): string {
 			?>
 		</p>
 
+		<div class="epm-stack--tight epm-dist-check">
+			<div>
+				<button type="button" class="button" data-action="server-check"><?php esc_html_e( 'Test feed and audio delivery', 'elementor-podcast-manager' ); ?></button>
+				<span class="epm-field__help"><?php esc_html_e( 'Checks what directories check: the feed, HTTPS, and whether your server answers audio requests the way apps need.', 'elementor-podcast-manager' ); ?></span>
+			</div>
+			<ul class="epm-checklist" data-server-checks hidden></ul>
+		</div>
+
 		<?php if ( ! $epm_external && ! empty( $epm_problems ) ) : ?>
 			<div class="epm-callout epm-callout--error">
 				<p><strong><?php esc_html_e( 'Fix these before submitting: directories reject feeds with these problems.', 'elementor-podcast-manager' ); ?></strong></p>

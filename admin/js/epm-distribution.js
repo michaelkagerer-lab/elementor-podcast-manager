@@ -107,7 +107,69 @@
 		}
 	} );
 
+	function serverCheck( button ) {
+		var list = root.querySelector( '[data-server-checks]' );
+		var body = new window.FormData();
+		body.append( 'action', 'epm_server_check' );
+		body.append( 'nonce', app.nonce );
+
+		button.disabled = true;
+		button.setAttribute( 'aria-busy', 'true' );
+
+		window
+			.fetch( app.ajaxUrl, { method: 'POST', credentials: 'same-origin', body: body } )
+			.then( function ( response ) {
+				return response.json();
+			} )
+			.then( function ( json ) {
+				if ( ! json || ! json.success ) {
+					throw new Error( ( json && json.data && json.data.message ) || app.strings.failed );
+				}
+				list.textContent = '';
+				var problems = 0;
+				json.data.checks.forEach( function ( check ) {
+					var li = document.createElement( 'li' );
+					li.className = 'epm-checklist__item epm-checklist__item--' + check.status;
+					var icon = document.createElement( 'span' );
+					icon.className = 'epm-checklist__icon';
+					icon.setAttribute( 'aria-hidden', 'true' );
+					icon.textContent = check.status === 'ok' ? '✓' : '!';
+					var label = document.createElement( 'span' );
+					label.className = 'epm-checklist__label';
+					label.textContent = check.label;
+					var text = document.createElement( 'p' );
+					text.className = 'epm-checklist__text';
+					text.textContent = check.message;
+					li.appendChild( icon );
+					li.appendChild( label );
+					li.appendChild( text );
+					list.appendChild( li );
+					if ( check.status !== 'ok' ) {
+						problems++;
+					}
+				} );
+				list.hidden = false;
+				announce(
+					problems
+						? __( 'The delivery test found problems.', 'elementor-podcast-manager' )
+						: __( 'The delivery test passed.', 'elementor-podcast-manager' )
+				);
+			} )
+			.catch( function ( e ) {
+				announce( e.message );
+			} )
+			.then( function () {
+				button.disabled = false;
+				button.removeAttribute( 'aria-busy' );
+			} );
+	}
+
 	root.addEventListener( 'click', function ( event ) {
+		var check = event.target.closest( '[data-action="server-check"]' );
+		if ( check ) {
+			serverCheck( check );
+			return;
+		}
 		var button = event.target.closest( '[data-copy]' );
 		if ( ! button ) {
 			return;

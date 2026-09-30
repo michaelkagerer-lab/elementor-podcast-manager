@@ -48,7 +48,76 @@ final class Hosting {
 			'new_status' => 'publish',
 			'missing'    => 'keep',
 			'redirect'   => true,
+			// Download statistics: a measurement prefix in front of the
+			// audio URLs of this site's feed (self-hosted shows only).
+			'stats'      => '',
+			'stats_prefix' => '',
 		];
+	}
+
+	/**
+	 * Measurement services that work as an audio URL prefix.
+	 *
+	 * @return array<string, array{name: string, prefix: string, dashboard: string}>
+	 */
+	public static function stats_services(): array {
+		return (array) apply_filters(
+			'epm_stats_services',
+			[
+				'op3'     => [
+					'name'      => 'OP3',
+					'prefix'    => 'https://op3.dev/e/',
+					'dashboard' => 'https://op3.dev/show/{podcast_guid}',
+				],
+				'podtrac' => [
+					'name'      => 'Podtrac',
+					'prefix'    => 'https://dts.podtrac.com/redirect.mp3/',
+					'dashboard' => 'https://analytics.podtrac.com/',
+				],
+			]
+		);
+	}
+
+	/**
+	 * The measurement prefix in use ('' for none).
+	 *
+	 * @return string
+	 */
+	public static function stats_prefix(): string {
+		$stats = (string) self::get( 'stats' );
+
+		if ( 'custom' === $stats ) {
+			return (string) self::get( 'stats_prefix' );
+		}
+
+		$services = self::stats_services();
+
+		return isset( $services[ $stats ] ) ? (string) $services[ $stats ]['prefix'] : '';
+	}
+
+	/**
+	 * An audio URL routed through the measurement prefix.
+	 *
+	 * "https://" is dropped (prefix services assume it); an explicit
+	 * "http://" is kept. URLs that already pass through the same service
+	 * are left alone, so imported episodes never get the prefix twice.
+	 *
+	 * @param string $url Audio URL.
+	 * @return string
+	 */
+	public static function measured_url( string $url ): string {
+		$prefix = self::stats_prefix();
+
+		if ( '' === $prefix || '' === $url || self::is_external() ) {
+			return $url;
+		}
+
+		$prefix_host = strtolower( (string) wp_parse_url( $prefix, PHP_URL_HOST ) );
+		if ( '' !== $prefix_host && false !== stripos( $url, $prefix_host ) ) {
+			return $url;
+		}
+
+		return trailingslashit( $prefix ) . (string) preg_replace( '#^https://#i', '', $url );
 	}
 
 	/**
@@ -128,6 +197,14 @@ final class Hosting {
 		$out['new_status'] = 'draft' === ( $input['new_status'] ?? '' ) ? 'draft' : 'publish';
 		$out['missing']    = 'draft' === ( $input['missing'] ?? '' ) ? 'draft' : 'keep';
 		$out['redirect']   = ! empty( $input['redirect'] );
+
+		$stats                = sanitize_key( (string) ( $input['stats'] ?? '' ) );
+		$out['stats']         = ( 'custom' === $stats || isset( self::stats_services()[ $stats ] ) ) ? $stats : '';
+		$prefix               = esc_url_raw( trim( (string) ( $input['stats_prefix'] ?? '' ) ), [ 'https' ] );
+		$out['stats_prefix']  = '' !== $prefix ? trailingslashit( $prefix ) : '';
+		if ( 'custom' === $out['stats'] && '' === $out['stats_prefix'] ) {
+			$out['stats'] = '';
+		}
 
 		// Detect the host from the feed address when none was chosen.
 		if ( '' === $out['provider'] && '' !== $out['feed_url'] ) {
@@ -465,14 +542,35 @@ final class Hosting {
 			}
 		}
 
+		// Never adopt a move from https to http.
+		if ( 0 === stripos( $url, 'https://' ) && 0 !== stripos( $final_url, 'https://' ) ) {
+			$permanent = false;
+		}
+
 		return [
 			'status'        => $status,
 			'body'          => (string) wp_remote_retrieve_body( $response ),
-			'etag'          => (string) wp_remote_retrieve_header( $response, 'etag' ),
-			'last_modified' => (string) wp_remote_retrieve_header( $response, 'last-modified' ),
+			'etag'          => self::header( $response, 'etag' ),
+			'last_modified' => self::header( $response, 'last-modified' ),
 			'final_url'     => $final_url,
 			'permanent'     => $permanent && $final_url !== $url,
 		];
+	}
+
+	/**
+	 * One response header as a string (the last value when repeated).
+	 *
+	 * @param array<string, mixed> $response HTTP response.
+	 * @param string               $name     Header name.
+	 * @return string
+	 */
+	private static function header( $response, string $name ): string {
+		$value = wp_remote_retrieve_header( $response, $name );
+		if ( is_array( $value ) ) {
+			$value = end( $value );
+		}
+
+		return trim( (string) $value );
 	}
 
 	/**

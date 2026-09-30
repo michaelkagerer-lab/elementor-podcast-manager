@@ -112,6 +112,37 @@ $epm_when = static function ( int $timestamp ): string {
 						</fieldset>
 					</div>
 
+					<fieldset class="epm-field" data-self-only <?php echo $epm_external ? 'hidden' : ''; ?>>
+						<legend class="epm-field__label"><?php esc_html_e( 'Download statistics', 'elementor-podcast-manager' ); ?></legend>
+						<p class="epm-field__help"><?php esc_html_e( 'A measurement service counts downloads by passing the audio links in your feed through its address. Listeners notice nothing, episode IDs stay the same.', 'elementor-podcast-manager' ); ?></p>
+						<label class="epm-check">
+							<input type="radio" name="epm_hosting[stats]" value="" <?php checked( '', (string) $epm_hosting['stats'] ); ?> />
+							<?php esc_html_e( 'No statistics', 'elementor-podcast-manager' ); ?>
+						</label>
+						<label class="epm-check">
+							<input type="radio" name="epm_hosting[stats]" value="op3" <?php checked( 'op3', (string) $epm_hosting['stats'] ); ?> />
+							<?php esc_html_e( 'OP3 — free and open; statistics are public at op3.dev', 'elementor-podcast-manager' ); ?>
+						</label>
+						<label class="epm-check">
+							<input type="radio" name="epm_hosting[stats]" value="podtrac" <?php checked( 'podtrac', (string) $epm_hosting['stats'] ); ?> />
+							<?php esc_html_e( 'Podtrac — free account at podtrac.com', 'elementor-podcast-manager' ); ?>
+						</label>
+						<label class="epm-check">
+							<input type="radio" name="epm_hosting[stats]" value="custom" <?php checked( 'custom', (string) $epm_hosting['stats'] ); ?> />
+							<?php esc_html_e( 'Another service', 'elementor-podcast-manager' ); ?>
+						</label>
+						<div class="epm-field">
+							<label class="epm-field__label" for="epm-hosting-stats-prefix"><?php esc_html_e( 'Prefix address', 'elementor-podcast-manager' ); ?> <span class="epm-field__optional"><?php esc_html_e( '(for another service)', 'elementor-podcast-manager' ); ?></span></label>
+							<input type="url" id="epm-hosting-stats-prefix" name="epm_hosting[stats_prefix]" value="<?php echo esc_attr( (string) $epm_hosting['stats_prefix'] ); ?>" inputmode="url" spellcheck="false" placeholder="https://" />
+						</div>
+						<?php if ( 'op3' === $epm_hosting['stats'] ) : ?>
+							<p class="epm-field__help">
+								<a href="<?php echo esc_url( 'https://op3.dev/show/' . \EPM\Feed::podcast_guid() ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Open your OP3 statistics', 'elementor-podcast-manager' ); ?></a>
+								<?php esc_html_e( '(numbers appear after the first downloads)', 'elementor-podcast-manager' ); ?>
+							</p>
+						<?php endif; ?>
+					</fieldset>
+
 					<div class="epm-card__footer">
 						<?php submit_button( __( 'Save hosting settings', 'elementor-podcast-manager' ), 'primary', 'submit', false ); ?>
 					</div>

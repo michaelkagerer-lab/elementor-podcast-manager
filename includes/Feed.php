@@ -722,6 +722,25 @@ final class Feed {
 			$x[] = "\t" . '<podcast:funding url="' . self::xml_url( $funding_url ) . '">' . epm_esc_xml( $funding_label ) . '</podcast:funding>';
 		}
 
+		// Podcasting 2.0: trailers are announced at channel level too, so
+		// apps can offer them before the first full episode.
+		foreach ( $episodes as $post ) {
+			$data = epm()->episodes->get_public_data( $post );
+			if ( ! $data || 'trailer' !== $data['episode_type'] ) {
+				continue;
+			}
+			$enclosure = AudioMetadata::enclosure( $data );
+			if ( '' === $enclosure['url'] || ! $enclosure['distributable'] ) {
+				continue;
+			}
+			$season = (int) $data['season_number'];
+			$x[]    = "\t" . '<podcast:trailer pubdate="' . epm_esc_xml( (string) $data['date_rfc2822'] ) . '" url="' . self::xml_url( Hosting::measured_url( $enclosure['url'] ) ) . '"'
+				. ( $enclosure['length'] > 0 ? ' length="' . (int) $enclosure['length'] . '"' : '' )
+				. ' type="' . epm_esc_xml( $enclosure['type'] ) . '"'
+				. ( $season > 0 ? ' season="' . $season . '"' : '' )
+				. '>' . epm_esc_xml( self::plain_text( (string) $data['title'] ) ) . '</podcast:trailer>';
+		}
+
 		foreach ( $episodes as $post ) {
 			$item = $this->build_item( $post );
 			if ( '' !== $item ) {
@@ -774,7 +793,7 @@ final class Feed {
 			$x[] = "\t\t<content:encoded>" . self::cdata( $html ) . '</content:encoded>';
 		}
 		$x[] = "\t\t<itunes:summary>" . epm_esc_xml( $summary ) . '</itunes:summary>';
-		$x[] = "\t\t" . '<enclosure url="' . self::xml_url( $enclosure['url'] ) . '" length="' . (int) $enclosure['length'] . '" type="' . epm_esc_xml( $enclosure['type'] ) . '" />';
+		$x[] = "\t\t" . '<enclosure url="' . self::xml_url( Hosting::measured_url( $enclosure['url'] ) ) . '" length="' . (int) $enclosure['length'] . '" type="' . epm_esc_xml( $enclosure['type'] ) . '" />';
 
 		$seconds = (int) $data['duration_seconds'];
 		if ( $seconds > 0 ) {

@@ -180,9 +180,19 @@ final class Importer {
 				delete_post_meta( $post_id, Episodes::META_PREFIX . 'missing_since' );
 			}
 
+			// Moving a show that was mirrored before (or a copy that was
+			// interrupted): bring the audio over for existing episodes too.
+			$copied = false;
+			if ( $this->options['download_media'] && (int) get_post_meta( $post_id, Episodes::META_PREFIX . 'audio_id', true ) <= 0 && '' !== (string) ( $item['audio_url'] ?? '' ) ) {
+				$problem           = $this->copy_media( $post_id, $item );
+				$copied            = '' === $problem;
+				$result['message'] = $problem;
+				Episodes::clear_data_cache( $post_id );
+			}
+
 			// Nothing changed at the host since the last import.
 			if ( get_post_meta( $post_id, Episodes::META_PREFIX . 'import_fingerprint', true ) === $fingerprint ) {
-				$result['action'] = 'unchanged';
+				$result['action'] = $copied ? 'updated' : 'unchanged';
 				$result['id']     = $post_id;
 				return $result;
 			}
@@ -190,7 +200,7 @@ final class Importer {
 			$changed = $this->write( $post_id, $item, false );
 			update_post_meta( $post_id, Episodes::META_PREFIX . 'import_fingerprint', $fingerprint );
 
-			$result['action'] = $changed ? 'updated' : 'unchanged';
+			$result['action'] = ( $changed || $copied ) ? 'updated' : 'unchanged';
 			$result['id']     = $post_id;
 
 			return $result;
