@@ -20,7 +20,7 @@
 
 Scope: `assets/js/epm-player.js`, `assets/css/epm-frontend.css`,
 `includes/Assets.php` (early registration + localization),
-`get_script_depends()` / `get_style_depends()` on the 11 widgets.
+`get_script_depends()` / `get_style_depends()` on the 12 widgets.
 
 ## F4 — Idempotent initialization
 
@@ -112,7 +112,7 @@ Scope: `assets/js/epm-player.js`, `assets/css/epm-frontend.css`,
 ## F16 — Admin capabilities and guided setup
 
 27. With default capability filters, an administrator and an editor can open
-    Podcast → Dashboard, Episodes and Add Episode; both can create and edit an
+    Podcast → Dashboard, Episodes and Add episode; both can create and edit an
     episode. A role without `edit_posts` cannot access episode management.
 28. Configure `epm_cap_manage_episodes` to a dedicated primitive capability:
     only users granted that capability can manage episodes, while normal

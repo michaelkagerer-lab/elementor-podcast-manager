@@ -1,9 +1,11 @@
 # Migration notes — 1.2.0 → 1.3.0
 
-## Nothing to do for existing self-hosted sites
+## Nothing to do for existing sites
 
-1.3.0 adds hosting modes, feed import and sync, a setup assistant and a
-distribution center. An existing site keeps working exactly as before:
+1.3.0 adds hosting modes, feed import and sync, a setup assistant, a
+distribution center, transcript files, topics, a share menu with
+timestamp links, episode embeds, click-to-load video and a rebuilt Design
+screen. An existing site keeps working without any action:
 
 - The hosting mode defaults to *This website* (`self`). Until the new
   option `epm_hosting` is saved, the defaults apply: the site publishes
@@ -11,14 +13,30 @@ distribution center. An existing site keeps working exactly as before:
 - Nothing is deleted, renamed or restructured. Episodes, meta, media,
   settings, design, URLs, episode GUIDs, the stored `podcast:guid` and
   Elementor widget settings carry over unchanged.
-- The upgrade routine is the same as in 1.2.0 (rewrite rules flushed,
-  feed cache and Elementor CSS regenerated, `epm_version` updated). There
-  is no 1.3.0-specific data migration.
+- There is no 1.3.0 data migration. New options, meta and terms are
+  created when the features that use them are first used.
+
+## What happens on the first request after the update
+
+The upgrade routine (`Plugin::maybe_upgrade()`, `init` priority 99) runs
+once, when the stored `epm_version` differs from `1.3.0`:
+
+1. **Rewrite rules are flushed.** The Topics taxonomy (`podcast_topic`)
+   is registered on `init` priority 5, before the flush, so its archive
+   rules (`/podcast-topic/{slug}/`) work right away. Nothing needs to be
+   saved under Settings → Permalinks.
+2. The feed cache (transient `epm_feed_cache`) is cleared.
+3. `_epm_duration_seconds` is written again for every episode (as in
+   1.2.0; idempotent).
+4. Elementor's generated CSS is cleared, so updated widget selectors
+   apply.
+5. `epm_version` is set to `1.3.0`.
+
+Updating in place does not run the activation hook, so there is no
+redirect to the setup assistant after an update.
 
 ## The setup assistant does not force itself on existing sites
 
-- Updating in place does not run the activation hook, so there is no
-  redirect after an update.
 - Even after deactivating and reactivating, the redirect to the setup
   assistant happens once and only when the site has no podcast title, no
   published episodes, the assistant was neither finished nor dismissed,
@@ -37,9 +55,24 @@ distribution center. An existing site keeps working exactly as before:
 | `epm_sync_state` | no | Last run and last success, status and message, ETag/Last-Modified of the host feed, counters, consecutive failures, item count | By the first sync |
 | `epm_setup` | no | Setup assistant: finished, chosen path, dismissed, ID of the created podcast page | By the setup assistant or when its notice is dismissed |
 | `epm_distribution` | no | Per platform: submitted/listed and the listing address | On Podcast → Distribution |
-| `epm_import_job` | no | The current or last import: status, feed address, channel data, counters, the last 50 log lines | When a feed is checked for import |
-| `epm_import_lock` | no | A timestamp while an import or sync runs (expires after five minutes) | During an import or sync |
+| `epm_feed_build` | no | Hash and time of the last feed content, so `Last-Modified` and `<lastBuildDate>` move when the content changes | By the first feed request after the update |
+| `epm_import_job` | no | The current or last import: status, feed address, channel data, counters (including audio not copied), the IDs of episodes whose audio was not copied, the last 50 log lines | When a feed is checked for import |
+| `epm_import_lock` | no | `"<time>:<owner>"` while an import or sync runs (stale after five minutes, twenty during a media copy) | During an import or sync |
 | `epm_activation_redirect` | no | One-time flag set on activation | On activation; removed by the first admin request |
+
+`epm_design_settings` gains four keys: `button_shape`, `font_family`,
+`shadow` and `track_color`. A design saved before 1.3.0 has none of them
+and is read as `button_shape: pill` (what its text buttons looked like),
+`font_family: inherit`, `shadow: none` and an automatic track color, so
+the site looks the same after the update. New designs default to
+`rounded` buttons. The keys are written the next time the Design screen
+is saved or a preset is applied.
+
+Short-lived transients: `epm_audio_probe_{hash}` (one day; an audio URL
+that was just checked is not checked again on every save),
+`epm_notices_{user}_{post}` and `epm_field_errors_{user}_{post}` (one
+minute; editor messages after a save), `epm_design_import_error_{user}`
+(the last design import error).
 
 ## New post meta
 
@@ -47,19 +80,53 @@ On episodes (`podcast_episode`):
 
 | Meta key | Written by | REST |
 |---|---|---|
-| `_epm_audio_url`, `_epm_audio_type`, `_epm_audio_length` | Importer; REST | readable and writable by users who can edit the episode |
+| `_epm_audio_url`, `_epm_audio_type`, `_epm_audio_length` | Episode editor (*Use an audio URL instead*); Importer; REST | readable and writable by users who can edit the episode |
 | `_epm_artwork_url` | Importer; REST | readable and writable |
-| `_epm_source` (`import`), `_epm_source_feed`, `_epm_source_link` | Importer | readable only |
+| `_epm_transcript_file_id` | Episode editor (transcript file picker); Importer with *Copy audio* | readable and writable |
+| `_epm_transcript_url`, `_epm_transcript_type` | Importer (a hosted WebVTT, SRT or JSON transcript); REST | readable and writable |
+| `_epm_source` (`import`), `_epm_source_feed`, `_epm_source_link` | Importer (`_epm_source_feed` is updated when the host's feed moves) | readable only |
 | `_epm_import_hash`, `_epm_import_fingerprint` | Importer (local-edit detection) | not exposed |
 | `_epm_missing_since` | Sync (removed-episode policy) | not exposed |
+| `_epm_copying` | Importer, only while an audio download runs (deleted afterwards) | not exposed |
 
 On attachments downloaded by the importer: `_epm_source_url` (used to
 reuse an image instead of downloading it twice).
 
-`_epm_guid` is unchanged in meaning: imported episodes store the GUID of
-the source feed there.
+Unchanged in meaning: `_epm_guid` (imported episodes store the GUID of
+the source feed there, byte-for-byte), `_epm_video_url` and
+`_epm_youtube_url` (now also shown as a click-to-load video on episode
+pages), `_epm_transcript` (the readable transcript text; filled from an
+attached transcript file when it is empty on save).
 
-## New scheduled events and their cleanup
+The import hashes changed format: they now ignore line endings and the
+paragraph tags the editor removes. Hashes written by earlier builds are
+still accepted, so episodes imported before keep their local-edit
+protection.
+
+## New taxonomy
+
+`podcast_topic` (non-hierarchical, like tags) on `podcast_episode`:
+public, archives at `/podcast-topic/{slug}/`, REST (`/wp/v2/podcast_topic`),
+list column, Quick Edit, Podcast → Topics. Capabilities:
+
+| Capability | Default |
+|---|---|
+| `assign_terms` | the episode capability (`edit_posts`, or the `epm_cap_manage_episodes` value) |
+| `manage_terms`, `edit_terms`, `delete_terms` | `manage_categories` (editors and administrators); the custom episode capability when `epm_cap_manage_episodes` is filtered; `epm_cap_manage_topics` changes it |
+
+No terms exist until someone adds a topic.
+
+## Episode embeds
+
+`/podcast/{slug}/embed/` is WordPress's own embed address for the post
+type; no rewrite rule is added. 1.3.0 renders its own card there instead
+of the generic WordPress embed card (published, public episodes with
+audio; anything else keeps the WordPress template), and its oEmbed
+response announces a height of 200px with a matching iframe. Episode URLs
+already embedded on other WordPress sites show the new card the next
+time those pages load.
+
+## Scheduled events and their cleanup
 
 | Event | Scheduled | Cleared |
 |---|---|---|
@@ -86,11 +153,13 @@ scheduled events above, `wp-content/uploads/epm-import/`,
 `epm_import_job`, `epm_import_lock` and `epm_activation_redirect`.
 
 With `EPM_DELETE_DATA` or `epm_delete_data_on_uninstall`, the new options
-`epm_hosting`, `epm_sync_state`, `epm_setup` and `epm_distribution` are
-deleted as well.
+`epm_hosting`, `epm_sync_state`, `epm_setup`, `epm_distribution` and
+`epm_feed_build` are deleted as well, and so are the topics and their
+relationships to episodes.
 
 ## Behavior changes to review
 
+Feed
 - **Distributed audio types.** The default of
   `epm_distribution_audio_mimes` grows from `audio/mpeg`, `audio/mp4`,
   `audio/x-m4a` to also include `audio/aac`, `video/mp4`, `video/x-m4v`
@@ -100,44 +169,108 @@ deleted as well.
   you allowed video uploads through that filter, those episodes now
   appear in the feed; filter `epm_distribution_audio_mimes` back to the
   1.2.0 list if that is not wanted.
+- **M4A enclosure type.** Episodes whose audio is an uploaded `.m4a` or
+  `.m4b` file are now announced as `audio/x-m4a` instead of `audio/mpeg`
+  (WordPress files those uploads as `audio/mpeg`). The URL and GUID do not
+  change; apps re-read the type.
 - **Episodes with an audio URL count as having audio** (feed, players,
   "latest episode", readiness report). Existing episodes have no
   `_epm_audio_url`, so nothing changes for them.
+- **Serial feeds with an episode limit** now keep the newest episodes
+  (listed oldest first) instead of the oldest.
+- **`Last-Modified` / `<lastBuildDate>`** move when the feed's content
+  changes, not only when a newer episode is published. The first request
+  after the update records the current content, so the dates move once.
+- **Feed additions:** `<podcast:medium>podcast</podcast:medium>`, a
+  channel `<podcast:person role="host">` when *Host (presenter)* is set in
+  Podcast settings, a channel `<podcast:trailer>` for each published
+  trailer episode, an item `<podcast:person role="guest">` for episodes
+  with a guest name, and item `<podcast:transcript>` tags for transcript
+  files. Directories that read Podcasting 2.0 tags show these.
+- **Download statistics** are off by default. Choosing a service under
+  Hosting & import changes every enclosure URL in the feed (episode GUIDs
+  stay the same).
+- **Podcast Index notification.** On sites that allow search engines,
+  publishing a self-hosted episode sends the feed address to Podcast
+  Index (`api.podcastindex.org/api/1.0/hub/pubnotify`) one minute later.
+  Turn it off with `add_filter( 'epm_ping_podcast_index', '__return_false' )`.
+
+Frontend
+- **Automatic episode pages** add the episode's video (when it has one)
+  above the description and topic chips below it, and the page's player
+  brings the sticky mini player once playback starts. Change this with
+  `epm_auto_embed_parts` and `epm_auto_embed_player_args` (for example
+  `$args['sticky'] = false`).
+- **Share menu.** Players in the Editorial, Artwork and Full layouts show
+  a *Share* button (Podcast Player widgets: *Share Menu*, on by default;
+  `[podcast_player share="no"]`; `epm_auto_embed_player_args` with
+  `show_share => false`).
+- **Sticky player for lists.** Play buttons in episode lists and chapter
+  lists now bring the sticky mini player. Turn it off with
+  `add_filter( 'epm_sticky_player_for_lists', '__return_false' )`.
+- **Audio on another domain** is requested only when a visitor presses
+  play (`preload="none"`), so its duration comes from the episode data
+  until then. `epm_player_preload` restores `metadata`.
+- **Dark designs** (background luminance below 0.2) give show notes,
+  chapters, transcripts, guest blocks, headers, row lists, subscribe
+  links and pagination the design background and padding, so light text
+  stays readable on a light theme page. On sites whose pages are already
+  dark, `add_filter( 'epm_dark_section_surface', '__return_false' )`
+  keeps them transparent.
+- **Titles resist Elementor Kit styles.** Episode row, card, hero,
+  header and latest-episode titles (and the player's download and chapter
+  links) use two-class selectors (0,2,0). Custom CSS that styled
+  `.epm-episode-row__title` with one class needs a second class, for
+  example `.epm-episode-row .epm-episode-row__title`. Elementor widget
+  typography controls still win.
+- **List play buttons** render their label as three stacked words
+  (`.epm-list-play__text--play`, `--pause`, `--retry`) that CSS switches
+  with `.is-playing` / `.has-error`; scripts that rewrote the label text
+  should toggle those classes instead.
+- **Numbered row lists** no longer reserve the number column when no
+  episode in the list has a number.
+- **Podcast Hero / Latest Episode backgrounds** set in Elementor now also
+  add inner padding and the container radius.
 - **Subscribe links show platform glyphs** (Simple Icons) instead of the
   generic line icons. Links saved with the service "Custom" are now
   matched to a known service by their address, so their list item class
   changes from `epm-subscribe__item--custom` to, for example,
   `epm-subscribe__item--spotify`. Update custom CSS that targets
   `--custom`.
-- **More platform link services.** The service dropdowns in Podcast
-  Settings and on the episode screen list every service of the new link
-  registry (`epm_link_services`). The keys used by 1.2.0 (`spotify`,
-  `apple`, `youtube`, `amazon`, `rss`, `custom`) stay valid.
-- **Feed additions:** `<podcast:medium>podcast</podcast:medium>`, a
-  channel `<podcast:person role="host">` when *Host* is set in Podcast
-  Settings, a channel `<podcast:trailer>` for each published trailer
-  episode, and an item `<podcast:person role="guest">` for episodes with
-  a guest name. Directories that read Podcasting 2.0 tags show these.
-- **Download statistics** are off by default. Choosing a service under
-  Hosting & import changes every enclosure URL in the feed (episode GUIDs
-  stay the same).
 - **Structured data.** Episode pages print schema.org `PodcastEpisode`
   JSON-LD and `og:audio` tags; the episode archive prints
   `PodcastSeries`. If an SEO plugin prints its own podcast schema, turn
   this off with `add_filter( 'epm_structured_data', '__return_false' )`.
-- **Podcast Index notification.** On sites that allow search engines,
-  publishing a self-hosted episode sends the feed address to Podcast
-  Index (`api.podcastindex.org/api/1.0/hub/pubnotify`) one minute later.
-  Turn it off with `add_filter( 'epm_ping_podcast_index', '__return_false' )`.
+
+Admin
+- **Admin menu.** Podcast gains *Topics*, *Setup assistant*, *Hosting &
+  import* and *Distribution*; *Add Episode* and *Podcast Settings* are
+  now *Add episode* and *Podcast settings*. The new screens require the
+  podcast capability (`epm_cap_manage_podcast`, `manage_options` by
+  default); Topics requires the topic capability above.
+- **Podcast settings wording.** *Host* is *Host (presenter)*, *Explicit*
+  is *Content* (*Suitable for all ages* / *Explicit*), *Podcast type* is
+  *Episode order* (*Newest first (episodic)* / *Oldest first (serial)*),
+  and the section *Distribution* (feed episode limit, latest-episode CTA,
+  feed address, links) is now *Feed and links*. Stored values are
+  unchanged.
+- **Episode list.** The Author column is hidden by default (Screen
+  Options shows it), and the Topics column while no topic exists.
+- **Paste chapters** adds to the existing chapters unless *Replace the
+  current chapters* is checked.
+- **More platform link services.** The service dropdowns in Podcast
+  settings and on the episode screen list every service of the new link
+  registry (`epm_link_services`). The keys used by 1.2.0 (`spotify`,
+  `apple`, `youtube`, `amazon`, `rss`, `custom`) stay valid.
+- **SRT uploads.** `.srt` files are stored as `application/x-subrip`
+  (WordPress lists them as `text/plain`). Whether `.srt` is accepted at
+  all is still decided by the site's allowed file types.
 - **Deactivation** now also clears the plugin's scheduled events.
-- **Admin menu.** Podcast gains *Setup assistant*, *Hosting & import* and
-  *Distribution*; they require the podcast capability
-  (`epm_cap_manage_podcast`, `manage_options` by default).
 
 ## Rollback
 
 Deactivate 1.3.0 and reactivate 1.2.0: the data stays readable. Before
-rolling back, check two things:
+rolling back, check these points:
 
 - **External hosting mode.** 1.2.0 ignores `epm_hosting`: the site's
   `/podcast/feed/` stops redirecting and serves a feed of the mirrored
@@ -148,6 +281,14 @@ rolling back, check two things:
   media) have no audio in 1.2.0: they drop out of the feed and their
   players show no audio. AAC and video episodes are excluded from the
   feed again.
+- **Topics** stay in the database, but 1.2.0 does not register the
+  taxonomy: `/podcast-topic/…` archives return 404 and topic filters in
+  shortcodes are ignored.
+- **Transcript files, the share menu, embeds and video** disappear from
+  the feed and the pages; the meta stays and comes back with 1.3.0.
+  Embeds on other sites fall back to the WordPress embed card.
+- **Design:** the four new design keys are ignored by 1.2.0 and dropped
+  the next time the Design screen is saved there.
 
 Deactivating 1.3.0 clears its scheduled events, so 1.2.0 does not inherit
 them.
@@ -180,7 +321,7 @@ Run when the stored `epm_version` differs from the plugin version:
 ## Behavior changes to review
 
 - **Episode pages get the player and episode details automatically.**
-  Turn it off under Podcast Settings → Episode pages if your theme
+  Turn it off under Podcast settings → Episode pages if your theme
   template already adds them. Sites using an Elementor Pro Theme Builder
   single template, or Elementor-built episodes, are detected and left
   untouched.

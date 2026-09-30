@@ -33,7 +33,7 @@ widgets work the same way.
 | | This website (`self`) | Another podcast host (`external`) |
 |---|---|---|
 | Who publishes the RSS feed | This site, at `/podcast/feed/` | The host (Spotify for Creators, Buzzsprout, Libsyn …) |
-| Where you publish episodes | Podcast → Add Episode | At the host; the site picks them up |
+| Where you publish episodes | Podcast → Add episode | At the host; the site picks them up |
 | Where the audio is served from | The Media Library, or any audio URL you enter | The host |
 | What `/podcast/feed/` returns | The podcast feed | A permanent (301) redirect to the host's feed (can be turned off) |
 | Hosting costs | Your web hosting and its bandwidth | The host's plan |
@@ -53,9 +53,16 @@ once, with three choices:
 - *Move my podcast to this website*: imports every episode from the old
   host, then mode `self`. See [section 6](#6-moving-a-show-to-this-website).
 - *Keep my current host*: imports the episodes, then mode `external` with
-  hourly sync and the feed redirect turned on.
+  hourly sync and the feed redirect turned on. The mode switches in the
+  assistant's second step, once the host's feed address is known.
 
 You can change the mode later under **Podcast → Hosting & import**.
+*Another podcast host* needs the host's feed address: saving the mode
+without one keeps *This website* (or the address saved before) and says
+so. The site also switches back to *This website* by itself when a move
+import finishes ([section 6](#6-moving-a-show-to-this-website)) and when
+the sync sees the host's feed redirect to this site's feed, so the two
+feeds can never redirect to each other.
 
 ## 2. Hosting on this website
 
@@ -125,6 +132,15 @@ Each episode has one audio source:
    episodes get all three values from the source feed. The fields are
    also writable through the REST API (`meta._epm_audio_url` …) by anyone
    who can edit the episode.
+
+Players on the website request audio from another domain only when a
+visitor presses play (`preload="none"`), so page views do not count as
+downloads at the host or the measurement service, and no visitor address
+reaches them before that. Audio on the site's own domain keeps
+`preload="metadata"`. The `epm_player_preload` filter changes this.
+
+Uploaded `.m4a` and `.m4b` files are announced as `audio/x-m4a`
+(WordPress files them as `audio/mpeg`).
 
 The feed carries these types: `audio/mpeg`, `audio/mp4`, `audio/x-m4a`,
 `audio/aac`, `video/mp4`, `video/x-m4v` and `video/quicktime`. The video
@@ -235,8 +251,14 @@ therefore end up at the host's feed, and nobody sees the show twice.
 Turn it off only if you know why; the readiness report then warns that
 apps may find both feeds.
 
-Episode pages, the chapters (`?epm_chapters=`) and transcript
-(`?epm_transcript=`) endpoints are not redirected.
+Episode pages, episode embeds (`/podcast/{slug}/embed/`), the chapters
+(`?epm_chapters=`) and transcript (`?epm_transcript=`) endpoints and the
+site's blog feed are not redirected.
+
+If the host's feed itself starts redirecting to this site's feed (with a
+301/308 or `<itunes:new-feed-url>`), the show has moved here: the next
+sync switches the site to *This website*, which ends the redirect and
+the sync, and its message says so.
 
 ## 4. What the sync does and does not do
 
@@ -264,19 +286,29 @@ sync).
   importer remembers a hash of the value it wrote. A later sync only
   overwrites a field whose current value still matches that hash, so
   anything edited on this site (title, show notes, guest, numbers …) is
-  kept. Fields the importer never wrote are only filled when empty.
+  kept. Opening an imported episode and saving it without changes is not
+  an edit: line endings and the paragraph tags the editor removes are
+  ignored. Fields the importer never wrote are only filled when empty.
 - **Episode identity** is the item's `<guid>`, stored exactly as the feed
   lists it (surrounding whitespace removed). Items without a GUID use the
   audio URL, then the item link, the same fallback podcast apps use.
   When a GUID appears twice in the feed, the first item wins.
 - **Chapters and transcripts** are fetched when an episode is created:
   Podcasting 2.0 JSON chapters, Podlove chapters inside the item, and
-  transcripts in HTML, WebVTT, SRT or plain text (converted into readable
-  paragraphs with speaker names).
+  transcripts in HTML, WebVTT, SRT, Podcasting 2.0 JSON or plain text
+  (converted into readable paragraphs with speaker names). The host's
+  timed transcript file (WebVTT first, then SRT, then JSON) is also
+  linked, so this site's feed can list it for captions when the show
+  moves here.
+- **Publish dates** are read as the feed states them, even with a wrong
+  or localized weekday ("Mon, 16 Jun 2020" was a Tuesday; "Di, …").
 - **Feed moves:** when the host's feed announces a new address with
   `<itunes:new-feed-url>` or answers with a `301`/`308` redirect, the
-  stored feed address is updated, as podcast apps do. A redirect from
-  `https://` to `http://` is never adopted.
+  stored feed address is updated, as podcast apps do, and the imported
+  episodes still listed are re-tagged with it (so the removed-episode
+  option keeps working). A move from `https://` to `http://` is never
+  adopted. A move to this site's own feed switches the site to *This
+  website* (see [the feed redirect](#the-feed-redirect-in-external-mode)).
 - **Removed episodes (optional).** With *Unpublish episodes the host
   removed* turned on, a published episode imported from this feed that is
   no longer in the feed is moved back to drafts, but only if its date
@@ -293,8 +325,10 @@ sync).
   plugin's admin screens and the WordPress dashboard show an error notice
   with the host's message. A successful run resets the counter.
 - **One job at a time.** An import and a sync never run at the same
-  time; a lock left behind by a crashed request expires after five
-  minutes.
+  time. The lock belongs to the request that took it and is renewed while
+  the job runs; a lock left behind by a crashed request expires after
+  five minutes (twenty while an import copies audio, since one file can
+  take that long).
 
 ### What it does not do
 
@@ -302,7 +336,7 @@ sync).
   at the host.
 - It does not copy the audio. Players stream from the host's URLs.
 - It does not update the podcast settings (title, description, artwork,
-  category …) after the first import. Change them under Podcast Settings
+  category …) after the first import. Change them under Podcast settings
   if they change at the host.
 - It does not fetch chapters or transcripts again for episodes that
   already exist.
@@ -321,22 +355,33 @@ sync).
 any feed you own, in either mode. The setup assistant uses the same
 import.
 
-1. *Check feed* reads the feed once and shows what it found. Paged feeds
-   (`<atom:link rel="next">`, used for example by SoundCloud) are followed
-   up to 50 pages (filter `epm_import_max_pages`). The response is limited
-   to 50 MB (filter `epm_feed_max_bytes`).
+1. *Check feed* reads the feed once and shows what it found. On a web
+   page that links several feeds, the podcast feed wins over the blog
+   feed (listed first on every WordPress site), and comment feeds are
+   never taken. Paged feeds (`<atom:link rel="next">`, used for example
+   by SoundCloud) are followed up to 50 pages (filter
+   `epm_import_max_pages`). The response is limited to 50 MB (filter
+   `epm_feed_max_bytes`).
 2. Options:
    - *Copy audio and episode images to this website* downloads the files
-     into the Media Library. Needed before you close an account at the old
-     host. Without it, episodes keep playing from the old host's URLs.
-     With it, episodes that were mirrored earlier without their audio get
-     their files copied too, so a show that was first connected and later
-     moved ends up complete.
+     into the Media Library; for episodes the import creates, the host's
+     WebVTT or SRT transcript file is copied too. Needed before you close
+     an account at the old host. Without it, episodes keep playing from
+     the old host's URLs (and a transcript file stays linked where it
+     is). With it, episodes
+     that were mirrored earlier without their audio get their files
+     copied too, so a show that was first connected and later moved ends
+     up complete. When a file cannot be downloaded, the episode is still
+     imported and keeps the old address; after the import, Hosting &
+     import and the setup assistant list those episodes with links to
+     them ("The audio of 2 episodes was not copied"), and
+     `wp podcast import` prints a warning. Run the import again or add the
+     files by hand before you close the old account.
    - *Import new episodes as drafts.*
    - *Fill in empty podcast settings* copies title, description, short
      description, author, owner name and email, copyright, language,
      category, host, funding link and artwork from the feed into Podcast
-     Settings, but only into empty fields. (On a site whose podcast
+     settings, but only into empty fields. (On a site whose podcast
      settings were never saved, every field counts as empty, including
      the explicit flag and the episode order.) The feed's `<link>`,
      `<itunes:block>` and `<itunes:new-feed-url>` are never copied.
@@ -347,7 +392,11 @@ import.
 
 With *Copy audio* on, the Hosting & import screen treats the import as a
 move and finishes it the way [section 6](#6-moving-a-show-to-this-website)
-describes (feed limit, "moved here" flag, feed lock).
+describes (feed limit, "moved here" flag, feed lock, and *This website*
+mode). In *Another podcast host* mode it asks for confirmation first,
+because the site stops syncing from the host and publishes the feed
+itself once the import finishes. Cancelling an import stops it for good;
+a batch that was still running does not restart it.
 
 While an import runs, the parsed feed is kept as a JSON file with a
 random name in `wp-content/uploads/epm-import/` (the folder contains an
@@ -402,16 +451,18 @@ What the import keeps:
   the show's status.
 - **The show's `<podcast:guid>`**: adopted from the old feed; when the old
   feed has none, it is derived from the old feed address the way the
-  Podcasting 2.0 specification derives it. This happens when *Fill in
-  empty podcast settings* is on (the setup assistant always turns it on)
-  and either the podcast settings were never saved or this site has no
-  `podcast:guid` stored yet. This site stores its own value the first
-  time its feed is requested, so on a site that was already set up and
-  whose feed was already requested, the existing value is kept.
+  Podcasting 2.0 specification derives it. Every move import does this
+  (the setup assistant's move path, Hosting & import with *Copy audio*,
+  `wp podcast import --move`), whether or not show details are taken
+  from the feed. It replaces a value this site only derived from its own
+  feed address (which happens the first time its feed is requested), but
+  never one that was adopted by an earlier import or set on purpose.
+  Apps and OP3 statistics are keyed by this value.
 - Publish dates, season and episode numbers and episode types.
 
-When a move import finishes (the setup assistant's move path, or an
-import on Hosting & import with *Copy audio* on), the plugin:
+When a move import finishes (the setup assistant's move path, an import
+on Hosting & import with *Copy audio* on, or `wp podcast import --move`),
+the plugin:
 
 - sets *Feed episode limit* to 0 (unlimited) if the show has more
   published episodes than the limit, because an episode missing from the
@@ -420,7 +471,13 @@ import on Hosting & import with *Copy audio* on), the plugin:
   `<itunes:new-feed-url>` with its own address, as Apple asks of the new
   feed after a host change;
 - locks the feed (`<podcast:locked>yes</podcast:locked>`) when an owner
-  email is set.
+  email is set;
+- switches a site that was mirroring the old host (*Another podcast
+  host*) to *This website*, so it stops syncing and stops redirecting its
+  feed to the old host (which will soon redirect back here).
+
+Check the list of episodes whose audio was not copied, if the import
+shows one, and fix those episodes before you continue.
 
 ### Verify
 
@@ -446,9 +503,11 @@ import on Hosting & import with *Copy audio* on), the plugin:
      setting, or a redirect plugin, to send the old feed address to this
      site's feed address with a 301.
    - **Other hosts:** look for a setting called "301 redirect",
-     "Redirect feed" or "Move podcast". The Hosting & import screen shows
-     the host-specific hint. If you cannot find it, the host's support can
-     set the redirect. These menus were not verified for each host.
+     "Redirect feed" or "Move podcast". The setup assistant and Hosting &
+     import show this hint with the chosen host's name; only Spotify for
+     Creators and other WordPress sites get their own steps. If you cannot
+     find the setting, the host's support can set the redirect. These
+     menus were not verified for each host.
 
 10. **Keep the old account and the redirect for at least four weeks.**
     Apple asks for the 301 and the `<itunes:new-feed-url>` tag to stay in
@@ -470,13 +529,18 @@ Change the feed address in each directory yourself:
 
 - Hosting mode stays *This website*. Do not switch to *Another podcast
   host* with the old feed: once the old host redirects to this site, that
-  would create a redirect loop.
+  would create a redirect loop. (If it happens anyway, the next sync
+  notices the redirect to this site's feed and switches back.)
 - Never change the imported GUIDs, and keep the audio URLs working.
+- If you imported without *Copy audio*, the readiness report on the
+  dashboard shows *Audio at the old host* with the number of episodes
+  whose audio still loads from there. Import again with *Copy audio*
+  before you close the old account.
 
 ## 7. Moving a show away from this website
 
-1. **Prepare this feed.** Podcast Settings → Distribution: set *Feed
-   episode limit* to 0 so every episode is in the feed. Podcast Settings →
+1. **Prepare this feed.** Podcast settings → Feed and links: set *Feed
+   episode limit* to 0 so every episode is in the feed. Podcast settings →
    Feed status: turn off *Lock the feed*, because importers at other hosts
    refuse locked feeds. Keep the owner email in the feed: the new host and
    Spotify verify ownership through it.
@@ -510,7 +574,7 @@ Change the feed address in each directory yourself:
 
 If a 301 cannot be served (for example a proxy in front of the site
 ignores it), stay in *This website* mode and set *New feed URL* under
-Podcast Settings → Feed status instead. The feed then carries
+Podcast settings → Feed status instead. The feed then carries
 `<itunes:new-feed-url>` with the new address. Update Apple Podcasts
 Connect and Spotify for Creators by hand as described in
 [section 6](#if-no-redirect-is-possible).
@@ -574,7 +638,22 @@ after moving *away*, the new host changed them.
 
 Only one import or sync runs at a time. Wait for it to finish or stop it
 on Podcast → Hosting & import. A lock left by a crashed request expires
-after five minutes.
+after five minutes, or twenty while an import copies audio.
+
+### "The audio of … episodes was not copied"
+
+The import could not download those files (for example the old host
+answered with an error, the download took longer than 15 minutes, or the
+uploads folder is not writable). The episodes were imported and still play from
+the old host. Open each listed episode and upload the file, or run the
+import again with *Copy audio* on: it only downloads what is still
+missing. Do this before you close the old account.
+
+### *Test feed and audio delivery* reports an error on a local site
+
+The test uses WordPress's safe HTTP functions, which refuse addresses on
+private networks other than the site itself. Audio on another machine in
+a local network cannot be tested; test on the public site instead.
 
 ### Sync errors
 
@@ -588,7 +667,10 @@ plugin backs off and shows an admin notice. Fix the address and choose
 
 A page cache or CDN still serves a stored copy of `/podcast/feed/`.
 Purge it. Also check that the mode is *Another podcast host*, the
-redirect option is on and the host's feed address is set.
+redirect option is on and the host's feed address is set (without an
+address the mode cannot be saved). If the host's feed redirects to this
+site, the site switched itself to *This website*; the last sync message
+on Hosting & import says so.
 
 ### Atom feeds
 

@@ -25,12 +25,17 @@ automatically after that.
 
 Before submitting:
 
-- **Test feed and audio delivery** (button on the screen) checks what
-  directories check when they fetch the show: the feed answers with HTTP
-  200 and RSS, the address uses HTTPS, and the newest episode's audio
-  answers a `HEAD` request (status 200, file size, audio type) and a
-  byte-range request (`206 Partial Content`). Apple Podcasts and the
-  Pandora/SiriusXM submission require HEAD and byte-range support.
+- **Test feed and audio delivery** (button on the screen; the readiness
+  report on the dashboard links to it) checks what directories check when
+  they fetch the show: the feed answers with HTTP 200 and RSS, the address
+  uses HTTPS, and the newest episode's audio answers a `HEAD` request
+  (status 200, file size, audio type) and a byte-range request
+  (`206 Partial Content`). Apple Podcasts and the Pandora/SiriusXM
+  submission require HEAD and byte-range support. The requests come from
+  the site's own server through WordPress's safe HTTP functions, so audio
+  on another machine in a private network cannot be tested, and a
+  firewall or CDN rule that treats outside visitors differently is not
+  covered.
 - Check the feed with an independent validator. The screen links to
   Podbase and Cast Feed Validator with the feed address filled in.
 
@@ -39,7 +44,7 @@ Before submitting:
 Spotify, YouTube, Amazon Music, iHeartRadio, Deezer and Pandora/SiriusXM
 confirm that you own the show by sending a code or a confirmation link to
 the owner email in the feed (`<itunes:owner><itunes:email>`, set under
-Podcast Settings → Owner email). The address is therefore public in the
+Podcast settings → Owner email). The address is therefore public in the
 feed. Use one you can receive mail at while submitting and are happy to
 share.
 
@@ -98,13 +103,18 @@ link* for apps that list the show automatically):
 - *I submitted the feed* marks the platform as **Submitted**.
 - *Your show on {platform}*: paste the listing address once the show is
   live. The platform is then marked **Listed**.
-- A listing address is also added to Podcast Settings → Platform links,
+- A listing address is also added to Podcast settings → Platform links,
   unless a link for that service exists already. The subscribe buttons
   (Subscribe Links widget, `[podcast_subscribe]`, the player's platform
   row) then show it.
 
-The header counts how many essential platforms are submitted or listed.
-Progress is stored in the option `epm_distribution`.
+The header counts the essential platforms that are submitted or listed
+("2 of 5 essential platforms submitted") and updates after each save. The
+*Submit to …* button of the first essential platform that is not
+submitted yet is the primary button, so the next step is always the
+highlighted one. A listing address that is not a full web address
+(`https://…`) is refused with a message next to the field. Progress is stored in the
+option `epm_distribution`.
 
 ## Adding platforms
 
