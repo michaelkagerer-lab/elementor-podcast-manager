@@ -1894,65 +1894,43 @@ WP_CLI::log( 'Transcript files' );
 /* ------------------------------------------------------------------------- */
 
 $t->test(
-	'SRT uploads are allowed for people who can upload files, and only for them',
+	'SRT files are stored as application/x-subrip on every server, only where the site accepts .srt',
 	static function ( EPM_Test_Runner $t ) {
-		require_once ABSPATH . 'wp-admin/includes/user.php';
-		// Left over from an interrupted run.
-		foreach ( [ 'epm_h_subscriber', 'epm_h_author' ] as $login ) {
-			$old = get_user_by( 'login', $login );
-			if ( $old ) {
-				wp_delete_user( $old->ID );
-			}
-		}
-		$admin      = get_user_by( 'login', 'admin' );
-		$subscriber = (int) wp_insert_user(
-			[
-				'user_login' => 'epm_h_subscriber',
-				'user_pass'  => wp_generate_password(),
-				'role'       => 'subscriber',
-			]
-		);
-		$author     = (int) wp_insert_user(
-			[
-				'user_login' => 'epm_h_author',
-				'user_pass'  => wp_generate_password(),
-				'role'       => 'author',
-			]
-		);
-		$srt        = wp_tempnam( 'captions.srt' );
+		$srt = wp_tempnam( 'captions.srt' );
 		file_put_contents( $srt, "1\n00:00:00,000 --> 00:00:02,000\nHello.\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-		$check = static function () use ( $srt ): array {
-			$result = wp_check_filetype_and_ext( $srt, 'captions.srt' );
-			return [ $result['ext'], $result['type'] ];
-		};
+		$blank = [
+			'ext'             => false,
+			'type'            => false,
+			'proper_filename' => false,
+		];
 
 		try {
-			wp_set_current_user( 0 );
-			$t->assert( ! isset( get_allowed_mime_types()['srt'] ), 'visitors: no SRT' );
-			wp_set_current_user( $subscriber );
-			$t->assert( ! isset( get_allowed_mime_types()['srt'] ), 'subscribers: no SRT' );
-			$t->same( [ false, false ], $check(), 'subscriber upload check' );
-			foreach ( [ $author, (int) $admin->ID ] as $user ) {
-				wp_set_current_user( $user );
-				$t->same( 'application/x-subrip', get_allowed_mime_types()['srt'] ?? '', 'user ' . $user );
-				$t->same( [ 'srt', 'application/x-subrip' ], $check(), 'user ' . $user . ' upload check (detected as text/plain)' );
-			}
-			$t->same( 'text/vtt', get_allowed_mime_types()['vtt'] ?? '', 'WebVTT is a WordPress type already' );
+			// End to end, whatever this server's libmagic reports.
+			$result = wp_check_filetype_and_ext( $srt, 'captions.srt' );
+			$t->same( [ 'srt', 'application/x-subrip' ], [ $result['ext'], $result['type'] ], 'upload check' );
 
-			// The user passed to the filter wins over the current user.
-			$t->assert( isset( Transcripts::upload_mimes( [], $admin )['srt'] ), 'WP_User argument' );
-			$t->assert( ! isset( Transcripts::upload_mimes( [], $subscriber )['srt'] ), 'user ID argument' );
-			$t->same( [ 'srt' => 'text/x-custom' ], Transcripts::upload_mimes( [ 'srt' => 'text/x-custom' ], $admin ), 'an existing SRT entry is kept' );
+			// libmagic reporting text/plain: WordPress accepts it as text/plain.
+			$t->same(
+				[ 'ext' => 'srt', 'type' => 'application/x-subrip', 'proper_filename' => false ],
+				Transcripts::check_filetype( [ 'ext' => 'srt', 'type' => 'text/plain', 'proper_filename' => false ], $srt, 'captions.srt', null, 'text/plain' ),
+				'text/plain detection'
+			);
+			// Newer libmagic reporting application/x-subrip: WordPress rejects it.
+			$t->same(
+				[ 'ext' => 'srt', 'type' => 'application/x-subrip', 'proper_filename' => false ],
+				Transcripts::check_filetype( $blank, $srt, 'captions.srt', null, 'application/x-subrip' ),
+				'application/x-subrip detection'
+			);
 
+			// A site that does not accept .srt keeps rejecting it.
+			$t->same( $blank, Transcripts::check_filetype( $blank, $srt, 'captions.srt', [ 'vtt' => 'text/vtt' ], 'application/x-subrip' ), 'site without .srt' );
 			// Other files are untouched; a detected binary is not an SRT.
 			$t->same( [ 'ext' => 'png', 'type' => 'image/png', 'proper_filename' => false ], Transcripts::check_filetype( [ 'ext' => 'png', 'type' => 'image/png', 'proper_filename' => false ], $srt, 'a.png', null, 'image/png' ) );
-			$t->same( [ 'ext' => false, 'type' => false ], Transcripts::check_filetype( [ 'ext' => false, 'type' => false ], $srt, 'fake.srt', null, 'application/x-dosexec' ) );
+			$t->same( $blank, Transcripts::check_filetype( $blank, $srt, 'fake.srt', null, 'application/x-dosexec' ), 'binary named .srt' );
+
+			$t->same( 'text/vtt', get_allowed_mime_types()['vtt'] ?? '', 'WebVTT is a WordPress type already' );
 		} finally {
-			wp_set_current_user( 0 );
 			wp_delete_file( $srt );
-			require_once ABSPATH . 'wp-admin/includes/user.php';
-			wp_delete_user( $subscriber );
-			wp_delete_user( $author );
 		}
 	}
 );

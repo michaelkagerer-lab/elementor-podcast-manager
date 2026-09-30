@@ -38,57 +38,46 @@ final class Transcripts {
 	private const MAX_BYTES = 2 * MB_IN_BYTES;
 
 	/**
-	 * Hook upload support for SRT files (WordPress already accepts WebVTT).
+	 * Hook the SRT upload type check.
 	 *
 	 * @return void
 	 */
 	public static function init(): void {
-		add_filter( 'upload_mimes', [ self::class, 'upload_mimes' ], 10, 2 );
 		add_filter( 'wp_check_filetype_and_ext', [ self::class, 'check_filetype' ], 10, 5 );
 	}
 
 	/**
-	 * Allow SRT uploads for people who can upload files.
+	 * Store SRT files with their own type on every server.
 	 *
-	 * @param array<string, string> $mimes Allowed types.
-	 * @param mixed                 $user  User ID, WP_User or null.
-	 * @return array<string, string>
-	 */
-	public static function upload_mimes( $mimes, $user = null ): array {
-		$mimes = is_array( $mimes ) ? $mimes : [];
-
-		$can = $user instanceof \WP_User
-			? user_can( $user, 'upload_files' )
-			: ( is_numeric( $user ) && (int) $user > 0 ? user_can( (int) $user, 'upload_files' ) : current_user_can( 'upload_files' ) );
-
-		if ( $can && ! isset( $mimes['srt'] ) ) {
-			$mimes['srt'] = self::TYPES['srt'];
-		}
-
-		return $mimes;
-	}
-
-	/**
-	 * SRT files are detected as text/plain, which WordPress would reject for
-	 * a non-text MIME type; accept them when SRT uploads are allowed.
+	 * WordPress lists .srt as text/plain. Depending on the server's libmagic
+	 * the content is detected as text/plain (accepted as text/plain) or as
+	 * application/x-subrip (rejected). Both become application/x-subrip, so
+	 * the transcript picker finds the file. The site's allowed file types
+	 * still decide whether .srt is accepted at all, and a file detected as
+	 * anything but text is never taken for an SRT.
 	 *
-	 * @param array<string, mixed>  $data      Result so far.
-	 * @param string                $file      Temporary file path.
-	 * @param string                $filename  Original file name.
-	 * @param array<string, string> $mimes     Allowed types (null = site default).
-	 * @param string|false          $real_mime Detected type.
+	 * @param array<string, mixed>       $data      Result so far.
+	 * @param string                     $file      Temporary file path.
+	 * @param string                     $filename  Original file name.
+	 * @param array<string, string>|null $mimes     Allowed types (null = site default).
+	 * @param string|false               $real_mime Detected type.
 	 * @return array<string, mixed>
 	 */
 	public static function check_filetype( $data, $file, $filename, $mimes, $real_mime = false ): array {
 		$data = is_array( $data ) ? $data : [];
 
-		if ( ! empty( $data['ext'] ) || 'srt' !== strtolower( pathinfo( (string) $filename, PATHINFO_EXTENSION ) ) ) {
+		if ( 'srt' !== strtolower( pathinfo( (string) $filename, PATHINFO_EXTENSION ) ) ) {
 			return $data;
 		}
 
-		$allowed = is_array( $mimes ) ? $mimes : get_allowed_mime_types();
-		if ( ! isset( $allowed['srt'] ) || ! in_array( $real_mime, [ 'text/plain', 'application/x-subrip', 'application/octet-stream', false, '' ], true ) ) {
-			return $data;
+		if ( empty( $data['ext'] ) ) {
+			if ( ! in_array( $real_mime, [ 'text/plain', 'application/x-subrip', 'text/x-subrip', false, '' ], true ) ) {
+				return $data;
+			}
+			$allowed = wp_check_filetype( (string) $filename, is_array( $mimes ) ? $mimes : null );
+			if ( 'srt' !== $allowed['ext'] ) {
+				return $data;
+			}
 		}
 
 		$data['ext']  = 'srt';

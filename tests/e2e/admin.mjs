@@ -230,14 +230,19 @@ try {
 		await page.keyboard.type('Title only');
 		await page.fill('[data-epm-repeat="chapters"] [data-epm-repeat-row]:last-child [name$="[time]"]', '');
 		await page.fill('[data-epm-repeat="chapters"] [data-epm-repeat-row]:last-child [name$="[title]"]', 'Title only');
+		// Leaving the title starts a WordPress autosave, which disables the
+		// save buttons until it answers: wait for it before saving.
+		await page.waitForFunction(() => !document.querySelector('#save-post').classList.contains('disabled'), null, { timeout: 15000 }).catch(() => {});
 		await page.click('#save-post');
 		await page.waitForTimeout(300);
 		const blocked = await page.evaluate(() => ({
 			url: location.href,
 			error: document.querySelector('[data-epm-repeat="chapters"] [data-epm-repeat-row]:last-child [data-epm-repeat-error]').textContent,
 			focus: document.activeElement.name || '',
-			disabled: document.querySelector('#save-post').classList.contains('disabled'),
 		}));
+		// The blocked save must not leave the buttons disabled (an autosave
+		// may still disable them for a moment).
+		blocked.disabled = await page.waitForFunction(() => !document.querySelector('#save-post').classList.contains('disabled'), null, { timeout: 5000 }).then(() => false, () => true);
 		assert(/post-new\.php/.test(blocked.url) && blocked.error.length > 0 && /\[time\]$/.test(blocked.focus), 'a half-filled chapter stops the save and focuses the missing field');
 		assert(!blocked.disabled, 'the save buttons stay usable');
 		await page.click('[data-epm-repeat="chapters"] [data-epm-repeat-row]:last-child [data-epm-repeat-remove]');

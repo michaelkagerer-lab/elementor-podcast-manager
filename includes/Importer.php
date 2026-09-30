@@ -813,17 +813,6 @@ final class Importer {
 			$name = ( '' !== $base ? $base : 'podcast-' . $kind ) . '.' . $ext;
 		}
 
-		// SRT is no WordPress upload type, and imports continue from WP-Cron
-		// or WP-CLI without a signed-in user: allow it for this one copy.
-		$allow_srt = static function ( $mimes ) {
-			$mimes        = is_array( $mimes ) ? $mimes : [];
-			$mimes['srt'] = Transcripts::TYPES['srt'];
-			return $mimes;
-		};
-		if ( 'transcript' === $kind ) {
-			add_filter( 'upload_mimes', $allow_srt, 20 );
-		}
-
 		$attachment = media_handle_sideload(
 			[
 				'name'     => $name,
@@ -833,9 +822,6 @@ final class Importer {
 			'' !== $title ? $title : null
 		);
 
-		if ( 'transcript' === $kind ) {
-			remove_filter( 'upload_mimes', $allow_srt, 20 );
-		}
 
 		if ( is_wp_error( $attachment ) ) {
 			wp_delete_file( $tmp );
