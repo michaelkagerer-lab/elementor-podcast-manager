@@ -61,7 +61,7 @@ async function login(page) {
 	await page.goto(`${BASE}/wp-login.php`);
 	await page.fill('#user_login', 'admin');
 	await page.fill('#user_pass', 'admin');
-	await Promise.all([page.waitForURL(/\/wp-admin\//), page.click('#wp-submit')]);
+	await Promise.all([page.waitForURL(/\/wp-admin\//, { waitUntil: 'domcontentloaded', timeout: 60000 }), page.click('#wp-submit')]);
 }
 
 /** Silent MPEG-1 Layer III (32 kbps, 32 kHz, mono): 144-byte frames, 36 ms each. */
@@ -111,7 +111,7 @@ console.log('Frontend player');
 	await page.waitForTimeout(1500);
 	const resumed = await page.evaluate(() => ({
 		time: document.querySelector('[data-epm-player] [data-epm-current]').textContent,
-		speed: document.querySelector('.epm-player__speed').textContent,
+		speed: document.querySelector('.epm-player__speed [data-epm-speed-value]').textContent,
 	}));
 	assert(resumed.time !== '0:00', `position resumes after reload (${resumed.time})`);
 	assert(resumed.speed === '1.25×', `speed preference persists (${resumed.speed})`);
@@ -120,17 +120,17 @@ console.log('Frontend player');
 	await page.click(`[data-epm-card-play="${fixtures.ep1}"]`);
 	await page.waitForTimeout(1200);
 	const shared = await page.evaluate((id) => ({
-		card: document.querySelector(`[data-epm-card-play="${id}"]`).getAttribute('aria-pressed'),
+		card: document.querySelector(`[data-epm-card-play="${id}"]`).classList.contains('is-playing'),
 		player: document.querySelector(`[data-epm-player][data-epm-episode-id="${id}"]`).classList.contains('is-playing'),
 	}), fixtures.ep1);
-	assert(shared.card === 'true' && shared.player, 'card and full player of one episode share playback state');
+	assert(shared.card === true && shared.player, 'card and full player of one episode share playback state');
 	await page.click(`[data-epm-card-play="${fixtures.ep2}"]`);
 	await page.waitForTimeout(1000);
 	const others = await page.evaluate((ids) => ({
 		first: document.querySelector(`[data-epm-player][data-epm-episode-id="${ids[0]}"]`).classList.contains('is-playing'),
-		second: document.querySelector(`[data-epm-card-play="${ids[1]}"]`).getAttribute('aria-pressed'),
+		second: document.querySelector(`[data-epm-card-play="${ids[1]}"]`).classList.contains('is-playing'),
 	}), [fixtures.ep1, fixtures.ep2]);
-	assert(!others.first && others.second === 'true', 'starting another episode pauses the first');
+	assert(!others.first && others.second === true, 'starting another episode pauses the first');
 
 	await page.evaluate(async () => {
 		const html = await (await fetch(location.href)).text();
@@ -294,6 +294,8 @@ if (fixtures.elementor_page) {
 	await page.waitForTimeout(300);
 	assert(!(await page.evaluate(() => document.querySelector('.elementor-widget-epm-podcast-player [data-epm-player]').classList.contains('is-playing'))), 'sticky pause pauses the widget player');
 	await page.click('[data-epm-sticky] [data-epm-sticky-close]');
+	// The bar slides out (200ms) before it is removed from the layout.
+	await page.locator('[data-epm-sticky]').waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
 	assert(await page.locator('[data-epm-sticky]').isHidden(), 'close hides the sticky bar');
 	assert(page.problems.length === 0, `no browser errors ${page.problems.join('; ')}`);
 	await page.context().close();
@@ -306,8 +308,10 @@ console.log('Design (presets, export, import)');
 	await login(page);
 	const applyPreset = async (id) => {
 		await page.goto(`${BASE}/wp-admin/admin.php?page=epm-design`);
-		await page.selectOption('select[name="epm_preset"]', id);
-		await Promise.all([page.waitForLoadState('load'), page.click('input[name="epm_apply_preset"]')]);
+		// Preset tiles are a radio group; applying asks for confirmation.
+		await page.check(`input[name="epm_preset"][value="${id}"]`);
+		await page.click('[data-epm-preset-apply]');
+		await Promise.all([page.waitForURL(/epm_design=preset-applied/), page.click('[data-epm-dialog-confirm]')]);
 	};
 	await applyPreset('business-tuning');
 	assert((await page.textContent('.epm-design-summary')).includes('Business Tuning'), 'preset applied');

@@ -1,0 +1,9 @@
+{
+	"version": "1.2.0",
+	"chapters": [
+		{ "startTime": 0, "title": "Intro" },
+		{ "startTime": 65.5, "title": "Main part", "url": "https://show.example.test/main" },
+		{ "startTime": 120, "title": "Silent marker", "toc": false },
+		{ "startTime": 3700, "title": "Late" }
+	]
+}

@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:media="http://search.yahoo.com/mrss/" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:psc="http://podlove.org/simple-chapters" xmlns:podcast="https://podcastindex.org/namespace/1.0" version="2.0">
+  <channel>
+    <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub"/>
+    <atom:link href="https://darknet-diaries-deutsch.podigee.io/feed/mp3" rel="self"/>
+    <atom:link href="https://darknet-diaries-deutsch.podigee.io/feed/mp3" rel="first"/>
+    <atom:link href="https://darknet-diaries-deutsch.podigee.io/feed/mp3?page=1" rel="last"/>
+    <title>Darknet Diaries Deutsch</title>
+    <language>de</language>
+    <pubDate>Wed, 13 Aug 2025 09:53:17 +0000</pubDate>
+    <lastBuildDate>Tue, 29 Sep 2026 14:02:00 +0000</lastBuildDate>
+    <description>heise online erzählt wahre Geschichten von der dunklen Seite des Internets.
+Die englische Originalfassung der Darknet Diaries ist ein investigativer Podcast von Jack Rhysider.
+ 
+Es geht um Hacker, Botnets, Kryptographie, Hacktivismus, Cyberkriminalität und all die Dinge, die in den verborgenen Ecken des Internets lauern. 
+heise online übersetzt den Erfolgspodcast jetzt ins Deutsche.
+
+</description>
+    <link>https://darknet-diaries-deutsch.podigee.io/</link>
+    <generator>Podigee (https://podigee.com)</generator>
+    <itunes:type>episodic</itunes:type>
+    <image>
+      <url>https://images.podigee-cdn.net/0x,smgIjvf0cmsqHNTvMhskLF8gWGl6Aiprg91RahrSdPZI=/https://main.podigee-cdn.net/uploads/u13959/a9c31b14-c6fb-47c8-861b-ba1219a0507e.jpg</url>
+      <title>Darknet Diaries Deutsch</title>
+      <link>https://darknet-diaries-deutsch.podigee.io/</link>
+    </image>
+    <itunes:image href="https://images.podigee-cdn.net/0x,smgIjvf0cmsqHNTvMhskLF8gWGl6Aiprg91RahrSdPZI=/https://main.podigee-cdn.net/uploads/u13959/a9c31b14-c6fb-47c8-861b-ba1219a0507e.jpg"/>
+    <itunes:author>heise online</itunes:author>
+    <itunes:explicit>no</itunes:explicit>
+    <itunes:keywords>Darknet,Cybercrime,Hacker,Cyberkriminalität</itunes:keywords>
+    <itunes:category text="Technology"/>
+    <itunes:summary>heise online erzählt wahre Geschichten von der dunklen Seite des Internets.
+Die englische Originalfassung der Darknet Diaries ist ein investigativer Podcast von Jack Rhysider.
+ 
+Es geht um Hacker, Botnets, Kryptographie, Hacktivismus, Cyberkriminalität und all die Dinge, die in den verborgenen Ecken des Internets lauern. 
+heise online übersetzt den Erfolgspodcast jetzt ins Deutsche.
+
+</itunes:summary>
+    <itunes:owner>
+      <itunes:name>heise online</itunes:name>
+      <itunes:email>podcasts@heise.de</itunes:email>
+    </itunes:owner>
+    <podcast:guid>bf063c26-a058-5396-83ce-00e0dccc6f16</podcast:guid>
+    <podcast:locked owner="podcasts@heise.de">no</podcast:locked>
+    <podcast:txt purpose="applepodcastsverify">f77b2f60-87d3-11f0-b860-73e910355105</podcast:txt>
+    <item>
+      <title>Auch Betrüger haben Lieder (Teil 1)</title>
+      <itunes:title>Auch Betrüger haben Lieder (Teil 1)</itunes:title>
+      <description>Was, wenn die Musikcharts, die ihr seht, gar nicht echt sind? Was, wenn sich die Zahlen, die über Erfolg entscheiden, manipulieren lassen? Wir haben mit Andrew gesprochen, einem Mann, der seine Karriere auf beiden Seiten dieses Kampfes verbracht hat. Früher profitierte er von den Schlupflöchern der Streaming-Plattformen, heute ist es sein Job, genau diese zu schließen. 
+
+Deutsche Stimmen: Isabel Grünewald (Jack), Marko Pauli (Andrew) 
+
+Produktion: Marko Pauli
+
+=== Anzeige / Sponsorenhinweis ===
+ 
+Dieser Podcast wird von einem Sponsor unterstützt. Alle Infos zu unseren Werbepartnern findet ihr hier.
+https://wonderl.ink/%40heise-podcasts
+ 
+=== Anzeige / Sponsorenhinweis Ende ===
+
+Das Transkript zu dieser Folge findet Ihr auf heise online: 
+https://heise.de/-11446470
+
+Englisches Original von Jack Rhysider: 
+https://darknetdiaries.com/episode/171/
+
+Shownotes:
+
+KI-Streaming-Betrug: Einem US-Amerikaner drohen nach Geständnis fünf Jahre Haft:
+https://www.heise.de/news/KI-Streaming-Betrug-Einem-US-Amerikaner-drohen-nach-Gestaendnis-fuenf-Jahre-Haft-11219496.html
+
+Beatdapp:
+https://beatdapp.com/
+
+Artikel zu Beatdapp:
+https://www.musicbusinessworldwide.com/beatdapp-launches-trust-safety-operating-system-to-combat-fraud-beyond-music-streaming/
+
+</description>
+      <pubDate>Tue, 29 Sep 2026 14:02:00 +0000</pubDate>
+      <link>https://darknet-diaries-deutsch.podigee.io/25-new-episode</link>
+      <guid isPermaLink="false">670d7269ee7d0f8f4c538aa1193c2d5b</guid>
+      <content:encoded>
+        <![CDATA[EP 23 - "Darknet Diaries Deutsch": Auch Betrüger haben Lieder (Teil 1)
+<p>Andrew schildert, wie er vom Manipulieren der Social-Media-Reichweite zum Streaming-Betrug gelangte und dabei lernte, künstliche Plays, Accounts und scheinbar organische Popularität zu erzeugen. Dabei wird deutlich, dass sich mit gefälschten Streams und manipulierten Charts viel Geld verdienen lässt. Andrew beginnt, solche Betrugsmaschen selbst aufzudecken, und stellt dabei fest, dass das Ausmaß des Betrugs enorm ist.</p>
+<p>Deutsche Stimmen: Isabel Grünewald (Jack), Marko Pauli (Andrew) </p>
+<p>Produktion: Marko Pauli</p>
+<p>=== Anzeige / Sponsorenhinweis ===</p>
+<p>Dieser Podcast wird von einem Sponsor unterstützt. Alle Infos zu unseren Werbepartnern findet ihr hier.
+<a href="https://wonderl.ink/%40heise-podcasts">https://wonderl.ink/%40heise-podcasts</a></p>
+<p>=== Anzeige / Sponsorenhinweis Ende ===</p>
+<p>Das Transkript zu dieser Folge findet Ihr auf heise online: 
+<a href="https://heise.de/-11446470">https://heise.de/-11446470</a></p>
+<p>Englisches Original von Jack Rhysider: 
+<a href="https://darknetdiaries.com/episode/171/">https://darknetdiaries.com/episode/171/</a></p>
+<p>Shownotes:</p>
+<p>KI-Streaming-Betrug: Einem US-Amerikaner drohen nach Geständnis fünf Jahre Haft:
+<a href="https://www.heise.de/news/KI-Streaming-Betrug-Einem-US-Amerikaner-drohen-nach-Gestaendnis-fuenf-Jahre-Haft-11219496.html">https://www.heise.de/news/KI-Streaming-Betrug-Einem-US-Amerikaner-drohen-nach-Gestaendnis-fuenf-Jahre-Haft-11219496.html</a></p>
+<p>Beatdapp:
+<a href="https://beatdapp.com/">https://beatdapp.com/</a></p>
+<p>Artikel zu Beatdapp:
+<a href="https://www.musicbusinessworldwide.com/beatdapp-launches-trust-safety-operating-system-to-combat-fraud-beyond-music-streaming/">https://www.musicbusinessworldwide.com/beatdapp-launches-trust-safety-operating-system-to-combat-fraud-beyond-music-streaming/</a></p>]]>
+      </content:encoded>
+      <itunes:image href="https://images.podigee-cdn.net/0x,sCAn1axnBVAsV6Bbe_2byqojWJqLnYZuxbmrLmOlxJgk=/https://main.podigee-cdn.net/uploads/u13959/7e040728-ac87-4c09-85a1-4e01d89224e1.jpeg"/>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:subtitle>EP 23 - "Darknet Diaries Deutsch": Auch Betrüger haben Lieder (Teil 1)</itunes:subtitle>
+      <itunes:summary>Was, wenn die Musikcharts, die ihr seht, gar nicht echt sind? Was, wenn sich die Zahlen, die über Erfolg entscheiden, manipulieren lassen? Wir haben mit Andrew gesprochen, einem Mann, der seine Karriere auf beiden Seiten dieses Kampfes verbracht hat. Früher profitierte er von den Schlupflöchern der Streaming-Plattformen, heute ist es sein Job, genau diese zu schließen. 
+
+Deutsche Stimmen: Isabel Grünewald (Jack), Marko Pauli (Andrew) 
+
+Produktion: Marko Pauli
+
+=== Anzeige / Sponsorenhinweis ===
+ 
+Dieser Podcast wird von einem Sponsor unterstützt. Alle Infos zu unseren Werbepartnern findet ihr hier.
+https://wonderl.ink/%40heise-podcasts
+ 
+=== Anzeige / Sponsorenhinweis Ende ===
+
+Das Transkript zu dieser Folge findet Ihr auf heise online: 
+https://heise.de/-11446470
+
+Englisches Original von Jack Rhysider: 
+https://darknetdiaries.com/episode/171/
+
+Shownotes:
+
+KI-Streaming-Betrug: Einem US-Amerikaner drohen nach Geständnis fünf Jahre Haft:
+https://www.heise.de/news/KI-Streaming-Betrug-Einem-US-Amerikaner-drohen-nach-Gestaendnis-fuenf-Jahre-Haft-11219496.html
+
+Beatdapp:
+https://beatdapp.com/
+
+Artikel zu Beatdapp:
+https://www.musicbusinessworldwide.com/beatdapp-launches-trust-safety-operating-system-to-combat-fraud-beyond-music-streaming/
+
+</itunes:summary>
+      <itunes:explicit>no</itunes:explicit>
+      <itunes:keywords></itunes:keywords>
+      <itunes:author>heise online</itunes:author>
+      <enclosure url="https://audio.podigee-cdn.net/2580639-m-60f0674289a4057bc113717a26a37100.mp3?source=feed" type="audio/mpeg" length="55900676"/>
+      <itunes:duration>2755</itunes:duration>
+      <podcast:transcript url="https://main.podigee-cdn.net/uploads/u13959/481789fa-11ac-495e-b43b-a378020ba679.json" type="application/json"/>
+      <podcast:transcript url="https://main.podigee-cdn.net/uploads/u13959/c233a417-97f8-42bd-bc17-ae9743b0523f.vtt" type="text/vtt"/>
+    </item>
+    <item>
+      <title>Die Kunst der Manipulation (Teil 2)</title>
+      <itunes:title>Die Kunst der Manipulation (Teil 2)</itunes:title>
+      <description>Rachel Tobac ist Social Engineerin. In diesen ersten beiden Folge erfahren wir, wie sie zu diesem Beruf gekommen ist, und sie erzählt uns einige Geschichten davon, wie sie mit ihrer Stimme und ihrem Charme Menschen und Orte „gehackt“ hat.
+
+Deutsche Stimmen: Judith Hohmann (Rachel), Marko Pauli (Jack), Isabel Grünewald (Sharyn + Sharyn-Klon),  Robin Ahrens (Daniel)
+
+Produktion: Marko Pauli
+
+=== Anzeige / Sponsorenhinweis ===
+ 
+Dieser Podcast wird von einem Sponsor unterstützt. Alle Infos zu unseren Werbepartnern findet ihr hier.
+https://wonderl.ink/%40heise-podcasts
+ 
+=== Anzeige / Sponsorenhinweis Ende ===
+
+Das Transkript zu dieser Folge findet Ihr auf heise online: 
+https://heise.de/-11426065
+
+Englisches Original von Jack Rhysider: 
+https://darknetdiaries.com/episode/144/</description>
+      <pubDate>Tue, 22 Sep 2026 14:02:00 +0000</pubDate>
+      <link>https://darknet-diaries-deutsch.podigee.io/24-new-episode</link>
+      <guid isPermaLink="false">93b244d178db9b280f828f0112c9abb4</guid>
+      <content:encoded>
+        <![CDATA[EP 22 - "Darknet Diaries Deutsch": Die Kunst der Manipulation (Teil 2)
+<p>Ein Anruf und die Zauberkraft der menschlichen Stimme - plötzlich stehen selbst sensible Systeme offen: Rachel Tobac zeigt, wie Social Engineering zur gefährlichsten Waffe werden kann. In diesen ersten beiden Folgen der dritten Staffel der Darknet Diaries Deutsch erzählt sie von verblüffenden Hacks, falschen Identitäten und davon, wie leicht Menschen zu einem Einfallstor für Angreifer werden können.</p>
+<p>Deutsche Stimmen: Judith Hohmann (Rachel), Marko Pauli (Jack), Isabel Grünewald (Sharyn + Sharyn-Klon)  Robin Ahrens (Daniel)</p>
+<p>Produktion: Marko Pauli</p>
+<p>=== Anzeige / Sponsorenhinweis ===</p>
+<p>Dieser Podcast wird von einem Sponsor unterstützt. Alle Infos zu unseren Werbepartnern findet ihr hier.
+<a href="https://wonderl.ink/%40heise-podcasts">https://wonderl.ink/%40heise-podcasts</a></p>
+<p>=== Anzeige / Sponsorenhinweis Ende ===</p>
+<p>Das Transkript zu dieser Folge findet Ihr auf heise online: 
+<a href="https://heise.de/-11426065">https://heise.de/-11426065</a></p>
+<p>Englisches Original von Jack Rhysider: 
+<a href="https://darknetdiaries.com/episode/144/">https://darknetdiaries.com/episode/144/</a></p>]]>
+      </content:encoded>
+      <itunes:image href="https://images.podigee-cdn.net/0x,sSYoiGse-mirNZCW7hbQMlLoSOCAKAgkuXMBYUrqyIs0=/https://main.podigee-cdn.net/uploads/u13959/64105e37-0841-40b4-8a8e-e163d8f2a464.jpeg"/>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:subtitle>EP 22 - "Darknet Diaries Deutsch": Die Kunst der Manipulation (Teil 2)</itunes:subtitle>
+      <itunes:summary>Rachel Tobac ist Social Engineerin. In diesen ersten beiden Folge erfahren wir, wie sie zu diesem Beruf gekommen ist, und sie erzählt uns einige Geschichten davon, wie sie mit ihrer Stimme und ihrem Charme Menschen und Orte „gehackt“ hat.
+
+Deutsche Stimmen: Judith Hohmann (Rachel), Marko Pauli (Jack), Isabel Grünewald (Sharyn + Sharyn-Klon),  Robin Ahrens (Daniel)
+
+Produktion: Marko Pauli
+
+=== Anzeige / Sponsorenhinweis ===
+ 
+Dieser Podcast wird von einem Sponsor unterstützt. Alle Infos zu unseren Werbepartnern findet ihr hier.
+https://wonderl.ink/%40heise-podcasts
+ 
+=== Anzeige / Sponsorenhinweis Ende ===
+
+Das Transkript zu dieser Folge findet Ihr auf heise online: 
+https://heise.de/-11426065
+
+Englisches Original von Jack Rhysider: 
+https://darknetdiaries.com/episode/144/</itunes:summary>
+      <itunes:explicit>no</itunes:explicit>
+      <itunes:keywords></itunes:keywords>
+      <itunes:author>heise online</itunes:author>
+      <enclosure url="https://audio.podigee-cdn.net/2579186-m-690cfa53476a4131f0bec2ac3e17b94a.mp3?source=feed" type="audio/mpeg" length="52842334"/>
+      <itunes:duration>2602</itunes:duration>
+      <podcast:transcript url="https://main.podigee-cdn.net/uploads/u13959/e22f3994-c1b2-4eef-bdce-d900f527b384.json" type="application/json"/>
+      <podcast:transcript url="https://main.podigee-cdn.net/uploads/u13959/88e27231-cf84-42fb-9330-f2e8316c545c.vtt" type="text/vtt"/>
+    </item>
+    <item>
+      <title>Die Kunst der Manipulation (Teil 1)</title>
+      <itunes:title>Die Kunst der Manipulation (Teil 1)</itunes:title>
+      <description>Rachel Tobac ist Social Engineerin. In dieser Folge erfahren wir, wie sie zu diesem Beruf gekommen ist, und sie erzählt uns einige Geschichten davon, wie sie mit ihrer Stimme und ihrem Charme Menschen und Orte „gehackt“ hat.
+
+Deutsche Stimmen: Judith Hohmann (Rachel), Marko Pauli (Jack), Isabel Grünewald (Sharyn + Sharyn-Klon),  Robin Ahrens (Daniel)
+
+Produktion: Marko Pauli
+
+=== Anzeige / Sponsorenhinweis ===
+ 
+Dieser Podcast wird von einem Sponsor unterstützt. Alle Infos zu unseren Werbepartnern findet ihr hier.
+https://wonderl.ink/%40heise-podcasts
+ 
+=== Anzeige / Sponsorenhinweis Ende ===
+
+Das Transkript zu dieser Folge findet Ihr auf heise online: 
+https://heise.de/-11423421
+
+Englisches Original von Jack Rhysider: 
+https://darknetdiaries.com/episode/144/
+
+Shownotes:
+Rachel auf Twitter (okay, auf "x"): 
+https://x.com/RachelTobac
+
+Rachels Firma:
+https://www.socialproofsecurity.com/
+
+Rachels E-Book über Social Engineering:
+https://bitwarden.com/rachel-tobac-ebook/
+
+Daniel Miessler:
+https://danielmiessler.com/. 
+
+</description>
+      <pubDate>Tue, 15 Sep 2026 14:02:00 +0000</pubDate>
+      <link>https://darknet-diaries-deutsch.podigee.io/23-die-kunst-der-manipulation-teil-1</link>
+      <guid isPermaLink="false">c93f815bc808b3f6a78ac3aaf15914d2</guid>
+      <content:encoded>
+        <![CDATA[EP 21 - "Darknet Diaries Deutsch": Die Kunst der Manipulation (Teil 1)
+<p>Ein Anruf und die Zauberkraft der menschlichen Stimme - plötzlich stehen selbst sensible Systeme offen: Rachel Tobac zeigt, wie Social Engineering zur gefährlichsten Waffe werden kann. In diesen ersten beiden Folgen der dritten Staffel der Darknet Diaries Deutsch erzählt sie von verblüffenden Hacks, falschen Identitäten und davon, wie leicht Menschen zu einem Einfallstor für Angreifer werden können.</p>
+<p>Deutsche Stimmen: Judith Hohmann (Rachel), Marko Pauli (Jack), Isabel Grünewald (Sharyn + Sharyn-Klon)  Robin Ahrens (Daniel)</p>
+<p>Produktion: Marko Pauli</p>
+<p>=== Anzeige / Sponsorenhinweis ===</p>
+<p>Dieser Podcast wird von einem Sponsor unterstützt. Alle Infos zu unseren Werbepartnern findet ihr hier.
+<a href="https://wonderl.ink/%40heise-podcasts">https://wonderl.ink/%40heise-podcasts</a></p>
+<p>=== Anzeige / Sponsorenhinweis Ende ===</p>
+<p>Das Transkript zu dieser Folge findet Ihr auf heise online: 
+<a href="https://heise.de/-11423421">https://heise.de/-11423421</a></p>
+<p>Englisches Original von Jack Rhysider: 
+<a href="https://darknetdiaries.com/episode/144/">https://darknetdiaries.com/episode/144/</a></p>
+<p>Shownotes:
+Rachel auf Twitter (okay, auf "x"): 
+<a href="https://x.com/RachelTobac">https://x.com/RachelTobac</a></p>
+<p>Rachels Firma:
+<a href="https://www.socialproofsecurity.com/">https://www.socialproofsecurity.com/</a></p>
+<p>Rachels E-Book über Social Engineering:
+<a href="https://bitwarden.com/rachel-tobac-ebook/">https://bitwarden.com/rachel-tobac-ebook/</a></p>
+<p>Daniel Miessler:
+<a href="https://danielmiessler.com/">https://danielmiessler.com/</a>. </p>]]>
+      </content:encoded>
+      <itunes:image href="https://images.podigee-cdn.net/0x,slzAvkAgQMdo2Wpe9uVVgg7i-qJ8t6HmS9SYYhjN0RQ4=/https://main.podigee-cdn.net/uploads/u13959/0e753ecc-8fbc-459b-a89e-4bceb27976ac.jpeg"/>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:subtitle>EP 21 - "Darknet Diaries Deutsch": Die Kunst der Manipulation (Teil 1)</itunes:subtitle>
+      <itunes:summary>Rachel Tobac ist Social Engineerin. In dieser Folge erfahren wir, wie sie zu diesem Beruf gekommen ist, und sie erzählt uns einige Geschichten davon, wie sie mit ihrer Stimme und ihrem Charme Menschen und Orte „gehackt“ hat.
+
+Deutsche Stimmen: Judith Hohmann (Rachel), Marko Pauli (Jack), Isabel Grünewald (Sharyn + Sharyn-Klon),  Robin Ahrens (Daniel)
+
+Produktion: Marko Pauli
+
+=== Anzeige / Sponsorenhinweis ===
+ 
+Dieser Podcast wird von einem Sponsor unterstützt. Alle Infos zu unseren Werbepartnern findet ihr hier.
+https://wonderl.ink/%40heise-podcasts
+ 
+=== Anzeige / Sponsorenhinweis Ende ===
+
+Das Transkript zu dieser Folge findet Ihr auf heise online: 
+https://heise.de/-11423421
+
+Englisches Original von Jack Rhysider: 
+https://darknetdiaries.com/episode/144/
+
+Shownotes:
+Rachel auf Twitter (okay, auf "x"): 
+https://x.com/RachelTobac
+
+Rachels Firma:
+https://www.socialproofsecurity.com/
+
+Rachels E-Book über Social Engineering:
+https://bitwarden.com/rachel-tobac-ebook/
+
+Daniel Miessler:
+https://danielmiessler.com/. 
+
+</itunes:summary>
+      <itunes:explicit>no</itunes:explicit>
+      <itunes:keywords></itunes:keywords>
+      <itunes:author>heise online</itunes:author>
+      <enclosure url="https://audio.podigee-cdn.net/2570134-m-3bdccc2bcede9d1fa035fe3ba605a6f7.mp3?source=feed" type="audio/mpeg" length="41406650"/>
+      <itunes:duration>2036</itunes:duration>
+      <podcast:transcript url="https://main.podigee-cdn.net/uploads/u13959/806aa380-9f12-4c0b-998d-e41fb4e49032.json" type="application/json"/>
+      <podcast:transcript url="https://main.podigee-cdn.net/uploads/u13959/96e39952-7030-4030-b1df-5a31e867219d.vtt" type="text/vtt"/>
+    </item>
+  </channel>
+</rss>

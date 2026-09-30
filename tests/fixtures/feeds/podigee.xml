@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:media="http://search.yahoo.com/mrss/" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:psc="http://podlove.org/simple-chapters" xmlns:podcast="https://podcastindex.org/namespace/1.0" version="2.0">
+  <channel>
+    <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub"/>
+    <atom:link href="https://podcast-news.podigee.io/feed/mp3" rel="self"/>
+    <atom:link href="https://podcast-news.podigee.io/feed/mp3" rel="first"/>
+    <atom:link href="https://podcast-news.podigee.io/feed/mp3?page=1" rel="last"/>
+    <title>Podigee Podcast News</title>
+    <language>de</language>
+    <pubDate>Fri, 18 Oct 2019 14:08:00 +0000</pubDate>
+    <lastBuildDate>Wed, 11 Sep 2024 09:28:39 +0000</lastBuildDate>
+    <description>Die zweiwöchentliche Zusammenfassung der wichtigsten News aus der Podcast-Branche, präsentiert von Mati und Ben, den Gründern von Podigee.
+
+Dieses Format richtet sich in erster Linie an Podcaster und Branchen-Profis der wachsenden deutschsprachigen Podcast-Szene.
+
+Möchtest Du, dass wir über ein konkretes Thema berichten? Dann schreib uns an hello@podigee.com.
+
+Podigee ist ein Podcast-Hosting-Dienst aus Deutschland. Wir machen Podcasten einfach, damit ihr einfach Podcasts machen könnt!</description>
+    <link>https://www.podigee.com/</link>
+    <generator>Podigee (https://podigee.com)</generator>
+    <itunes:type>episodic</itunes:type>
+    <copyright>Podigee GmbH</copyright>
+    <image>
+      <url>https://images.podigee-cdn.net/0x,sLyl4yznf4alStL9kKg30mllAfIHyv5hjeD72up3gNUE=/https://main.podigee-cdn.net/uploads/u1/72b01048-d910-4809-8e97-3b25bb4561b1.png</url>
+      <title>Podigee Podcast News</title>
+      <link>https://www.podigee.com/</link>
+    </image>
+    <itunes:image href="https://images.podigee-cdn.net/0x,sLyl4yznf4alStL9kKg30mllAfIHyv5hjeD72up3gNUE=/https://main.podigee-cdn.net/uploads/u1/72b01048-d910-4809-8e97-3b25bb4561b1.png"/>
+    <itunes:author>Mati &amp; Ben von Podigee</itunes:author>
+    <itunes:explicit>no</itunes:explicit>
+    <itunes:keywords>podcasts,podcasting,podcast news</itunes:keywords>
+    <itunes:category text="Technology"/>
+    <itunes:summary>Die zweiwöchentliche Zusammenfassung der wichtigsten News aus der Podcast-Branche, präsentiert von Mati und Ben, den Gründern von Podigee.
+
+Dieses Format richtet sich in erster Linie an Podcaster und Branchen-Profis der wachsenden deutschsprachigen Podcast-Szene.
+
+Möchtest Du, dass wir über ein konkretes Thema berichten? Dann schreib uns an hello@podigee.com.
+
+Podigee ist ein Podcast-Hosting-Dienst aus Deutschland. Wir machen Podcasten einfach, damit ihr einfach Podcasts machen könnt!</itunes:summary>
+    <itunes:owner>
+      <itunes:name>Mati &amp; Ben von Podigee</itunes:name>
+      <itunes:email>hello@podigee.com</itunes:email>
+    </itunes:owner>
+    <podcast:guid>1539f6c6-63da-517c-a063-dea6909127fc</podcast:guid>
+    <podcast:locked owner="hello@podigee.com">no</podcast:locked>
+    <item>
+      <title>Podigee: Wie alles begann ...</title>
+      <itunes:title>Podigee: Wie alles begann ...</itunes:title>
+      <description>Wie feiert man "7 Jahre Podigee" am besten? Na, stilecht mit einem neuen Podcast natürlich! In dieser Folge reisen Jürgen und die beiden Gründer von Podigee in das Jahr 2013, als Podcasting hierzulande noch in den Kinderschuhen steckte – und ein neues Unternehmen sich in Stellung brachte, Podcast-Deutschland (zumindest ein kleines bisschen) auf den Kopf zu stellen.</description>
+      <pubDate>Tue, 16 Jun 2020 13:13:18 +0000</pubDate>
+      <link>https://podcast-news.podigee.io/14-wie-alles-begann</link>
+      <guid isPermaLink="false">8398cd3fc8f92ea9fc210f245a93d030</guid>
+      <content:encoded>
+        <![CDATA[Willkommen bei FEED DIVE - Podigees neuem Podcast-Podcast mit Tiefgang
+<p>Wie feiert man "7 Jahre Podigee" am besten? Na, stilecht mit einem neuen Podcast natürlich! In dieser Folge reisen Jürgen und die beiden Gründer von Podigee in das Jahr 2013, als Podcasting hierzulande noch in den Kinderschuhen steckte – und ein neues Unternehmen sich in Stellung brachte, Podcast-Deutschland (zumindest ein kleines bisschen) auf den Kopf zu stellen.</p>
+<p><strong>Klarmachen zum Entern!</strong></p>
+<p><a href="https://feed-dive.podigee.io"><img src="https://images.podigee.com/1920x,sg8AvxU45SiF1LJf4FRzd_PV9V3ft7N5nN9cbBkyB1g8=/https://cdn.podigee.com/uploads/u15477/278ff5ed-0892-4ca1-a654-0358451bcf23.jpg" alt="Podigee Feed Dive" title="FEED DIVE-Logo" /></a></p>
+<p><strong>Links zur Episode:</strong></p>
+<ul>
+<li><a href="https://fyyd.de/user/hoersuppe/curation/nullnummern?page=0">Fyyd Nullnummernkuration</a></li>
+<li><a href="https://omr.com/de/">Online-Marketing-Rockstars</a></li>
+<li><a href="https://rasenfunk.de">Rasenfunk</a></li>
+<li><a href="https://viertausendhertz.de">Viertausendhertz</a></li>
+<li><a href="https://www1.wdr.de/daserste/lindenstrasse/neuigkeiten/podcast-meine-freundin-hasst-die-lindenstrasse-100.html">Wimaf – "Meine Frau hasst die Lindenstraße"</a></li>
+<li><a href="https://zebra-audio.net/">Zebra Audio</a></li>
+</ul>
+<hr />
+<p><strong>Links zum Podcast:</strong></p>
+<ul>
+<li>Feed: <a href="https://feed-dive.podigee.io/feed/mp3">https://feed-dive.podigee.io/feed/mp3</a></li>
+<li>Blog: <a href="https://feed-dive.podigee.io">https://feed-dive.podigee.io</a></li>
+<li>Homepage: <a href="https://podigee.de">https://podigee.de</a> </li>
+</ul>
+<p><a href="https://podigee.de"><img src="https://www.podigee.com/images/podigee-logo-text-horizontal.png" alt="podigee-logo" title="Podigee Logo" /></a></p>]]>
+      </content:encoded>
+      <psc:chapters version="1.2">
+        <psc:chapter title="Intro und Begrüßung" start="00:00:00"/>
+        <psc:chapter title="Das Jahr 2013 ..." start="00:01:26"/>
+        <psc:chapter title="Woher kennen sich die Gründer" start="00:04:08"/>
+        <psc:chapter title="Widerstand in der Anfangszeit?" start="00:10:13"/>
+        <psc:chapter title="Die ersten Kunden" start="00:17:59"/>
+        <psc:chapter title="Negative Erfahrungen?" start="00:27:41"/>
+        <psc:chapter title="Glückwünsche von Maria Lorenz" start="00:42:57"/>
+        <psc:chapter title="Warum der Name Podigee?" start="00:44:31"/>
+        <psc:chapter title="Der erste Angestellte: Hallo Christopher!" start="00:45:59"/>
+        <psc:chapter title="Ben ist nahe am US-Podcast-Markt" start="00:52:26"/>
+        <psc:chapter title="Wenn ihr alles mit dem Wissen von heute nochmal machen müsstet, ..." start="00:54:48"/>
+        <psc:chapter title="Weitere Grußnachrichten" start="01:01:27"/>
+        <psc:chapter title="Sonstige Anekdoten" start="01:07:24"/>
+        <psc:chapter title="Was läuft in euren Podcatchern?" start="01:10:22"/>
+        <psc:chapter title="Wann hört ihr Podcasts?" start="01:20:55"/>
+        <psc:chapter title="Das Ende(tm)" start="01:25:01"/>
+      </psc:chapters>
+      <itunes:episode>14</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:subtitle>Willkommen bei FEED DIVE - Podigees neuem Podcast-Podcast mit Tiefgang</itunes:subtitle>
+      <itunes:summary>Wie feiert man "7 Jahre Podigee" am besten? Na, stilecht mit einem neuen Podcast natürlich! In dieser Folge reisen Jürgen und die beiden Gründer von Podigee in das Jahr 2013, als Podcasting hierzulande noch in den Kinderschuhen steckte – und ein neues Unternehmen sich in Stellung brachte, Podcast-Deutschland (zumindest ein kleines bisschen) auf den Kopf zu stellen.</itunes:summary>
+      <itunes:explicit>no</itunes:explicit>
+      <itunes:keywords>Geschichte,Geburtstag,Jubiläum,Podcast,Podigee,Start-up,Gründung</itunes:keywords>
+      <itunes:author>Podigee</itunes:author>
+      <enclosure url="https://audio.podigee-cdn.net/238346-m-28ba4e371232fa01b47f286c5b856a80.mp3?source=feed" type="audio/mpeg" length="72414192"/>
+      <itunes:duration>5168</itunes:duration>
+      <podcast:chapters href="https://podcast-news.podigee.io/14-wie-alles-begann/chapters.json" type="application/json+chapters"/>
+      <podcast:episode>14</podcast:episode>
+      <podcast:transcript url="https://main.podigee-cdn.net/media/podcast_4411_podigee_pdcst_news_episode_238346_podigee_wie_alles_begann.json" type="application/json"/>
+      <podcast:transcript url="https://main.podigee-cdn.net/uploads/u15477/a5e58189-5113-4e9a-9b44-f3dcda6953c6.vtt" type="text/vtt"/>
+    </item>
+    <item>
+      <title>Insert Podcoin</title>
+      <itunes:title>Insert Podcoin</itunes:title>
+      <description>Wir besprechen das neuste Feature der Podigee Analytics: Listener Insights!
+Außerdem reden wir über obskure Podcast-StartUps, neue Abomodelle und die Podcast Days in Poznan, Polen.</description>
+      <pubDate>Fri, 18 Oct 2019 14:08:23 +0000</pubDate>
+      <link>https://podcast-news.podigee.io/12-ppn012-insert-podcoin</link>
+      <guid isPermaLink="false">c67bb5ffa0c809d7832bfd397b7089f7</guid>
+      <content:encoded>
+        <![CDATA[Alles über die neuen Listener Insights
+<p><a href="https://hilfe.podigee.com/article/232-verfugbare-statistik-pakete">Übersicht, welches Paket welche Analytics hat</a><br />
+<a href="https://www.pocketcasts.com/plus/">Pocket Casts Plus</a><br />
+<a href="https://www.reddit.com/r/podcasting/comments/aswc5b/podcoin_pays_you_to_listen_to_podcasts_but_in/">PodCoin</a><br />
+<a href="https://current.org/2019/09/podcast-sponsorship-revenues-continue-to-fuel-nprs-financial-growth/">NPR Podcast Einnahmen</a></p>]]>
+      </content:encoded>
+      <itunes:episode>12</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:subtitle>Alles über die neuen Listener Insights</itunes:subtitle>
+      <itunes:summary>Wir besprechen das neuste Feature der Podigee Analytics: Listener Insights!
+Außerdem reden wir über obskure Podcast-StartUps, neue Abomodelle und die Podcast Days in Poznan, Polen.</itunes:summary>
+      <itunes:explicit>no</itunes:explicit>
+      <itunes:keywords>analytics,insight,podigee,podcoin,npr,analyse,feature</itunes:keywords>
+      <itunes:author>Mati &amp; Ben von Podigee</itunes:author>
+      <enclosure url="https://audio.podigee-cdn.net/132604-m-97020559d0d2d8b467ca13c6979366d5.mp3?source=feed" type="audio/mpeg" length="46457303"/>
+      <itunes:duration>2895</itunes:duration>
+      <podcast:episode>12</podcast:episode>
+      <podcast:transcript url="https://main.podigee-cdn.net/media/podcast_4411_podigee_podcast_news_episode_12_ppn012_insert_podcoin.json" type="application/json"/>
+      <podcast:transcript url="https://main.podigee-cdn.net/uploads/u15477/a59192e6-1bd1-4a70-914b-9624fe489f74.vtt" type="text/vtt"/>
+    </item>
+    <item>
+      <title>Zahlenzauber bei Podigee</title>
+      <itunes:title>Zahlenzauber bei Podigee</itunes:title>
+      <description>einige von euch haben es vielleicht schon gemerkt: Podigee hat neue, bessere Analytics. Wir reden in dieser Ausgabe der Podigee Podcast News ein wenig darüber, was sich bei uns getan hat. Außerdem reden wir über einen Vorfall mit Anchor und Apple Podcast, der uns stutzig gemacht hat und die Gefahr der Monopolstellung von Apple Podcast aufzeigt.
+Es gibt ein Update zur Beta Phase von Podigee Premium und zu neuen Podcastformaten von Podigee</description>
+      <pubDate>Fri, 16 Aug 2019 11:15:50 +0000</pubDate>
+      <link>https://podcast-news.podigee.io/11-zahlenzauber-bei-podigee</link>
+      <guid isPermaLink="false">749af5923a9e61bce41d46b5afe4bb1a</guid>
+      <content:encoded>
+        <![CDATA[wir haben neue Analytics!
+<p><strong>Anchor umgeht Apple Podcast Review Prozess</strong><br />
+<a href="https://podnews.net/article/anchor-bypass-pirates-arrr">Anchor bypasses Apple Podcasts approval process with copyright violating podcasts</a>  </p>
+<p><a href="https://fyyd.de/">Alternative zum Apple Podcast Verzeichnis: FYYD </a></p>
+<p><strong>Neue Analytics bei Podigee</strong><br />
+<a href="https://www.podigee.com/de/blog/podigee-veroeffentlicht-analytics-whitepaper/http://">Podigee veröffentlicht Whitepaper zur Präzisierung der IAB-Richtlinien und führt neue Analytics ein</a>  </p>
+<p><a href="https://meedia.de/2019/07/09/es-gibt-nur-unzuverlaessige-schwer-vergleichbare-zahlen-podigee-chef-sojka-fordert-einheitliche-podcast-standards/">“Es gibt nur unzuverlässige, schwer vergleichbare Zahlen”: Podigee-Chef Sojka fordert einheitliche Podcast-Standards</a>  </p>
+<p><a href="https://www.iab.com/guidelines/podcast-measurement-guidelines/">IAB Podcast Measurement Guidelines</a>  </p>
+<p><strong>weitere Updates</strong><br />
+<a href="https://der-innenhof-podcast.podigee.io/">Der Innenhof-Podcast mit Ines & Christopher</a>  </p>
+<p><a href="https://www.eventbrite.de/e/3-kieler-podcasttag-tickets-68295390351">3. Kieler Podcasttag, 14.09.2019</a>  </p>
+<p><a href="https://podigee-events.podigee.io/1-podcasting-is-dead-long-live-the-podcast">Mitschnitt re:publica Lightning-Talk</a></p>]]>
+      </content:encoded>
+      <psc:chapters version="1.2">
+        <psc:chapter title="Warm Up" start="00:00:00.000"/>
+        <psc:chapter title="Intro" start="00:01:09.993"/>
+        <psc:chapter title="Anchor" start="00:02:54.468"/>
+        <psc:chapter title="Whitepaper" start="00:10:52.796"/>
+        <psc:chapter title="Neues Analytics-Dashboard" start="00:20:59.562"/>
+        <psc:chapter title="Premium Beta Test" start="00:26:04.171"/>
+        <psc:chapter title="Innenhof-Podcast" start="00:29:35.950"/>
+        <psc:chapter title="Podcasttag Kiel 2019" start="00:31:11.563"/>
+        <psc:chapter title="Lightning Talk auf der re:publica" start="00:32:39.499"/>
+      </psc:chapters>
+      <itunes:episode>11</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:subtitle>wir haben neue Analytics!</itunes:subtitle>
+      <itunes:summary>einige von euch haben es vielleicht schon gemerkt: Podigee hat neue, bessere Analytics. Wir reden in dieser Ausgabe der Podigee Podcast News ein wenig darüber, was sich bei uns getan hat. Außerdem reden wir über einen Vorfall mit Anchor und Apple Podcast, der uns stutzig gemacht hat und die Gefahr der Monopolstellung von Apple Podcast aufzeigt.
+Es gibt ein Update zur Beta Phase von Podigee Premium und zu neuen Podcastformaten von Podigee</itunes:summary>
+      <itunes:explicit>no</itunes:explicit>
+      <itunes:keywords>analytics,whitepaper,zahlen,iab,podcasts,podcastanalyse,podcastwerbung,podcastmarketing,podigee</itunes:keywords>
+      <itunes:author>Mati &amp; Ben von Podigee</itunes:author>
+      <enclosure url="https://audio.podigee-cdn.net/113927-m-1feed35b641dcd1f5f8cbfbc9354e8c2.mp3?source=feed" type="audio/mpeg" length="34468666"/>
+      <itunes:duration>2146</itunes:duration>
+      <podcast:chapters href="https://podcast-news.podigee.io/11-zahlenzauber-bei-podigee/chapters.json" type="application/json+chapters"/>
+      <podcast:episode>11</podcast:episode>
+      <podcast:transcript url="https://main.podigee-cdn.net/media/podcast_4411_podigee_podcast_news_episode_11_zahlenzauber_bei_podigee.json" type="application/json"/>
+      <podcast:transcript url="https://main.podigee-cdn.net/uploads/u15477/7d52adc9-172e-40d9-982c-2bb08b654a12.vtt" type="text/vtt"/>
+    </item>
+  </channel>
+</rss>

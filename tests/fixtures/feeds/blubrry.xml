@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="https://feeds.blubrry.com/assets/rssfeedstyle.xsl"?>
+<rss xmlns:rawvoice="https://blubrry.com/developer/rawvoice-rss/"  version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:podcast="https://podcastindex.org/namespace/1.0">
+  <channel>
+	<itunes:new-feed-url>https://feeds.blubrry.com/feeds/3882499.xml</itunes:new-feed-url>
+	<rawvoice:subscribe feed="https://feeds.blubrry.com/feeds/3882499.xml"  android="https://subscribeonandroid.com/feeds.blubrry.com/feeds/3882499.xml"  email="https://subscribebyemail.com/feeds.blubrry.com/feeds/3882499.xml"  itunes="https://podcasts.apple.com/us/podcast/podcast-insider-special-edition/id1818877531"  spotify="https://open.spotify.com/show/1fsyKkNxvqQ0zsVEpj3wjd"  pcindex="https://podcastindex.org/podcast/7360824" ></rawvoice:subscribe>
+    <atom:link href="https://feeds.blubrry.com/feeds/3882499.xml" rel="self" type="application/rss+xml" />
+    <title>Podcast Insider - Special Edition</title>
+    <link>https://podcast.show/3882499/</link>
+    <link rel="self" href="https://feeds.blubrry.com/feeds/3882499.xml" xmlns="http://www.w3.org/2005/Atom">https://podcast.show/3882499/</link>
+    <description>Interviews and special episodes from Podcast Insider</description>
+    <itunes:type>episodic</itunes:type>
+    <itunes:author>Blubrry Podcasting</itunes:author>
+    <podcast:podroll>
+      <podcast:remoteItem feedGuid="ae38e5df-3281-5138-b120-b07cb835cac5" feedUrl="https://newmediashow.com/" title="New Media Show (Audio)" />
+      <podcast:remoteItem feedGuid="a6ac2166-92d5-566b-a95f-22721dae69fc" feedUrl="https://blubrry.com/1473115/" title="Podcast News &amp;amp; Myth Buster" />
+      <podcast:remoteItem feedGuid="95d05ac5-1081-5ef2-8c81-14503706a662" feedUrl="https://blubrry.com/" title="Podcast Insider" />
+      <podcast:remoteItem feedGuid="c77174d7-6b0a-5b6d-9c35-04c8d98dcc09" feedUrl="https://geeknewscentral.com/" title="Geek News Central Podcast" />
+    </podcast:podroll>
+    <podcast:medium>podcast</podcast:medium>
+    <language>en</language>
+    <copyright>© 2025 Blubrry Podcasting - RawVoice Inc.</copyright>
+    <podcast:license>© 2025 Blubrry Podcasting - RawVoice Inc.</podcast:license>
+    <itunes:owner>
+      <itunes:name>Blubrry Podcasting</itunes:name>
+      <itunes:email>mike@rawvoice.com</itunes:email>
+    </itunes:owner>
+    <itunes:image href="https://assets.blubrry.com/coverart/orig/3882499-315630.jpg" />
+    <image>
+      <link>https://podcast.show/3882499/</link>
+      <url>https://assets.blubrry.com/coverart/orig/3882499-315630.jpg</url>
+      <title>Podcast Insider - Special Edition</title>
+      <description>Interviews and special episodes from Podcast Insider</description>
+    </image>
+    <itunes:category text="Technology" />
+    <generator>Blubrry Podcasting: https://www.blubrry.com/</generator>
+    <itunes:explicit>false</itunes:explicit>
+    <docs>http://blogs.law.harvard.edu/tech/rss</docs>
+    <podcast:podping usesPodping="true" />
+    <podcast:guid>56082d64-bd7e-5849-9742-595f8fe07c1b</podcast:guid>
+    <podcast:person role="Host" img="https://geeknewscentral.com/wp-content/uploads/2023/01/IMG_7028.jpeg" href="https://www.linkedin.com/in/toddcochrane/">Todd Cochrane</podcast:person>
+    <podcast:location geo="geo:41.944260100612894,-84.88388503756211" osm="" rel="creator">Quincy, Michigan, USA</podcast:location>
+    <lastBuildDate>Wed, 24 Sep 2025 18:41:26 +0000</lastBuildDate>
+    <pubDate>Wed, 24 Sep 2025 18:41:26 +0000</pubDate>
+    <item>
+      <title>Programmatic Advertising in Podcasting what is it and how does it work</title>
+      <link>https://youtube.com/watch?v=ECr3MhL6zjc</link>
+      <rawvoice:pid>148787407</rawvoice:pid>
+      <guid>ECr3MhL6zjc</guid>
+      <dc:creator>Blubrry Podcasting</dc:creator>
+      <pubDate>Wed, 24 Sep 2025 18:41:26 +0000</pubDate>
+      <description><![CDATA[Programmatic Advertising is now responsible for monetizing thousands of podcasts that would not get advertising. Todd Cochrane talks with the team from Sound Stack to explain what it is, how it works, and how Blubrry Podcasters can monetize from day one. 
+
+Blubrry Podcasting - https://blubrry.com]]></description>
+      <enclosure url="https://media.blubrry.com/3882499/ins.blubrry.com/3882499/cbr_ECr3MhL6zjc.mp3" length="53727021" type="audio/mpeg" />
+      <podcast:contentLink href="https://www.youtube.com/watch?v=ECr3MhL6zjc">Stream on YouTube!</podcast:contentLink>
+      <itunes:duration>0:55:58</itunes:duration>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>Revolutionizing Podcast Production with Auphonic’s Audio Tool</title>
+      <link>https://youtube.com/watch?v=C_lbI3OPJf8</link>
+      <rawvoice:pid>147911685</rawvoice:pid>
+      <guid>C_lbI3OPJf8</guid>
+      <dc:creator>Blubrry Podcasting</dc:creator>
+      <pubDate>Wed, 25 Jun 2025 18:28:46 +0000</pubDate>
+      <description><![CDATA[In this exclusive episode of Podcast Insider, we sat down with Christopher of Auphonic to explore how their powerful AI-driven tool is changing the game for podcasters everywhere.
+
+Discover how solo creators and indie podcasters are using this “near-miracle” software to automate audio post-production with incredible results.
+
+ What you’ll learn:
+-How Auphonic levels audio & removes noise automatically
+-Why podcasters call it a game-changer for quality & consistency
+-Tips for simplifying your production workflow
+-How Auphonic integrates with Blubrry podcast hosting
+
+ Want better audio without the tech overwhelm? Watch now and see how Auphonic can transform your podcasting process!
+
+ Don’t forget to like, subscribe, and hit the bell for more podcasting tools, tips, and insider interviews from Blubrry.
+
+#PodcastingTools #Auphonic #PodcastProduction #AudioEditing #Blubrry]]></description>
+      <enclosure url="https://media.blubrry.com/3882499/ins.blubrry.com/3882499/cbr_C_lbI3OPJf8.mp3" length="39145005" type="audio/mpeg" />
+      <podcast:contentLink href="https://www.youtube.com/watch?v=C_lbI3OPJf8">Stream on YouTube!</podcast:contentLink>
+      <itunes:duration>0:40:47</itunes:duration>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>Unlocking Podcast Monetization with Heather Osgood</title>
+      <link>https://youtube.com/watch?v=ZOLiiEP6g4M</link>
+      <rawvoice:pid>146027766</rawvoice:pid>
+      <guid>ZOLiiEP6g4M</guid>
+      <dc:creator>Blubrry Podcasting</dc:creator>
+      <pubDate>Wed, 04 Jun 2025 19:39:04 +0000</pubDate>
+      <description><![CDATA[Join us on this special edition of Podcast Insider as we dive into the world of podcast advertising with Heather Osgood, founder of True Native Media. https://truenativemedia.com/
+
+With nine years of experience, Heather shares insights on why audio remains king in podcasting, the power of dynamic ad insertion, and how smaller shows can tap into programmatic ads for revenue. We also explore the challenges and opportunities of video podcasts on YouTube, the importance of pixel tracking for attribution, and strategies to maximize ad performance. 
+
+Whether you're a podcaster or advertiser, this episode is packed with actionable tips to boost your monetization game! 
+
+Like, Subscribe, and hit the bell for weekly insider tips on podcasting success.
+
+#podcastadvertising  #Monetization #TrueNativeMedia]]></description>
+      <enclosure url="https://media.blubrry.com/3882499/ins.blubrry.com/3882499/cbr_ZOLiiEP6g4M.mp3" length="54539949" type="audio/mpeg" />
+      <podcast:contentLink href="https://www.youtube.com/watch?v=ZOLiiEP6g4M">Stream on YouTube!</podcast:contentLink>
+      <itunes:duration>0:56:49</itunes:duration>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+  </channel>
+</rss>

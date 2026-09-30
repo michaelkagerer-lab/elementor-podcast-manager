@@ -1,0 +1,21 @@
+﻿
+  <?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic feed with publisher mistakes that make strict XML parsers fail:
+     BOM and whitespace before the XML declaration, a bare "&", HTML named entities
+     (&nbsp; &rsquo; &hellip; &eacute;) and a control character. -->
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+	<channel>
+		<title>Q&A &mdash; Friday&rsquo;s show</title>
+		<link>https://show.example.test/broken/</link>
+		<description>Caf&eacute;&nbsp;talk with a controlcharacter here.</description>
+		<language>fr</language>
+		<itunes:image href="https://feeds.example.test/media/broken-art.png"/>
+		<item>
+			<title>Tom & Jerry&hellip;</title>
+			<guid isPermaLink="false">broken-1</guid>
+			<pubDate>Mon, 01 Jun 2026 08:00:00 +0000</pubDate>
+			<description>Bare & in text.</description>
+			<enclosure url="https://feeds.example.test/media/broken-1.mp3?a=1&b=2" length="1000" type="audio/mpeg"/>
+		</item>
+	</channel>
+</rss>

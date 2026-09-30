@@ -94,6 +94,12 @@ fi
 ln -sfn "$PLUGIN_DIR" "$SITE/wp-content/plugins/elementor-podcast-manager"
 "$WP" plugin activate elementor-podcast-manager --quiet
 
+# Test-only HTTP fixtures: requests to https://feeds.example.test/… (and
+# Apple's podcast lookup) are answered from tests/fixtures/feeds/, so feed
+# imports and syncs run offline. Installed on this disposable site only.
+mkdir -p "$SITE/wp-content/mu-plugins"
+ln -sfn "$PLUGIN_DIR/tests/fixtures/mu-plugins/epm-test-http.php" "$SITE/wp-content/mu-plugins/epm-test-http.php"
+
 "$WP" rewrite structure '/%postname%/' --hard --quiet
 "$WP" rewrite flush --hard --quiet
 

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic paged feed, page 1 of 2 (atom:link rel="next"), like SoundCloud's 500-item pages. -->
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:atom="http://www.w3.org/2005/Atom">
+	<channel>
+		<title>Paged Show</title>
+		<link>https://show.example.test/paged/</link>
+		<atom:link href="https://feeds.example.test/synthetic/paged-1.xml" rel="self" type="application/rss+xml"/>
+		<atom:link href="https://feeds.example.test/synthetic/paged-2.xml" rel="next" type="application/rss+xml"/>
+		<description>A show whose feed comes in two pages.</description>
+		<language>en</language>
+		<itunes:author>Page Author</itunes:author>
+		<itunes:image href="https://feeds.example.test/media/paged-art.png"/>
+		<item>
+			<title>Paged episode 4</title>
+			<guid isPermaLink="false">paged-4</guid>
+			<pubDate>Thu, 04 Jun 2026 08:00:00 +0000</pubDate>
+			<description>Fourth.</description>
+			<enclosure url="https://feeds.example.test/media/paged-4.mp3" length="4000" type="audio/mpeg"/>
+		</item>
+		<item>
+			<title>Paged episode 3</title>
+			<guid isPermaLink="false">paged-3</guid>
+			<pubDate>Wed, 03 Jun 2026 08:00:00 +0000</pubDate>
+			<description>Third.</description>
+			<enclosure url="https://feeds.example.test/media/paged-3.mp3" length="3000" type="audio/mpeg"/>
+		</item>
+	</channel>
+</rss>

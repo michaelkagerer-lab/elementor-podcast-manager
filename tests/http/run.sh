@@ -74,6 +74,41 @@ echo "Media"
 AUDIO=$(grep -o '<enclosure url="[^"]*"' "$TMP/feed.xml" | head -1 | sed 's/.*url="//; s/"$//')
 check "enclosure answers byte-range requests" '[ "$(curl -s -o /dev/null -w "%{http_code}" -r 0-99 "$AUDIO")" = 206 ]'
 
+echo "Hosted elsewhere"
+# The hosting option is saved (JSON, empty when it does not exist) and put
+# back afterwards, also when the script is interrupted.
+HOST_FEED="https://feeds.example.test/synthetic/locked-show.xml"
+HOSTING_BEFORE="$($WP option get epm_hosting --format=json 2>/dev/null | grep '^{' | head -1)"
+restore_hosting() {
+	if [ -n "$HOSTING_BEFORE" ]; then
+		$WP option update epm_hosting "$HOSTING_BEFORE" --format=json > /dev/null 2>&1
+	else
+		$WP option delete epm_hosting > /dev/null 2>&1
+	fi
+}
+trap 'restore_hosting; rm -rf "$TMP"' EXIT
+# Through the settings sanitizer, like the Hosting screen.
+set_hosting() {
+	$WP eval "update_option( EPM\\Hosting::OPTION, EPM\\Hosting::sanitize( array_merge( EPM\\Hosting::all(), [ 'mode' => '$1', 'feed_url' => '$HOST_FEED', 'redirect' => '$2', 'sync' => '' ] ) ) );" > /dev/null 2>&1
+}
+status_and_location() { curl -s -o /dev/null -w '%{http_code} %{redirect_url}' "$URL$1"; }
+
+set_hosting external 1
+for path in /podcast/feed/ "/?epm_podcast_feed=1" /podcast/rss2/ /podcast/feed/atom/; do
+	check "$path answers 301 to the host's feed" '[ "$(status_and_location "$path")" = "301 $HOST_FEED" ]'
+done
+check "the redirect names the plugin" 'curl -s -D - -o /dev/null "$URL/podcast/feed/" | grep -qi "^x-redirect-by: Elementor Podcast Manager"'
+check "pages point feed readers at the host's feed" 'curl -s "$URL/" | grep -q "type=\"application/rss+xml\"[^>]*href=\"$HOST_FEED\""'
+check "the blog feed is not redirected" '[ "$(curl -s -o /dev/null -w "%{http_code}" "$URL/feed/")" = 200 ]'
+
+set_hosting external ""
+check "redirect turned off: the site's feed answers 200" '[ "$(status_and_location /podcast/feed/)" = "200 " ]'
+
+restore_hosting
+for path in /podcast/feed/ "/?epm_podcast_feed=1"; do
+	check "self-hosted again: $path answers 200 with the podcast feed" '[ "$(status_and_location "$path")" = "200 " ] && curl -s "$URL$path" | grep -q "<itunes:owner>"'
+done
+
 echo
 echo "$PASSED passed, $FAILED failed."
 [ "$FAILED" -eq 0 ]

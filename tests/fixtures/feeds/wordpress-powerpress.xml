@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+xmlns:podcast="https://podcastindex.org/namespace/1.0"
+xmlns:rawvoice="https://blubrry.com/developer/rawvoice-rss/"
+>
+<channel>
+	<title>BeyondPodcasting</title>
+	<atom:link href="https://beyondpodcasting.com/feed/podcast/" rel="self" type="application/rss+xml" />
+	<link>https://beyondpodcasting.com</link>
+	<description>Your show is much more than just a podcast!</description>
+	<lastBuildDate>Fri, 05 Apr 2024 19:12:12 +0000</lastBuildDate>
+	<language>en-US</language>
+	<sy:updatePeriod>hourly</sy:updatePeriod>
+	<sy:updateFrequency>1</sy:updateFrequency>
+		<generator>https://wordpress.org/?v=7.1.2</generator>
+
+<image>
+	<url>https://beyondpodcasting.com/wp-content/uploads/2017/12/cropped-Beyond-Podcasting-32x32.jpg</url>
+	<title>BeyondPodcasting</title>
+	<link>https://beyondpodcasting.com</link>
+	<width>32</width>
+	<height>32</height>
+</image> 
+	<atom:link rel="hub" href="https://pubsubhubbub.appspot.com/" />
+	<itunes:author>BeyondPodcasting</itunes:author>
+	<itunes:explicit>false</itunes:explicit>
+	<itunes:image href="https://beyondpodcasting.com/wp-content/uploads/2023/02/BeyondPodasting_3000-livianao-scaled.jpg" />
+	<itunes:type>episodic</itunes:type>
+	<copyright></copyright>
+	<podcast:license></podcast:license>
+	<podcast:medium>podcast</podcast:medium>
+	<image>
+		<title>BeyondPodcasting</title>
+		<url>https://beyondpodcasting.com/wp-content/uploads/2023/02/BeyondPodasting_3000-livianao-scaled.jpg</url>
+		<link>https://beyondpodcasting.com</link>
+	</image>
+	<itunes:category text="Technology" />
+	<itunes:category text="News">
+		<itunes:category text="Tech News" />
+	</itunes:category>
+	<itunes:category text="Business">
+		<itunes:category text="Marketing" />
+	</itunes:category>
+	<rawvoice:rating>TV-PG</rawvoice:rating>
+	<podcast:funding url="http://beyondpodcasting.com/support/">Support this show</podcast:funding>
+	<podcast:person role="Director">Allan Tépper</podcast:person>
+	<podcast:podping usesPodping="true" />
+	<podcast:guid>0bbd5960-404d-5c72-a8f3-c2000a94065d</podcast:guid>
+	<rawvoice:subscribe feed="https://beyondpodcasting.com/feed/podcast/" html="https://beyondpodcasting.com/subscribe-options/" itunes="https://podcasts.apple.com/us/podcast/feed/id1350149865?at=11lo6V&amp;ct=podnews_podcast" tunein="https://tunein.com/podcasts/Public-Radio/BeyondPodcasting-p1102225/" spotify="https://open.spotify.com/show/13E0m1Pk58Fh7sPizPQdmk"></rawvoice:subscribe>
+	<item>
+		<title>Podcatcher apps+My first indie song production in 3 locations+distribution</title>
+		<link>https://beyondpodcasting.com/podcatcher-appsmy-first-indie-song-production-in-3-locationsdistribution/</link>
+		<pubDate>Mon, 30 Aug 2021 13:13:25 +0000</pubDate>
+		<guid isPermaLink="false">https://beyondpodcasting.com/?p=1699</guid>
+		<comments>https://beyondpodcasting.com/podcatcher-appsmy-first-indie-song-production-in-3-locationsdistribution/#respond</comments>
+		<wfw:commentRss>https://beyondpodcasting.com/podcatcher-appsmy-first-indie-song-production-in-3-locationsdistribution/feed/</wfw:commentRss>
+		<slash:comments>0</slash:comments>
+		<category><![CDATA[Podcatcher apps]]></category>
+		<category><![CDATA[RØDECaster Pro]]></category>
+		<category><![CDATA[RSS]]></category>
+		<category><![CDATA[Song production]]></category>
+		<category><![CDATA[castellano]]></category>
+		<category><![CDATA[Castilian]]></category>
+		<category><![CDATA[español]]></category>
+		<category><![CDATA[independent]]></category>
+		<category><![CDATA[indie]]></category>
+		<category><![CDATA[podcatcher]]></category>
+		<category><![CDATA[podcatchers]]></category>
+		<category><![CDATA[production]]></category>
+		<category><![CDATA[song]]></category>
+		<category><![CDATA[Spanish]]></category>
+		<description><![CDATA[<p><a href="https://beyondpodcasting.com/wp-content/uploads/2021/08/Screenshot-Let-it-be-called-Castilian-Hindenburg.jpg" target="_blank" rel="noopener"><img fetchpriority="high" decoding="async" class="aligncenter wp-image-1700" src="https://beyondpodcasting.com/wp-content/uploads/2021/08/Screenshot-Let-it-be-called-Castilian-Hindenburg-1024x576.jpg" alt="" width="707" height="398" srcset="https://beyondpodcasting.com/wp-content/uploads/2021/08/Screenshot-Let-it-be-called-Castilian-Hindenburg-1024x576.jpg 1024w, https://beyondpodcasting.com/wp-content/uploads/2021/08/Screenshot-Let-it-be-called-Castilian-Hindenburg-300x169.jpg 300w, https://beyondpodcasting.com/wp-content/uploads/2021/08/Screenshot-Let-it-be-called-Castilian-Hindenburg-768x432.jpg 768w, https://beyondpodcasting.com/wp-content/uploads/2021/08/Screenshot-Let-it-be-called-Castilian-Hindenburg-1536x864.jpg 1536w, https://beyondpodcasting.com/wp-content/uploads/2021/08/Screenshot-Let-it-be-called-Castilian-Hindenburg.jpg 1920w" sizes="(max-width: 707px) 100vw, 707px" /></a></p>
+<p>Allan Tépper discusses the production of his first bilingual indie song in three locations, plays it and explains its distribution strategy.</p>
+<p><img decoding="async" class="aligncenter wp-image-1716" src="https://beyondpodcasting.com/wp-content/uploads/2021/08/Portada-Let-it-be-in-Castilian-NDS.jpg" alt="" width="808" height="808" srcset="https://beyondpodcasting.com/wp-content/uploads/2021/08/Portada-Let-it-be-in-Castilian-NDS.jpg 1001w, https://beyondpodcasting.com/wp-content/uploads/2021/08/Portada-Let-it-be-in-Castilian-NDS-300x300.jpg 300w, https://beyondpodcasting.com/wp-content/uploads/2021/08/Portada-Let-it-be-in-Castilian-NDS-150x150.jpg 150w, https://beyondpodcasting.com/wp-content/uploads/2021/08/Portada-Let-it-be-in-Castilian-NDS-768x768.jpg 768w" sizes="(max-width: 808px) 100vw, 808px" /></p>
+<p>This song is called <span style="color: #0000ff;"><a style="color: #0000ff;" href="https://LetitbecalledCastilian.com" target="_blank" rel="noopener"><strong><em>Let it be called Castilian</em></strong></a> </span>— <span style="color: #0000ff;"><a style="color: #0000ff;" href="https://Debellamarsecastellano.com" target="_blank" rel="noopener"><strong><em>Debe llamarse castellano</em></strong></a></span>. It&#8217;s educational and makes parody of the same coverup covered in several of Allan Tépper&#8217;s books, including <span style="color: #0000ff;"><a style="color: #0000ff;" href="https://laconspiracióndelcastellano.com" target="_blank" rel="noopener"><em><strong>La conspiración del castellano</strong></em></a></span> and the English adaptation, <span style="color: #0000ff;"><a style="color: #0000ff;" href="https://thecastilianconspiracy.com" target="_blank" rel="noopener"><strong><em>The Castilian Conspiracy</em></strong></a></span>. The song includes Spaniard linguist, voiceover talent and singer <strong>María Esnoz</strong> and was mastered by <a href="https://podcastengineeringschool.com/chris-curran/" target="_blank" rel="noopener"><span style="color: #0000ff;"><strong>Chris Curren</strong></span>.</a>  We discuss podcatcher apps: which to use and recommend to your listeners and why after Apple Podcasts, Spotify and Stitcher sadly &#8220;collaborated&#8221; to offer us the worst-looking and least functional <strong>episode notes</strong> ever. We also introduce our newest sponsor, Allan&#8217;s favorite coffee for many years.</p>
+<p>Do you see <strong>bold</strong>, <em>italics</em> and <span style="color: #0000ff;"><a style="color: #0000ff;" href="https://beyondpodcasting.com/" target="_blank" rel="noopener">human links</a> </span>in this sentence? If not, you should upgrade to a better podcatcher. Learn how in this episode. More information at <span style="color: #0000ff;"><a style="color: #0000ff;" href="https://BeyondPodcasting.com" target="_blank" rel="noopener">BeyondPodcasting.com</a></span></p>]]></description>
+		<enclosure url="https://media.blubrry.com/beyondpodcasting/www.podtrac.com/pts/redirect.mp3/beyondpodcasting.com/wp-content/uploads/2021/08/BeyondPodcasting-21.m4a" length="16433285" type="audio/x-m4a" />
+		<itunes:episode>21</itunes:episode>
+		<podcast:episode>21</podcast:episode>
+		<itunes:episodeType>full</itunes:episodeType>
+		<itunes:duration>17:46</itunes:duration>
+	</item>
+	<item>
+		<title>Hooke Lav wireless 48 kHz microphone-CombinedHosting.com</title>
+		<link>https://beyondpodcasting.com/hooke-lav-wireless-48-khz-microphone-combinedhosting-com/</link>
+		<pubDate>Wed, 14 Oct 2020 22:31:08 +0000</pubDate>
+		<guid isPermaLink="false">https://beyondpodcasting.com/?p=1626</guid>
+		<comments>https://beyondpodcasting.com/hooke-lav-wireless-48-khz-microphone-combinedhosting-com/#respond</comments>
+		<wfw:commentRss>https://beyondpodcasting.com/hooke-lav-wireless-48-khz-microphone-combinedhosting-com/feed/</wfw:commentRss>
+		<slash:comments>0</slash:comments>
+		<category><![CDATA[Microphones]]></category>
+		<category><![CDATA[Hosting]]></category>
+		<description><![CDATA[<p><a href="https://beyondpodcasting.com/wp-content/uploads/2020/10/BeyondPodcasting-20-image-Anthony-Mattana.jpg"><img decoding="async" class="alignleft size-large wp-image-1634" src="https://beyondpodcasting.com/wp-content/uploads/2020/10/BeyondPodcasting-20-image-Anthony-Mattana-1024x878.jpg" alt="" width="1024" height="878" srcset="https://beyondpodcasting.com/wp-content/uploads/2020/10/BeyondPodcasting-20-image-Anthony-Mattana-1024x878.jpg 1024w, https://beyondpodcasting.com/wp-content/uploads/2020/10/BeyondPodcasting-20-image-Anthony-Mattana-300x257.jpg 300w, https://beyondpodcasting.com/wp-content/uploads/2020/10/BeyondPodcasting-20-image-Anthony-Mattana-768x658.jpg 768w, https://beyondpodcasting.com/wp-content/uploads/2020/10/BeyondPodcasting-20-image-Anthony-Mattana.jpg 1400w" sizes="(max-width: 1024px) 100vw, 1024px" /></a>Allan Tépper converses with Anthony Mattana of Hooke Audio, creator of Hooke Lav, the wireless lavalier microphone which transmits 48 kHz 24-bit audio via bluetooth to your Android, iOS, iPadOS or conventional camcorder while recording a local WAV file just in case. More info at <strong><a href="https://wireless.BeyondPodcasting.com" target="_blank" rel="noopener noreferrer">wireless.BeyondPodcasting.com</a></strong>. We also discuss <strong><a href="https://CombinedHosting.com" target="_blank" rel="noopener noreferrer">CombinedHosting.com</a></strong> where you can (and should) host your live online radio show or podcast with your own domain (not anybody else’s) and get help with GDPR compliance and DMCA.</p>
+<p><em>BeyondPodcasting</em> resides at <span style="color: #0000ff;"><a style="color: #0000ff;" href="http://beyondpodcasting.com" target="_blank" rel="noopener noreferrer">BeyondPodcasting.com</a></span><br />
+<span style="color: #0000ff;"><a style="color: #0000ff;" href="https://beyondpodcasting.com/support/" target="_blank" rel="noopener noreferrer">Support this show.</a></span></p>]]></description>
+		<enclosure url="https://media.blubrry.com/beyondpodcasting/www.podtrac.com/pts/redirect.mp3/beyondpodcasting.com/wp-content/uploads/2020/10/BeyondPodcasting-20.m4a" length="22966326" type="audio/x-m4a" />
+		<itunes:episodeType>full</itunes:episodeType>
+		<itunes:duration>23:59</itunes:duration>
+	</item>
+	<item>
+		<title>Spotify pros/cons &#8211; Hindenburg adds Magic Levels: automix, de-bleed &#038; more</title>
+		<link>https://beyondpodcasting.com/spotify-pros-cons-hindenburg-adds-magic-levels-automix-de-bleed-more/</link>
+		<pubDate>Sun, 19 Apr 2020 00:15:19 +0000</pubDate>
+		<guid isPermaLink="false">https://beyondpodcasting.com/?p=1309</guid>
+		<comments>https://beyondpodcasting.com/spotify-pros-cons-hindenburg-adds-magic-levels-automix-de-bleed-more/#respond</comments>
+		<wfw:commentRss>https://beyondpodcasting.com/spotify-pros-cons-hindenburg-adds-magic-levels-automix-de-bleed-more/feed/</wfw:commentRss>
+		<slash:comments>0</slash:comments>
+		<category><![CDATA[Editing]]></category>
+		<category><![CDATA[Hindenburg Journalist (Pro)]]></category>
+		<category><![CDATA[Mulitrack editing]]></category>
+		<category><![CDATA[RSS]]></category>
+		<description><![CDATA[<p><a href="https://beyondpodcasting.com/wp-content/uploads/2020/04/Hindenburg-Magic-Levels.jpg"><img loading="lazy" decoding="async" class="alignleft size-large wp-image-1313" src="https://beyondpodcasting.com/wp-content/uploads/2020/04/Hindenburg-Magic-Levels-1024x528.jpg" alt="" width="1024" height="528" srcset="https://beyondpodcasting.com/wp-content/uploads/2020/04/Hindenburg-Magic-Levels-1024x528.jpg 1024w, https://beyondpodcasting.com/wp-content/uploads/2020/04/Hindenburg-Magic-Levels-300x155.jpg 300w, https://beyondpodcasting.com/wp-content/uploads/2020/04/Hindenburg-Magic-Levels-768x396.jpg 768w, https://beyondpodcasting.com/wp-content/uploads/2020/04/Hindenburg-Magic-Levels.jpg 1224w" sizes="auto, (max-width: 1024px) 100vw, 1024px" /></a></p>
+<p>5 disadvantages of Spotify for podcasters, and why my shows are there anyway. Hindenburg Journalist Pro adds the Magic Levels feature, which includes adaptive levels, automix, de-bleed and auto-ducking. For a free 90-day trial followed by a discounted price, visit <a href="https://beyondpodcasting.com/Hindenburg" target="_blank" rel="noopener noreferrer"><span style="color: #0000ff;">BeyondPodcasting.com/Hindenburg</span></a>.</p>
+<p>For your first 100 minutes of transcription, visit <span style="color: #0000ff;"><a style="color: #0000ff;" href="http://descript.BeyondPodcasting.com" target="_blank" rel="noopener noreferrer">Descript.BeyondPodcasting.com</a></span>.</p>
+<p><em>BeyondPodcasting</em> resides at <span style="color: #0000ff;"><a style="color: #0000ff;" href="http://beyondpodcasting.com" target="_blank" rel="noopener noreferrer">BeyondPodcasting.com</a></span><br />
+<span style="color: #0000ff;"><a style="color: #0000ff;" href="https://beyondpodcasting.com/support/" target="_blank" rel="noopener noreferrer">Support this show.</a></span></p>]]></description>
+		<enclosure url="http://media.blubrry.com/beyondpodcasting/www.podtrac.com/pts/redirect.mp3/beyondpodcasting.com/wp-content/uploads/2020/04/BeyondPodcasting-19.m4a" length="5448827" type="audio/x-m4a" />
+		<itunes:episode>19</itunes:episode>
+		<podcast:episode>19</podcast:episode>
+		<itunes:episodeType>full</itunes:episodeType>
+		<itunes:duration>11:09</itunes:duration>
+	</item>
+</channel>
+</rss>

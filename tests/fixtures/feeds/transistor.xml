@@ -1,0 +1,408 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet href="/stylesheet.xsl" type="text/xsl"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:sy="http://purl.org/rss/1.0/modules/syndication/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:podcast="https://podcastindex.org/namespace/1.0">
+  <channel>
+    <atom:link rel="self" type="application/rss+xml" href="https://feeds.transistor.fm/build-your-saas" title="MP3 Audio"/>
+    <atom:link rel="hub" href="https://pubsubhubbub.appspot.com/"/>
+    <podcast:podping usesPodping="true"/>
+    <title>Build Your SaaS</title>
+    <generator>Transistor (https://transistor.fm)</generator>
+    <itunes:new-feed-url>https://feeds.transistor.fm/build-your-saas</itunes:new-feed-url>
+    <description>Follow the journey of Transistor.fm as they bootstrap a podcast hosting startup.</description>
+    <copyright>© 2025 Transistor, Inc.</copyright>
+    <podcast:guid>778116ac-6b1e-5ae2-b037-26a7ff2aee64</podcast:guid>
+    <podcast:podroll>
+      <podcast:remoteItem feedGuid="ec3625d6-799c-5efb-93c7-a2a8c15f4fb8" feedUrl="https://feeds.castos.com/mqv6"/>
+      <podcast:remoteItem feedGuid="3f7f94d2-8111-5ed2-b4d3-88ce0c4a7b24" feedUrl="https://feeds.transistor.fm/the-business-of-laravel"/>
+      <podcast:remoteItem feedGuid="ae85e704-aea7-5502-b8d4-dd1a6d4b5a40" feedUrl="https://feeds.transistor.fm/hackers-inc"/>
+      <podcast:remoteItem feedGuid="d6671fb6-3ad2-5533-b157-e70f1a3b23cb" feedUrl="https://feeds.transistor.fm/mostly-technical"/>
+      <podcast:remoteItem feedGuid="0f17bc61-9135-5308-87da-390a957fcd83" feedUrl="https://feeds.transistor.fm/building-livewire"/>
+      <podcast:remoteItem feedGuid="1f23616e-697c-5796-8aa2-fe7feaf83e5c" feedUrl="https://feeds.transistor.fm/bootstrapped-founder"/>
+      <podcast:remoteItem feedGuid="7ac16be6-8783-5b11-8290-f8eaf9df4f1d" feedUrl="https://feeds.transistor.fm/bootstrapped-web"/>
+      <podcast:remoteItem feedGuid="4a10b63a-41b2-5c31-82e1-9ea2cd7cc19a" feedUrl="https://feeds.transistor.fm/the-panel"/>
+    </podcast:podroll>
+    <podcast:locked>yes</podcast:locked>
+    <podcast:funding url="https://www.patreon.com/jonjustin">Support this podcast on Patreon</podcast:funding>
+    <podcast:person role="Editor" href="https://www.lemonproductions.ca/" img="https://img.transistorcdn.com/2SiuRhS348JffvBzdB3JGfWiktif4lkAlJ7qEYIddM0/rs:fill:0:0:1/w:800/h:800/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS9wZXJz/b24vOTViZmQ4MTYt/MjE2ZC00NGFjLTk1/MTgtOTdmZTgxZWNm/ZjQyLzE2NjQ0Nzkx/NTMtaW1hZ2UuanBn.jpg">Chris Enns</podcast:person>
+    <podcast:person role="Host" href="https://transistor.fm" img="https://img.transistorcdn.com/gDRCHUWtnyUcFLoKYzonKCNOePi94JeSg0YRNPbdsDA/rs:fill:0:0:1/w:800/h:800/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS9wZXJz/b24vODk0MzlmOGYt/NDE0Ni00NjM4LWIw/NzctNmMwZDBkOTYy/MTVlLzE2ODE5OTQz/MzEtaW1hZ2UuanBn.jpg">Jon Buda</podcast:person>
+    <podcast:person role="Host" href="https://justinjackson.ca" img="https://img.transistorcdn.com/smTvekjC85pUxar6FCHHuAlHwamJGkZQ86Q0uqyef8U/rs:fill:0:0:1/w:800/h:800/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS9wZXJz/b24vYjYwODFjYzkt/Y2ZmYi00YWIzLThj/NWMtZDVkZWYyMDRm/ZjgyLzE2NjQ0NjU4/NzItaW1hZ2UuanBn.jpg">Justin Jackson</podcast:person>
+    <podcast:trailer pubdate="Tue, 19 Jun 2018 12:00:00 -0700" url="https://2.gum.fm/op3.dev/e/dts.podtrac.com/redirect.mp3/media.transistor.fm/cd78d193/5d907ace.mp3" length="1117509" type="audio/mpeg">Teaser: I don't want to get crushed by the VC monster</podcast:trailer>
+    <podcast:trailer pubdate="Tue, 29 May 2018 01:05:00 -0700" url="https://2.gum.fm/op3.dev/e/dts.podtrac.com/redirect.mp3/media.transistor.fm/1b8db7a0/76c28761.mp3" length="11090436" type="audio/mpeg">What does Nathan Barry think of podcast hosting pricing?</podcast:trailer>
+    <podcast:trailer pubdate="Fri, 16 Feb 2018 17:00:00 -0800" url="https://2.gum.fm/op3.dev/e/dts.podtrac.com/redirect.mp3/media.transistor.fm/07d3a3b7/65742513.mp3" length="5537837" type="audio/mpeg">What does it take to build a SaaS these days?</podcast:trailer>
+    <language>en</language>
+    <pubDate>Tue, 29 Sep 2026 03:36:08 -0700</pubDate>
+    <lastBuildDate>Tue, 29 Sep 2026 03:37:13 -0700</lastBuildDate>
+    <link>https://saas.transistor.fm</link>
+    <image>
+      <url>https://img.transistorcdn.com/An4UnCBXf-0MXzTVM7zHAs8am60aE1-MC7V16hltka0/rs:fill:0:0:1/w:1400/h:1400/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS9zaG93/LzE1LzE1MjEyMzc4/NDYtYXJ0d29yay5q/cGc.jpg</url>
+      <title>Build Your SaaS</title>
+      <link>https://saas.transistor.fm</link>
+    </image>
+    <itunes:category text="Business">
+      <itunes:category text="Marketing"/>
+    </itunes:category>
+    <itunes:category text="Technology"/>
+    <itunes:type>episodic</itunes:type>
+    <itunes:author>Transistor.fm</itunes:author>
+    <itunes:image href="https://img.transistorcdn.com/An4UnCBXf-0MXzTVM7zHAs8am60aE1-MC7V16hltka0/rs:fill:0:0:1/w:1400/h:1400/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS9zaG93/LzE1LzE1MjEyMzc4/NDYtYXJ0d29yay5q/cGc.jpg"/>
+    <itunes:summary>Follow the journey of Transistor.fm as they bootstrap a podcast hosting startup.</itunes:summary>
+    <itunes:subtitle>Follow the journey of Transistor.fm as they bootstrap a podcast hosting startup..</itunes:subtitle>
+    <itunes:keywords>technology, podcasting, business, saas, software, marketing, bootstrap, bootstrapping, rails, ruby on rails</itunes:keywords>
+    <itunes:owner>
+      <itunes:name>Transistor.fm</itunes:name>
+      <itunes:email>shows@transistor.fm</itunes:email>
+    </itunes:owner>
+    <itunes:complete>No</itunes:complete>
+    <itunes:explicit>Yes</itunes:explicit>
+    <item>
+      <title>What is Transistor's secret weapon?</title>
+      <itunes:episode>164</itunes:episode>
+      <podcast:episode>164</podcast:episode>
+      <itunes:title>What is Transistor's secret weapon?</itunes:title>
+      <itunes:episodeType>full</itunes:episodeType>
+      <guid isPermaLink="false">b34e7e5b-750f-43e1-ab2e-3cc93f7fb5fd</guid>
+      <link>https://share.transistor.fm/s/9c22a01c</link>
+      <description>
+        <![CDATA[<p>Justin sits down with Helen Ryles and Michael Green, the two people behind almost every chat, email, and demo call that comes into Transistor, to talk about the company's secret weapon: the thing that converts 75% of trials to paid and keeps people around for years.</p><p><strong>Chapters:</strong><br></p><ul><li>(02:13) - What did Helen do before she joined Transistor?</li>
+<li>(03:00) - What did Michael do before joining Transistor?</li>
+<li>(05:05) - How does Transistor do customer support different?</li>
+<li>(08:04) - What have we learned by doing demo calls with customers?</li>
+<li>(12:32) - What are some of the emotions of starting a podcast?</li>
+<li>(16:15) - What can startups learn from being a customer led company?</li>
+<li>(18:44) - How do we approach AI in customer support?</li>
+<li>(22:50) - How does customer support translate into sales?</li>
+<li>(25:49) - What else does a customer support role do at a Saas?</li>
+<li>(33:41) - How do future generations learn how to be on a team?</li>
+</ul><br><strong>Quotes:<p></p></strong>From Helen:"The bar with customer support is really quite low across the industry... If companies are setting the standard of getting back to people in three to five business days, we don't have to necessarily adopt that. We can set our own standards."<p>From Michael:</p>"There is an emotional side to podcasting, to using a product, to creation, and we help on that side as well. People are often excited or nervous or panicking or something feels urgent, and we can help alleviate all of that emotional side. It's not just about questions and answers."<p><strong>Have feedback on this episode?</strong></p><ul><li>👉 <a href="https://podline.fm/build-your-saas">​Leave a voicemail here​</a></li><li>🦋 <a href="https://bsky.app/profile/did:plc:gp74daaof2ydekw2pmbgwfgm/post/3mjq6k7g3kr2j" title="Reply on Bluesky">Reply on Bluesky</a><br>
+</li><li>📺 </li></ul>
+<strong>Thanks to our monthly supporters</strong>
+<ul>
+  <li>Rewardful.com</li>
+  <li>Mitchell Davis from sixsides.co</li>
+  <li>Bill Condo (@mavrck)</li>
+  <li>Ward from MemberSpace.com</li>
+  <li>Evandro Sasse</li>
+  <li>Austin Loveless</li>
+  <li>Michael Sitver</li>
+  <li>Dave Giunta</li>
+</ul>
+<br><p>🎙️ <em>Podcast hosting is provided by</em> <a href="https://transistor.fm/?via=rubyblend"><em>Transistor.fm</em></a><em>.<br>📺 Learn </em><a href="https://transistor.fm/how-to-start-a-podcast/"><em>how to start your own podcast</em></a><em>!</em></p>
+<strong>
+  <a href="https://www.patreon.com/jonjustin" rel="payment" title="★ Support this podcast on Patreon ★">★ Support this podcast on Patreon ★</a>
+</strong>]]>
+      </description>
+      <content:encoded>
+        <![CDATA[<p>Justin sits down with Helen Ryles and Michael Green, the two people behind almost every chat, email, and demo call that comes into Transistor, to talk about the company's secret weapon: the thing that converts 75% of trials to paid and keeps people around for years.</p><p><strong>Chapters:</strong><br></p><ul><li>(02:13) - What did Helen do before she joined Transistor?</li>
+<li>(03:00) - What did Michael do before joining Transistor?</li>
+<li>(05:05) - How does Transistor do customer support different?</li>
+<li>(08:04) - What have we learned by doing demo calls with customers?</li>
+<li>(12:32) - What are some of the emotions of starting a podcast?</li>
+<li>(16:15) - What can startups learn from being a customer led company?</li>
+<li>(18:44) - How do we approach AI in customer support?</li>
+<li>(22:50) - How does customer support translate into sales?</li>
+<li>(25:49) - What else does a customer support role do at a Saas?</li>
+<li>(33:41) - How do future generations learn how to be on a team?</li>
+</ul><br><strong>Quotes:<p></p></strong>From Helen:"The bar with customer support is really quite low across the industry... If companies are setting the standard of getting back to people in three to five business days, we don't have to necessarily adopt that. We can set our own standards."<p>From Michael:</p>"There is an emotional side to podcasting, to using a product, to creation, and we help on that side as well. People are often excited or nervous or panicking or something feels urgent, and we can help alleviate all of that emotional side. It's not just about questions and answers."<p><strong>Have feedback on this episode?</strong></p><ul><li>👉 <a href="https://podline.fm/build-your-saas">​Leave a voicemail here​</a></li><li>🦋 <a href="https://bsky.app/profile/did:plc:gp74daaof2ydekw2pmbgwfgm/post/3mjq6k7g3kr2j" title="Reply on Bluesky">Reply on Bluesky</a><br>
+</li><li>📺 </li></ul>
+<strong>Thanks to our monthly supporters</strong>
+<ul>
+  <li>Rewardful.com</li>
+  <li>Mitchell Davis from sixsides.co</li>
+  <li>Bill Condo (@mavrck)</li>
+  <li>Ward from MemberSpace.com</li>
+  <li>Evandro Sasse</li>
+  <li>Austin Loveless</li>
+  <li>Michael Sitver</li>
+  <li>Dave Giunta</li>
+</ul>
+<br><p>🎙️ <em>Podcast hosting is provided by</em> <a href="https://transistor.fm/?via=rubyblend"><em>Transistor.fm</em></a><em>.<br>📺 Learn </em><a href="https://transistor.fm/how-to-start-a-podcast/"><em>how to start your own podcast</em></a><em>!</em></p>
+<strong>
+  <a href="https://www.patreon.com/jonjustin" rel="payment" title="★ Support this podcast on Patreon ★">★ Support this podcast on Patreon ★</a>
+</strong>]]>
+      </content:encoded>
+      <pubDate>Fri, 17 Apr 2026 17:26:43 -0700</pubDate>
+      <author>Transistor.fm</author>
+      <enclosure url="https://2.gum.fm/op3.dev/e/dts.podtrac.com/redirect.mp3/media.transistor.fm/9c22a01c/fa09d122.mp3" length="39793259" type="audio/mpeg"/>
+      <itunes:author>Transistor.fm</itunes:author>
+      <itunes:duration>2486</itunes:duration>
+      <itunes:summary>
+        <![CDATA[<p>Justin sits down with Helen Ryles and Michael Green, the two people behind almost every chat, email, and demo call that comes into Transistor, to talk about the company's secret weapon: the thing that converts 75% of trials to paid and keeps people around for years.</p><p><strong>Chapters:</strong><br></p><ul><li>(02:13) - What did Helen do before she joined Transistor?</li>
+<li>(03:00) - What did Michael do before joining Transistor?</li>
+<li>(05:05) - How does Transistor do customer support different?</li>
+<li>(08:04) - What have we learned by doing demo calls with customers?</li>
+<li>(12:32) - What are some of the emotions of starting a podcast?</li>
+<li>(16:15) - What can startups learn from being a customer led company?</li>
+<li>(18:44) - How do we approach AI in customer support?</li>
+<li>(22:50) - How does customer support translate into sales?</li>
+<li>(25:49) - What else does a customer support role do at a Saas?</li>
+<li>(33:41) - How do future generations learn how to be on a team?</li>
+</ul><br><strong>Quotes:<p></p></strong>From Helen:"The bar with customer support is really quite low across the industry... If companies are setting the standard of getting back to people in three to five business days, we don't have to necessarily adopt that. We can set our own standards."<p>From Michael:</p>"There is an emotional side to podcasting, to using a product, to creation, and we help on that side as well. People are often excited or nervous or panicking or something feels urgent, and we can help alleviate all of that emotional side. It's not just about questions and answers."<p><strong>Have feedback on this episode?</strong></p><ul><li>👉 <a href="https://podline.fm/build-your-saas">​Leave a voicemail here​</a></li><li>🦋 <a href="https://bsky.app/profile/did:plc:gp74daaof2ydekw2pmbgwfgm/post/3mjq6k7g3kr2j" title="Reply on Bluesky">Reply on Bluesky</a><br>
+</li><li>📺 </li></ul>
+<strong>Thanks to our monthly supporters</strong>
+<ul>
+  <li>Rewardful.com</li>
+  <li>Mitchell Davis from sixsides.co</li>
+  <li>Bill Condo (@mavrck)</li>
+  <li>Ward from MemberSpace.com</li>
+  <li>Evandro Sasse</li>
+  <li>Austin Loveless</li>
+  <li>Michael Sitver</li>
+  <li>Dave Giunta</li>
+</ul>
+<br><p>🎙️ <em>Podcast hosting is provided by</em> <a href="https://transistor.fm/?via=rubyblend"><em>Transistor.fm</em></a><em>.<br>📺 Learn </em><a href="https://transistor.fm/how-to-start-a-podcast/"><em>how to start your own podcast</em></a><em>!</em></p>
+<strong>
+  <a href="https://www.patreon.com/jonjustin" rel="payment" title="★ Support this podcast on Patreon ★">★ Support this podcast on Patreon ★</a>
+</strong>]]>
+      </itunes:summary>
+      <itunes:keywords>technology, podcasting, business, saas, software, marketing, bootstrap, bootstrapping, rails, ruby on rails</itunes:keywords>
+      <itunes:explicit>No</itunes:explicit>
+      <podcast:person role="Editor" href="https://www.lemonproductions.ca/" img="https://img.transistorcdn.com/2SiuRhS348JffvBzdB3JGfWiktif4lkAlJ7qEYIddM0/rs:fill:0:0:1/w:800/h:800/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS9wZXJz/b24vOTViZmQ4MTYt/MjE2ZC00NGFjLTk1/MTgtOTdmZTgxZWNm/ZjQyLzE2NjQ0Nzkx/NTMtaW1hZ2UuanBn.jpg">Chris Enns</podcast:person>
+      <podcast:person role="Host" href="https://justinjackson.ca" img="https://img.transistorcdn.com/smTvekjC85pUxar6FCHHuAlHwamJGkZQ86Q0uqyef8U/rs:fill:0:0:1/w:800/h:800/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS9wZXJz/b24vYjYwODFjYzkt/Y2ZmYi00YWIzLThj/NWMtZDVkZWYyMDRm/ZjgyLzE2NjQ0NjU4/NzItaW1hZ2UuanBn.jpg">Justin Jackson</podcast:person>
+      <podcast:person role="Guest" href="https://transistor.fm/helen/" img="https://img.transistorcdn.com/1mwCcjPJ28W0q-MHPuUSfr0WXlnQOrBYX61oBX21rOU/rs:fill:0:0:1/w:800/h:800/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS9wZXJz/b24vMzcyYTczN2Mt/YjczYS00YmIwLWIy/OTQtZTYwYzU3Njdi/OTIzLzE2NjQ0Njkz/NDMtaW1hZ2UuanBn.jpg">Helen Ryles</podcast:person>
+      <podcast:person role="Guest" href="https://saas.transistor.fm/people/michael-green" img="https://img.transistorcdn.com/5lAhEoEXSLgMOD5jQ6T1TJsUOxKAlSyYMiAtdI0bTjU/rs:fill:0:0:1/w:800/h:800/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS80OWI1/YjRkNWUxYTgyNTk5/Njg2ZDI3MGM1NTVm/OTAyMC5wbmc.jpg">Michael Green</podcast:person>
+      <podcast:transcript url="https://share.transistor.fm/s/9c22a01c/transcription.vtt" type="text/vtt" rel="captions"/>
+      <podcast:transcript url="https://share.transistor.fm/s/9c22a01c/transcription.srt" type="application/x-subrip" rel="captions"/>
+      <podcast:transcript url="https://share.transistor.fm/s/9c22a01c/transcription.json" type="application/json" rel="captions"/>
+      <podcast:transcript url="https://share.transistor.fm/s/9c22a01c/transcription.txt" type="text/plain"/>
+      <podcast:transcript url="https://share.transistor.fm/s/9c22a01c/transcription" type="text/html"/>
+      <podcast:chapters url="https://share.transistor.fm/s/9c22a01c/chapters.json" type="application/json+chapters"/>
+      <podcast:socialInteract protocol="atproto" uri="at://did:plc:gp74daaof2ydekw2pmbgwfgm/app.bsky.feed.post/3mjq6k7g3kr2j"/>
+    </item>
+    <item>
+      <title>An update from Justin and Jon</title>
+      <itunes:episode>162</itunes:episode>
+      <podcast:episode>162</podcast:episode>
+      <itunes:title>An update from Justin and Jon</itunes:title>
+      <itunes:episodeType>full</itunes:episodeType>
+      <guid isPermaLink="false">c6463208-b61f-4373-a08e-cf4868e13ded</guid>
+      <link>https://share.transistor.fm/s/c19f1cb2</link>
+      <description>
+        <![CDATA[<p>Justin and Jon reconnect after a two-year podcasting hiatus. What's happened since their last episode? Lots! They talk about big changes in their personal lives, and then move on to how they're thinking about Transistor as a business. These discuss burnout and motivation, the evolution of the podcasting industry, the pressure of being a leader, and the possibility of taking a sabbatical. The Transistor team is off to Banff for their annual retreat!</p><p><strong>Quote:</strong></p>"Working hard does not lead to burnout, but the lack of hope leads to burnout. So if you're working really really hard for something that you don't believe will pay off, it's super easy to lose motivation. And that has happened to me in the past! But! If you believe that the thing you're working on will have a payoff, the amount of work almost doesn’t matter." – Aaron Francis<p><br><strong>Links:</strong></p><ul><li><a href="https://saas.transistor.fm/episodes/hired">The last episode Jon and Justin recorded together</a></li><li><a href="https://aaronfrancis.com/newsletter">Aaron Francis' newsletter</a></li><li><a href="https://x.com/bscholl/status/1962164588633530596">"Everything you've been told about burnout is wrong."</a></li><li><a href="https://x.com/mattwensing/status/1424812060546830340">Matt Wensing's tweet</a></li></ul><p><strong>Have feedback on this episode?</strong></p><ul><li>👉 <a href="https://podline.fm/build-your-saas">​Leave a voicemail here​</a></li><li>🦋 <a href="https://bsky.app/profile/did:plc:gp74daaof2ydekw2pmbgwfgm/post/3lyplwf3g2i2q" title="Reply on Bluesky">Reply on Bluesky</a><br>
+</li><li>📺 <a href="https://www.youtube.com/watch?v=j4AqdW5w5Xc" title="Watch this episode on YouTube.">Watch this episode on YouTube.</a><br>
+</li></ul><p><strong>Timestamps:<br></strong></p><ul><li>(00:00) - Who remembers how to do this anyway?</li>
+<li>(00:30) - Where has Jon been for the last 2 years?</li>
+<li>(08:56) - What's Justin been up to?</li>
+<li>(11:36) - Maybe there's more to burnout than we think</li>
+<li>(24:40) - Should we build something else as a backup?</li>
+<li>(27:31) - What need to be true for you to be happier?</li>
+<li>(33:38) - Remote work kind of sucks</li>
+<li>(39:06) - Brainstorming more ideas around connecting better</li>
+<li>(42:32) - What about sabbaticals?</li>
+<li>(51:03) - Thank you to our Patreon supporters</li>
+</ul>
+<strong>Thanks to our monthly supporters</strong>
+<ul>
+  <li>Rewardful.com</li>
+  <li>Mitchell Davis from sixsides.co</li>
+  <li>Bill Condo (@mavrck)</li>
+  <li>Ward from MemberSpace.com</li>
+  <li>Evandro Sasse</li>
+  <li>Austin Loveless</li>
+  <li>Michael Sitver</li>
+  <li>Dave Giunta</li>
+</ul>
+<br><p>🎙️ <em>Podcast hosting is provided by</em> <a href="https://transistor.fm/?via=rubyblend"><em>Transistor.fm</em></a><em>.<br>📺 Learn </em><a href="https://transistor.fm/how-to-start-a-podcast/"><em>how to start your own podcast</em></a><em>!</em></p>
+<strong>
+  <a href="https://www.patreon.com/jonjustin" rel="payment" title="★ Support this podcast on Patreon ★">★ Support this podcast on Patreon ★</a>
+</strong>]]>
+      </description>
+      <content:encoded>
+        <![CDATA[<p>Justin and Jon reconnect after a two-year podcasting hiatus. What's happened since their last episode? Lots! They talk about big changes in their personal lives, and then move on to how they're thinking about Transistor as a business. These discuss burnout and motivation, the evolution of the podcasting industry, the pressure of being a leader, and the possibility of taking a sabbatical. The Transistor team is off to Banff for their annual retreat!</p><p><strong>Quote:</strong></p>"Working hard does not lead to burnout, but the lack of hope leads to burnout. So if you're working really really hard for something that you don't believe will pay off, it's super easy to lose motivation. And that has happened to me in the past! But! If you believe that the thing you're working on will have a payoff, the amount of work almost doesn’t matter." – Aaron Francis<p><br><strong>Links:</strong></p><ul><li><a href="https://saas.transistor.fm/episodes/hired">The last episode Jon and Justin recorded together</a></li><li><a href="https://aaronfrancis.com/newsletter">Aaron Francis' newsletter</a></li><li><a href="https://x.com/bscholl/status/1962164588633530596">"Everything you've been told about burnout is wrong."</a></li><li><a href="https://x.com/mattwensing/status/1424812060546830340">Matt Wensing's tweet</a></li></ul><p><strong>Have feedback on this episode?</strong></p><ul><li>👉 <a href="https://podline.fm/build-your-saas">​Leave a voicemail here​</a></li><li>🦋 <a href="https://bsky.app/profile/did:plc:gp74daaof2ydekw2pmbgwfgm/post/3lyplwf3g2i2q" title="Reply on Bluesky">Reply on Bluesky</a><br>
+</li><li>📺 <a href="https://www.youtube.com/watch?v=j4AqdW5w5Xc" title="Watch this episode on YouTube.">Watch this episode on YouTube.</a><br>
+</li></ul><p><strong>Timestamps:<br></strong></p><ul><li>(00:00) - Who remembers how to do this anyway?</li>
+<li>(00:30) - Where has Jon been for the last 2 years?</li>
+<li>(08:56) - What's Justin been up to?</li>
+<li>(11:36) - Maybe there's more to burnout than we think</li>
+<li>(24:40) - Should we build something else as a backup?</li>
+<li>(27:31) - What need to be true for you to be happier?</li>
+<li>(33:38) - Remote work kind of sucks</li>
+<li>(39:06) - Brainstorming more ideas around connecting better</li>
+<li>(42:32) - What about sabbaticals?</li>
+<li>(51:03) - Thank you to our Patreon supporters</li>
+</ul>
+<strong>Thanks to our monthly supporters</strong>
+<ul>
+  <li>Rewardful.com</li>
+  <li>Mitchell Davis from sixsides.co</li>
+  <li>Bill Condo (@mavrck)</li>
+  <li>Ward from MemberSpace.com</li>
+  <li>Evandro Sasse</li>
+  <li>Austin Loveless</li>
+  <li>Michael Sitver</li>
+  <li>Dave Giunta</li>
+</ul>
+<br><p>🎙️ <em>Podcast hosting is provided by</em> <a href="https://transistor.fm/?via=rubyblend"><em>Transistor.fm</em></a><em>.<br>📺 Learn </em><a href="https://transistor.fm/how-to-start-a-podcast/"><em>how to start your own podcast</em></a><em>!</em></p>
+<strong>
+  <a href="https://www.patreon.com/jonjustin" rel="payment" title="★ Support this podcast on Patreon ★">★ Support this podcast on Patreon ★</a>
+</strong>]]>
+      </content:encoded>
+      <pubDate>Sat, 13 Sep 2025 03:45:00 -0700</pubDate>
+      <author>Transistor.fm</author>
+      <enclosure url="https://2.gum.fm/op3.dev/e/dts.podtrac.com/redirect.mp3/media.transistor.fm/c19f1cb2/024f65f7.mp3" length="51514225" type="audio/mpeg"/>
+      <podcast:contentLink href="https://www.youtube.com/watch?v=j4AqdW5w5Xc">Watch on YouTube</podcast:contentLink>
+      <itunes:author>Transistor.fm</itunes:author>
+      <itunes:image href="https://img.transistorcdn.com/jjI41oU_nQrEN9mkmj7QkncBP1xFP93tLfVOL0iNmXM/rs:fill:0:0:1/w:1400/h:1400/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS9iNWZi/YWY2ZjM5ODM5ZDQx/ZTliODY4NTZiYzhk/NzA3Zi5wbmc.jpg"/>
+      <itunes:duration>3218</itunes:duration>
+      <itunes:summary>
+        <![CDATA[<p>Justin and Jon reconnect after a two-year podcasting hiatus. What's happened since their last episode? Lots! They talk about big changes in their personal lives, and then move on to how they're thinking about Transistor as a business. These discuss burnout and motivation, the evolution of the podcasting industry, the pressure of being a leader, and the possibility of taking a sabbatical. The Transistor team is off to Banff for their annual retreat!</p><p><strong>Quote:</strong></p>"Working hard does not lead to burnout, but the lack of hope leads to burnout. So if you're working really really hard for something that you don't believe will pay off, it's super easy to lose motivation. And that has happened to me in the past! But! If you believe that the thing you're working on will have a payoff, the amount of work almost doesn’t matter." – Aaron Francis<p><br><strong>Links:</strong></p><ul><li><a href="https://saas.transistor.fm/episodes/hired">The last episode Jon and Justin recorded together</a></li><li><a href="https://aaronfrancis.com/newsletter">Aaron Francis' newsletter</a></li><li><a href="https://x.com/bscholl/status/1962164588633530596">"Everything you've been told about burnout is wrong."</a></li><li><a href="https://x.com/mattwensing/status/1424812060546830340">Matt Wensing's tweet</a></li></ul><p><strong>Have feedback on this episode?</strong></p><ul><li>👉 <a href="https://podline.fm/build-your-saas">​Leave a voicemail here​</a></li><li>🦋 <a href="https://bsky.app/profile/did:plc:gp74daaof2ydekw2pmbgwfgm/post/3lyplwf3g2i2q" title="Reply on Bluesky">Reply on Bluesky</a><br>
+</li><li>📺 <a href="https://www.youtube.com/watch?v=j4AqdW5w5Xc" title="Watch this episode on YouTube.">Watch this episode on YouTube.</a><br>
+</li></ul><p><strong>Timestamps:<br></strong></p><ul><li>(00:00) - Who remembers how to do this anyway?</li>
+<li>(00:30) - Where has Jon been for the last 2 years?</li>
+<li>(08:56) - What's Justin been up to?</li>
+<li>(11:36) - Maybe there's more to burnout than we think</li>
+<li>(24:40) - Should we build something else as a backup?</li>
+<li>(27:31) - What need to be true for you to be happier?</li>
+<li>(33:38) - Remote work kind of sucks</li>
+<li>(39:06) - Brainstorming more ideas around connecting better</li>
+<li>(42:32) - What about sabbaticals?</li>
+<li>(51:03) - Thank you to our Patreon supporters</li>
+</ul>
+<strong>Thanks to our monthly supporters</strong>
+<ul>
+  <li>Rewardful.com</li>
+  <li>Mitchell Davis from sixsides.co</li>
+  <li>Bill Condo (@mavrck)</li>
+  <li>Ward from MemberSpace.com</li>
+  <li>Evandro Sasse</li>
+  <li>Austin Loveless</li>
+  <li>Michael Sitver</li>
+  <li>Dave Giunta</li>
+</ul>
+<br><p>🎙️ <em>Podcast hosting is provided by</em> <a href="https://transistor.fm/?via=rubyblend"><em>Transistor.fm</em></a><em>.<br>📺 Learn </em><a href="https://transistor.fm/how-to-start-a-podcast/"><em>how to start your own podcast</em></a><em>!</em></p>
+<strong>
+  <a href="https://www.patreon.com/jonjustin" rel="payment" title="★ Support this podcast on Patreon ★">★ Support this podcast on Patreon ★</a>
+</strong>]]>
+      </itunes:summary>
+      <itunes:keywords>technology, podcasting, business, saas, software, marketing, bootstrap, bootstrapping, rails, ruby on rails</itunes:keywords>
+      <itunes:explicit>No</itunes:explicit>
+      <podcast:person role="Editor" href="https://www.lemonproductions.ca/" img="https://img.transistorcdn.com/2SiuRhS348JffvBzdB3JGfWiktif4lkAlJ7qEYIddM0/rs:fill:0:0:1/w:800/h:800/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS9wZXJz/b24vOTViZmQ4MTYt/MjE2ZC00NGFjLTk1/MTgtOTdmZTgxZWNm/ZjQyLzE2NjQ0Nzkx/NTMtaW1hZ2UuanBn.jpg">Chris Enns</podcast:person>
+      <podcast:person role="Host" href="https://transistor.fm" img="https://img.transistorcdn.com/gDRCHUWtnyUcFLoKYzonKCNOePi94JeSg0YRNPbdsDA/rs:fill:0:0:1/w:800/h:800/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS9wZXJz/b24vODk0MzlmOGYt/NDE0Ni00NjM4LWIw/NzctNmMwZDBkOTYy/MTVlLzE2ODE5OTQz/MzEtaW1hZ2UuanBn.jpg">Jon Buda</podcast:person>
+      <podcast:person role="Host" href="https://justinjackson.ca" img="https://img.transistorcdn.com/smTvekjC85pUxar6FCHHuAlHwamJGkZQ86Q0uqyef8U/rs:fill:0:0:1/w:800/h:800/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS9wZXJz/b24vYjYwODFjYzkt/Y2ZmYi00YWIzLThj/NWMtZDVkZWYyMDRm/ZjgyLzE2NjQ0NjU4/NzItaW1hZ2UuanBn.jpg">Justin Jackson</podcast:person>
+      <podcast:transcript url="https://share.transistor.fm/s/c19f1cb2/transcription.vtt" type="text/vtt" rel="captions"/>
+      <podcast:transcript url="https://share.transistor.fm/s/c19f1cb2/transcription.srt" type="application/x-subrip" rel="captions"/>
+      <podcast:transcript url="https://share.transistor.fm/s/c19f1cb2/transcription.json" type="application/json" rel="captions"/>
+      <podcast:transcript url="https://share.transistor.fm/s/c19f1cb2/transcription.txt" type="text/plain"/>
+      <podcast:transcript url="https://share.transistor.fm/s/c19f1cb2/transcription" type="text/html"/>
+      <podcast:chapters url="https://share.transistor.fm/s/c19f1cb2/chapters.json" type="application/json+chapters"/>
+      <podcast:socialInteract protocol="atproto" uri="at://did:plc:gp74daaof2ydekw2pmbgwfgm/app.bsky.feed.post/3lyplwf3g2i2q"/>
+    </item>
+    <item>
+      <title>"Justin, I built a SaaS!"</title>
+      <itunes:episode>161</itunes:episode>
+      <podcast:episode>161</podcast:episode>
+      <itunes:title>"Justin, I built a SaaS!"</itunes:title>
+      <itunes:episodeType>full</itunes:episodeType>
+      <guid isPermaLink="false">5253b751-f0d9-4101-8ee1-5b6cd0dfd879</guid>
+      <link>https://share.transistor.fm/s/437cd74a</link>
+      <description>
+        <![CDATA[<p>Harris Kenny was a long-time listener of the podcast, and dreamed about building his own software product. After multiple attempts, over 5 years, he finally did it. <strong>How? </strong>He shares his experiences transitioning from a corporate job to entrepreneurship. He also discusses the challenges of user engagement, the exploration of various SaaS ideas, and the importance of foundational work in entrepreneurship.</p><p><strong>Links:</strong></p><ul><li><a href="https://www.linkedin.com/in/harriskenny/">Harris Kenny on Linkedin</a></li><li><a href="https://outboundsync.com/">OutboundSync - Integrate outbound campaigns in HubSpot and Salesforce</a></li><li><a href="https://web.archive.org/web/20210209211953/https://introcrm.com/">IntroCRM (Archived) - Access Blocked</a></li><li><a href="https://howtogrow.substack.com/p/how-loom-found-pull">How Loom Found PULL - Growth Strategy Case Study</a></li><li><a href="https://bsky.app/profile/justinjackson.ca">Follow Justin on Bluesky</a></li></ul><p><strong>Have feedback on this episode?</strong></p><ul><li>👉 <a href="https://podline.fm/build-your-saas">​Leave a voicemail here​</a></li><li>🦋 <a href="https://bsky.app/profile/did:plc:gp74daaof2ydekw2pmbgwfgm/post/3lsertezc522q">Reply on Bluesky</a></li></ul><p><strong>Timestamps:<br></strong></p><ul><li>(00:09) - I did it! I build my saas!</li>
+<li>(02:59) - Why did Harris quit his job?</li>
+<li>(11:03) - When you don't have a boss, do you have the drive to go get work?</li>
+<li>(15:45) - How did you hear about saas businesses?</li>
+<li>(27:02) - Recognizing a need and building something for it</li>
+<li>(34:44) - So many opportunities in inventory software</li>
+<li>(41:03) - The difficulty of getting people to just log in</li>
+<li>(49:18) - The saas that worked</li>
+<li>(01:01:01) - Where are you getting new customers from?</li>
+<li>(01:06:47) - Using Tinyseed as a bridge</li>
+<li>(01:11:02) - Going over the top on support is a key</li>
+<li>(01:24:04) - Showing results helps agencies show value</li>
+</ul>
+<strong>Thanks to our monthly supporters</strong>
+<ul>
+  <li>Rewardful.com</li>
+  <li>Mitchell Davis from sixsides.co</li>
+  <li>Bill Condo (@mavrck)</li>
+  <li>Ward from MemberSpace.com</li>
+  <li>Evandro Sasse</li>
+  <li>Austin Loveless</li>
+  <li>Michael Sitver</li>
+  <li>Dave Giunta</li>
+</ul>
+<br><p>🎙️ <em>Podcast hosting is provided by</em> <a href="https://transistor.fm/?via=rubyblend"><em>Transistor.fm</em></a><em>.<br>📺 Learn </em><a href="https://transistor.fm/how-to-start-a-podcast/"><em>how to start your own podcast</em></a><em>!</em></p>
+<strong>
+  <a href="https://www.patreon.com/jonjustin" rel="payment" title="★ Support this podcast on Patreon ★">★ Support this podcast on Patreon ★</a>
+</strong>]]>
+      </description>
+      <content:encoded>
+        <![CDATA[<p>Harris Kenny was a long-time listener of the podcast, and dreamed about building his own software product. After multiple attempts, over 5 years, he finally did it. <strong>How? </strong>He shares his experiences transitioning from a corporate job to entrepreneurship. He also discusses the challenges of user engagement, the exploration of various SaaS ideas, and the importance of foundational work in entrepreneurship.</p><p><strong>Links:</strong></p><ul><li><a href="https://www.linkedin.com/in/harriskenny/">Harris Kenny on Linkedin</a></li><li><a href="https://outboundsync.com/">OutboundSync - Integrate outbound campaigns in HubSpot and Salesforce</a></li><li><a href="https://web.archive.org/web/20210209211953/https://introcrm.com/">IntroCRM (Archived) - Access Blocked</a></li><li><a href="https://howtogrow.substack.com/p/how-loom-found-pull">How Loom Found PULL - Growth Strategy Case Study</a></li><li><a href="https://bsky.app/profile/justinjackson.ca">Follow Justin on Bluesky</a></li></ul><p><strong>Have feedback on this episode?</strong></p><ul><li>👉 <a href="https://podline.fm/build-your-saas">​Leave a voicemail here​</a></li><li>🦋 <a href="https://bsky.app/profile/did:plc:gp74daaof2ydekw2pmbgwfgm/post/3lsertezc522q">Reply on Bluesky</a></li></ul><p><strong>Timestamps:<br></strong></p><ul><li>(00:09) - I did it! I build my saas!</li>
+<li>(02:59) - Why did Harris quit his job?</li>
+<li>(11:03) - When you don't have a boss, do you have the drive to go get work?</li>
+<li>(15:45) - How did you hear about saas businesses?</li>
+<li>(27:02) - Recognizing a need and building something for it</li>
+<li>(34:44) - So many opportunities in inventory software</li>
+<li>(41:03) - The difficulty of getting people to just log in</li>
+<li>(49:18) - The saas that worked</li>
+<li>(01:01:01) - Where are you getting new customers from?</li>
+<li>(01:06:47) - Using Tinyseed as a bridge</li>
+<li>(01:11:02) - Going over the top on support is a key</li>
+<li>(01:24:04) - Showing results helps agencies show value</li>
+</ul>
+<strong>Thanks to our monthly supporters</strong>
+<ul>
+  <li>Rewardful.com</li>
+  <li>Mitchell Davis from sixsides.co</li>
+  <li>Bill Condo (@mavrck)</li>
+  <li>Ward from MemberSpace.com</li>
+  <li>Evandro Sasse</li>
+  <li>Austin Loveless</li>
+  <li>Michael Sitver</li>
+  <li>Dave Giunta</li>
+</ul>
+<br><p>🎙️ <em>Podcast hosting is provided by</em> <a href="https://transistor.fm/?via=rubyblend"><em>Transistor.fm</em></a><em>.<br>📺 Learn </em><a href="https://transistor.fm/how-to-start-a-podcast/"><em>how to start your own podcast</em></a><em>!</em></p>
+<strong>
+  <a href="https://www.patreon.com/jonjustin" rel="payment" title="★ Support this podcast on Patreon ★">★ Support this podcast on Patreon ★</a>
+</strong>]]>
+      </content:encoded>
+      <pubDate>Tue, 24 Jun 2025 12:00:22 -0700</pubDate>
+      <author>Transistor.fm</author>
+      <enclosure url="https://2.gum.fm/op3.dev/e/dts.podtrac.com/redirect.mp3/media.transistor.fm/437cd74a/cd13c269.mp3" length="87117907" type="audio/mpeg"/>
+      <podcast:contentLink href="https://www.youtube.com/watch?v=Ket1UsG_Pqk">Watch on YouTube</podcast:contentLink>
+      <itunes:author>Transistor.fm</itunes:author>
+      <itunes:image href="https://img.transistorcdn.com/4a0HfdVihCb66z7l2v6aUZJY9xLT4rqMmG40jEid9Xg/rs:fill:0:0:1/w:1400/h:1400/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS9mNjVi/OWJkOWZjZjhmY2M0/ODQ2NDdjZWE0NmJh/MmI2Yi5wbmc.jpg"/>
+      <itunes:duration>5443</itunes:duration>
+      <itunes:summary>
+        <![CDATA[<p>Harris Kenny was a long-time listener of the podcast, and dreamed about building his own software product. After multiple attempts, over 5 years, he finally did it. <strong>How? </strong>He shares his experiences transitioning from a corporate job to entrepreneurship. He also discusses the challenges of user engagement, the exploration of various SaaS ideas, and the importance of foundational work in entrepreneurship.</p><p><strong>Links:</strong></p><ul><li><a href="https://www.linkedin.com/in/harriskenny/">Harris Kenny on Linkedin</a></li><li><a href="https://outboundsync.com/">OutboundSync - Integrate outbound campaigns in HubSpot and Salesforce</a></li><li><a href="https://web.archive.org/web/20210209211953/https://introcrm.com/">IntroCRM (Archived) - Access Blocked</a></li><li><a href="https://howtogrow.substack.com/p/how-loom-found-pull">How Loom Found PULL - Growth Strategy Case Study</a></li><li><a href="https://bsky.app/profile/justinjackson.ca">Follow Justin on Bluesky</a></li></ul><p><strong>Have feedback on this episode?</strong></p><ul><li>👉 <a href="https://podline.fm/build-your-saas">​Leave a voicemail here​</a></li><li>🦋 <a href="https://bsky.app/profile/did:plc:gp74daaof2ydekw2pmbgwfgm/post/3lsertezc522q">Reply on Bluesky</a></li></ul><p><strong>Timestamps:<br></strong></p><ul><li>(00:09) - I did it! I build my saas!</li>
+<li>(02:59) - Why did Harris quit his job?</li>
+<li>(11:03) - When you don't have a boss, do you have the drive to go get work?</li>
+<li>(15:45) - How did you hear about saas businesses?</li>
+<li>(27:02) - Recognizing a need and building something for it</li>
+<li>(34:44) - So many opportunities in inventory software</li>
+<li>(41:03) - The difficulty of getting people to just log in</li>
+<li>(49:18) - The saas that worked</li>
+<li>(01:01:01) - Where are you getting new customers from?</li>
+<li>(01:06:47) - Using Tinyseed as a bridge</li>
+<li>(01:11:02) - Going over the top on support is a key</li>
+<li>(01:24:04) - Showing results helps agencies show value</li>
+</ul>
+<strong>Thanks to our monthly supporters</strong>
+<ul>
+  <li>Rewardful.com</li>
+  <li>Mitchell Davis from sixsides.co</li>
+  <li>Bill Condo (@mavrck)</li>
+  <li>Ward from MemberSpace.com</li>
+  <li>Evandro Sasse</li>
+  <li>Austin Loveless</li>
+  <li>Michael Sitver</li>
+  <li>Dave Giunta</li>
+</ul>
+<br><p>🎙️ <em>Podcast hosting is provided by</em> <a href="https://transistor.fm/?via=rubyblend"><em>Transistor.fm</em></a><em>.<br>📺 Learn </em><a href="https://transistor.fm/how-to-start-a-podcast/"><em>how to start your own podcast</em></a><em>!</em></p>
+<strong>
+  <a href="https://www.patreon.com/jonjustin" rel="payment" title="★ Support this podcast on Patreon ★">★ Support this podcast on Patreon ★</a>
+</strong>]]>
+      </itunes:summary>
+      <itunes:keywords>technology, podcasting, business, saas, software, marketing, bootstrap, bootstrapping, rails, ruby on rails</itunes:keywords>
+      <itunes:explicit>No</itunes:explicit>
+      <podcast:person role="Editor" href="https://www.lemonproductions.ca/" img="https://img.transistorcdn.com/2SiuRhS348JffvBzdB3JGfWiktif4lkAlJ7qEYIddM0/rs:fill:0:0:1/w:800/h:800/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS9wZXJz/b24vOTViZmQ4MTYt/MjE2ZC00NGFjLTk1/MTgtOTdmZTgxZWNm/ZjQyLzE2NjQ0Nzkx/NTMtaW1hZ2UuanBn.jpg">Chris Enns</podcast:person>
+      <podcast:person role="Host" href="https://justinjackson.ca" img="https://img.transistorcdn.com/smTvekjC85pUxar6FCHHuAlHwamJGkZQ86Q0uqyef8U/rs:fill:0:0:1/w:800/h:800/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS9wZXJz/b24vYjYwODFjYzkt/Y2ZmYi00YWIzLThj/NWMtZDVkZWYyMDRm/ZjgyLzE2NjQ0NjU4/NzItaW1hZ2UuanBn.jpg">Justin Jackson</podcast:person>
+      <podcast:person role="Guest" href="https://saas.transistor.fm/people/harris-kenny" img="https://img.transistorcdn.com/XQ_OGbTTFikUjSaxx9ozEfdDflNIKtPmQqrqg5zmg70/rs:fill:0:0:1/w:800/h:800/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS8yYjA0/ODcyNzM1NWNkM2I5/ZjgzMjhhNGE4NGY3/ZDhjNS5qcGVn.jpg">Harris Kenny</podcast:person>
+      <podcast:transcript url="https://share.transistor.fm/s/437cd74a/transcription.vtt" type="text/vtt" rel="captions"/>
+      <podcast:transcript url="https://share.transistor.fm/s/437cd74a/transcription.srt" type="application/x-subrip" rel="captions"/>
+      <podcast:transcript url="https://share.transistor.fm/s/437cd74a/transcription.json" type="application/json" rel="captions"/>
+      <podcast:transcript url="https://share.transistor.fm/s/437cd74a/transcription.txt" type="text/plain"/>
+      <podcast:transcript url="https://share.transistor.fm/s/437cd74a/transcription" type="text/html"/>
+      <podcast:chapters url="https://share.transistor.fm/s/437cd74a/chapters.json" type="application/json+chapters"/>
+      <podcast:socialInteract protocol="atproto" uri="at://did:plc:gp74daaof2ydekw2pmbgwfgm/app.bsky.feed.post/3lsertezc522q"/>
+    </item>
+  </channel>
+</rss>

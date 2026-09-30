@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="https://avalos.sv/wp-content/plugins/seriously-simple-podcasting/templates/feed-stylesheet.xsl?v=2"?><rss version="2.0"
+	 xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	 xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	 xmlns:dc="http://purl.org/dc/elements/1.1/"
+	 xmlns:atom="http://www.w3.org/2005/Atom"
+	 xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	 xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	 xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+	 xmlns:googleplay="http://www.google.com/schemas/play-podcasts/1.0"
+	 xmlns:podcast="https://podcastindex.org/namespace/1.0"
+	 xmlns:ssp="https://castos.com/seriously-simple-podcasting/namespace/1.0"
+	>
+		<channel>
+		<title>Implementador WordPress</title>
+		<atom:link href="https://avalos.sv/feed/podcast/implementador-wordpress/" rel="self" type="application/rss+xml"/>
+		<link>https://avalos.sv/series/implementador-wordpress/</link>
+		<description>Compartimos sobre plugins, hosting, seguridad, recomendaciones y consejos para crear y mantener nuestra web con WordPress.</description>
+		<lastBuildDate>Sun, 17 May 2026 18:23:20 +0000</lastBuildDate>
+		<language>es-ES</language>
+		<copyright>© Alex Ávalos</copyright>
+		<itunes:subtitle>Aprendamos juntos a crear y administrar nuestro propio sitio web.</itunes:subtitle>
+		<itunes:author>Alex Ávalos</itunes:author>
+		<itunes:summary>Compartimos sobre plugins, hosting, seguridad, recomendaciones y consejos para crear y mantener nuestra web con WordPress.</itunes:summary>
+		<itunes:owner>
+			<itunes:name>Alex Ávalos</itunes:name>
+			<itunes:email>alex@avalos.sv</itunes:email>
+		</itunes:owner>
+		<itunes:explicit>false</itunes:explicit>
+		<itunes:image href="https://avalos.sv/wp-content/uploads/implementador-wordpress-2023.png"></itunes:image>
+			<image>
+				<url>https://avalos.sv/wp-content/uploads/implementador-wordpress-2023.png</url>
+				<title>Implementador WordPress</title>
+				<link>https://avalos.sv/series/implementador-wordpress/</link>
+			</image>
+		<itunes:category text="Technology">
+		</itunes:category>
+		<itunes:category text="Business">
+									<itunes:category text="Entrepreneurship"></itunes:category>
+							</itunes:category>
+		<itunes:category text="Education">
+									<itunes:category text="Self-Improvement"></itunes:category>
+							</itunes:category>
+		<googleplay:author><![CDATA[Alex Ávalos]]></googleplay:author>
+			<googleplay:email>alex@avalos.sv</googleplay:email>			<googleplay:description>Compartimos sobre plugins, hosting, seguridad, recomendaciones y consejos para crear y mantener nuestra web con WordPress.</googleplay:description>
+			<googleplay:explicit>No</googleplay:explicit>
+			<googleplay:image href="https://avalos.sv/wp-content/uploads/implementador-wordpress-2023.png"></googleplay:image>
+			<podcast:locked owner="alex@avalos.sv">yes</podcast:locked>
+		<podcast:funding url="https://paypal.me/alexavalossv">Apoya este PodCast 💰</podcast:funding>
+		<podcast:guid>7e755a47-3b23-548b-b0aa-8ebe10a75cbb</podcast:guid>
+		
+		<!-- podcast_generator="SSP by Castos/3.17.0" Seriously Simple Podcasting plugin for WordPress (https://wordpress.org/plugins/seriously-simple-podcasting/) -->
+		
+
+<item>
+	<title>Prevenir mejor que limpiar</title>
+	<link>https://avalos.sv/podcast/prevenir-mejor-que-limpiar/</link>
+	<pubDate>Fri, 24 Feb 2023 00:05:27 +0000</pubDate>
+	<dc:creator><![CDATA[Alex Ávalos]]></dc:creator>
+	<guid isPermaLink="false">https://avalos.sv/?post_type=podcast&#038;p=8974</guid>
+	<description><![CDATA[Diego nos comparte su experiencia con WordPress, WordPress.com experimenta con la IA, la movida de Twitter nos afecta, Force Reinstall, como prevenir y que hacer ante un ataque de malware y herramienta para limpiar webs hackeadas]]></description>
+	<itunes:subtitle><![CDATA[Diego nos comparte su experiencia con WordPress, WordPress.com experimenta con la IA, la movida de Twitter nos afecta, Force Reinstall, como prevenir y que hacer ante un ataque de malware y herramienta para limpiar webs hackeadas]]></itunes:subtitle>
+	<content:encoded><![CDATA[Diego nos comparte su experiencia con WordPress, WordPress.com experimenta con la IA, la movida de Twitter nos afecta, Force Reinstall, como prevenir y que hacer ante un ataque de malware y herramienta para limpiar webs hackeadas]]></content:encoded>
+	<enclosure url="https://podcast.avalos.sv/766-si-me-hackean-que-hago.mp3" length="75796106" type="audio/mpeg"></enclosure>
+	<itunes:summary><![CDATA[Diego nos comparte su experiencia con WordPress, WordPress.com experimenta con la IA, la movida de Twitter nos afecta, Force Reinstall, como prevenir y que hacer ante un ataque de malware y herramienta para limpiar webs hackeadas]]></itunes:summary>
+	<itunes:image href="https://avalos.sv/wp-content/uploads/si-me-hackean-que-hago.png"></itunes:image>
+	<ssp:image>
+		<ssp:url>https://avalos.sv/wp-content/uploads/si-me-hackean-que-hago.png</ssp:url>
+		<ssp:title>Prevenir mejor que limpiar</ssp:title>
+	</ssp:image>
+	<itunes:explicit>false</itunes:explicit>
+	<itunes:block>no</itunes:block>
+	<itunes:duration>01:18:53</itunes:duration>
+	<itunes:author><![CDATA[Alex Ávalos]]></itunes:author>	<googleplay:description><![CDATA[Diego nos comparte su experiencia con WordPress, WordPress.com experimenta con la IA, la movida de Twitter nos afecta, Force Reinstall, como prevenir y que hacer ante un ataque de malware y herramienta para limpiar webs hackeadas]]></googleplay:description>
+	<googleplay:image href="https://avalos.sv/wp-content/uploads/si-me-hackean-que-hago.png"></googleplay:image>
+	<googleplay:explicit>No</googleplay:explicit>
+	<googleplay:block>no</googleplay:block>
+</item>
+
+<item>
+	<title>Si es seguro ¡claro que si!</title>
+	<link>https://avalos.sv/podcast/es-seguro-claro-que-si/</link>
+	<pubDate>Fri, 10 Feb 2023 00:04:22 +0000</pubDate>
+	<dc:creator><![CDATA[Alex Ávalos]]></dc:creator>
+	<guid isPermaLink="false">https://avalos.sv/?post_type=podcast&#038;p=8962</guid>
+	<description><![CDATA[Ángel nos comparte su experiencia con WordPress, compraron a Thrive Themes, se evalúa cambiar Slack por Matrix desde el core, te recomiendo Wordfence Login Security, hablaremos de URL válidas y con mucho sesgo, te responderé a mi criterio si WordPress es seguro o no.]]></description>
+	<itunes:subtitle><![CDATA[Ángel nos comparte su experiencia con WordPress, compraron a Thrive Themes, se evalúa cambiar Slack por Matrix desde el core, te recomiendo Wordfence Login Security, hablaremos de URL válidas y con mucho sesgo, te responderé a mi criterio si WordPress es]]></itunes:subtitle>
+	<itunes:season>4</itunes:season>
+	<content:encoded><![CDATA[Ángel nos comparte su experiencia con WordPress, compraron a Thrive Themes, se evalúa cambiar Slack por Matrix desde el core, te recomiendo Wordfence Login Security, hablaremos de URL válidas y con mucho sesgo, te responderé a mi criterio si WordPress es seguro o no.]]></content:encoded>
+	<enclosure url="https://podcast.avalos.sv/765-es-seguro-claro-que-si.mp3" length="66432148" type="audio/mpeg"></enclosure>
+	<itunes:summary><![CDATA[Ángel nos comparte su experiencia con WordPress, compraron a Thrive Themes, se evalúa cambiar Slack por Matrix desde el core, te recomiendo Wordfence Login Security, hablaremos de URL válidas y con mucho sesgo, te responderé a mi criterio si WordPress es seguro o no.]]></itunes:summary>
+	<itunes:image href="https://avalos.sv/wp-content/uploads/si-es-seguro-claro-que-si.png"></itunes:image>
+	<ssp:image>
+		<ssp:url>https://avalos.sv/wp-content/uploads/si-es-seguro-claro-que-si.png</ssp:url>
+		<ssp:title>Si es seguro ¡claro que si!</ssp:title>
+	</ssp:image>
+	<itunes:explicit>false</itunes:explicit>
+	<itunes:block>no</itunes:block>
+	<itunes:duration>01:09:08</itunes:duration>
+	<itunes:author><![CDATA[Alex Ávalos]]></itunes:author>	<googleplay:description><![CDATA[Ángel nos comparte su experiencia con WordPress, compraron a Thrive Themes, se evalúa cambiar Slack por Matrix desde el core, te recomiendo Wordfence Login Security, hablaremos de URL válidas y con mucho sesgo, te responderé a mi criterio si WordPress es seguro o no.]]></googleplay:description>
+	<googleplay:image href="https://avalos.sv/wp-content/uploads/si-es-seguro-claro-que-si.png"></googleplay:image>
+	<googleplay:explicit>No</googleplay:explicit>
+	<googleplay:block>no</googleplay:block>
+</item>
+
+<item>
+	<title>WordPress sigue siendo el rey</title>
+	<link>https://avalos.sv/podcast/wordpress-sigue-siendo-el-rey/</link>
+	<pubDate>Thu, 02 Feb 2023 15:28:09 +0000</pubDate>
+	<dc:creator><![CDATA[Alex Ávalos]]></dc:creator>
+	<guid isPermaLink="false">https://avalos.sv/?post_type=podcast&#038;p=8947</guid>
+	<description><![CDATA[Dovi nos comparte su experiencia con WordPress, Defender Pro incluye Patchstack, el creador de Yoast SEO habla de la interfaz de WordPress, te recomiendo WP Data Access, hablamos de seguridad, backups y de no crear en casa ajena. ]]></description>
+	<itunes:subtitle><![CDATA[Dovi nos comparte su experiencia con WordPress, Defender Pro incluye Patchstack, el creador de Yoast SEO habla de la interfaz de WordPress, te recomiendo WP Data Access, hablamos de seguridad, backups y de no crear en casa ajena.]]></itunes:subtitle>
+	<itunes:season>4</itunes:season>
+	<content:encoded><![CDATA[Dovi nos comparte su experiencia con WordPress, Defender Pro incluye Patchstack, el creador de Yoast SEO habla de la interfaz de WordPress, te recomiendo WP Data Access, hablamos de seguridad, backups y de no crear en casa ajena. ]]></content:encoded>
+	<enclosure url="https://podcast.avalos.sv/764-wordpress-sigue-siendo-el-rey.mp3" length="92118666" type="audio/mpeg"></enclosure>
+	<itunes:summary><![CDATA[Dovi nos comparte su experiencia con WordPress, Defender Pro incluye Patchstack, el creador de Yoast SEO habla de la interfaz de WordPress, te recomiendo WP Data Access, hablamos de seguridad, backups y de no crear en casa ajena.]]></itunes:summary>
+	<itunes:image href="https://avalos.sv/wp-content/uploads/wordpress-sigue-siendo-el-rey.png"></itunes:image>
+	<ssp:image>
+		<ssp:url>https://avalos.sv/wp-content/uploads/wordpress-sigue-siendo-el-rey.png</ssp:url>
+		<ssp:title>WordPress sigue siendo el rey</ssp:title>
+	</ssp:image>
+	<itunes:explicit>false</itunes:explicit>
+	<itunes:block>no</itunes:block>
+	<itunes:duration>01:35:53</itunes:duration>
+	<itunes:author><![CDATA[Alex Ávalos]]></itunes:author>	<googleplay:description><![CDATA[Dovi nos comparte su experiencia con WordPress, Defender Pro incluye Patchstack, el creador de Yoast SEO habla de la interfaz de WordPress, te recomiendo WP Data Access, hablamos de seguridad, backups y de no crear en casa ajena.]]></googleplay:description>
+	<googleplay:image href="https://avalos.sv/wp-content/uploads/wordpress-sigue-siendo-el-rey.png"></googleplay:image>
+	<googleplay:explicit>No</googleplay:explicit>
+	<googleplay:block>no</googleplay:block>
+</item>
+	</channel>
+</rss>

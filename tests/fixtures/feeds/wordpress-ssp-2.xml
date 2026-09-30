@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="https://veryfrenchtrip.com/wp-content/plugins/seriously-simple-podcasting/templates/feed-stylesheet.xsl?v=2"?><rss version="2.0"
+	 xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	 xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	 xmlns:dc="http://purl.org/dc/elements/1.1/"
+	 xmlns:atom="http://www.w3.org/2005/Atom"
+	 xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	 xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	 xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+	 xmlns:googleplay="http://www.google.com/schemas/play-podcasts/1.0"
+	 xmlns:podcast="https://podcastindex.org/namespace/1.0"
+	 xmlns:ssp="https://castos.com/seriously-simple-podcasting/namespace/1.0"
+	>
+		<channel>
+		<title>Very French Trip WordPress Podcast</title>
+		<atom:link href="https://veryfrenchtrip.com/feed/podcast/very-french-trip-wordpress-podcast/" rel="self" type="application/rss+xml"/>
+		<link>https://veryfrenchtrip.com/series/very-french-trip-wordpress-podcast/</link>
+		<description>Podcast en français sur WordPress et ses alentours. De l&#039;optimisation des installations au design d&#039;un menu de navigation. Nous y abordons les derniers news, les nouvelles technologies, les méthodologies. 
+Thierry Pigot, imath et Grégoire Noyelle accueilleront des invités qui partageront leur expérience chaque mois.</description>
+		<lastBuildDate>Tue, 14 Apr 2020 13:53:11 +0000</lastBuildDate>
+		<language>fr</language>
+		<copyright>2019 Creative Commons par Very French Trip</copyright>
+		<itunes:subtitle>#VFT Podcast :: La communauté WordPress Francophone</itunes:subtitle>
+		<itunes:author>Thierry Pigot, imath et Grégoire Noyelle</itunes:author>
+		<itunes:type>episodic</itunes:type>
+		<itunes:summary>Podcast en français sur WordPress et ses alentours. De l&#039;optimisation des installations au design d&#039;un menu de navigation. Nous y abordons les derniers news, les nouvelles technologies, les méthodologies. 
+Thierry Pigot, imath et Grégoire Noyelle accueilleront des invités qui partageront leur expérience chaque mois.</itunes:summary>
+		<itunes:owner>
+			<itunes:name>Very French Trip</itunes:name>
+			<itunes:email>hello@gregoirenoyelle.com</itunes:email>
+		</itunes:owner>
+		<itunes:explicit>false</itunes:explicit>
+		<itunes:image href="https://veryfrenchtrip.com/wp-content/uploads/2016/10/very-french-trip-logo-v4.png"></itunes:image>
+			<image>
+				<url>https://veryfrenchtrip.com/wp-content/uploads/2016/10/very-french-trip-logo-v4.png</url>
+				<title>Very French Trip WordPress Podcast</title>
+				<link>https://veryfrenchtrip.com/series/very-french-trip-wordpress-podcast/</link>
+			</image>
+		<itunes:category text="Technology">
+			<itunes:category text="Software How-To"></itunes:category>
+		</itunes:category>
+		<itunes:category text="Technology">
+									<itunes:category text="Tech News"></itunes:category>
+							</itunes:category>
+		<itunes:category text="Education">
+									<itunes:category text="Education Technology"></itunes:category>
+							</itunes:category>
+		<googleplay:author><![CDATA[Thierry Pigot, imath et Grégoire Noyelle]]></googleplay:author>
+			<googleplay:email>hello@gregoirenoyelle.com</googleplay:email>			<googleplay:description>Podcast en français sur WordPress et ses alentours. De l&#039;optimisation des installations au design d&#039;un menu de navigation. Nous y abordons les derniers news, les nouvelles technologies, les méthodologies. 
+Thierry Pigot, imath et Grégoire Noyelle accueilleront des invités qui partageront leur expérience chaque mois.</googleplay:description>
+			<googleplay:explicit>No</googleplay:explicit>
+			<googleplay:image href="https://veryfrenchtrip.com/wp-content/uploads/2016/10/very-french-trip-logo-v4.png"></googleplay:image>
+			<podcast:locked owner="hello@gregoirenoyelle.com">yes</podcast:locked>
+		<podcast:guid>1bae3474-1da9-55d4-8b22-f2e1eafa7849</podcast:guid>
+		
+		<!-- podcast_generator="SSP by Castos/3.17.0" Seriously Simple Podcasting plugin for WordPress (https://wordpress.org/plugins/seriously-simple-podcasting/) -->
+		
+
+<item>
+	<title>Podcast #32 : Créer des sites WordPress statiques avec Gatsby.js</title>
+	<link>https://veryfrenchtrip.com/podcast/podcast-32-creer-des-sites-wordpress-statiques-avec-gastby-js/</link>
+	<pubDate>Fri, 08 Nov 2019 13:39:49 +0000</pubDate>
+	<dc:creator><![CDATA[Thierry Pigot, imath et Grégoire Noyelle]]></dc:creator>
+	<guid isPermaLink="false">https://veryfrenchtrip.com/?post_type=podcast&#038;p=1782</guid>
+	<description><![CDATA[Pour ce 32e épisode du #VFTPodcast, nous avons eu le plaisir de recevoir <a href="https://codeable.io/developers/alexandra-spalato/">Alexandra Spalato</a>, une développeuse WordPress qui est tombée amoureuse de <a href="https://thegatsbygal.com/">Gatsby</a>. Pionnière française de l'utilisation de cette autre manière de propulser WordPress (en mode sans tête ou "headless"), elle partage avec nous son expertise sur ce sujet très tendance actuellement.]]></description>
+	<itunes:subtitle><![CDATA[Pour ce 32e épisode du #VFTPodcast, nous avons eu le plaisir de recevoir Alexandra Spalato, une développeuse WordPress qui est tombée amoureuse de Gatsby. Pionnière française de lutilisation de cette autre manière de propulser WordPress (en mode sans têt]]></itunes:subtitle>
+	<itunes:episodeType>full</itunes:episodeType>
+	<itunes:title><![CDATA[Créer des sites WordPress statiques avec Gastby.js]]></itunes:title>
+	<itunes:episode>32</itunes:episode>
+	<content:encoded><![CDATA[Pour ce 32e épisode du #VFTPodcast, nous avons eu le plaisir de recevoir <a href="https://codeable.io/developers/alexandra-spalato/">Alexandra Spalato</a>, une développeuse WordPress qui est tombée amoureuse de <a href="https://thegatsbygal.com/">Gatsby</a>. Pionnière française de l'utilisation de cette autre manière de propulser WordPress (en mode sans tête ou "headless"), elle partage avec nous son expertise sur ce sujet très tendance actuellement.]]></content:encoded>
+	<enclosure url="https://veryfrenchtrip.com/podcast-download/1782/podcast-32-creer-des-sites-wordpress-statiques-avec-gastby-js.mp3" length="55574528" type="audio/mpeg"></enclosure>
+	<itunes:summary><![CDATA[Pour ce 32e épisode du #VFTPodcast, nous avons eu le plaisir de recevoir Alexandra Spalato, une développeuse WordPress qui est tombée amoureuse de Gatsby. Pionnière française de l'utilisation de cette autre manière de propulser WordPress (en mode sans tête ou "headless"), elle partage avec nous son expertise sur ce sujet très tendance actuellement.]]></itunes:summary>
+	<itunes:image href="https://veryfrenchtrip.com/wp-content/uploads/2019/11/vft-32.jpg"></itunes:image>
+	<ssp:image>
+		<ssp:url>https://veryfrenchtrip.com/wp-content/uploads/2019/11/vft-32.jpg</ssp:url>
+		<ssp:title>Podcast #32 : Créer des sites WordPress statiques avec Gatsby.js</ssp:title>
+	</ssp:image>
+	<itunes:explicit>false</itunes:explicit>
+	<itunes:block>no</itunes:block>
+	<itunes:duration>4320</itunes:duration>
+	<itunes:author><![CDATA[Thierry Pigot, imath et Grégoire Noyelle]]></itunes:author>	<googleplay:description><![CDATA[Pour ce 32e épisode du #VFTPodcast, nous avons eu le plaisir de recevoir Alexandra Spalato, une développeuse WordPress qui est tombée amoureuse de Gatsby. Pionnière française de l'utilisation de cette autre manière de propulser WordPress (en mode sans tête ou "headless"), elle partage avec nous son expertise sur ce sujet très tendance actuellement.]]></googleplay:description>
+	<googleplay:image href="https://veryfrenchtrip.com/wp-content/uploads/2019/11/vft-32.jpg"></googleplay:image>
+	<googleplay:explicit>No</googleplay:explicit>
+	<googleplay:block>no</googleplay:block>
+</item>
+
+<item>
+	<title>Podcast #31 : utiliser ACF ou Carbon Fields pour créer des blocs WordPress</title>
+	<link>https://veryfrenchtrip.com/podcast/podcast-31-acf-carbon-fields-blocs-wordpress/</link>
+	<pubDate>Fri, 01 Feb 2019 08:44:45 +0000</pubDate>
+	<dc:creator><![CDATA[Thierry Pigot, imath et Grégoire Noyelle]]></dc:creator>
+	<guid isPermaLink="false">https://veryfrenchtrip.com/?post_type=podcast&#038;p=1770</guid>
+	<description><![CDATA[Au programme Depuis le 6 décembre 2018, la version 5.0.0 de WordPress est disponible. Elle a introduit une évolution majeure dans notre manière de rédiger du contenu : un tout nouvel éditeur de contenus basé sur l&#8217;utilisation de blocs. C&#8217;est la concrétisation de la phase 1 du projet Gutenberg dont les prochaines phases prévoient d&#8217;étendre [&#8230;]]]></description>
+	<itunes:subtitle><![CDATA[Au programme Depuis le 6 décembre 2018, la version 5.0.0 de WordPress est disponible. Elle a introduit une évolution majeure dans notre manière de rédiger du contenu : un tout nouvel éditeur de contenus basé sur l&#8217;utilisation de blocs. C&#8217;est ]]></itunes:subtitle>
+	<itunes:episodeType>full</itunes:episodeType>
+	<itunes:title><![CDATA[Utiliser ACF ou Carbon Fields pour créer des blocs WordPress]]></itunes:title>
+	<itunes:episode>31</itunes:episode>
+	<content:encoded><![CDATA[Au programme Depuis le 6 décembre 2018, la version 5.0.0 de WordPress est disponible. Elle a introduit une évolution majeure dans notre manière de rédiger du contenu : un tout nouvel éditeur de contenus basé sur l&#8217;utilisation de blocs. C&#8217;est la concrétisation de la phase 1 du projet Gutenberg dont les prochaines phases prévoient d&#8217;étendre [&#8230;]]]></content:encoded>
+	<enclosure url="https://veryfrenchtrip.com/podcast-download/1770/podcast-31-acf-carbon-fields-blocs-wordpress.mp3" length="93323264" type="audio/mpeg"></enclosure>
+	<itunes:summary><![CDATA[Au programme Depuis le 6 décembre 2018, la version 5.0.0 de WordPress est disponible. Elle a introduit une évolution majeure dans notre manière de rédiger du contenu : un tout nouvel éditeur de contenus basé sur l&#8217;utilisation de blocs. C&#8217;est la concrétisation de la phase 1 du projet Gutenberg dont les prochaines phases prévoient d&#8217;étendre [&#8230;]]]></itunes:summary>
+	<itunes:image href="https://veryfrenchtrip.com/wp-content/uploads/2019/01/vft-31.jpg"></itunes:image>
+	<ssp:image>
+		<ssp:url>https://veryfrenchtrip.com/wp-content/uploads/2019/01/vft-31.jpg</ssp:url>
+		<ssp:title>Podcast #31 : utiliser ACF ou Carbon Fields pour créer des blocs WordPress</ssp:title>
+	</ssp:image>
+	<itunes:explicit>false</itunes:explicit>
+	<itunes:block>no</itunes:block>
+	<itunes:duration>5880</itunes:duration>
+	<itunes:author><![CDATA[Thierry Pigot, imath et Grégoire Noyelle]]></itunes:author>	<googleplay:description><![CDATA[Au programme Depuis le 6 décembre 2018, la version 5.0.0 de WordPress est disponible. Elle a introduit une évolution majeure dans notre manière de rédiger du contenu : un tout nouvel éditeur de contenus basé sur l&#8217;utilisation de blocs. C&#8217;est la concrétisation de la phase 1 du projet Gutenberg dont les prochaines phases prévoient d&#8217;étendre [&#8230;]]]></googleplay:description>
+	<googleplay:image href="https://veryfrenchtrip.com/wp-content/uploads/2019/01/vft-31.jpg"></googleplay:image>
+	<googleplay:explicit>No</googleplay:explicit>
+	<googleplay:block>no</googleplay:block>
+</item>
+
+<item>
+	<title>Podcast #30 : Environnement de production pour les Freelances</title>
+	<link>https://veryfrenchtrip.com/podcast/podcast-30-environnement-production-pour-freelances/</link>
+	<pubDate>Mon, 15 Oct 2018 09:28:31 +0000</pubDate>
+	<dc:creator><![CDATA[Thierry Pigot, imath et Grégoire Noyelle]]></dc:creator>
+	<guid isPermaLink="false">https://veryfrenchtrip.com/?post_type=podcast&#038;p=1760</guid>
+	<description><![CDATA[Au programme Pour faire suite à notre dernier podcast sur la gestion de projet, nous allons aborder les outils et méthodes utilisés par nos invités pour développer des sites WordPress. De gauche à droite, Valérie Galassi s&#8217;est spécialisée dans l&#8217;intégration Web et le graphisme, Éric Martin est à la fois un graphiste indépendant et un [&#8230;]]]></description>
+	<itunes:subtitle><![CDATA[Au programme Pour faire suite à notre dernier podcast sur la gestion de projet, nous allons aborder les outils et méthodes utilisés par nos invités pour développer des sites WordPress. De gauche à droite, Valérie Galassi s&#8217;est spécialisée dans l&#8]]></itunes:subtitle>
+	<itunes:title><![CDATA[Podcast #30 : Environnement de production pour les Freelances]]></itunes:title>
+	<itunes:episode>30</itunes:episode>
+	<content:encoded><![CDATA[Au programme Pour faire suite à notre dernier podcast sur la gestion de projet, nous allons aborder les outils et méthodes utilisés par nos invités pour développer des sites WordPress. De gauche à droite, Valérie Galassi s&#8217;est spécialisée dans l&#8217;intégration Web et le graphisme, Éric Martin est à la fois un graphiste indépendant et un [&#8230;]]]></content:encoded>
+	<enclosure url="https://veryfrenchtrip.com/podcast-download/1760/podcast-30-environnement-production-pour-freelances.mp3" length="64" type="audio/mpeg"></enclosure>
+	<itunes:summary><![CDATA[Au programme Pour faire suite à notre dernier podcast sur la gestion de projet, nous allons aborder les outils et méthodes utilisés par nos invités pour développer des sites WordPress. De gauche à droite, Valérie Galassi s&#8217;est spécialisée dans l&#8217;intégration Web et le graphisme, Éric Martin est à la fois un graphiste indépendant et un [&#8230;]]]></itunes:summary>
+	<itunes:image href="https://veryfrenchtrip.com/wp-content/uploads/2018/10/vft-30.jpg"></itunes:image>
+	<ssp:image>
+		<ssp:url>https://veryfrenchtrip.com/wp-content/uploads/2018/10/vft-30.jpg</ssp:url>
+		<ssp:title>Podcast #30 : Environnement de production pour les Freelances</ssp:title>
+	</ssp:image>
+	<itunes:explicit>false</itunes:explicit>
+	<itunes:block>no</itunes:block>
+	<itunes:duration>4320</itunes:duration>
+	<itunes:author><![CDATA[Thierry Pigot, imath et Grégoire Noyelle]]></itunes:author>	<googleplay:description><![CDATA[Au programme Pour faire suite à notre dernier podcast sur la gestion de projet, nous allons aborder les outils et méthodes utilisés par nos invités pour développer des sites WordPress. De gauche à droite, Valérie Galassi s&#8217;est spécialisée dans l&#8217;intégration Web et le graphisme, Éric Martin est à la fois un graphiste indépendant et un [&#8230;]]]></googleplay:description>
+	<googleplay:image href="https://veryfrenchtrip.com/wp-content/uploads/2018/10/vft-30.jpg"></googleplay:image>
+	<googleplay:explicit>No</googleplay:explicit>
+	<googleplay:block>no</googleplay:block>
+</item>
+	</channel>
+</rss>
