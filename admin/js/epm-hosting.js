@@ -469,10 +469,8 @@
 
 	// A running import (started here, in the setup assistant or by cron)
 	// is picked up again.
-	if ( app.job && app.job.status && app.job.status !== 'none' && app.job.status !== 'ready' ) {
+	if ( app.job && app.job.status === 'running' ) {
 		renderJob( app.job );
-		if ( app.job.status === 'running' ) {
-			loop();
-		}
+		loop();
 	}
 } )();

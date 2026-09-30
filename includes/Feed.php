@@ -48,6 +48,11 @@ final class Feed {
 	private const CACHE_KEY = 'epm_feed_cache';
 
 	/**
+	 * Cron hook: notify Podcast Index that the feed changed.
+	 */
+	public const PING_HOOK = 'epm_ping_podcast_index';
+
+	/**
 	 * Option holding the immutable podcast:guid.
 	 */
 	public const GUID_OPTION = 'epm_podcast_guid';
@@ -82,6 +87,11 @@ final class Feed {
 		add_action( 'added_post_meta', [ $this, 'maybe_flush_on_meta' ], 10, 3 );
 		add_action( 'updated_post_meta', [ $this, 'maybe_flush_on_meta' ], 10, 3 );
 		add_action( 'deleted_post_meta', [ $this, 'maybe_flush_on_meta' ], 10, 3 );
+		// Tell Podcast Index about new episodes (it supplies Fountain,
+		// Podverse and many other apps) instead of waiting for its poll.
+		add_action( 'transition_post_status', [ $this, 'maybe_schedule_ping' ], 20, 3 );
+		add_action( self::PING_HOOK, [ self::class, 'ping_podcast_index' ] );
+
 		foreach ( [ PodcastSettings::OPTION, 'permalink_structure', 'home', 'blog_charset' ] as $option ) {
 			add_action( 'update_option_' . $option, [ self::class, 'flush_cache' ] );
 			add_action( 'add_option_' . $option, [ self::class, 'flush_cache' ] );
@@ -378,6 +388,53 @@ final class Feed {
 	}
 
 	/**
+	 * Schedule a Podcast Index notification when an episode goes live.
+	 *
+	 * Only for feeds this site publishes, on public sites (Settings →
+	 * Reading → search engine visibility), and deferred one minute so a
+	 * burst of publishes sends one request. Filter epm_ping_podcast_index
+	 * to turn it off.
+	 *
+	 * @param string   $new_status New status.
+	 * @param string   $old_status Old status.
+	 * @param \WP_Post $post       Post.
+	 * @return void
+	 */
+	public function maybe_schedule_ping( $new_status, $old_status, $post ): void {
+		if ( 'publish' !== $new_status || 'publish' === $old_status || ! $post instanceof \WP_Post || EpisodePostType::CPT !== $post->post_type ) {
+			return;
+		}
+
+		if ( Hosting::is_external() || ! get_option( 'blog_public' ) || ! (bool) apply_filters( 'epm_ping_podcast_index', true ) ) {
+			return;
+		}
+
+		if ( ! wp_next_scheduled( self::PING_HOOK ) ) {
+			wp_schedule_single_event( time() + MINUTE_IN_SECONDS, self::PING_HOOK );
+		}
+	}
+
+	/**
+	 * Notify Podcast Index (hub/pubnotify needs no API key).
+	 *
+	 * @return void
+	 */
+	public static function ping_podcast_index(): void {
+		if ( Hosting::is_external() ) {
+			return;
+		}
+
+		wp_safe_remote_get(
+			'https://api.podcastindex.org/api/1.0/hub/pubnotify?url=' . rawurlencode( self::url() ),
+			[
+				'timeout'    => 10,
+				'blocking'   => false,
+				'user-agent' => 'ElementorPodcastManager/' . EPM_VERSION . '; ' . home_url( '/' ),
+			]
+		);
+	}
+
+	/**
 	 * Flush the cached feed.
 	 *
 	 * @return void
@@ -649,6 +706,12 @@ final class Feed {
 			$x[] = "\t<podcast:locked>" . $locked . '</podcast:locked>';
 		}
 		$x[] = "\t<podcast:guid>" . epm_esc_xml( self::podcast_guid() ) . '</podcast:guid>';
+		$x[] = "\t<podcast:medium>podcast</podcast:medium>";
+
+		$host = self::plain_text( (string) $settings->get( 'host' ) );
+		if ( '' !== $host ) {
+			$x[] = "\t" . '<podcast:person role="host">' . epm_esc_xml( $host ) . '</podcast:person>';
+		}
 
 		$funding_url = (string) $settings->get( 'funding_url' );
 		if ( '' !== $funding_url ) {
@@ -741,6 +804,12 @@ final class Feed {
 		}
 		if ( ! empty( $data['chapters'] ) ) {
 			$x[] = "\t\t" . '<podcast:chapters url="' . self::xml_url( self::chapters_url( (int) $data['id'] ) ) . '" type="application/json+chapters" />';
+		}
+
+		$guest = self::plain_text( (string) $data['guest_name'] );
+		if ( '' !== $guest ) {
+			$guest_img = (int) $data['guest_image_id'] > 0 ? (string) wp_get_attachment_image_url( (int) $data['guest_image_id'], 'medium' ) : '';
+			$x[]       = "\t\t" . '<podcast:person role="guest"' . ( '' !== $guest_img ? ' img="' . self::xml_url( $guest_img ) . '"' : '' ) . '>' . epm_esc_xml( $guest ) . '</podcast:person>';
 		}
 
 		$x[] = "\t</item>";

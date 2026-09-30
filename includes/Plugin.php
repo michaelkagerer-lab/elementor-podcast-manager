@@ -111,6 +111,8 @@ final class Plugin {
 		$this->assets->init();
 		( new Hosting() )->init();
 		( new ImportJob() )->init();
+		Cli::register();
+		( new StructuredData() )->init();
 		$this->register_meta();
 		new Shortcodes();
 		( new EpisodeTemplate() )->init();

@@ -637,6 +637,10 @@ fieldset.epm-field > legend {
 	align-items: start;
 }
 
+.epm-preview:has(> .epm-preview__art[hidden]) {
+	grid-template-columns: 1fr;
+}
+
 .epm-preview__art {
 	inline-size: 96px;
 	block-size: 96px;
@@ -691,7 +695,11 @@ fieldset.epm-field > legend {
 		grid-template-columns: 64px 1fr;
 	}
 
-	.epm-preview__art {
+	.epm-preview:has(> .epm-preview__art[hidden]) {
+	grid-template-columns: 1fr;
+}
+
+.epm-preview__art {
 		inline-size: 64px;
 		block-size: 64px;
 	}

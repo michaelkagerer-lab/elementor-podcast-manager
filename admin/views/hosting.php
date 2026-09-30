@@ -197,7 +197,7 @@ $epm_when = static function ( int $timestamp ): string {
 					</div>
 				</form>
 
-				<div class="epm-stack" data-job <?php echo in_array( $epm_job['status'], [ 'running', 'done', 'failed', 'cancelled' ], true ) ? '' : 'hidden'; ?>>
+				<div class="epm-stack" data-job <?php echo 'running' === $epm_job['status'] ? '' : 'hidden'; ?>>
 					<div class="epm-progress">
 						<div class="epm-progress__track" role="progressbar" aria-labelledby="epm-hosting-import-title" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
 							<div class="epm-progress__bar"></div>

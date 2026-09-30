@@ -353,6 +353,7 @@ final class Hosting {
 	public static function unschedule_all(): void {
 		wp_clear_scheduled_hook( self::CRON_HOOK );
 		wp_clear_scheduled_hook( ImportJob::CRON_HOOK );
+		wp_clear_scheduled_hook( Feed::PING_HOOK );
 	}
 
 	/**
