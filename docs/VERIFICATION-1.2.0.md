@@ -48,7 +48,7 @@ suites on PHP 8.1 and 8.4, and all suites including the browser on PHP 8.3.
 
 ## Not verified (needs real services or licenses)
 
-- **Elementor Pro Theme Builder:** the automatic episode page detects Theme Builder rendering via the `elementor/theme/before_do_single` action. Elementor Pro was not available, so this path is untested.
+- **Elementor Pro Theme Builder:** the automatic episode page is skipped when a Theme Builder single template applies. Two guarded checks detect it: the `elementor/theme/before_do_single` action and Elementor Pro's conditions manager. Elementor Pro was not available, so this path is untested; `add_filter( 'epm_auto_embed', '__return_false' )` or the setting turns it off manually.
 - **Directory submission:** the feed was validated structurally (XML parsing, required Apple tags, Podcasting 2.0 spec example for `podcast:guid`), not by submitting to Apple Podcasts Connect, Spotify or a hosted validator.
 - **Real devices:** screen readers, iOS Safari and Android lock-screen controls were not tested. Media Session support is feature-detected and best-effort.
 - **Scale:** large catalogs (1000+ episodes) and MySQL-specific query behavior were not profiled. The suites run on SQLite.

@@ -79,9 +79,21 @@ final class EpisodeTemplate {
 	 * @return bool
 	 */
 	private function is_designed_with_elementor( \WP_Post $post ): bool {
-		// Elementor Pro Theme Builder single template is rendering.
+		// Elementor Pro Theme Builder single template is rendering…
 		if ( did_action( 'elementor/theme/before_do_single' ) ) {
 			return true;
+		}
+
+		// …or one applies to this page (checked directly as well, in case the
+		// template renders the_content before the action above fired).
+		if ( class_exists( '\ElementorPro\Modules\ThemeBuilder\Module' ) ) {
+			$module = \ElementorPro\Modules\ThemeBuilder\Module::instance();
+			if ( method_exists( $module, 'get_conditions_manager' ) ) {
+				$conditions = $module->get_conditions_manager();
+				if ( method_exists( $conditions, 'get_documents_for_location' ) && ! empty( $conditions->get_documents_for_location( 'single' ) ) ) {
+					return true;
+				}
+			}
 		}
 
 		if ( ! epm()->has_elementor() || ! class_exists( '\Elementor\Plugin' ) ) {

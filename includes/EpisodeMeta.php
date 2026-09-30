@@ -963,8 +963,10 @@ final class EpisodeMeta {
 
 		$items = [];
 		foreach ( $query->posts as $post ) {
-			// Plain text: the editor inserts it with jQuery .text().
-			$title = html_entity_decode( get_the_title( $post ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+			// Raw title (get_the_title() would add "Protected:"/"Private:"
+			// prefixes; the status is shown separately). Plain text: the
+			// editor inserts it with jQuery .text().
+			$title = html_entity_decode( (string) $post->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 
 			$status = $status_labels[ $post->post_status ] ?? '';
 			if ( '' === $status && '' !== $post->post_password ) {

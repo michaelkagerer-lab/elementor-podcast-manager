@@ -170,8 +170,10 @@ final class Plugin {
 				'no_found_rows'  => true,
 			]
 		);
+		$ids = array_map( 'intval', $ids );
+		update_meta_cache( 'post', $ids );
 		foreach ( $ids as $id ) {
-			Episodes::sync_duration_seconds( (int) $id );
+			Episodes::sync_duration_seconds( $id );
 		}
 
 		// Widget CSS is generated from control selectors and cached by
