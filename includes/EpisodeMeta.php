@@ -31,6 +31,8 @@ final class EpisodeMeta {
 	 */
 	public function init(): void {
 		add_action( 'add_meta_boxes_' . EpisodePostType::CPT, [ $this, 'register_boxes' ] );
+		add_filter( 'use_block_editor_for_post_type', [ $this, 'use_block_editor' ], 10, 2 );
+		add_action( 'edit_form_after_title', [ $this, 'render_after_title' ] );
 		add_action( 'save_post_' . EpisodePostType::CPT, [ $this, 'save' ], 10, 2 );
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue' ] );
 		add_action( 'wp_ajax_epm_upload_audio', [ $this, 'ajax_upload_audio' ] );
@@ -161,17 +163,67 @@ final class EpisodeMeta {
 	}
 
 	/**
-	 * Register grouped meta boxes.
+	 * Episodes use the classic editing screen by default.
 	 *
+	 * The publishing workflow is title → audio → description → publish. In
+	 * the block editor every episode field lives in the collapsed "Meta
+	 * Boxes" drawer below the canvas, which hides the audio upload. Sites
+	 * that prefer the block editor can return true from
+	 * epm_use_block_editor.
+	 *
+	 * @param bool   $use_block_editor Core decision.
+	 * @param string $post_type        Post type.
+	 * @return bool
+	 */
+	public function use_block_editor( $use_block_editor, $post_type ): bool {
+		if ( EpisodePostType::CPT !== $post_type ) {
+			return (bool) $use_block_editor;
+		}
+
+		return (bool) apply_filters( 'epm_use_block_editor', false );
+	}
+
+	/**
+	 * Whether the classic screen renders this episode.
+	 *
+	 * @param \WP_Post|null $post Episode.
+	 * @return bool
+	 */
+	private function is_classic_screen( $post ): bool {
+		return ! ( $post instanceof \WP_Post && function_exists( 'use_block_editor_for_post' ) && use_block_editor_for_post( $post ) );
+	}
+
+	/**
+	 * Classic screen: render the audio box directly below the title, then
+	 * label the content editor as the episode description.
+	 *
+	 * @param \WP_Post $post Post being edited.
 	 * @return void
 	 */
-	public function register_boxes(): void {
+	public function render_after_title( $post ): void {
+		if ( ! $post instanceof \WP_Post || EpisodePostType::CPT !== $post->post_type ) {
+			return;
+		}
+
+		echo '<div class="epm-after-title">';
+		do_meta_boxes( get_current_screen(), 'epm_after_title', $post );
+		echo '<h2 class="epm-description-heading">' . esc_html__( 'Episode description', 'elementor-podcast-manager' ) . '</h2>';
+		echo '</div>';
+	}
+
+	/**
+	 * Register grouped meta boxes.
+	 *
+	 * @param \WP_Post|null $post Post being edited.
+	 * @return void
+	 */
+	public function register_boxes( $post = null ): void {
 		add_meta_box(
 			'epm-audio',
-			__( 'Audio', 'elementor-podcast-manager' ),
+			__( 'Episode Audio', 'elementor-podcast-manager' ),
 			[ $this, 'box_audio' ],
 			EpisodePostType::CPT,
-			'normal',
+			$this->is_classic_screen( $post ) ? 'epm_after_title' : 'normal',
 			'high'
 		);
 
@@ -368,7 +420,7 @@ final class EpisodeMeta {
 					<?php esc_html_e( 'Remove', 'elementor-podcast-manager' ); ?>
 				</button>
 			</p>
-			<p class="description"><?php esc_html_e( 'Optional. Falls back to the podcast artwork.', 'elementor-podcast-manager' ); ?></p>
+			<p class="description"><?php esc_html_e( 'Optional square image (1400–3000 px, JPEG or PNG). Falls back to the featured image, then the podcast artwork.', 'elementor-podcast-manager' ); ?></p>
 		</div>
 		<?php
 	}
@@ -538,7 +590,7 @@ final class EpisodeMeta {
 	private function chapter_row( $index, array $chapter ): void {
 		?>
 		<div class="epm-repeat__row" data-epm-repeat-row>
-			<span class="epm-repeat__order" aria-hidden="true">
+			<span class="epm-repeat__order">
 				<button type="button" class="button-link" data-epm-repeat-up aria-label="<?php esc_attr_e( 'Move chapter up', 'elementor-podcast-manager' ); ?>" title="<?php esc_attr_e( 'Move up', 'elementor-podcast-manager' ); ?>">▲</button>
 				<button type="button" class="button-link" data-epm-repeat-down aria-label="<?php esc_attr_e( 'Move chapter down', 'elementor-podcast-manager' ); ?>" title="<?php esc_attr_e( 'Move down', 'elementor-podcast-manager' ); ?>">▼</button>
 			</span>
@@ -558,14 +610,7 @@ final class EpisodeMeta {
 	 */
 	public function box_platforms( \WP_Post $post ): void {
 		$links = Episodes::normalize_links( $this->meta( $post, 'platform_urls', [] ) );
-		$services = [
-			'spotify' => __( 'Spotify', 'elementor-podcast-manager' ),
-			'apple'   => __( 'Apple Podcasts', 'elementor-podcast-manager' ),
-			'youtube' => __( 'YouTube', 'elementor-podcast-manager' ),
-			'amazon'  => __( 'Amazon Music', 'elementor-podcast-manager' ),
-			'rss'     => __( 'RSS', 'elementor-podcast-manager' ),
-			'custom'  => __( 'Custom', 'elementor-podcast-manager' ),
-		];
+		$services = wp_list_pluck( Directories::services(), 'label' );
 		?>
 		<div class="epm-repeat" data-epm-repeat="episode-platforms">
 			<div class="epm-repeat__rows" data-epm-repeat-rows>
@@ -599,7 +644,7 @@ final class EpisodeMeta {
 		$field = $group . '[platform_urls][' . $index . ']';
 		?>
 		<div class="epm-repeat__row epm-repeat__row--links" data-epm-repeat-row>
-			<span class="epm-repeat__order" aria-hidden="true">
+			<span class="epm-repeat__order">
 				<button type="button" class="button-link" data-epm-repeat-up aria-label="<?php esc_attr_e( 'Move link up', 'elementor-podcast-manager' ); ?>" title="<?php esc_attr_e( 'Move up', 'elementor-podcast-manager' ); ?>">▲</button>
 				<button type="button" class="button-link" data-epm-repeat-down aria-label="<?php esc_attr_e( 'Move link down', 'elementor-podcast-manager' ); ?>" title="<?php esc_attr_e( 'Move down', 'elementor-podcast-manager' ); ?>">▼</button>
 			</span>
@@ -787,6 +832,9 @@ final class EpisodeMeta {
 		}
 		update_post_meta( $post_id, $p . 'chapters', $chapters );
 
+		// Numeric duration for sorting (list table, integrations).
+		Episodes::sync_duration_seconds( $post_id );
+
 		// Ensure an immutable GUID exists (idempotent; migration covers older episodes).
 		Episodes::get_guid( $post_id );
 
@@ -899,16 +947,33 @@ final class EpisodeMeta {
 
 		$query = new \WP_Query( $query_args );
 
+		$status_labels = [
+			'draft'   => __( 'Draft', 'elementor-podcast-manager' ),
+			'pending' => __( 'Pending review', 'elementor-podcast-manager' ),
+			'future'  => __( 'Scheduled', 'elementor-podcast-manager' ),
+			'private' => __( 'Private', 'elementor-podcast-manager' ),
+		];
+
 		$items = [];
 		foreach ( $query->posts as $post ) {
-			$title = get_the_title( $post );
+			// Raw title (get_the_title() would add "Protected:"/"Private:"
+			// prefixes; the status is shown separately). Plain text: the
+			// editor inserts it with jQuery .text().
+			$title = html_entity_decode( (string) $post->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+
+			$status = $status_labels[ $post->post_status ] ?? '';
+			if ( '' === $status && '' !== $post->post_password ) {
+				$status = __( 'Password protected', 'elementor-podcast-manager' );
+			}
+
 			$items[] = [
-				'id'    => $post->ID,
-				'title' => '' !== $title
+				'id'     => $post->ID,
+				'title'  => '' !== trim( $title )
 					? $title
 					/* translators: %d: episode post ID */
 					: sprintf( __( 'Episode #%d', 'elementor-podcast-manager' ), $post->ID ),
-				'date'  => get_the_date( '', $post ),
+				'date'   => get_the_date( '', $post ),
+				'status' => $status,
 			];
 		}
 

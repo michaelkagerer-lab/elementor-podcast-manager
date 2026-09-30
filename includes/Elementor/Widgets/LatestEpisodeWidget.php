@@ -197,6 +197,7 @@ final class LatestEpisodeWidget extends Widget_Base {
 		$episode  = epm()->renderer->resolve_episode( 'latest' );
 
 		if ( ! $episode ) {
+			$this->editor_placeholder( __( 'No published episode with audio yet.', 'elementor-podcast-manager' ) );
 			return;
 		}
 

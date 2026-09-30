@@ -1,5 +1,27 @@
 # Control Audit — Elementor Podcast Manager
 
+## 1.2.0 update (runtime-verified)
+
+The control IDs are unchanged, so saved widget settings keep working. What changed:
+
+- **Theme-proof buttons.** Plugin buttons are styled with `:not(#epm)` (ID-level specificity), so theme rules on bare `<button>`s (Hello Elementor's `button:focus`, Twenty Twenty-One's `.site button:not(:hover)…`) cannot override them. The Play Button controls set variables consumed by those rules:
+  - `play_button_size` → `--epm-play-size`
+  - `play_button_radius` → `--epm-play-radius`
+  - `play_button_background` → `--epm-play-background`
+  - `play_button_color` → `--epm-play-color`
+  - `play_button_background_hover` → `--epm-play-background-hover`
+  - `play_button_color_hover` → `--epm-play-color-hover`
+  - `play_button_border` (group) targets `{{WRAPPER}} .epm-player__play:not(#epm)`
+- **`secondary_color_hover`** sets `--epm-secondary-hover` on the player; the hover states of skip, speed and download consume it.
+- **Duplicate control ID fixed.** The `container_border` group's own color field was `container_border_color`, the same ID as the Border Color token control. That field was silently dropped by Elementor; it is now excluded explicitly, and the token control sets the border color.
+- **Style sections other than the one holding Style Source are hidden** unless Style Source is "Custom" (they contain only custom-mode controls).
+- **Token precedence:** the stylesheet's fallback tokens use `:where(:root)` (specificity 0), so Global Podcast Styles win regardless of load order. Derived fallbacks (`--epm-subscribe-hover`, `--epm-secondary-color`) are no longer defined at `:root`, where they ignored widget-level overrides.
+- **Runtime check:** `tests/integration/run.php` builds every widget's controls and fails on any `_doing_it_wrong` (e.g. duplicate IDs). `tests/e2e/run.mjs` verifies a custom play button color and size render on the frontend.
+
+The tables below are the 1.1.0 audit, with the Play Button rows updated.
+
+## 1.1.0 audit
+
 Static audit of every Elementor style control: control → Elementor selector → CSS rule it targets → status. Generated 2026-09-30 during the F2/F11 token-architecture repair.
 
 **Scope:** `assets/css/epm-frontend.css`, `includes/DesignSettings.php`, `includes/Presets.php`, widget style sections (selectors/descriptions/conditions only — no control logic changed; all control IDs preserved).
@@ -29,22 +51,22 @@ Legend: **works** = selector hits a real rule that consumes the property · **fi
 | container_radius | → `--epm-radius` | `border-radius: var(--epm-radius, 12px)` | works |
 | container_padding | → `padding:` | direct | works |
 | container_gap | → `--epm-gap` | `gap` / `padding` calc()s | works |
-| container_border / container_shadow (groups) | `.epm-player` | real element | works |
+| container_border / container_shadow (groups) | `.epm-player` | real element; border group excludes its color field (duplicate ID with container_border_color) | fixed (1.2.0) |
 | artwork_size | → `--epm-artwork-size` | `.epm-player__artwork { width: var(--epm-artwork-size, 96px) }`; beats layout default by specificity | works |
 | artwork_radius | → `--epm-artwork-radius` | consumed by artwork imgs | works |
 | label_color / label_typography | `.epm-player__label` | real rules | works |
 | title_color / title_typography | `.epm-player__title` | layout sizing wrapped in `:where()` so the widget override wins deterministically | fixed |
 | meta_color / meta_typography | `.epm-player .epm-meta` | real rules | works |
-| play_button_size | `.epm-player__play` → width/height | layout default wrapped in `:where()` so override wins | fixed |
-| play_button_radius/background/color + hover | `.epm-player__play[:hover]` | real rules | works |
-| play_button_border (group) | `.epm-player__play` | real element | works |
+| play_button_size | `.epm-player__play` → `--epm-play-size` | consumed by the theme-proof play rule; Compact sets the variable on the player root | fixed (1.2.0) |
+| play_button_radius/background/color + hover | `.epm-player__play` → `--epm-play-radius/-background/-color(-hover)` | consumed by the theme-proof play rules | fixed (1.2.0) |
+| play_button_border (group) | `.epm-player__play:not(#epm)` | matches the theme-proof rule's specificity | fixed (1.2.0) |
 | timeline_track_color | `.epm-player__track` → background | real rule | works |
 | timeline_played_color | `.epm-player__progress` → background | real rule | works |
 | timeline_height | `{{WRAPPER}}` → `--epm-progress-height` | inherited by `.epm-player__track` | works |
 | time_color / time_typography | `.epm-player__times` | real rules | works |
 | secondary_icon_size | → `--epm-secondary-icon-size` (was `font-size`, ignored by fixed SVGs) | new `.epm-player__secondary svg` rule consumes it | fixed |
 | secondary_color | → `--epm-secondary-color` (was `color`, overridden by children's own `color`) | skip/speed/download rules now consume the token, default = `--epm-text-muted` | fixed |
-| secondary_color_hover | `button:hover` / `a:hover` → color | beats CSS hover rules by specificity | works |
+| secondary_color_hover | `.epm-player` → `--epm-secondary-hover` | consumed by skip/speed/download hover rules | fixed (1.2.0) |
 | show_artwork | — | hidden by Minimal/Editorial layout CSS | restricted-with-note |
 | show_description | — | hidden by Minimal/Compact layout CSS | restricted-with-note |
 | show_playback_speed / show_volume / show_download | — | `.epm-player__secondary` hidden by Minimal/Compact layout CSS | restricted-with-note |
@@ -118,7 +140,9 @@ Note: excerpts follow `--epm-meta-size`; there is no separate excerpt typography
 - `includes/Elementor/Widgets/SubscribeLinksWidget.php` — icon-size/gap/hover rewired to dedicated tokens.
 - `includes/Elementor/Widgets/GuestWidget.php` — new `guest_image_size` control.
 
-## Open follow-ups (for the main agent, out of this task's file scope)
+## Follow-ups
 
-1. `admin/views/design.php` hardcodes its color field list — add an "On-accent color" field for `on_accent` (sanitize + presets already handle it).
-2. Real-environment verification still required: browser computed styles, Elementor editor registration/save/reopen, two client designs, feed + player runtime behavior.
+- `admin/views/design.php` exposes the `on_accent` token as “Text on accent”.
+- Runtime checks now cover plugin activation, Elementor widget registration,
+  admin rendering and permissions, RSS generation, and CTA asset loading; the
+  browser and device scenarios remain listed in `TEST-PLAN.md`.

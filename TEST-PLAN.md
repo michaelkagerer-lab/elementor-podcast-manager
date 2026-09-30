@@ -1,14 +1,26 @@
-# TEST-PLAN — Player engine v2 (manual verification)
+# TEST-PLAN — Player engine (manual scenarios)
 
-> No browser, WordPress, or Elementor runtime is available in this
-> environment. Static checks only: `node --check` passes on
-> `assets/js/epm-player.js`; PHP files are brace/paren balanced and were
-> manually reviewed. **Every scenario below needs a real WordPress +
-> Elementor install.** Do not claim these passed until executed there.
+> **Status (1.2.0):** most scenarios below are now automated and run in CI:
+> `tests/e2e/run.mjs` drives Chromium against a real WordPress + Elementor
+> site (see `tests/README.md` and `docs/VERIFICATION-1.2.0.md`). Covered:
+> - initialization after an Elementor re-render (F4 #2)
+> - shared state between cards and players, and pause-others (F7 #5–7)
+> - the sticky bar: shows the active episode, speed, pause, close (F7 #8–9)
+> - chapter seeking and highlighting (F8 #13–14)
+> - keyboard seeking and aria-valuenow updates (F15 #20)
+> - the narrow-width layout (F15 #26)
+>
+> Still manual: duplicate-listener checks (F4 #1, #3–4), natural end
+> (F7 #11), chapters of a second episode (F8 #12), asset loading per page
+> type (F14), screen readers, error/retry and fallback (F15 #21–24) and
+> touch input (F15 #25).
+>
+> The list stays useful for manual checks on real devices and screen
+> readers, which the automated suites do not replace.
 
-Scope: `assets/js/epm-player.js` (rewritten), `assets/css/epm-frontend.css`
-(additions), `includes/Assets.php` (early registration + localization),
-`get_script_depends()` / `get_style_depends()` on the 10 widgets.
+Scope: `assets/js/epm-player.js`, `assets/css/epm-frontend.css`,
+`includes/Assets.php` (early registration + localization),
+`get_script_depends()` / `get_style_depends()` on the 11 widgets.
 
 ## F4 — Idempotent initialization
 
@@ -97,10 +109,30 @@ Scope: `assets/js/epm-player.js` (rewritten), `assets/css/epm-frontend.css`
 26. Zoom to 200% and 360px width: player stacks without overlap; sticky bar
     remains operable.
 
-## Known scope notes for the verifier
+## F16 — Admin capabilities and guided setup
 
-- Text-only widgets still call `\EPM\Assets::enqueue()` in `render()`
-  (pre-existing), which loads the player JS even though they no longer
-  declare it via `get_script_depends()`. Consider removing those calls in a
-  follow-up; shortcodes still need the `Assets::enqueue()` path.
-- `Renderer.php` markup was frozen for this task and not modified.
+27. With default capability filters, an administrator and an editor can open
+    Podcast → Dashboard, Episodes and Add Episode; both can create and edit an
+    episode. A role without `edit_posts` cannot access episode management.
+28. Configure `epm_cap_manage_episodes` to a dedicated primitive capability:
+    only users granted that capability can manage episodes, while normal
+    WordPress `edit_posts` checks remain unaffected.
+29. With missing podcast metadata, readiness links take podcast managers to
+    the matching field. Episode editors without settings access see actionable
+    check text without links to inaccessible settings.
+30. `[podcast_latest_cta]` renders a link and enqueues the stylesheet without
+    enqueuing `epm-player`; player and episode-list shortcodes enqueue it.
+
+## Asset lifecycle notes for the verifier
+
+- Text-only Elementor widgets call `\EPM\Assets::enqueue_style()` and
+  declare only the stylesheet dependency. Player/list/latest/chapters
+  widgets declare the player script dependency.
+- `[podcast_latest_cta]` renders only a link and loads the stylesheet without
+  the player script. Player and episode-list shortcodes still load the shared
+  playback engine.
+- The automatic episode page loads the player like the shortcodes do.
+- Seeking requires HTTP Range support on the host (Apache/nginx provide it;
+  PHP's built-in server does not — the test router adds it).
+- The renderer markup is shared by widgets and shortcodes; changes to its
+  playback contract should be verified against the scenarios above.

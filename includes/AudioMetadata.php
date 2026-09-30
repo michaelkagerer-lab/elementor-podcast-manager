@@ -39,10 +39,74 @@ final class AudioMetadata {
 	 * @return string[]
 	 */
 	public static function distribution_mimes(): array {
+		// Uploads are limited to MP3/M4A (and WAV, which never reaches the
+		// feed); the video and AAC types cover episodes imported from hosts
+		// that already publish them, so a moved show keeps every episode.
 		return apply_filters(
 			'epm_distribution_audio_mimes',
-			[ 'audio/mpeg', 'audio/mp4', 'audio/x-m4a' ]
+			[ 'audio/mpeg', 'audio/mp4', 'audio/x-m4a', 'audio/aac', 'video/mp4', 'video/x-m4v', 'video/quicktime' ]
 		);
+	}
+
+	/**
+	 * Guess a media MIME type from a URL's file extension (query strings
+	 * and tracking prefixes are ignored). Used for audio hosted elsewhere,
+	 * where no attachment carries the type.
+	 *
+	 * @param string $url Media URL.
+	 * @return string MIME type; audio/mpeg when the extension is unknown.
+	 */
+	public static function mime_from_url( string $url ): string {
+		$path = (string) wp_parse_url( $url, PHP_URL_PATH );
+		$ext  = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
+
+		$map = [
+			'mp3'  => 'audio/mpeg',
+			'm4a'  => 'audio/x-m4a',
+			'aac'  => 'audio/aac',
+			'mp4'  => 'video/mp4',
+			'm4v'  => 'video/x-m4v',
+			'mov'  => 'video/quicktime',
+			'ogg'  => 'audio/ogg',
+			'oga'  => 'audio/ogg',
+			'opus' => 'audio/opus',
+			'wav'  => 'audio/wav',
+			'flac' => 'audio/flac',
+		];
+
+		return $map[ $ext ] ?? 'audio/mpeg';
+	}
+
+	/**
+	 * Normalize the MIME type variants feeds use in the wild
+	 * (audio/mp3, audio/x-mp3, audio/m4a …) to the registered ones.
+	 *
+	 * @param string $mime Raw MIME type.
+	 * @param string $url  Media URL, used when the type is empty or generic.
+	 * @return string
+	 */
+	public static function normalize_mime( string $mime, string $url = '' ): string {
+		$mime = strtolower( trim( $mime ) );
+
+		$aliases = [
+			'audio/mp3'    => 'audio/mpeg',
+			'audio/x-mp3'  => 'audio/mpeg',
+			'audio/mpeg3'  => 'audio/mpeg',
+			'audio/x-mpeg' => 'audio/mpeg',
+			'audio/mpg'    => 'audio/mpeg',
+			'audio/m4a'    => 'audio/x-m4a',
+			'audio/mp4a'   => 'audio/mp4',
+		];
+
+		if ( isset( $aliases[ $mime ] ) ) {
+			return $aliases[ $mime ];
+		}
+
+		if ( ( '' === $mime || 'application/octet-stream' === $mime || false === strpos( $mime, '/' ) ) && '' !== $url ) {
+			return self::mime_from_url( $url );
+		}
+
+		return '' !== $mime ? $mime : 'audio/mpeg';
 	}
 
 	/**
@@ -257,10 +321,7 @@ final class AudioMetadata {
 		$by_url = [];
 		foreach ( $posts as $post_id ) {
 			$audio_id = (int) get_post_meta( $post_id, Episodes::META_PREFIX . 'audio_id', true );
-			if ( $audio_id <= 0 ) {
-				continue;
-			}
-			$url = wp_get_attachment_url( $audio_id );
+			$url      = $audio_id > 0 ? wp_get_attachment_url( $audio_id ) : (string) get_post_meta( $post_id, Episodes::META_PREFIX . 'audio_url', true );
 			if ( ! $url ) {
 				continue;
 			}

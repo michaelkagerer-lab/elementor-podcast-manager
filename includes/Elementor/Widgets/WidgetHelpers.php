@@ -76,13 +76,64 @@ trait WidgetHelpers {
 	}
 
 	/**
-	 * Add a show/hide switcher control.
+	 * Podcast widgets show live data (new episodes, "latest episode",
+	 * pagination), so Elementor's element cache must never store their
+	 * output. Harmless on Elementor versions without element caching.
 	 *
-	 * @param string $id Control ID.
-	 * @param string $label Label.
-	 * @param bool   $default Default state.
+	 * @return bool
+	 */
+	protected function is_dynamic_content(): bool {
+		return true;
+	}
+
+	/**
+	 * Whether the widget is rendering inside the Elementor editor.
+	 *
+	 * @return bool
+	 */
+	protected function is_editor(): bool {
+		return class_exists( '\\Elementor\\Plugin' )
+			&& isset( \Elementor\Plugin::$instance->editor )
+			&& \Elementor\Plugin::$instance->editor->is_edit_mode();
+	}
+
+	/**
+	 * Explain an empty widget inside the editor (never on the live site),
+	 * so designers can see and select widgets that currently render nothing.
+	 *
+	 * @param string $message Explanation.
 	 * @return void
 	 */
+	protected function editor_placeholder( string $message ): void {
+		if ( ! $this->is_editor() ) {
+			return;
+		}
+
+		\EPM\Assets::enqueue_style();
+
+		echo '<div class="epm-editor-placeholder">' . esc_html( $message ) . '</div>';
+	}
+
+	/**
+	 * Placeholder message when no episode could be resolved.
+	 *
+	 * @param array $settings Widget settings.
+	 * @return string
+	 */
+	protected function no_episode_message( array $settings ): string {
+		$source = (string) ( $settings['source'] ?? 'current' );
+
+		if ( 'specific' === $source ) {
+			return __( 'Choose an episode in the widget settings.', 'elementor-podcast-manager' );
+		}
+
+		if ( 'latest' === $source ) {
+			return __( 'No published episode with audio yet.', 'elementor-podcast-manager' );
+		}
+
+		return __( 'Shows the current episode on episode pages. Publish an episode to preview it here.', 'elementor-podcast-manager' );
+	}
+
 	/**
 	 * Add a show/hide switcher control.
 	 *

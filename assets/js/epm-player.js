@@ -50,16 +50,54 @@
 		speedChanged: 'Playback speed: %s'
 	};
 
+	var CONFIG = {
+		podcastTitle: '',
+		resume: true
+	};
+
 	try {
-		var _localized = (window.epmPlayer && window.epmPlayer.strings) || {};
+		var _settings = window.epmPlayer || {};
+		var _localized = _settings.strings || {};
 		Object.keys(STR).forEach(function (key) {
 			if (typeof _localized[key] === 'string' && _localized[key] !== '') {
 				STR[key] = _localized[key];
 			}
 		});
+		if (typeof _settings.podcastTitle === 'string') {
+			CONFIG.podcastTitle = _settings.podcastTitle;
+		}
+		if (_settings.resume === false || _settings.resume === '0' || _settings.resume === '') {
+			CONFIG.resume = false;
+		}
 	} catch (e) { /* localization is optional */ }
 
 	var SPEEDS = [1, 1.25, 1.5, 2, 0.75];
+
+	/* ------------------------------------------------------------------ */
+	/* Per-visitor memory: resume position per episode, preferred speed.   */
+	/* Best-effort: storage may be unavailable (privacy modes, quotas).    */
+	/* ------------------------------------------------------------------ */
+
+	var Store = {
+		get: function (key) {
+			try {
+				return window.localStorage ? window.localStorage.getItem('epm:' + key) : null;
+			} catch (e) {
+				return null;
+			}
+		},
+		set: function (key, value) {
+			try {
+				if (window.localStorage) {
+					if (value === null) {
+						window.localStorage.removeItem('epm:' + key);
+					} else {
+						window.localStorage.setItem('epm:' + key, String(value));
+					}
+				}
+			} catch (e) { /* storage is optional */ }
+		}
+	};
 
 	function formatTime(seconds) {
 		seconds = Math.max(0, Math.floor(seconds || 0));
@@ -122,11 +160,22 @@
 		this.meta = meta || {};
 		this.speedIndex = 0;
 		this.views = [];
+		this._restored = false;
+		this._lastSaved = 0;
 		this._attachAudioEvents();
 
-		// Every controller keeps all card/row buttons of its episode in
-		// sync. documentElement never disconnects, so this single
-		// subscription lives exactly as long as the controller.
+		// Preferred speed carries over between episodes and visits.
+		var speed = parseFloat(Store.get('speed'));
+		var index = SPEEDS.indexOf(speed);
+		if (index > 0) {
+			this.speedIndex = index;
+			this.audio.defaultPlaybackRate = SPEEDS[index];
+			this.audio.playbackRate = SPEEDS[index];
+		}
+
+		// Every controller keeps all card/row buttons and chapter lists of
+		// its episode in sync. documentElement never disconnects, so this
+		// single subscription lives exactly as long as the controller.
 		var self = this;
 		this.subscribe({
 			el: document.documentElement,
@@ -135,9 +184,57 @@
 					eventName === 'ended' || eventName === 'error') {
 					syncCardButtons(self.episodeId);
 				}
+				if (eventName === 'time' || eventName === 'loaded' || eventName === 'play') {
+					syncChapters(self);
+				}
+				self._remember(eventName);
+				if (Registry.active === self) {
+					MediaSessionBridge.update(self, eventName);
+				}
 			}
 		});
+
+		// Metadata may already be loaded (preload="metadata").
+		if (this.audio.readyState >= 1) {
+			this._restorePosition();
+		}
 	}
+
+	/**
+	 * Resume where the visitor left off (per episode, per browser).
+	 */
+	PlaybackController.prototype._restorePosition = function () {
+		if (this._restored || !CONFIG.resume) {
+			return;
+		}
+		this._restored = true;
+		var saved = parseFloat(Store.get('pos:' + this.episodeId));
+		var d = this.getDuration();
+		if (saved > 5 && (!d || saved < d - 5) && (this.audio.currentTime || 0) < 1) {
+			try {
+				this.audio.currentTime = saved;
+			} catch (e) { /* seeking may fail before data is available */ }
+		}
+	};
+
+	PlaybackController.prototype._remember = function (eventName) {
+		if (!CONFIG.resume) {
+			return;
+		}
+		if (eventName === 'loaded') {
+			this._restorePosition();
+			return;
+		}
+		if (eventName === 'ended') {
+			Store.set('pos:' + this.episodeId, null);
+			return;
+		}
+		var t = this.audio.currentTime || 0;
+		if (eventName === 'pause' || (eventName === 'time' && Math.abs(t - this._lastSaved) >= 5)) {
+			this._lastSaved = t;
+			Store.set('pos:' + this.episodeId, t > 5 ? Math.floor(t) : null);
+		}
+	};
 
 	PlaybackController.prototype._attachAudioEvents = function () {
 		var self = this;
@@ -244,7 +341,9 @@
 
 	PlaybackController.prototype.cycleSpeed = function () {
 		this.speedIndex = (this.speedIndex + 1) % SPEEDS.length;
+		this.audio.defaultPlaybackRate = SPEEDS[this.speedIndex];
 		this.audio.playbackRate = SPEEDS[this.speedIndex];
+		Store.set('speed', SPEEDS[this.speedIndex]);
 		this._emit('speed');
 	};
 
@@ -312,6 +411,68 @@
 		setActive: function (controller) {
 			this.active = controller;
 			Sticky.attach(controller);
+			MediaSessionBridge.update(controller, 'attach');
+		}
+	};
+
+	/* ------------------------------------------------------------------ */
+	/* Media Session: lock screen, headset and OS media controls.         */
+	/* ------------------------------------------------------------------ */
+
+	var MediaSessionBridge = {
+		bound: false,
+
+		supported: function () {
+			return 'mediaSession' in navigator && typeof window.MediaMetadata === 'function';
+		},
+
+		bind: function () {
+			if (this.bound || !this.supported()) {
+				return;
+			}
+			this.bound = true;
+			var handlers = {
+				play: function () { if (Registry.active) { Registry.active.play(); } },
+				pause: function () { if (Registry.active) { Registry.active.pause(); } },
+				seekbackward: function (d) { if (Registry.active) { Registry.active.seekRelative(-((d && d.seekOffset) || 15)); } },
+				seekforward: function (d) { if (Registry.active) { Registry.active.seekRelative((d && d.seekOffset) || 30); } },
+				seekto: function (d) { if (Registry.active && d && typeof d.seekTime === 'number') { Registry.active.seekAbsolute(d.seekTime); } }
+			};
+			Object.keys(handlers).forEach(function (action) {
+				try {
+					navigator.mediaSession.setActionHandler(action, handlers[action]);
+				} catch (e) { /* action not supported by this browser */ }
+			});
+		},
+
+		update: function (controller, eventName) {
+			if (!this.supported() || !controller) {
+				return;
+			}
+			try {
+				this.bind();
+				if (eventName === 'attach' || eventName === 'play') {
+					var meta = controller.meta || {};
+					navigator.mediaSession.metadata = new window.MediaMetadata({
+						title: meta.title || '',
+						artist: CONFIG.podcastTitle || '',
+						album: CONFIG.podcastTitle || '',
+						artwork: meta.artwork ? [{ src: meta.artwork }] : []
+					});
+				}
+				if (eventName === 'play' || eventName === 'pause' || eventName === 'ended') {
+					navigator.mediaSession.playbackState = controller.isPlaying() ? 'playing' : 'paused';
+				}
+				var d = controller.getDuration();
+				if (d > 0 && typeof navigator.mediaSession.setPositionState === 'function' &&
+					(eventName === 'loaded' || eventName === 'speed' || eventName === 'play' || eventName === 'pause')) {
+					navigator.mediaSession.setPositionState({
+						duration: d,
+						playbackRate: controller.audio.playbackRate || 1,
+						position: Math.min(d, controller.audio.currentTime || 0)
+					});
+				}
+			} catch (e) { /* media session is best-effort */ }
 		}
 	};
 
@@ -336,6 +497,12 @@
 				break;
 			case 'ArrowRight':
 				controller.seekRelative(5);
+				break;
+			case 'PageDown':
+				controller.seekRelative(-30);
+				break;
+			case 'PageUp':
+				controller.seekRelative(30);
 				break;
 			case 'Home':
 				controller.seekAbsolute(0);
@@ -593,6 +760,43 @@
 		});
 	}
 
+	/**
+	 * Mark the chapter currently playing in every chapter list of the
+	 * controller's episode.
+	 */
+	function syncChapters(controller) {
+		var selector = '[data-epm-chapters][data-epm-episode-id="' + String(controller.episodeId).replace(/"/g, '') + '"]';
+		var lists = document.querySelectorAll(selector);
+		if (!lists.length) {
+			return;
+		}
+		var t = controller.audio.currentTime || 0;
+		var started = t > 0 || controller.isPlaying();
+		lists.forEach(function (list) {
+			var buttons = list.querySelectorAll('[data-epm-seek]');
+			var active = -1;
+			if (started) {
+				for (var i = 0; i < buttons.length; i++) {
+					if ((parseInt(buttons[i].dataset.epmSeek, 10) || 0) <= t + 0.25) {
+						active = i;
+					}
+				}
+			}
+			for (var j = 0; j < buttons.length; j++) {
+				var item = buttons[j].closest('li') || buttons[j];
+				var isActive = j === active;
+				if (item.classList.contains('is-active') !== isActive) {
+					item.classList.toggle('is-active', isActive);
+					if (isActive) {
+						buttons[j].setAttribute('aria-current', 'true');
+					} else {
+						buttons[j].removeAttribute('aria-current');
+					}
+				}
+			}
+		});
+	}
+
 	function bindCardButton(btn) {
 		if (!btn || btn.nodeType !== 1 || btn.dataset.epmCardBound) {
 			return;
@@ -614,8 +818,8 @@
 				}
 				return new PlaybackController(episodeId, makeAudio(src), {
 					title: btn.dataset.epmTitle || '',
-					artwork: '',
-					duration: 0
+					artwork: btn.dataset.epmArtwork || '',
+					duration: btn.dataset.epmDuration || 0
 				});
 			});
 			if (controller) {
@@ -871,14 +1075,82 @@
 	}
 
 	// Elementor: initialize per widget scope only. Never rebind document-wide.
-	if (window.elementorFrontend && window.elementorFrontend.hooks) {
+	// This script usually loads before elementor-frontend.js, whose hooks
+	// only exist after it fires "elementor/frontend/init" — so bind now if
+	// possible, otherwise on that event.
+	var elementorHooksBound = false;
+
+	function bindElementorHooks() {
+		var frontend = window.elementorFrontend;
+		if (elementorHooksBound || !frontend || !frontend.hooks || typeof frontend.hooks.addAction !== 'function') {
+			return elementorHooksBound;
+		}
+		elementorHooksBound = true;
 		['epm-podcast-player', 'epm-episode-list', 'epm-latest-episode', 'epm-chapters'].forEach(function (widgetName) {
-			window.elementorFrontend.hooks.addAction(
+			frontend.hooks.addAction(
 				'frontend/element_ready/' + widgetName,
 				function ($scope) {
 					init($scope && $scope[0] ? $scope[0] : $scope);
 				}
 			);
 		});
+		return true;
 	}
+
+	if (!bindElementorHooks() && window.jQuery) {
+		window.jQuery(window).on('elementor/frontend/init', bindElementorHooks);
+	}
+
+	// Content inserted later (AJAX pagination, "load more", popups, page
+	// builders' live previews) initializes too. init() is idempotent.
+	var PLAYER_SELECTOR = '[data-epm-player], [data-epm-card-play], [data-epm-chapters]';
+
+	if (typeof window.MutationObserver === 'function') {
+		var pendingNodes = [];
+		var flushScheduled = false;
+
+		var flushPending = function () {
+			flushScheduled = false;
+			var nodes = pendingNodes;
+			pendingNodes = [];
+			nodes.forEach(function (node) {
+				if (node.isConnected && (node.matches(PLAYER_SELECTOR) || node.querySelector(PLAYER_SELECTOR))) {
+					init(node);
+				}
+			});
+		};
+
+		var observer = new window.MutationObserver(function (mutations) {
+			for (var i = 0; i < mutations.length; i++) {
+				var added = mutations[i].addedNodes;
+				for (var j = 0; j < added.length; j++) {
+					if (added[j].nodeType === 1) {
+						pendingNodes.push(added[j]);
+					}
+				}
+			}
+			if (pendingNodes.length && !flushScheduled) {
+				flushScheduled = true;
+				window.setTimeout(flushPending, 0);
+			}
+		});
+
+		var startObserving = function () {
+			observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
+		};
+
+		if (document.body) {
+			startObserving();
+		} else {
+			document.addEventListener('DOMContentLoaded', startObserving);
+		}
+	}
+
+	// Public API for integrations (e.g. custom AJAX loaders).
+	window.epmPlayerEngine = {
+		init: init,
+		getController: function (episodeId) {
+			return Registry.get(String(episodeId));
+		}
+	};
 })();

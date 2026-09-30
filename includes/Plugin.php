@@ -109,8 +109,16 @@ final class Plugin {
 		$this->episodes->init();
 		$this->feed->init();
 		$this->assets->init();
+		( new Hosting() )->init();
+		( new ImportJob() )->init();
+		Cli::register();
+		( new StructuredData() )->init();
 		$this->register_meta();
 		new Shortcodes();
+		( new EpisodeTemplate() )->init();
+
+		// One-time upgrade tasks (rewrite rules) after a plugin update.
+		add_action( 'init', [ $this, 'maybe_upgrade' ], 99 );
 
 		// Canonical URL behavior: an explicit per-episode canonical URL wins.
 		add_filter( 'get_canonical_url', [ $this, 'filter_canonical_url' ], 10, 2 );
@@ -119,6 +127,7 @@ final class Plugin {
 		if ( is_admin() ) {
 			$admin = new Admin();
 			$admin->init();
+			( new AdminPages() )->init();
 		}
 
 		// Layer 3: Elementor presentation (only when Elementor is active).
@@ -127,7 +136,58 @@ final class Plugin {
 		// Admin notice when Elementor is missing (presentation layer only).
 		add_action( 'admin_notices', [ $this, 'elementor_missing_notice' ] );
 
-		load_plugin_textdomain( EPM_TEXT_DOMAIN, false, dirname( plugin_basename( EPM_FILE ) ) . '/languages' );
+		// Translations load on init (WordPress 6.7+ flags earlier loading).
+		add_action(
+			'init',
+			static function () {
+				load_plugin_textdomain( EPM_TEXT_DOMAIN, false, dirname( plugin_basename( EPM_FILE ) ) . '/languages' );
+			},
+			0
+		);
+	}
+
+	/**
+	 * Run one-time upgrade tasks when the stored version differs.
+	 *
+	 * Rewrite rules are flushed so installs updated in place (activation
+	 * hooks do not run on update) pick up the corrected rule order that
+	 * lets /podcast/feed/ serve the podcast feed.
+	 *
+	 * @return void
+	 */
+	public function maybe_upgrade(): void {
+		$stored = (string) get_option( 'epm_version', '' );
+
+		if ( EPM_VERSION === $stored ) {
+			return;
+		}
+
+		flush_rewrite_rules( false );
+		Feed::flush_cache();
+
+		// 1.2.0: numeric durations for sorting.
+		$ids = get_posts(
+			[
+				'post_type'      => EpisodePostType::CPT,
+				'post_status'    => 'any',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+			]
+		);
+		$ids = array_map( 'intval', $ids );
+		update_meta_cache( 'post', $ids );
+		foreach ( $ids as $id ) {
+			Episodes::sync_duration_seconds( $id );
+		}
+
+		// Widget CSS is generated from control selectors and cached by
+		// Elementor per page; regenerate it so updated selectors apply.
+		if ( $this->has_elementor() && class_exists( '\Elementor\Plugin' ) && isset( \Elementor\Plugin::$instance->files_manager ) ) {
+			\Elementor\Plugin::$instance->files_manager->clear_cache();
+		}
+
+		update_option( 'epm_version', EPM_VERSION );
 	}
 
 	/**
@@ -154,35 +214,55 @@ final class Plugin {
 	/**
 	 * Register episode metadata for the REST API / dynamic integrations.
 	 *
-	 * Exposes read-only episode metadata so Elementor Pro dynamic tags,
-	 * Gutenberg and headless consumers can use it without PHP.
+	 * Exposes episode metadata so Elementor Pro dynamic tags, Gutenberg and
+	 * headless consumers can use it without PHP. Each key carries its own
+	 * sanitizer: WordPress applies it on EVERY update_post_meta() call, so a
+	 * generic sanitize_text_field would strip the HTML from show notes and
+	 * transcripts and the line breaks from bios on each save.
 	 *
 	 * @return void
 	 */
 	public function register_meta(): void {
-		$public_meta = [
-			'audio_id'          => 'integer',
-			'artwork_id'        => 'integer',
-			'duration'          => 'string',
-			'audio_size'        => 'integer',
-			'episode_number'    => 'integer',
-			'season_number'     => 'integer',
-			'episode_type'      => 'string',
-			'explicit'          => 'string',
-			'short_description' => 'string',
-			'show_notes'        => 'string',
-			'transcript'        => 'string',
-			'canonical_url'     => 'string',
-			'video_url'         => 'string',
-			'youtube_url'       => 'string',
-			'guest_name'        => 'string',
-			'guest_role'        => 'string',
-			'guest_company'     => 'string',
-			'guest_bio'         => 'string',
-			'guid'              => 'string',
+		$int_or_empty = static function ( $value ) {
+			return ( '' === $value || null === $value ) ? '' : absint( $value );
+		};
+
+		$fields = [
+			// key => [ REST type, sanitize callback, editable via REST ].
+			'audio_id'          => [ 'integer', 'absint', true ],
+			'artwork_id'        => [ 'integer', 'absint', true ],
+			'guest_image_id'    => [ 'integer', 'absint', true ],
+			'audio_size'        => [ 'integer', 'absint', false ],
+			'duration_seconds'  => [ 'integer', 'absint', false ],
+			'episode_number'    => [ 'integer', $int_or_empty, true ],
+			'season_number'     => [ 'integer', $int_or_empty, true ],
+			'duration'          => [ 'string', 'sanitize_text_field', true ],
+			'episode_type'      => [ 'string', 'sanitize_key', true ],
+			'explicit'          => [ 'string', 'sanitize_key', true ],
+			'short_description' => [ 'string', 'sanitize_textarea_field', true ],
+			'show_notes'        => [ 'string', 'wp_kses_post', true ],
+			'transcript'        => [ 'string', 'wp_kses_post', true ],
+			'canonical_url'     => [ 'string', 'esc_url_raw', true ],
+			'video_url'         => [ 'string', 'esc_url_raw', true ],
+			'youtube_url'       => [ 'string', 'esc_url_raw', true ],
+			// Audio and image hosted elsewhere (host, CDN, storage bucket).
+			'audio_url'         => [ 'string', 'esc_url_raw', true ],
+			'audio_type'        => [ 'string', 'sanitize_text_field', true ],
+			'audio_length'      => [ 'integer', 'absint', true ],
+			'artwork_url'       => [ 'string', 'esc_url_raw', true ],
+			// Import bookkeeping: readable, written by the importer only.
+			'source'            => [ 'string', 'sanitize_key', false ],
+			'source_link'       => [ 'string', 'esc_url_raw', false ],
+			'source_feed'       => [ 'string', 'esc_url_raw', false ],
+			'guest_name'        => [ 'string', 'sanitize_text_field', true ],
+			'guest_role'        => [ 'string', 'sanitize_text_field', true ],
+			'guest_company'     => [ 'string', 'sanitize_text_field', true ],
+			'guest_bio'         => [ 'string', 'sanitize_textarea_field', true ],
+			// Immutable identity: readable, never writable through REST.
+			'guid'              => [ 'string', 'sanitize_text_field', false ],
 		];
 
-		foreach ( $public_meta as $key => $type ) {
+		foreach ( $fields as $key => [ $type, $sanitize, $editable ] ) {
 			register_post_meta(
 				EpisodePostType::CPT,
 				Episodes::META_PREFIX . $key,
@@ -190,14 +270,19 @@ final class Plugin {
 					'type'              => $type,
 					'single'            => true,
 					'show_in_rest'      => true,
-					'auth_callback'     => '__return_true',
-					'sanitize_callback' => 'sanitize_text_field',
+					'auth_callback'     => $editable ? [ $this, 'meta_auth' ] : '__return_false',
+					'sanitize_callback' => $sanitize,
 				]
 			);
 		}
 
 		// Structured values keep their array shape in REST.
-		foreach ( [ 'chapters', 'platform_urls' ] as $key ) {
+		$structures = [
+			'chapters'      => [ 'time', 'title', 'url' ],
+			'platform_urls' => [ 'service', 'label', 'url' ],
+		];
+
+		foreach ( $structures as $key => $properties ) {
 			register_post_meta(
 				EpisodePostType::CPT,
 				Episodes::META_PREFIX . $key,
@@ -207,13 +292,52 @@ final class Plugin {
 					'show_in_rest'  => [
 						'schema' => [
 							'type'  => 'array',
-							'items' => [ 'type' => 'object' ],
+							'items' => [
+								'type'       => 'object',
+								'properties' => array_fill_keys( $properties, [ 'type' => 'string' ] ),
+							],
 						],
 					],
-					'auth_callback' => '__return_true',
+					'auth_callback' => [ $this, 'meta_auth' ],
 				]
 			);
 		}
+
+		// Password-protected episodes keep their metadata private in REST.
+		add_filter( 'rest_prepare_' . EpisodePostType::CPT, [ $this, 'protect_rest_meta' ], 10, 2 );
+	}
+
+	/**
+	 * Meta write authorization: whoever may edit the episode.
+	 *
+	 * @param bool   $allowed  Whether allowed.
+	 * @param string $meta_key Meta key.
+	 * @param int    $post_id  Post ID.
+	 * @return bool
+	 */
+	public function meta_auth( $allowed, $meta_key = '', $post_id = 0 ): bool {
+		return current_user_can( 'edit_post', (int) $post_id );
+	}
+
+	/**
+	 * Hide episode meta in REST responses for password-protected episodes
+	 * the requester has not unlocked and cannot edit.
+	 *
+	 * @param \WP_REST_Response $response Response.
+	 * @param \WP_Post          $post     Post.
+	 * @return \WP_REST_Response
+	 */
+	public function protect_rest_meta( $response, $post ) {
+		if ( $response instanceof \WP_REST_Response && $post instanceof \WP_Post
+			&& post_password_required( $post ) && ! current_user_can( 'edit_post', $post->ID ) ) {
+			$data = $response->get_data();
+			if ( isset( $data['meta'] ) ) {
+				$data['meta'] = [];
+				$response->set_data( $data );
+			}
+		}
+
+		return $response;
 	}
 
 	/**

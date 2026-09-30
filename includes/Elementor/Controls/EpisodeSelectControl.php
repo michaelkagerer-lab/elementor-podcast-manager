@@ -61,6 +61,7 @@ class EpisodeSelectControl extends \Elementor\Base_Data_Control {
 				'searchLabel' => __( 'Type to search episodes…', 'elementor-podcast-manager' ),
 				'noResults'   => __( 'No episodes found.', 'elementor-podcast-manager' ),
 				'loading'     => __( 'Loading…', 'elementor-podcast-manager' ),
+				'loadMore'    => __( 'Load more…', 'elementor-podcast-manager' ),
 			]
 		);
 	}

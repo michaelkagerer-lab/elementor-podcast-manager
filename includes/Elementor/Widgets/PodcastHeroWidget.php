@@ -256,7 +256,7 @@ final class PodcastHeroWidget extends Widget_Base {
 		if ( $this->toggle_on( $settings, 'show_description', true ) ) {
 			$description = (string) $podcast->get( 'description' );
 			if ( '' !== $description ) {
-				echo '<div class="epm-podcast-hero__description">' . wp_kses_post( $description ) . '</div>';
+				echo '<div class="epm-podcast-hero__description">' . wp_kses_post( wpautop( $description ) ) . '</div>';
 			}
 		}
 

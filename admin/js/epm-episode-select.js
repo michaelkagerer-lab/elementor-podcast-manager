@@ -62,40 +62,78 @@
 			$(document).off('click.epmEpisodeSelect');
 		},
 
+		/**
+		 * Search episodes. Responses can arrive out of order (the empty
+		 * search fired on focus vs. the typed search), so only the latest
+		 * request may render. Page 2+ appends instead of replacing.
+		 */
 		search: function (term, page) {
 			var self = this;
-			this.ui.results.html('<li class="epm-episode-select__loading">' + epmEpisodeSelect.loading + '</li>');
+			var requestId = (this.requestId || 0) + 1;
+			page = page || 1;
+			this.requestId = requestId;
+
+			this.ui.results.find('.epm-episode-select__more, .epm-episode-select__loading, .epm-episode-select__empty').remove();
+			if (page === 1) {
+				this.ui.results.empty();
+			}
+			this.ui.results.append($('<li class="epm-episode-select__loading"></li>').text(epmEpisodeSelect.loading));
 			this.ui.results.removeAttr('hidden');
 
 			$.post(epmEpisodeSelect.ajaxUrl, {
 				action: 'epm_episode_search',
 				_ajax_nonce: epmEpisodeSelect.nonce,
 				s: term,
-				page: page || 1
+				page: page
 			}).done(function (response) {
-				self.ui.results.empty();
+				if (requestId !== self.requestId || !self.isAlive()) {
+					return; // Superseded by a newer search, or the view is gone.
+				}
+				self.ui.results.find('.epm-episode-select__loading').remove();
 				if (response && response.success && response.data && response.data.items && response.data.items.length) {
 					$.each(response.data.items, function (i, item) {
 						self.ui.results.append(
 							$('<li role="option"></li>')
 								.data('id', item.id)
-								.text(item.title + (item.date ? ' — ' + item.date : ''))
+								.text(self.label(item))
 						);
 					});
 					if (response.data.more) {
-						var more = $('<li class="epm-episode-select__more"></li>').text('…');
+						var more = $('<li class="epm-episode-select__more"></li>').text(epmEpisodeSelect.loadMore || '…');
 						more.on('click', function (e) {
 							e.stopPropagation();
-							self.search(term, (page || 1) + 1);
+							self.search(term, page + 1);
 						});
 						self.ui.results.append(more);
 					}
-				} else {
-					self.ui.results.append('<li class="epm-episode-select__empty">' + epmEpisodeSelect.noResults + '</li>');
+				} else if (page === 1) {
+					self.ui.results.append($('<li class="epm-episode-select__empty"></li>').text(epmEpisodeSelect.noResults));
 				}
 			}).fail(function () {
-				self.ui.results.html('<li class="epm-episode-select__empty">' + epmEpisodeSelect.noResults + '</li>');
+				if (requestId !== self.requestId || !self.isAlive()) {
+					return;
+				}
+				self.ui.results.find('.epm-episode-select__loading').remove();
+				self.ui.results.append($('<li class="epm-episode-select__empty"></li>').text(epmEpisodeSelect.noResults));
 			});
+		},
+
+		/**
+		 * AJAX callbacks can outlive the view: Elementor destroys control
+		 * views when the panel switches to another element.
+		 */
+		isAlive: function () {
+			// Marionette 2 exposes a boolean, Marionette 3 a method.
+			var destroyed = typeof this.isDestroyed === 'function' ? this.isDestroyed() : !!this.isDestroyed;
+			return !destroyed &&
+				this.ui && this.ui.results && typeof this.ui.results.find === 'function' &&
+				this.ui.current && typeof this.ui.current.text === 'function';
+		},
+
+		label: function (item) {
+			return item.title +
+				(item.date ? ' — ' + item.date : '') +
+				(item.status ? ' (' + item.status + ')' : '');
 		},
 
 		renderCurrent: function () {
@@ -114,14 +152,18 @@
 				_ajax_nonce: epmEpisodeSelect.nonce,
 				include: id
 			}).done(function (response) {
+				if (!self.isAlive()) {
+					return;
+				}
 				if (response && response.success && response.data && response.data.items && response.data.items.length) {
-					var item = response.data.items[0];
-					self.ui.current.text(item.title + (item.date ? ' — ' + item.date : ''));
+					self.ui.current.text(self.label(response.data.items[0]));
 				} else {
 					self.ui.current.text('');
 				}
 			}).fail(function () {
-				self.ui.current.text('');
+				if (self.isAlive()) {
+					self.ui.current.text('');
+				}
 			});
 		}
 	});

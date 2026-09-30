@@ -8,9 +8,6 @@
  *     so theme and Elementor Global Fonts always apply).
  *  2. Global Podcast Styles — the :root tokens printed by
  *     DesignSettings::output_tokens() as <style id="epm-design-tokens">.
- *     It prints on wp_head (priority 20, after stylesheets) and again on
- *     wp_footer (priority 1, before late-enqueued assets), so it always
- *     comes AFTER stylesheets and wins over the static fallback below.
  *  3. Presets — applied INTO Global Podcast Styles when a preset is
  *     chosen under Podcast → Design. Presets initialize values; they
  *     never lock them.
@@ -19,14 +16,17 @@
  *     which beats :root (0,1,0) and inherits down into nested components.
  *     Style Source "Use Global Podcast Styles" emits no overrides at all.
  *
- * The static :root block below is a safety net for pages where the
- * plugin's wp_head/wp_footer token output is absent. Do not add competing
- * :root definitions elsewhere. Never write self-referential declarations
- * (--epm-x: var(--epm-x, ...)) — they invalidate the variable. Consume
- * tokens as var(--epm-x, <literal fallback>).
+ * The static fallback block below uses :where(:root) — specificity 0 — so
+ * the Global Podcast Styles win no matter whether this stylesheet loads in
+ * the head or late in the footer (shortcodes/widgets rendered after
+ * wp_head). Only literal values belong there: a token derived from another
+ * token (--epm-x: var(--epm-y)) would be computed once at :root and ignore
+ * widget-level overrides of --epm-y. Consume tokens as
+ * var(--epm-x, <literal fallback>) and never write self-referential
+ * declarations (--epm-x: var(--epm-x, ...)).
  */
 
-:root {
+:where(:root) {
 	--epm-accent: #1d4ed8;
 	--epm-on-accent: #ffffff;
 	--epm-text: #111827;
@@ -43,11 +43,9 @@
 	--epm-progress-height: 4px;
 	--epm-subscribe-gap: 12px;
 	--epm-subscribe-icon-size: 18px;
-	--epm-subscribe-hover: var(--epm-text);
 	--epm-hero-background: transparent;
 	--epm-latest-background: transparent;
 	--epm-secondary-icon-size: 20px;
-	--epm-secondary-color: var(--epm-text-muted);
 	--epm-guest-image-size: 72px;
 	--epm-card-artwork-radius: 0;
 }
@@ -160,19 +158,37 @@
 	gap: calc(var(--epm-gap, 24px) / 2);
 }
 
-.epm-player__play {
+/*
+ * THEME-PROOF BUTTONS
+ *
+ * Themes style bare <button> elements aggressively (Hello Elementor's
+ * button:focus/:hover backgrounds, Twenty Twenty-One's
+ * ".site button:not(:hover):not(:active)…" at 0,4,1). Every plugin button
+ * rule therefore carries :not(#epm), which adds ID-level specificity so no
+ * class/element-based theme rule can restyle it. Customization never needs
+ * that specificity: Elementor controls set --epm-play-* / --epm-secondary-*
+ * variables that these rules consume (or use the same :not(#epm) suffix).
+ */
+.epm-player__play:not(#epm) {
 	flex: 0 0 auto;
-	width: 56px;
-	height: 56px;
-	border-radius: 50%;
-	border: 1px solid var(--epm-accent, #1d4ed8);
-	background: var(--epm-accent, #1d4ed8);
-	color: var(--epm-on-accent, #ffffff);
+	width: var(--epm-play-size, 56px);
+	height: var(--epm-play-size, 56px);
+	min-width: 44px;
+	min-height: 44px;
+	margin: 0;
+	padding: 0;
+	border: 1px solid var(--epm-play-background, var(--epm-accent, #1d4ed8));
+	border-radius: var(--epm-play-radius, 50%);
+	background: var(--epm-play-background, var(--epm-accent, #1d4ed8));
+	color: var(--epm-play-color, var(--epm-on-accent, #ffffff));
+	box-shadow: none;
 	cursor: pointer;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	padding: 0;
+	line-height: 1;
+	text-transform: none;
+	letter-spacing: normal;
 }
 
 .epm-player__play svg {
@@ -194,20 +210,30 @@
 	display: none;
 }
 
-.epm-player__play:hover {
+.epm-player__play:not(#epm):hover {
+	background: var(--epm-play-background-hover, var(--epm-play-background, var(--epm-accent, #1d4ed8)));
+	color: var(--epm-play-color-hover, var(--epm-play-color, var(--epm-on-accent, #ffffff)));
 	filter: brightness(1.08);
 }
 
-.epm-player__skip {
+.epm-player__skip:not(#epm) {
 	background: none;
-	border: none;
+	border: 0;
+	border-radius: 4px;
+	box-shadow: none;
+	margin: 0;
 	color: var(--epm-secondary-color, var(--epm-text-muted, #6b7280));
 	cursor: pointer;
 	display: inline-flex;
 	align-items: center;
 	gap: 2px;
 	font-size: 12px;
+	font-weight: inherit;
+	line-height: 1;
+	min-height: 44px;
 	padding: 6px;
+	text-transform: none;
+	letter-spacing: normal;
 }
 
 .epm-player__skip svg {
@@ -215,8 +241,8 @@
 	height: 20px;
 }
 
-.epm-player__skip:hover {
-	color: var(--epm-text, #111827);
+.epm-player__skip:not(#epm):hover {
+	color: var(--epm-secondary-hover, var(--epm-text, #111827));
 }
 
 .epm-player__timeline-wrap {
@@ -284,19 +310,26 @@
 	height: var(--epm-secondary-icon-size, 20px);
 }
 
-.epm-player__speed {
+.epm-player__speed:not(#epm) {
 	background: none;
 	border: 1px solid var(--epm-border, #e5e7eb);
 	border-radius: 999px;
+	box-shadow: none;
+	margin: 0;
 	color: var(--epm-secondary-color, var(--epm-text-muted, #6b7280));
 	font-size: 12px;
+	font-weight: inherit;
+	line-height: 1.2;
+	min-height: 32px;
 	padding: 4px 10px;
 	cursor: pointer;
 	font-variant-numeric: tabular-nums;
+	text-transform: none;
+	letter-spacing: normal;
 }
 
-.epm-player__speed:hover {
-	color: var(--epm-text, #111827);
+.epm-player__speed:not(#epm):hover {
+	color: var(--epm-secondary-hover, var(--epm-text, #111827));
 	border-color: var(--epm-text-muted, #6b7280);
 }
 
@@ -317,7 +350,7 @@
 }
 
 .epm-player__download:hover {
-	color: var(--epm-text, #111827);
+	color: var(--epm-secondary-hover, var(--epm-text, #111827));
 }
 
 .epm-player__description {
@@ -376,9 +409,8 @@
 	padding: calc(var(--epm-gap, 24px) / 2);
 }
 
-:where(.epm-player--compact) .epm-player__play {
-	width: 44px;
-	height: 44px;
+.epm-player--compact {
+	--epm-play-size: 44px;
 }
 
 .epm-player--compact .epm-player__play svg {
@@ -509,18 +541,27 @@
 	text-align: right;
 }
 
-.epm-episode-row__play,
-.epm-episode-card__play {
+.epm-episode-row__play:not(#epm),
+.epm-episode-card__play:not(#epm) {
 	display: inline-flex;
 	align-items: center;
+	align-self: flex-start;
 	gap: 8px;
+	width: auto;
 	background: none;
 	border: 1px solid var(--epm-border, #e5e7eb);
 	border-radius: 999px;
+	box-shadow: none;
+	margin: 0;
 	color: var(--epm-text, #111827);
+	min-height: 44px;
 	padding: 8px 16px;
 	cursor: pointer;
 	font-size: var(--epm-meta-size, 14px);
+	font-weight: inherit;
+	line-height: 1.2;
+	text-transform: none;
+	letter-spacing: normal;
 }
 
 .epm-episode-row__play svg,
@@ -529,8 +570,10 @@
 	height: 14px;
 }
 
-.epm-episode-row__play:hover,
-.epm-episode-card__play:hover {
+.epm-episode-row__play:not(#epm):hover,
+.epm-episode-card__play:not(#epm):hover,
+.epm-episode-row__play.is-playing:not(#epm),
+.epm-episode-card__play.is-playing:not(#epm) {
 	border-color: var(--epm-accent, #1d4ed8);
 	color: var(--epm-accent, #1d4ed8);
 }
@@ -727,22 +770,42 @@
 	border-bottom: 1px solid var(--epm-border, #e5e7eb);
 }
 
-.epm-chapters__time {
+.epm-chapters__time:not(#epm) {
 	background: none;
-	border: none;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+	margin: 0;
 	color: var(--epm-accent, #1d4ed8);
 	font-variant-numeric: tabular-nums;
+	font-weight: inherit;
+	line-height: inherit;
+	min-height: 0;
 	cursor: pointer;
 	padding: 0;
 	font-size: var(--epm-meta-size, 14px);
+	text-decoration: none;
+	text-transform: none;
+	letter-spacing: normal;
 }
 
-.epm-chapters__time:hover {
+.epm-chapters__time:not(#epm):hover,
+.epm-chapters__time:not(#epm):focus-visible {
 	text-decoration: underline;
 }
 
 .epm-chapters__title {
 	color: var(--epm-text, #111827);
+}
+
+/* Chapter currently playing. */
+.epm-chapters__item.is-active {
+	box-shadow: inset 3px 0 0 var(--epm-accent, #1d4ed8);
+	padding-left: 10px;
+}
+
+.epm-chapters__item.is-active .epm-chapters__title {
+	font-weight: 600;
 }
 
 .epm-chapters__link {
@@ -891,13 +954,26 @@
 	gap: 12px;
 }
 
-.epm-sticky__controls button {
+.epm-sticky__controls button:not(#epm) {
 	background: none;
-	border: none;
+	border: 0;
+	border-radius: 4px;
+	box-shadow: none;
+	margin: 0;
 	color: var(--epm-text, #111827);
 	cursor: pointer;
 	padding: 6px;
 	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 44px;
+	min-height: 44px;
+	font-size: 14px;
+	font-weight: inherit;
+	line-height: 1;
+	text-transform: none;
+	letter-spacing: normal;
+	font-variant-numeric: tabular-nums;
 }
 
 .epm-sticky__controls button svg {
@@ -1068,6 +1144,15 @@
 		max-width: 320px;
 	}
 
+	/*
+	 * Stacked layouts: give the size-contained main column a definite
+	 * width, otherwise its height is measured at zero width.
+	 */
+	.epm-player--artwork .epm-player__main,
+	.epm-player--full .epm-player__main {
+		width: 100%;
+	}
+
 	.epm-episode-row {
 		flex-wrap: wrap;
 	}
@@ -1094,6 +1179,28 @@
 
 	.epm-player__volume input {
 		width: 56px;
+	}
+}
+
+/*
+ * Narrow players (phones, narrow Elementor columns, sidebars): the
+ * timeline moves to its own full-width row so it stays usable. Based on
+ * the player's own width, not the viewport.
+ */
+.epm-player__main {
+	container-type: inline-size;
+	container-name: epm-player-main;
+}
+
+@container epm-player-main (max-width: 440px) {
+	.epm-player__controls {
+		flex-wrap: wrap;
+		row-gap: 4px;
+	}
+
+	.epm-player__timeline-wrap {
+		order: 10;
+		flex: 1 1 100%;
 	}
 }
 
@@ -1146,8 +1253,12 @@
 	min-width: 200px;
 }
 
-.epm-player__error-retry {
+.epm-player__error-retry:not(#epm) {
 	flex: 0 0 auto;
+	box-shadow: none;
+	margin: 0;
+	line-height: 1.2;
+	text-transform: none;
 	min-height: 44px;
 	padding: 8px 18px;
 	border-radius: 999px;
@@ -1165,20 +1276,31 @@
 	margin-top: 12px;
 }
 
-/* Minimum 44px touch targets for play controls. */
-.epm-player__play {
-	min-width: 44px;
-	min-height: 44px;
+/* Minimum 44px touch targets are part of the button rules above. */
+
+/* ---------- Automatic episode page ---------- */
+
+.epm-episode-page > * + * {
+	margin-top: var(--epm-gap, 24px);
 }
 
-.epm-episode-card__play,
-.epm-episode-row__play {
-	min-height: 44px;
+.epm-episode-page > .epm-player {
+	margin-bottom: var(--epm-gap, 24px);
 }
 
-.epm-sticky__controls button {
-	min-width: 44px;
-	min-height: 44px;
-	align-items: center;
-	justify-content: center;
+/* ---------- Empty states ---------- */
+
+.epm-episode-list__empty {
+	color: var(--epm-text-muted, #6b7280);
+	font-size: var(--epm-meta-size, 14px);
+}
+
+/* Elementor editor only: explains widgets that currently render nothing. */
+.epm-editor-placeholder {
+	padding: 16px;
+	border: 1px dashed var(--epm-border, #e5e7eb);
+	border-radius: 6px;
+	color: var(--epm-text-muted, #6b7280);
+	font-size: 13px;
+	text-align: center;
 }

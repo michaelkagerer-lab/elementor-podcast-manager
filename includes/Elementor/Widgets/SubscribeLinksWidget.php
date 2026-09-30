@@ -169,12 +169,19 @@ final class SubscribeLinksWidget extends Widget_Base {
 
 		$settings = $this->get_settings_for_display();
 
-		echo epm()->renderer->subscribe_links( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		$html = epm()->renderer->subscribe_links(
 			(array) epm()->settings->get( 'platform_links' ),
 			[
 				'display'  => sanitize_key( $settings['display'] ?? 'icon-text' ),
 				'show_rss' => $this->toggle_on( $settings, 'show_rss', true ),
 			]
 		);
+
+		if ( '' === $html ) {
+			$this->editor_placeholder( __( 'Add platform links under Podcast → Podcast Settings → Distribution.', 'elementor-podcast-manager' ) );
+			return;
+		}
+
+		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the renderer.
 	}
 }

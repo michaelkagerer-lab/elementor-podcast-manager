@@ -1,0 +1,112 @@
+/**
+ * Setup assistant: styles beyond the shared components (epm-app.css).
+ */
+
+.epm-app[data-epm-setup] .epm-panel {
+	scroll-margin-block-start: 48px;
+}
+
+/* Host tiles: a compact grid. */
+.epm-app[data-epm-setup] [data-panel="connect"] .epm-choices {
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr));
+	margin-block-end: 24px;
+}
+
+.epm-app[data-epm-setup] .epm-choice__icon span {
+	font-size: 15px;
+	font-weight: 700;
+}
+
+.epm-app[data-epm-setup] [data-more-hosts] {
+	margin-block-end: 16px;
+}
+
+.epm-app[data-epm-setup] [data-preview] {
+	margin-block-start: 24px;
+	padding-block-start: 24px;
+	border-block-start: 1px solid var(--epm-app-line);
+}
+
+.epm-app[data-epm-setup] fieldset[data-path-only] {
+	margin-inline: 0;
+	padding: 0;
+	border: 0;
+}
+
+.epm-app[data-epm-setup] fieldset[data-path-only] legend {
+	margin-block-end: 8px;
+	padding: 0;
+}
+
+.epm-app[data-epm-setup] fieldset.epm-field label {
+	display: block;
+	min-block-size: 24px;
+	margin-block-start: 6px;
+	line-height: 1.5;
+}
+
+.epm-app[data-epm-setup] fieldset.epm-field {
+	margin-inline: 0;
+	padding: 0;
+	border: 0;
+}
+
+.epm-app[data-epm-setup] [data-import-progress] {
+	margin-block-end: 24px;
+}
+
+.epm-app[data-epm-setup] [data-panel="done"] .epm-card__footer {
+	justify-content: flex-start;
+}
+
+/* Preset tiles: a miniature player in the preset's colors. */
+.epm-preset-tile {
+	grid-template-columns: 1fr;
+}
+
+.epm-preset-tile input {
+	position: absolute;
+	inset-block-start: 12px;
+	inset-inline-end: 12px;
+}
+
+.epm-preset-swatch {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	block-size: 64px;
+	margin-block-end: 8px;
+	padding: 12px;
+	border-radius: min(var(--swatch-radius, 8px), 16px);
+	background: var(--swatch-surface);
+	box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08), 0 0 0 6px var(--swatch-bg);
+	margin-inline: 6px;
+	margin-block-start: 6px;
+}
+
+.epm-preset-swatch__play {
+	flex: none;
+	inline-size: 32px;
+	block-size: 32px;
+	border-radius: 50%;
+	background: var(--swatch-accent);
+}
+
+.epm-preset-swatch__lines {
+	display: grid;
+	flex: 1;
+	gap: 6px;
+}
+
+.epm-preset-swatch__lines span {
+	display: block;
+	block-size: 6px;
+	border-radius: 3px;
+	background: var(--swatch-text);
+	opacity: 0.85;
+}
+
+.epm-preset-swatch__lines span + span {
+	inline-size: 60%;
+	opacity: 0.35;
+}

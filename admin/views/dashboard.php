@@ -31,6 +31,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<span class="epm-status epm-status--missing"><?php esc_html_e( 'Not configured yet', 'elementor-podcast-manager' ); ?></span>
 				<?php endif; ?>
 			</p>
+			<?php if ( $artwork ) : ?>
+				<p class="epm-dashboard__artwork-note"><?php esc_html_e( 'Podcast artwork', 'elementor-podcast-manager' ); ?></p>
+			<?php endif; ?>
 			<p>
 				<?php
 				/* translators: %d: number of published episodes */
@@ -55,7 +58,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 					</a>
 				</p>
 			<?php else : ?>
-				<p><?php esc_html_e( 'No episodes yet.', 'elementor-podcast-manager' ); ?></p>
+				<div class="epm-empty-state">
+					<span class="epm-empty-state__icon dashicons dashicons-microphone" aria-hidden="true"></span>
+					<p><?php esc_html_e( 'Your first episode is a few steps away.', 'elementor-podcast-manager' ); ?></p>
+					<a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=' . \EPM\EpisodePostType::CPT ) ); ?>" class="button button-primary"><?php esc_html_e( 'Create your first episode', 'elementor-podcast-manager' ); ?></a>
+				</div>
 			<?php endif; ?>
 		</div>
 
@@ -76,27 +83,44 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</div>
 
 		<div class="epm-card epm-dashboard__readiness">
-			<h2><?php esc_html_e( 'Distribution Readiness', 'elementor-podcast-manager' ); ?></h2>
-			<?php echo \EPM\Readiness::render_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			<div class="epm-readiness__heading">
+				<div>
+					<h2><?php esc_html_e( 'Distribution readiness', 'elementor-podcast-manager' ); ?></h2>
+					<p class="description"><?php esc_html_e( 'Track the details podcast directories need before you submit your show.', 'elementor-podcast-manager' ); ?></p>
+				</div>
+				<?php
+				$epm_checks_ok    = count( array_filter( $readiness['checks'], static fn( $check ) => 'ok' === $check['status'] ) );
+				$epm_checks_total = count( $readiness['checks'] );
+				?>
+				<span class="epm-readiness__count">
+					<span aria-hidden="true"><strong><?php echo esc_html( number_format_i18n( $epm_checks_ok ) ); ?></strong><span>/<?php echo esc_html( number_format_i18n( $epm_checks_total ) ); ?></span></span>
+					<span class="screen-reader-text">
+						<?php
+						/* translators: 1: passed checks, 2: all checks */
+						echo esc_html( sprintf( __( '%1$s of %2$s checks complete', 'elementor-podcast-manager' ), number_format_i18n( $epm_checks_ok ), number_format_i18n( $epm_checks_total ) ) );
+						?>
+					</span>
+				</span>
+			</div>
+			<?php echo \EPM\Readiness::render_html( $readiness ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 		</div>
 
 		<div class="epm-card">
-			<h2><?php esc_html_e( 'Actions', 'elementor-podcast-manager' ); ?></h2>
-			<p>
+			<h2><?php esc_html_e( 'Quick actions', 'elementor-podcast-manager' ); ?></h2>
+			<p class="description"><?php esc_html_e( 'Keep your show moving with the tools you use most.', 'elementor-podcast-manager' ); ?></p>
+			<div class="epm-dashboard__actions">
 				<a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=' . \EPM\EpisodePostType::CPT ) ); ?>" class="button button-primary">
 					<?php esc_html_e( 'Add Episode', 'elementor-podcast-manager' ); ?>
 				</a>
-			</p>
 			<?php if ( \EPM\Capabilities::can_manage_podcast() ) : ?>
-				<p>
 					<a href="<?php echo esc_url( admin_url( 'admin.php?page=epm-settings' ) ); ?>" class="button">
 						<?php esc_html_e( 'Podcast Settings', 'elementor-podcast-manager' ); ?>
 					</a>
 					<a href="<?php echo esc_url( admin_url( 'admin.php?page=epm-design' ) ); ?>" class="button">
 						<?php esc_html_e( 'Design', 'elementor-podcast-manager' ); ?>
 					</a>
-				</p>
 			<?php endif; ?>
+			</div>
 		</div>
 	</div>
 </div>

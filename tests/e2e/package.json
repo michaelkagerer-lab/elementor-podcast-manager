@@ -1,0 +1,12 @@
+{
+  "name": "epm-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Browser tests for Elementor Podcast Manager (frontend player, Elementor editor, episode admin).",
+  "scripts": {
+    "test": "node run.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.56.1"
+  }
+}

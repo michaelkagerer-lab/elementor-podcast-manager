@@ -163,6 +163,7 @@ final class EpisodeHeaderWidget extends Widget_Base {
 		$episode  = $this->resolve_widget_episode( $settings );
 
 		if ( ! $episode ) {
+			$this->editor_placeholder( $this->no_episode_message( $settings ) );
 			return;
 		}
 

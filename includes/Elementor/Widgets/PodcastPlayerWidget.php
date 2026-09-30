@@ -180,6 +180,10 @@ final class PodcastPlayerWidget extends Widget_Base {
 			[
 				'name'      => 'container_border',
 				'selector'  => '{{WRAPPER}} .epm-player',
+				// The group's own color field would be "container_border_color",
+				// which is the Border Color token control above: excluded to
+				// avoid a duplicate control ID (the token color applies).
+				'exclude'   => [ 'color' ],
 				'condition' => $this->custom_condition(),
 			]
 		);
@@ -224,8 +228,9 @@ final class PodcastPlayerWidget extends Widget_Base {
 		$this->start_controls_section(
 			'section_style_artwork',
 			[
-				'label' => __( 'Artwork', 'elementor-podcast-manager' ),
-				'tab'   => Controls_Manager::TAB_STYLE,
+				'label'     => __( 'Artwork', 'elementor-podcast-manager' ),
+				'tab'       => Controls_Manager::TAB_STYLE,
+				'condition' => $this->custom_condition(),
 			]
 		);
 
@@ -260,8 +265,9 @@ final class PodcastPlayerWidget extends Widget_Base {
 		$this->start_controls_section(
 			'section_style_label',
 			[
-				'label' => __( 'Label', 'elementor-podcast-manager' ),
-				'tab'   => Controls_Manager::TAB_STYLE,
+				'label'     => __( 'Label', 'elementor-podcast-manager' ),
+				'tab'       => Controls_Manager::TAB_STYLE,
+				'condition' => $this->custom_condition(),
 			]
 		);
 
@@ -282,8 +288,9 @@ final class PodcastPlayerWidget extends Widget_Base {
 		$this->start_controls_section(
 			'section_style_title',
 			[
-				'label' => __( 'Title', 'elementor-podcast-manager' ),
-				'tab'   => Controls_Manager::TAB_STYLE,
+				'label'     => __( 'Title', 'elementor-podcast-manager' ),
+				'tab'       => Controls_Manager::TAB_STYLE,
+				'condition' => $this->custom_condition(),
 			]
 		);
 
@@ -304,8 +311,9 @@ final class PodcastPlayerWidget extends Widget_Base {
 		$this->start_controls_section(
 			'section_style_meta',
 			[
-				'label' => __( 'Metadata', 'elementor-podcast-manager' ),
-				'tab'   => Controls_Manager::TAB_STYLE,
+				'label'     => __( 'Metadata', 'elementor-podcast-manager' ),
+				'tab'       => Controls_Manager::TAB_STYLE,
+				'condition' => $this->custom_condition(),
 			]
 		);
 
@@ -326,8 +334,9 @@ final class PodcastPlayerWidget extends Widget_Base {
 		$this->start_controls_section(
 			'section_style_play',
 			[
-				'label' => __( 'Play Button', 'elementor-podcast-manager' ),
-				'tab'   => Controls_Manager::TAB_STYLE,
+				'label'     => __( 'Play Button', 'elementor-podcast-manager' ),
+				'tab'       => Controls_Manager::TAB_STYLE,
+				'condition' => $this->custom_condition(),
 			]
 		);
 
@@ -340,7 +349,7 @@ final class PodcastPlayerWidget extends Widget_Base {
 				'size_units' => [ 'px' ],
 				'range'      => [ 'px' => [ 'min' => 32, 'max' => 120 ] ],
 				'selectors'  => [
-					'{{WRAPPER}} .epm-player__play' => 'width: {{SIZE}}{{UNIT}}; height: {{SIZE}}{{UNIT}};',
+					'{{WRAPPER}} .epm-player__play' => '--epm-play-size: {{SIZE}}{{UNIT}};',
 				],
 				'condition'  => $this->custom_condition(),
 			]
@@ -353,7 +362,7 @@ final class PodcastPlayerWidget extends Widget_Base {
 				'type'       => Controls_Manager::SLIDER,
 				'size_units' => [ 'px', '%' ],
 				'range'      => [ 'px' => [ 'min' => 0, 'max' => 80 ] ],
-				'selectors'  => [ '{{WRAPPER}} .epm-player__play' => 'border-radius: {{SIZE}}{{UNIT}};' ],
+				'selectors'  => [ '{{WRAPPER}} .epm-player__play' => '--epm-play-radius: {{SIZE}}{{UNIT}};' ],
 				'condition'  => $this->custom_condition(),
 			]
 		);
@@ -373,7 +382,7 @@ final class PodcastPlayerWidget extends Widget_Base {
 			[
 				'label'     => __( 'Background', 'elementor-podcast-manager' ),
 				'type'      => Controls_Manager::COLOR,
-				'selectors' => [ '{{WRAPPER}} .epm-player__play' => 'background: {{VALUE}};' ],
+				'selectors' => [ '{{WRAPPER}} .epm-player__play' => '--epm-play-background: {{VALUE}};' ],
 			]
 		);
 
@@ -382,7 +391,7 @@ final class PodcastPlayerWidget extends Widget_Base {
 			[
 				'label'     => __( 'Icon Color', 'elementor-podcast-manager' ),
 				'type'      => Controls_Manager::COLOR,
-				'selectors' => [ '{{WRAPPER}} .epm-player__play' => 'color: {{VALUE}};' ],
+				'selectors' => [ '{{WRAPPER}} .epm-player__play' => '--epm-play-color: {{VALUE}};' ],
 			]
 		);
 
@@ -390,7 +399,8 @@ final class PodcastPlayerWidget extends Widget_Base {
 			Group_Control_Border::get_type(),
 			[
 				'name'     => 'play_button_border',
-				'selector' => '{{WRAPPER}} .epm-player__play',
+				// :not(#epm) matches the theme-proof button rule's specificity.
+				'selector' => '{{WRAPPER}} .epm-player__play:not(#epm)',
 			]
 		);
 
@@ -409,7 +419,7 @@ final class PodcastPlayerWidget extends Widget_Base {
 			[
 				'label'     => __( 'Background', 'elementor-podcast-manager' ),
 				'type'      => Controls_Manager::COLOR,
-				'selectors' => [ '{{WRAPPER}} .epm-player__play:hover' => 'background: {{VALUE}};' ],
+				'selectors' => [ '{{WRAPPER}} .epm-player__play' => '--epm-play-background-hover: {{VALUE}};' ],
 			]
 		);
 
@@ -418,7 +428,7 @@ final class PodcastPlayerWidget extends Widget_Base {
 			[
 				'label'     => __( 'Icon Color', 'elementor-podcast-manager' ),
 				'type'      => Controls_Manager::COLOR,
-				'selectors' => [ '{{WRAPPER}} .epm-player__play:hover' => 'color: {{VALUE}};' ],
+				'selectors' => [ '{{WRAPPER}} .epm-player__play' => '--epm-play-color-hover: {{VALUE}};' ],
 			]
 		);
 
@@ -432,8 +442,9 @@ final class PodcastPlayerWidget extends Widget_Base {
 		$this->start_controls_section(
 			'section_style_timeline',
 			[
-				'label' => __( 'Timeline', 'elementor-podcast-manager' ),
-				'tab'   => Controls_Manager::TAB_STYLE,
+				'label'     => __( 'Timeline', 'elementor-podcast-manager' ),
+				'tab'       => Controls_Manager::TAB_STYLE,
+				'condition' => $this->custom_condition(),
 			]
 		);
 
@@ -476,8 +487,9 @@ final class PodcastPlayerWidget extends Widget_Base {
 		$this->start_controls_section(
 			'section_style_controls',
 			[
-				'label' => __( 'Time & Secondary Controls', 'elementor-podcast-manager' ),
-				'tab'   => Controls_Manager::TAB_STYLE,
+				'label'     => __( 'Time & Secondary Controls', 'elementor-podcast-manager' ),
+				'tab'       => Controls_Manager::TAB_STYLE,
+				'condition' => $this->custom_condition(),
 			]
 		);
 
@@ -520,8 +532,7 @@ final class PodcastPlayerWidget extends Widget_Base {
 				'label'     => __( 'Secondary Hover Color', 'elementor-podcast-manager' ),
 				'type'      => Controls_Manager::COLOR,
 				'selectors' => [
-					'{{WRAPPER}} .epm-player__secondary button:hover' => 'color: {{VALUE}};',
-					'{{WRAPPER}} .epm-player__secondary a:hover'     => 'color: {{VALUE}};',
+					'{{WRAPPER}} .epm-player' => '--epm-secondary-hover: {{VALUE}};',
 				],
 				'condition' => $this->custom_condition(),
 			]
@@ -542,6 +553,7 @@ final class PodcastPlayerWidget extends Widget_Base {
 		$episode  = $this->resolve_widget_episode( $settings );
 
 		if ( ! $episode ) {
+			$this->editor_placeholder( $this->no_episode_message( $settings ) );
 			return;
 		}
 

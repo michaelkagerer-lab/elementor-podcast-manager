@@ -1,0 +1,1112 @@
+/**
+ * Elementor Podcast Manager — admin app components.
+ *
+ * Shared by the setup assistant, Hosting & import, Distribution and the
+ * dashboard. Native to wp-admin: system font, the admin color scheme's
+ * highlight color, core buttons and form controls. Motion is opt-in
+ * (prefers-reduced-motion: no-preference) and limited to transform/opacity.
+ */
+
+.epm-app {
+	--epm-app-accent: var(--wp-admin-theme-color, #2271b1);
+	--epm-app-accent-strong: var(--wp-admin-theme-color-darker-10, #135e96);
+	--epm-app-accent-soft: color-mix(in srgb, var(--epm-app-accent) 8%, #fff);
+	--epm-app-text: #1d2327;
+	--epm-app-muted: #50575e;
+	--epm-app-subtle: #646970;
+	--epm-app-surface: #fff;
+	--epm-app-canvas: #f6f7f7;
+	--epm-app-line: #dcdcde;
+	--epm-app-line-strong: #c3c4c7;
+	--epm-app-ok: #00753b;
+	--epm-app-ok-soft: #edfaef;
+	--epm-app-warn: #8a5a00;
+	--epm-app-warn-soft: #fcf9e8;
+	--epm-app-error: #b32d2e;
+	--epm-app-error-soft: #fcf0f1;
+	--epm-app-radius: 8px;
+	--epm-app-radius-sm: 4px;
+	--epm-app-shadow: 0 1px 1px rgb(0 0 0 / 0.04), 0 1px 3px rgb(0 0 0 / 0.06);
+	--epm-app-shadow-raised: 0 2px 4px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.08);
+	--epm-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+	--epm-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+	max-width: 1040px;
+	margin-block-start: 16px;
+	color: var(--epm-app-text);
+}
+
+.epm-app--narrow {
+	max-width: 760px;
+}
+
+.epm-app *,
+.epm-app *::before,
+.epm-app *::after {
+	box-sizing: border-box;
+}
+
+/* Components set display; the hidden attribute must still win. */
+.epm-app [hidden] {
+	display: none !important;
+}
+
+/* ---------- Header ---------- */
+
+.epm-app__header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 16px;
+	margin-block-end: 24px;
+}
+
+.epm-app__title {
+	margin: 0;
+	padding: 0;
+	font-size: 23px;
+	font-weight: 400;
+	line-height: 1.3;
+	text-wrap: balance;
+}
+
+.epm-app__lede {
+	max-width: 65ch;
+	margin: 8px 0 0;
+	color: var(--epm-app-muted);
+	font-size: 14px;
+	line-height: 1.55;
+	text-wrap: pretty;
+}
+
+.epm-app__eyebrow {
+	margin: 0 0 4px;
+	color: var(--epm-app-subtle);
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+/* ---------- Cards and sections ---------- */
+
+.epm-card {
+	position: relative;
+	padding: 24px;
+	background: var(--epm-app-surface);
+	border: 1px solid var(--epm-app-line);
+	border-radius: var(--epm-app-radius);
+	box-shadow: var(--epm-app-shadow);
+}
+
+.epm-card + .epm-card,
+.epm-card + .epm-section,
+.epm-section + .epm-section,
+.epm-section + .epm-card {
+	margin-block-start: 24px;
+}
+
+.epm-card__title {
+	margin: 0 0 4px;
+	font-size: 16px;
+	font-weight: 600;
+	line-height: 1.4;
+	text-wrap: balance;
+}
+
+.epm-card__lede {
+	max-width: 65ch;
+	margin: 0 0 16px;
+	color: var(--epm-app-muted);
+	line-height: 1.55;
+	text-wrap: pretty;
+}
+
+.epm-card__footer {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px;
+	margin-block-start: 24px;
+	padding-block-start: 16px;
+	border-block-start: 1px solid var(--epm-app-line);
+}
+
+.epm-card__footer--split {
+	justify-content: space-between;
+}
+
+.epm-grid {
+	display: grid;
+	gap: 16px;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+}
+
+.epm-stack > * + * {
+	margin-block-start: 16px;
+}
+
+.epm-stack--tight > * + * {
+	margin-block-start: 8px;
+}
+
+/* ---------- Setup steps ---------- */
+
+.epm-steps {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 24px;
+	margin: 0 0 24px;
+	padding: 0;
+	list-style: none;
+	counter-reset: epm-step;
+}
+
+.epm-steps__item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	color: var(--epm-app-subtle);
+	font-size: 13px;
+	white-space: nowrap;
+	counter-increment: epm-step;
+}
+
+.epm-steps__item::before {
+	content: counter(epm-step);
+	display: inline-grid;
+	place-items: center;
+	inline-size: 24px;
+	block-size: 24px;
+	border: 1px solid var(--epm-app-line-strong);
+	border-radius: 50%;
+	background: var(--epm-app-surface);
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+	font-weight: 600;
+}
+
+.epm-steps__item[aria-current="step"] {
+	color: var(--epm-app-text);
+	font-weight: 600;
+}
+
+.epm-steps__item[aria-current="step"]::before {
+	border-color: var(--epm-app-accent);
+	background: var(--epm-app-accent);
+	color: #fff;
+}
+
+.epm-steps__item.is-done::before {
+	content: "✓";
+	border-color: var(--epm-app-ok);
+	background: var(--epm-app-ok-soft);
+	color: var(--epm-app-ok);
+}
+
+.epm-steps__item[hidden] {
+	display: none;
+}
+
+/* ---------- Panels (one visible at a time) ---------- */
+
+.epm-panel[hidden] {
+	display: none;
+}
+
+.epm-panel:focus {
+	outline: none;
+}
+
+.epm-panel__title {
+	margin: 0 0 8px;
+	font-size: 20px;
+	font-weight: 600;
+	line-height: 1.3;
+	text-wrap: balance;
+}
+
+.epm-panel__lede {
+	max-width: 65ch;
+	margin: 0 0 24px;
+	color: var(--epm-app-muted);
+	font-size: 14px;
+	line-height: 1.55;
+	text-wrap: pretty;
+}
+
+/* ---------- Choice tiles (radio cards) ---------- */
+
+.epm-choices {
+	display: grid;
+	gap: 12px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+}
+
+.epm-choices--rows {
+	grid-template-columns: 1fr;
+}
+
+.epm-choices legend {
+	margin-block-end: 8px;
+	padding: 0;
+	font-weight: 600;
+}
+
+.epm-choice {
+	position: relative;
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 4px 12px;
+	align-content: start;
+	align-items: start;
+	min-block-size: 44px;
+	padding: 16px;
+	background: var(--epm-app-surface);
+	border: 1px solid var(--epm-app-line-strong);
+	border-radius: var(--epm-app-radius);
+	cursor: pointer;
+}
+
+.epm-choice:hover {
+	border-color: var(--epm-app-accent);
+}
+
+.epm-choice:has(input:checked) {
+	border-color: var(--epm-app-accent);
+	background: var(--epm-app-accent-soft);
+	box-shadow: inset 0 0 0 1px var(--epm-app-accent);
+}
+
+.epm-choice:has(input:focus-visible) {
+	outline: 2px solid var(--epm-app-accent);
+	outline-offset: 2px;
+}
+
+.epm-choice input[type="radio"],
+.epm-choice input[type="checkbox"] {
+	grid-row: span 2;
+	margin: 2px 0 0;
+}
+
+.epm-choice__icon {
+	grid-row: span 2;
+	display: grid;
+	place-items: center;
+	inline-size: 40px;
+	block-size: 40px;
+	border-radius: var(--epm-app-radius-sm);
+	background: var(--epm-app-canvas);
+	color: var(--epm-app-text);
+}
+
+.epm-choice__icon svg {
+	inline-size: 22px;
+	block-size: 22px;
+}
+
+.epm-choice__title {
+	font-weight: 600;
+	line-height: 1.4;
+}
+
+.epm-choice__text {
+	color: var(--epm-app-muted);
+	font-size: 13px;
+	line-height: 1.5;
+	text-wrap: pretty;
+}
+
+/* Visually hidden radio in icon tiles (the tile carries the state). */
+.epm-choice--tile {
+	grid-template-columns: auto 1fr;
+	align-items: center;
+	padding: 12px;
+}
+
+.epm-choice--tile input {
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.epm-choice--tile .epm-choice__icon {
+	grid-row: auto;
+	inline-size: 32px;
+	block-size: 32px;
+}
+
+/* ---------- Fields ---------- */
+
+.epm-field {
+	display: grid;
+	align-content: start;
+	gap: 6px;
+}
+
+.epm-field + .epm-field,
+.epm-field + .epm-field-row,
+.epm-field-row + .epm-field,
+.epm-field-row + .epm-field-row {
+	margin-block-start: 16px;
+}
+
+.epm-field-row {
+	display: grid;
+	align-items: start;
+	gap: 16px;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+}
+
+.epm-field__label {
+	font-weight: 600;
+}
+
+.epm-field__optional {
+	color: var(--epm-app-subtle);
+	font-weight: 400;
+}
+
+.epm-field__help {
+	margin: 0;
+	color: var(--epm-app-muted);
+	font-size: 13px;
+	line-height: 1.5;
+	text-wrap: pretty;
+}
+
+.epm-field__error {
+	margin: 0;
+	color: var(--epm-app-error);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.epm-field__error[hidden] {
+	display: none;
+}
+
+.epm-app input[type="text"],
+.epm-app input[type="url"],
+.epm-app input[type="email"],
+.epm-app input[type="search"],
+.epm-app select,
+.epm-app textarea {
+	inline-size: 100%;
+	max-inline-size: 100%;
+	min-block-size: 36px;
+}
+
+.epm-app textarea {
+	line-height: 1.5;
+}
+
+.epm-app [aria-invalid="true"] {
+	border-color: var(--epm-app-error);
+	box-shadow: 0 0 0 1px var(--epm-app-error);
+}
+
+.epm-inline-form {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.epm-inline-form > input {
+	flex: 1 1 280px;
+}
+
+/* Checkbox with its label: one hit target, text wraps under itself. */
+.epm-check {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 8px;
+	align-items: start;
+	min-block-size: 24px;
+	padding-block: 4px;
+	line-height: 1.5;
+	cursor: pointer;
+}
+
+.epm-check input[type="checkbox"],
+.epm-check input[type="radio"] {
+	margin: 3px 0 0;
+}
+
+.epm-check select {
+	display: inline-block;
+	inline-size: auto;
+	min-block-size: 28px;
+	margin-inline-start: 4px;
+	vertical-align: baseline;
+}
+
+fieldset.epm-field {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+fieldset.epm-field > legend {
+	margin-block-end: 4px;
+	padding: 0;
+}
+
+/* ---------- Buttons ---------- */
+
+.epm-app .button {
+	min-block-size: 32px;
+}
+
+.epm-app .button-hero,
+.epm-app .button.button-large {
+	min-block-size: 40px;
+}
+
+.epm-button-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	min-block-size: 24px;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--epm-app-accent);
+	font: inherit;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+	cursor: pointer;
+}
+
+.epm-button-link:hover {
+	color: var(--epm-app-accent-strong);
+}
+
+.epm-button-link:focus-visible {
+	outline: 2px solid var(--epm-app-accent);
+	outline-offset: 2px;
+	border-radius: 2px;
+}
+
+.epm-button-link--muted {
+	color: var(--epm-app-muted);
+}
+
+.epm-button-link--danger {
+	color: var(--epm-app-error);
+}
+
+/* Busy state: the label stays readable, a spinner joins it. */
+.epm-app .button[aria-busy="true"] {
+	position: relative;
+	pointer-events: none;
+	opacity: 0.8;
+}
+
+.epm-app .button[aria-busy="true"]::after {
+	content: "";
+	display: inline-block;
+	inline-size: 12px;
+	block-size: 12px;
+	margin-inline-start: 8px;
+	vertical-align: -2px;
+	border: 2px solid currentColor;
+	border-inline-end-color: transparent;
+	border-radius: 50%;
+	animation: epm-app-spin 0.8s linear infinite;
+}
+
+@keyframes epm-app-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* ---------- Badges and status ---------- */
+
+.epm-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: var(--epm-app-canvas);
+	color: var(--epm-app-muted);
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.6;
+	white-space: nowrap;
+}
+
+.epm-badge--ok {
+	background: var(--epm-app-ok-soft);
+	color: var(--epm-app-ok);
+}
+
+.epm-badge--warn {
+	background: var(--epm-app-warn-soft);
+	color: var(--epm-app-warn);
+}
+
+.epm-badge--error {
+	background: var(--epm-app-error-soft);
+	color: var(--epm-app-error);
+}
+
+.epm-badge--info {
+	background: var(--epm-app-accent-soft);
+	color: var(--epm-app-accent-strong);
+}
+
+.epm-badge__dot {
+	inline-size: 6px;
+	block-size: 6px;
+	border-radius: 50%;
+	background: currentColor;
+}
+
+/* ---------- Callouts ---------- */
+
+.epm-callout {
+	display: grid;
+	gap: 4px;
+	padding: 12px 16px;
+	border-inline-start: 4px solid var(--epm-app-accent);
+	border-radius: var(--epm-app-radius-sm);
+	background: var(--epm-app-accent-soft);
+	line-height: 1.5;
+}
+
+.epm-callout p {
+	margin: 0;
+}
+
+.epm-callout--warn {
+	border-color: #dba617;
+	background: var(--epm-app-warn-soft);
+}
+
+.epm-callout--error {
+	border-color: var(--epm-app-error);
+	background: var(--epm-app-error-soft);
+}
+
+.epm-callout--ok {
+	border-color: var(--epm-app-ok);
+	background: var(--epm-app-ok-soft);
+}
+
+.epm-callout[hidden] {
+	display: none;
+}
+
+/* ---------- Copy field ---------- */
+
+.epm-copy {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.epm-copy__value {
+	flex: 1 1 260px;
+	min-inline-size: 0;
+	padding: 6px 10px;
+	overflow-wrap: anywhere;
+	border: 1px solid var(--epm-app-line);
+	border-radius: var(--epm-app-radius-sm);
+	background: var(--epm-app-canvas);
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	font-size: 13px;
+	line-height: 1.5;
+	user-select: all;
+}
+
+/* ---------- Feed preview ---------- */
+
+.epm-preview {
+	display: grid;
+	grid-template-columns: 96px 1fr;
+	gap: 16px;
+	align-items: start;
+}
+
+.epm-preview:has(> .epm-preview__art[hidden]) {
+	grid-template-columns: 1fr;
+}
+
+.epm-preview__art {
+	inline-size: 96px;
+	block-size: 96px;
+	border-radius: var(--epm-app-radius-sm);
+	background: var(--epm-app-canvas);
+	object-fit: cover;
+	outline: 1px solid rgb(0 0 0 / 0.1);
+	outline-offset: -1px;
+}
+
+.epm-preview__title {
+	margin: 0;
+	font-size: 16px;
+	font-weight: 600;
+	line-height: 1.35;
+	overflow-wrap: anywhere;
+}
+
+.epm-preview__meta {
+	margin: 4px 0 0;
+	color: var(--epm-app-muted);
+	line-height: 1.5;
+}
+
+.epm-facts {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 24px;
+	margin: 12px 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.epm-facts li {
+	margin: 0;
+}
+
+.epm-facts strong {
+	display: block;
+	font-size: 18px;
+	font-variant-numeric: tabular-nums;
+	line-height: 1.3;
+}
+
+.epm-facts span {
+	color: var(--epm-app-muted);
+	font-size: 12px;
+}
+
+@media (max-width: 480px) {
+	.epm-preview {
+		grid-template-columns: 64px 1fr;
+	}
+
+	.epm-preview:has(> .epm-preview__art[hidden]) {
+	grid-template-columns: 1fr;
+}
+
+.epm-preview__art {
+		inline-size: 64px;
+		block-size: 64px;
+	}
+}
+
+/* ---------- Progress ---------- */
+
+.epm-progress {
+	display: grid;
+	gap: 8px;
+}
+
+.epm-progress__track {
+	position: relative;
+	block-size: 8px;
+	overflow: hidden;
+	border-radius: 999px;
+	background: var(--epm-app-canvas);
+	box-shadow: inset 0 0 0 1px var(--epm-app-line);
+}
+
+.epm-progress__bar {
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	background: var(--epm-app-accent);
+	transform: scaleX(var(--epm-progress, 0));
+	transform-origin: left center;
+}
+
+[dir="rtl"] .epm-progress__bar {
+	transform-origin: right center;
+}
+
+.epm-progress__label {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	gap: 8px;
+	color: var(--epm-app-muted);
+	font-size: 13px;
+	font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Log ---------- */
+
+.epm-log {
+	max-block-size: 260px;
+	margin: 0;
+	padding: 0;
+	overflow: auto;
+	overscroll-behavior: contain;
+	border: 1px solid var(--epm-app-line);
+	border-radius: var(--epm-app-radius-sm);
+	list-style: none;
+}
+
+.epm-log li {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	margin: 0;
+	padding: 8px 12px;
+	font-size: 13px;
+	line-height: 1.45;
+}
+
+.epm-log li + li {
+	border-block-start: 1px solid var(--epm-app-line);
+}
+
+.epm-log__title {
+	flex: 1 1 auto;
+	min-inline-size: 0;
+	overflow-wrap: anywhere;
+}
+
+.epm-log__note {
+	color: var(--epm-app-muted);
+}
+
+/* ---------- Checklist (readiness, next steps) ---------- */
+
+.epm-checklist {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.epm-checklist__item {
+	display: grid;
+	grid-template-columns: 24px 1fr;
+	gap: 4px 12px;
+	margin: 0;
+	padding: 12px 0;
+}
+
+.epm-checklist__item + .epm-checklist__item {
+	border-block-start: 1px solid var(--epm-app-line);
+}
+
+.epm-checklist__icon {
+	display: grid;
+	place-items: center;
+	inline-size: 24px;
+	block-size: 24px;
+	border-radius: 50%;
+	background: var(--epm-app-canvas);
+	color: var(--epm-app-muted);
+	font-size: 13px;
+	font-weight: 700;
+	line-height: 1;
+}
+
+.epm-checklist__item--ok .epm-checklist__icon {
+	background: var(--epm-app-ok-soft);
+	color: var(--epm-app-ok);
+}
+
+.epm-checklist__item--warning .epm-checklist__icon {
+	background: var(--epm-app-warn-soft);
+	color: var(--epm-app-warn);
+}
+
+.epm-checklist__item--error .epm-checklist__icon {
+	background: var(--epm-app-error-soft);
+	color: var(--epm-app-error);
+}
+
+.epm-checklist__label {
+	font-weight: 600;
+	line-height: 1.5;
+}
+
+.epm-checklist__text {
+	grid-column: 2;
+	margin: 0;
+	color: var(--epm-app-muted);
+	line-height: 1.5;
+	overflow-wrap: anywhere;
+}
+
+/* ---------- Platform rows (distribution, hosts) ---------- */
+
+.epm-platform {
+	display: grid;
+	grid-template-columns: 40px 1fr auto;
+	gap: 4px 16px;
+	align-items: center;
+	padding: 16px 0;
+}
+
+.epm-platform + .epm-platform {
+	border-block-start: 1px solid var(--epm-app-line);
+}
+
+.epm-platform__icon {
+	display: grid;
+	place-items: center;
+	inline-size: 40px;
+	block-size: 40px;
+	border-radius: var(--epm-app-radius);
+	background: var(--epm-app-canvas);
+	color: var(--epm-app-text);
+	font-size: 16px;
+	font-weight: 700;
+}
+
+.epm-platform__icon svg {
+	inline-size: 22px;
+	block-size: 22px;
+}
+
+.epm-platform__name {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.epm-platform__text {
+	grid-column: 2 / -1;
+	max-width: 70ch;
+	margin: 0;
+	color: var(--epm-app-muted);
+	font-size: 13px;
+	line-height: 1.5;
+	text-wrap: pretty;
+}
+
+.epm-platform__actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 8px;
+}
+
+.epm-platform__details {
+	grid-column: 2 / -1;
+}
+
+@media (max-width: 600px) {
+	.epm-platform {
+		grid-template-columns: 40px 1fr;
+	}
+
+	.epm-platform__actions {
+		grid-column: 2;
+		justify-content: flex-start;
+	}
+}
+
+/* ---------- Key-value list ---------- */
+
+.epm-kv {
+	display: grid;
+	grid-template-columns: minmax(120px, max-content) 1fr;
+	gap: 8px 24px;
+	margin: 0;
+}
+
+.epm-kv dt {
+	color: var(--epm-app-muted);
+}
+
+.epm-kv dd {
+	margin: 0;
+	overflow-wrap: anywhere;
+}
+
+@media (max-width: 480px) {
+	.epm-kv {
+		grid-template-columns: 1fr;
+		gap: 2px;
+	}
+
+	.epm-kv dd + dt {
+		margin-block-start: 8px;
+	}
+}
+
+/* ---------- Details / disclosure ---------- */
+
+.epm-details {
+	border-block-start: 1px solid var(--epm-app-line);
+}
+
+.epm-details > summary {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-block-size: 44px;
+	font-weight: 600;
+	cursor: pointer;
+	list-style: none;
+}
+
+.epm-details > summary::-webkit-details-marker {
+	display: none;
+}
+
+.epm-details > summary::before {
+	content: "";
+	inline-size: 8px;
+	block-size: 8px;
+	border-block-end: 2px solid currentColor;
+	border-inline-end: 2px solid currentColor;
+	transform: rotate(-45deg);
+}
+
+.epm-details[open] > summary::before {
+	transform: rotate(45deg);
+}
+
+.epm-details > summary:focus-visible {
+	outline: 2px solid var(--epm-app-accent);
+	outline-offset: 2px;
+}
+
+.epm-details__body {
+	padding-block-end: 16px;
+}
+
+/* ---------- Media picker (artwork) ---------- */
+
+.epm-artwork-picker {
+	display: grid;
+	grid-template-columns: 160px 1fr;
+	gap: 16px;
+	align-items: start;
+}
+
+.epm-artwork-picker__preview {
+	display: grid;
+	place-items: center;
+	inline-size: 160px;
+	block-size: 160px;
+	overflow: hidden;
+	border: 1px dashed var(--epm-app-line-strong);
+	border-radius: var(--epm-app-radius);
+	background: var(--epm-app-canvas);
+	color: var(--epm-app-subtle);
+	text-align: center;
+}
+
+.epm-artwork-picker__preview img {
+	inline-size: 100%;
+	block-size: 100%;
+	object-fit: cover;
+	outline: 1px solid rgb(0 0 0 / 0.1);
+	outline-offset: -1px;
+}
+
+.epm-artwork-picker__preview.has-image {
+	border-style: solid;
+}
+
+@media (max-width: 480px) {
+	.epm-artwork-picker {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ---------- Utilities ---------- */
+
+.epm-muted {
+	color: var(--epm-app-muted);
+}
+
+.epm-nowrap {
+	white-space: nowrap;
+}
+
+.epm-tabular {
+	font-variant-numeric: tabular-nums;
+}
+
+.epm-sr-only {
+	position: absolute !important;
+	inline-size: 1px;
+	block-size: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* ---------- Motion (opt-in) ---------- */
+
+@media (prefers-reduced-motion: no-preference) {
+	.epm-choice {
+		transition: border-color 150ms var(--epm-ease-out), background-color 150ms var(--epm-ease-out), box-shadow 150ms var(--epm-ease-out);
+	}
+
+	.epm-choice:active {
+		transform: scale(0.99);
+		transition: transform 100ms var(--epm-ease-out);
+	}
+
+	.epm-progress__bar {
+		transition: transform 300ms var(--epm-ease-out);
+	}
+
+	/* Step change: the new panel settles in from slightly below. */
+	.epm-panel.is-entering {
+		animation: epm-panel-in 240ms var(--epm-ease-out) both;
+	}
+
+	@keyframes epm-panel-in {
+		from {
+			opacity: 0;
+			transform: translateY(8px);
+		}
+	}
+
+	.epm-details > summary::before {
+		transition: transform 150ms var(--epm-ease-out);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.epm-panel.is-entering {
+		animation: epm-panel-fade 160ms ease-out both;
+	}
+
+	@keyframes epm-panel-fade {
+		from {
+			opacity: 0;
+		}
+	}
+
+	.epm-app .button[aria-busy="true"]::after {
+		animation-duration: 2s;
+	}
+}
+
+@media (forced-colors: active) {
+	.epm-progress__bar {
+		background: Highlight;
+	}
+
+	.epm-choice:has(input:checked) {
+		outline: 2px solid Highlight;
+	}
+}

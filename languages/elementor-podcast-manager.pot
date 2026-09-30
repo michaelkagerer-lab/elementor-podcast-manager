@@ -1,0 +1,2232 @@
+# Copyright (C) 2026 Internal
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Elementor Podcast Manager 1.2.0\n"
+"Report-Msgid-Bugs-To: https://github.com/michaelkagerer-lab/elementor-podcast-manager/issues\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-09-30T09:19:23+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: elementor-podcast-manager\n"
+
+#. Plugin Name of the plugin
+#: elementor-podcast-manager.php
+msgid "Elementor Podcast Manager"
+msgstr ""
+
+#. Description of the plugin
+#: elementor-podcast-manager.php
+msgid "Manage and display a podcast on Elementor websites. Episodes, RSS feed, custom player, and Elementor widgets — no external podcast platform required."
+msgstr ""
+
+#. Author of the plugin
+#: elementor-podcast-manager.php
+msgid "Internal"
+msgstr ""
+
+#: admin/views/dashboard.php:19
+msgid "Podcast Dashboard"
+msgstr ""
+
+#: admin/views/dashboard.php:26
+msgid "Untitled Podcast"
+msgstr ""
+
+#: admin/views/dashboard.php:29
+msgid "Configured"
+msgstr ""
+
+#: admin/views/dashboard.php:31
+msgid "Not configured yet"
+msgstr ""
+
+#. translators: %d: number of published episodes
+#: admin/views/dashboard.php:37
+#, php-format
+msgid "%d published episode"
+msgid_plural "%d published episodes"
+msgstr[0] ""
+msgstr[1] ""
+
+#: admin/views/dashboard.php:43
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:41
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:98
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:154
+#: includes/Elementor/Widgets/WidgetHelpers.php:46
+msgid "Latest Episode"
+msgstr ""
+
+#: admin/views/dashboard.php:54
+#: includes/EpisodePostType.php:32
+msgid "Edit Episode"
+msgstr ""
+
+#: admin/views/dashboard.php:58
+msgid "No episodes yet."
+msgstr ""
+
+#: admin/views/dashboard.php:63
+#: admin/views/settings.php:146
+msgid "Distribution"
+msgstr ""
+
+#: admin/views/dashboard.php:64
+#: admin/views/settings.php:177
+msgid "Use this URL when submitting your podcast to podcast platforms."
+msgstr ""
+
+#: admin/views/dashboard.php:70
+#: admin/views/settings.php:174
+msgid "Copy"
+msgstr ""
+
+#: admin/views/dashboard.php:73
+#: admin/views/settings.php:175
+msgid "Open Feed"
+msgstr ""
+
+#: admin/views/dashboard.php:79
+msgid "Distribution Readiness"
+msgstr ""
+
+#: admin/views/dashboard.php:84
+msgid "Actions"
+msgstr ""
+
+#: admin/views/dashboard.php:87
+#: includes/Admin.php:232
+#: includes/Admin.php:233
+msgid "Add Episode"
+msgstr ""
+
+#: admin/views/dashboard.php:93
+#: admin/views/settings.php:15
+#: includes/Admin.php:240
+#: includes/Admin.php:241
+msgid "Podcast Settings"
+msgstr ""
+
+#: admin/views/dashboard.php:96
+#: includes/Admin.php:249
+#: includes/Admin.php:250
+msgid "Design"
+msgstr ""
+
+#: admin/views/design.php:26
+msgid "Preset applied. You can still adjust every value below."
+msgstr ""
+
+#: admin/views/design.php:34
+msgid "Design imported successfully."
+msgstr ""
+
+#: admin/views/design.php:48
+#: admin/views/design.php:174
+msgid "Accent color"
+msgstr ""
+
+#: admin/views/design.php:49
+#: admin/views/design.php:174
+msgid "On-accent color"
+msgstr ""
+
+#: admin/views/design.php:50
+#: admin/views/design.php:174
+msgid "Text color"
+msgstr ""
+
+#: admin/views/design.php:51
+#: admin/views/design.php:174
+msgid "Muted text"
+msgstr ""
+
+#: admin/views/design.php:52
+#: admin/views/design.php:174
+#: includes/Elementor/Widgets/EpisodeListWidget.php:230
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:160
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:165
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:163
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:383
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:420
+msgid "Background"
+msgstr ""
+
+#: admin/views/design.php:53
+#: admin/views/design.php:174
+msgid "Surface"
+msgstr ""
+
+#: admin/views/design.php:54
+#: admin/views/design.php:174
+msgid "Border color"
+msgstr ""
+
+#: admin/views/design.php:55
+msgid "Border radius"
+msgstr ""
+
+#: admin/views/design.php:56
+msgid "Artwork radius"
+msgstr ""
+
+#: admin/views/design.php:57
+msgid "Spacing"
+msgstr ""
+
+#: admin/views/design.php:58
+msgid "Title size"
+msgstr ""
+
+#: admin/views/design.php:59
+msgid "Metadata size"
+msgstr ""
+
+#: admin/views/design.php:60
+#: admin/views/design.php:195
+msgid "Default player layout"
+msgstr ""
+
+#: admin/views/design.php:61
+#: admin/views/design.php:205
+msgid "Default episode layout"
+msgstr ""
+
+#: admin/views/design.php:84
+msgid "Visibility defaults"
+msgstr ""
+
+#: admin/views/design.php:88
+msgid "Player defaults"
+msgstr ""
+
+#: admin/views/design.php:92
+msgid "Episode list defaults"
+msgstr ""
+
+#: admin/views/design.php:98
+msgid "Podcast Design"
+msgstr ""
+
+#: admin/views/design.php:101
+msgid "Global Podcast Styles: default appearance for all podcast components. Elementor widgets can inherit these values or override them individually."
+msgstr ""
+
+#: admin/views/design.php:105
+msgid "Effective design"
+msgstr ""
+
+#: admin/views/design.php:107
+msgid "Active preset:"
+msgstr ""
+
+#: admin/views/design.php:113
+msgid "customized:"
+msgstr ""
+
+#: admin/views/design.php:117
+msgid "Nothing customized — every value matches the preset."
+msgstr ""
+
+#: admin/views/design.php:121
+msgid "Inherited from preset:"
+msgstr ""
+
+#: admin/views/design.php:126
+msgid "Preset behavior defaults in effect"
+msgstr ""
+
+#: admin/views/design.php:127
+msgid "Installed by the active preset. Widgets use these as their “inherit global styles” defaults."
+msgstr ""
+
+#: admin/views/design.php:131
+msgid "None defined."
+msgstr ""
+
+#: admin/views/design.php:140
+msgid "On"
+msgstr ""
+
+#: admin/views/design.php:140
+msgid "Off"
+msgstr ""
+
+#: admin/views/design.php:152
+msgid "Design Preset"
+msgstr ""
+
+#: admin/views/design.php:153
+msgid "A preset initializes the values below. It never locks styling."
+msgstr ""
+
+#: admin/views/design.php:163
+msgid "Apply Preset"
+msgstr ""
+
+#: admin/views/design.php:172
+msgid "Colors"
+msgstr ""
+
+#: admin/views/design.php:182
+msgid "Shape & Spacing"
+msgstr ""
+
+#: admin/views/design.php:184
+msgid "Border radius (px)"
+msgstr ""
+
+#: admin/views/design.php:184
+msgid "Artwork radius (px)"
+msgstr ""
+
+#: admin/views/design.php:184
+msgid "Standard spacing (px)"
+msgstr ""
+
+#: admin/views/design.php:184
+msgid "Player title size (px)"
+msgstr ""
+
+#: admin/views/design.php:184
+msgid "Metadata size (px)"
+msgstr ""
+
+#: admin/views/design.php:192
+msgid "Default Layouts"
+msgstr ""
+
+#: admin/views/design.php:198
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:110
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:106
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:114
+#: includes/Presets.php:149
+msgid "Minimal"
+msgstr ""
+
+#: admin/views/design.php:198
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:111
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:115
+msgid "Compact"
+msgstr ""
+
+#: admin/views/design.php:198
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:112
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:105
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:116
+#: includes/Presets.php:184
+msgid "Editorial"
+msgstr ""
+
+#: admin/views/design.php:198
+#: admin/views/settings.php:124
+#: includes/Admin.php:601
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:102
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:113
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:119
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:111
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:117
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:123
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:231
+#: includes/EpisodeMeta.php:232
+msgid "Artwork"
+msgstr ""
+
+#: admin/views/design.php:198
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:114
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:118
+#: includes/EpisodeMeta.php:451
+msgid "Full"
+msgstr ""
+
+#: admin/views/design.php:208
+#: includes/Elementor/Widgets/EpisodeListWidget.php:171
+#: includes/Elementor/Widgets/EpisodeListWidget.php:183
+#: includes/Elementor/Widgets/EpisodeListWidget.php:224
+msgid "List"
+msgstr ""
+
+#: admin/views/design.php:208
+#: includes/Elementor/Widgets/EpisodeListWidget.php:184
+msgid "Editorial Rows"
+msgstr ""
+
+#: admin/views/design.php:208
+#: includes/Elementor/Widgets/EpisodeListWidget.php:185
+msgid "Cards"
+msgstr ""
+
+#: admin/views/design.php:208
+#: includes/Elementor/Widgets/EpisodeListWidget.php:186
+msgid "Grid"
+msgstr ""
+
+#: admin/views/design.php:208
+#: includes/Elementor/Widgets/EpisodeListWidget.php:187
+msgid "Minimal List"
+msgstr ""
+
+#: admin/views/design.php:216
+msgid "Save Design"
+msgstr ""
+
+#: admin/views/design.php:220
+msgid "Export / Import"
+msgstr ""
+
+#: admin/views/design.php:222
+msgid "Move this client design to another site. The export contains visual tokens only — no episodes, media, content or URLs."
+msgstr ""
+
+#: admin/views/design.php:224
+msgid "Export design"
+msgstr ""
+
+#: admin/views/design.php:228
+msgid "Export Design"
+msgstr ""
+
+#: admin/views/design.php:230
+msgid "Import design"
+msgstr ""
+
+#: admin/views/design.php:237
+msgid "Import Design"
+msgstr ""
+
+#: admin/views/settings.php:21
+#: includes/Admin.php:204
+#: includes/Admin.php:205
+#: includes/Elementor/Integration.php:46
+msgid "Podcast"
+msgstr ""
+
+#: admin/views/settings.php:24
+#: includes/Readiness.php:51
+#: includes/Readiness.php:53
+msgid "Podcast title"
+msgstr ""
+
+#: admin/views/settings.php:28
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:103
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:121
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:113
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:196
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:129
+msgid "Description"
+msgstr ""
+
+#: admin/views/settings.php:32
+#: includes/EpisodeMeta.php:524
+msgid "Short description"
+msgstr ""
+
+#: admin/views/settings.php:36
+msgid "Author"
+msgstr ""
+
+#: admin/views/settings.php:40
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:114
+msgid "Host"
+msgstr ""
+
+#: admin/views/settings.php:44
+msgid "Website URL"
+msgstr ""
+
+#: admin/views/settings.php:48
+#: includes/Readiness.php:87
+#: includes/Readiness.php:91
+#: includes/Readiness.php:100
+msgid "Category"
+msgstr ""
+
+#: admin/views/settings.php:55
+msgid "— Select a category —"
+msgstr ""
+
+#: admin/views/settings.php:69
+msgid "Apple Podcasts categories (used by most directories). Choose a subcategory where one fits."
+msgstr ""
+
+#: admin/views/settings.php:73
+#: includes/Readiness.php:104
+msgid "Language"
+msgstr ""
+
+#. translators: %s: normalized RSS language code
+#: admin/views/settings.php:85
+#, php-format
+msgid "Language code (e.g. de-at) or WordPress locale (e.g. de_AT). The feed uses: %s"
+msgstr ""
+
+#: admin/views/settings.php:93
+#: admin/views/settings.php:97
+#: includes/EpisodeMeta.php:457
+#: includes/EpisodeMeta.php:459
+msgid "Explicit"
+msgstr ""
+
+#: admin/views/settings.php:96
+#: includes/EpisodeMeta.php:459
+msgid "Clean"
+msgstr ""
+
+#: admin/views/settings.php:102
+msgid "Podcast type"
+msgstr ""
+
+#: admin/views/settings.php:105
+msgid "Episodic"
+msgstr ""
+
+#: admin/views/settings.php:106
+msgid "Serial"
+msgstr ""
+
+#: admin/views/settings.php:111
+msgid "Copyright"
+msgstr ""
+
+#: admin/views/settings.php:115
+#: includes/Readiness.php:79
+#: includes/Readiness.php:81
+msgid "Owner name"
+msgstr ""
+
+#: admin/views/settings.php:119
+#: includes/Readiness.php:72
+#: includes/Readiness.php:74
+msgid "Owner email"
+msgstr ""
+
+#. translators: %1$d: width, %2$d: height
+#: admin/views/settings.php:127
+#: includes/Readiness.php:109
+#: includes/Readiness.php:124
+#: includes/Readiness.php:135
+#: includes/Readiness.php:144
+#: includes/Readiness.php:147
+#: includes/Readiness.php:150
+msgid "Podcast artwork"
+msgstr ""
+
+#: admin/views/settings.php:129
+msgid "Choose podcast artwork"
+msgstr ""
+
+#: admin/views/settings.php:130
+msgid "Square image, at least 1400×1400 px recommended for podcast directories."
+msgstr ""
+
+#: admin/views/settings.php:134
+msgid "Default episode artwork"
+msgstr ""
+
+#: admin/views/settings.php:136
+msgid "Choose default episode artwork"
+msgstr ""
+
+#: admin/views/settings.php:137
+msgid "Used when an episode has no artwork of its own."
+msgstr ""
+
+#: admin/views/settings.php:141
+msgid "Default author"
+msgstr ""
+
+#: admin/views/settings.php:149
+msgid "Feed episode limit"
+msgstr ""
+
+#: admin/views/settings.php:152
+msgid "Newest episodes with distribution-ready audio included in the feed. 0 = unlimited. Episodes without audio never displace eligible episodes."
+msgstr ""
+
+#: admin/views/settings.php:156
+msgid "Latest-episode CTA"
+msgstr ""
+
+#: admin/views/settings.php:160
+msgid "Enable automatic latest-episode call to action"
+msgstr ""
+
+#: admin/views/settings.php:163
+msgid "Button label"
+msgstr ""
+
+#: admin/views/settings.php:164
+#: includes/Renderer.php:440
+msgid "Listen to the latest episode"
+msgstr ""
+
+#: admin/views/settings.php:166
+msgid "When enabled, the [podcast_latest_cta] shortcode renders a button that always links to the newest published episode."
+msgstr ""
+
+#: admin/views/settings.php:170
+msgid "RSS Feed URL"
+msgstr ""
+
+#: admin/views/settings.php:181
+msgid "Support / funding link"
+msgstr ""
+
+#: admin/views/settings.php:185
+msgid "Link text"
+msgstr ""
+
+#: admin/views/settings.php:186
+#: includes/Feed.php:650
+msgid "Support the show"
+msgstr ""
+
+#: admin/views/settings.php:188
+msgid "Optional. Podcast apps that support Podcasting 2.0 show this as a support/donation link."
+msgstr ""
+
+#: admin/views/settings.php:192
+msgid "Platform links"
+msgstr ""
+
+#: admin/views/settings.php:195
+msgid "Shown by the Subscribe Links widget (e.g. Spotify, Apple Podcasts, YouTube)."
+msgstr ""
+
+#: admin/views/settings.php:199
+msgid "Social links"
+msgstr ""
+
+#: admin/views/settings.php:206
+#: includes/Elementor/Widgets/EpisodeListWidget.php:369
+msgid "Episode pages"
+msgstr ""
+
+#: admin/views/settings.php:209
+msgid "Automatic episode page"
+msgstr ""
+
+#: admin/views/settings.php:213
+msgid "Add the player, guest, show notes, chapters and transcript to episode pages automatically"
+msgstr ""
+
+#: admin/views/settings.php:215
+msgid "Works with any theme. Skipped automatically when an Elementor Pro Theme Builder template or an Elementor-built episode page places the podcast widgets itself."
+msgstr ""
+
+#: admin/views/settings.php:220
+msgid "Feed status"
+msgstr ""
+
+#: admin/views/settings.php:221
+msgid "Advanced. Leave these unchanged unless you are moving, pausing or ending the podcast."
+msgstr ""
+
+#: admin/views/settings.php:224
+msgid "New feed URL"
+msgstr ""
+
+#: admin/views/settings.php:227
+msgid "Only when moving the podcast to another host: directories follow this URL to the new feed. Keep the old feed online until they have switched."
+msgstr ""
+
+#: admin/views/settings.php:231
+msgid "Directory options"
+msgstr ""
+
+#: admin/views/settings.php:235
+msgid "Lock the feed (other platforms may not import it without the owner’s consent)"
+msgstr ""
+
+#: admin/views/settings.php:239
+msgid "The podcast is complete (no new episodes will be published)"
+msgstr ""
+
+#: admin/views/settings.php:243
+msgid "Hide the podcast from Apple Podcasts"
+msgstr ""
+
+#: includes/Admin.php:95
+msgid "View episode"
+msgstr ""
+
+#: includes/Admin.php:99
+msgid "M j, Y @ H:i"
+msgstr ""
+
+#: includes/Admin.php:104
+#: includes/Admin.php:107
+msgid "Episode updated."
+msgstr ""
+
+#: includes/Admin.php:105
+msgid "Custom field updated."
+msgstr ""
+
+#: includes/Admin.php:106
+msgid "Custom field deleted."
+msgstr ""
+
+#: includes/Admin.php:108
+msgid "Episode restored from a revision."
+msgstr ""
+
+#: includes/Admin.php:109
+msgid "Episode published. It is now in the podcast feed if it has MP3 or M4A audio."
+msgstr ""
+
+#: includes/Admin.php:110
+msgid "Episode saved."
+msgstr ""
+
+#: includes/Admin.php:111
+msgid "Episode submitted for review."
+msgstr ""
+
+#. translators: %s: scheduled date
+#: includes/Admin.php:113
+#, php-format
+msgid "Episode scheduled for %s. It joins the podcast feed automatically at that time."
+msgstr ""
+
+#: includes/Admin.php:114
+msgid "Episode draft updated."
+msgstr ""
+
+#. translators: %s: number of episodes
+#: includes/Admin.php:130
+#, php-format
+msgid "%s episode updated."
+msgid_plural "%s episodes updated."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of episodes
+#: includes/Admin.php:132
+#, php-format
+msgid "%s episode not updated, somebody is editing it."
+msgid_plural "%s episodes not updated, somebody is editing them."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of episodes
+#: includes/Admin.php:134
+#, php-format
+msgid "%s episode permanently deleted."
+msgid_plural "%s episodes permanently deleted."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of episodes
+#: includes/Admin.php:136
+#, php-format
+msgid "%s episode moved to the Trash."
+msgid_plural "%s episodes moved to the Trash."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of episodes
+#: includes/Admin.php:138
+#, php-format
+msgid "%s episode restored from the Trash."
+msgid_plural "%s episodes restored from the Trash."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/Admin.php:180
+#: includes/EpisodeMeta.php:148
+msgid "Choose audio file"
+msgstr ""
+
+#: includes/Admin.php:181
+#: includes/EpisodeMeta.php:149
+msgid "Use this audio"
+msgstr ""
+
+#: includes/Admin.php:183
+#: includes/EpisodeMeta.php:151
+#: includes/EpisodeMeta.php:341
+msgid "Upload Episode Audio"
+msgstr ""
+
+#: includes/Admin.php:184
+#: includes/EpisodeMeta.php:152
+#: includes/EpisodeMeta.php:341
+msgid "Replace Audio"
+msgstr ""
+
+#: includes/Admin.php:185
+#: includes/Admin.php:359
+#: includes/EpisodeMeta.php:153
+#: includes/EpisodeMeta.php:345
+#: includes/EpisodeMeta.php:420
+#: includes/EpisodeMeta.php:507
+msgid "Remove"
+msgstr ""
+
+#: includes/Admin.php:186
+#: includes/EpisodeMeta.php:154
+#: includes/EpisodeMeta.php:378
+msgid "Drop an MP3 or M4A file here, or"
+msgstr ""
+
+#: includes/Admin.php:187
+#: includes/EpisodeMeta.php:155
+msgid "Uploading…"
+msgstr ""
+
+#: includes/Admin.php:188
+#: includes/EpisodeMeta.php:156
+msgid "Upload failed. Please try again."
+msgstr ""
+
+#: includes/Admin.php:189
+#: includes/EpisodeMeta.php:157
+msgid "Could not read the audio file details. Please try again."
+msgstr ""
+
+#: includes/Admin.php:190
+#: includes/EpisodeMeta.php:158
+msgid "Please drop an MP3, M4A or WAV file."
+msgstr ""
+
+#: includes/Admin.php:191
+#: includes/EpisodeMeta.php:159
+#: includes/EpisodeMeta.php:395
+msgid "WAV is for internal storage only and will be excluded from the podcast feed."
+msgstr ""
+
+#: includes/Admin.php:215
+#: includes/Admin.php:216
+msgid "Dashboard"
+msgstr ""
+
+#: includes/Admin.php:224
+#: includes/Admin.php:225
+#: includes/EpisodePostType.php:34
+msgid "Episodes"
+msgstr ""
+
+#: includes/Admin.php:264
+#: includes/Admin.php:373
+#: includes/Admin.php:386
+msgid "You do not have permission to access this page."
+msgstr ""
+
+#: includes/Admin.php:286
+#: includes/EpisodeMeta.php:614
+msgid "Spotify"
+msgstr ""
+
+#: includes/Admin.php:287
+#: includes/EpisodeMeta.php:615
+msgid "Apple Podcasts"
+msgstr ""
+
+#: includes/Admin.php:288
+#: includes/EpisodeMeta.php:616
+msgid "YouTube"
+msgstr ""
+
+#: includes/Admin.php:289
+#: includes/EpisodeMeta.php:617
+msgid "Amazon Music"
+msgstr ""
+
+#: includes/Admin.php:290
+#: includes/EpisodeMeta.php:618
+msgid "RSS"
+msgstr ""
+
+#: includes/Admin.php:291
+#: includes/Elementor/Widgets/WidgetHelpers.php:195
+#: includes/EpisodeMeta.php:619
+msgid "Custom"
+msgstr ""
+
+#: includes/Admin.php:299
+#: includes/Admin.php:316
+#: includes/EpisodeMeta.php:655
+msgid "Move link up"
+msgstr ""
+
+#: includes/Admin.php:299
+#: includes/Admin.php:316
+#: includes/EpisodeMeta.php:594
+#: includes/EpisodeMeta.php:655
+msgid "Move up"
+msgstr ""
+
+#: includes/Admin.php:300
+#: includes/Admin.php:317
+#: includes/EpisodeMeta.php:656
+msgid "Move link down"
+msgstr ""
+
+#: includes/Admin.php:300
+#: includes/Admin.php:317
+#: includes/EpisodeMeta.php:595
+#: includes/EpisodeMeta.php:656
+msgid "Move down"
+msgstr ""
+
+#: includes/Admin.php:302
+#: includes/Admin.php:319
+#: includes/EpisodeMeta.php:658
+msgid "Service"
+msgstr ""
+
+#: includes/Admin.php:307
+#: includes/Admin.php:324
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:125
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:268
+#: includes/Elementor/Widgets/SubscribeLinksWidget.php:153
+#: includes/EpisodeMeta.php:663
+msgid "Label"
+msgstr ""
+
+#: includes/Admin.php:308
+#: includes/Admin.php:325
+#: includes/EpisodeMeta.php:664
+msgid "URL"
+msgstr ""
+
+#: includes/Admin.php:309
+#: includes/Admin.php:326
+#: includes/EpisodeMeta.php:665
+msgid "Remove link"
+msgstr ""
+
+#: includes/Admin.php:331
+msgid "Add link"
+msgstr ""
+
+#: includes/Admin.php:407
+msgid "You do not have permission to export the design."
+msgstr ""
+
+#: includes/Admin.php:453
+msgid "The design could not be encoded."
+msgstr ""
+
+#: includes/Admin.php:488
+msgid "You do not have permission to import a design."
+msgstr ""
+
+#: includes/Admin.php:509
+msgid "No file was uploaded."
+msgstr ""
+
+#: includes/Admin.php:513
+msgid "The file upload failed. Please try again."
+msgstr ""
+
+#: includes/Admin.php:518
+msgid "Please upload a JSON design file (.json)."
+msgstr ""
+
+#: includes/Admin.php:523
+msgid "The uploaded file could not be read."
+msgstr ""
+
+#: includes/Admin.php:528
+msgid "The uploaded file is empty."
+msgstr ""
+
+#: includes/Admin.php:532
+msgid "The file is too large to be a design export."
+msgstr ""
+
+#: includes/Admin.php:537
+msgid "The file is not valid JSON."
+msgstr ""
+
+#: includes/Admin.php:541
+msgid "This file is not an Elementor Podcast Manager design export."
+msgstr ""
+
+#: includes/Admin.php:546
+msgid "The design file has no usable version number."
+msgstr ""
+
+#. translators: %d: file version
+#: includes/Admin.php:552
+#, php-format
+msgid "This design was exported with a newer format version (%d) and cannot be imported by this plugin version."
+msgstr ""
+
+#: includes/Admin.php:559
+msgid "The design file contains no design values."
+msgstr ""
+
+#: includes/Admin.php:607
+msgid "Episode #"
+msgstr ""
+
+#: includes/Admin.php:608
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:100
+#: includes/Elementor/Widgets/EpisodeListWidget.php:202
+#: includes/Elementor/Widgets/EpisodeMetadataWidget.php:108
+#: includes/Elementor/Widgets/GuestWidget.php:90
+#: includes/Elementor/Widgets/GuestWidget.php:106
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:124
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:128
+#: includes/EpisodeMeta.php:250
+msgid "Guest"
+msgstr ""
+
+#: includes/Admin.php:609
+#: includes/Elementor/Widgets/EpisodeListWidget.php:204
+#: includes/Elementor/Widgets/EpisodeMetadataWidget.php:107
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:123
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:131
+msgid "Duration"
+msgstr ""
+
+#: includes/Admin.php:610
+msgid "Audio"
+msgstr ""
+
+#: includes/Admin.php:615
+msgid "Published"
+msgstr ""
+
+#: includes/Admin.php:660
+msgid "Missing Audio"
+msgstr ""
+
+#: includes/Admin.php:662
+msgid "Only MP3 and M4A audio is included in the podcast feed."
+msgstr ""
+
+#: includes/Admin.php:662
+msgid "Not in feed"
+msgstr ""
+
+#: includes/Admin.php:664
+msgid "Ready"
+msgstr ""
+
+#: includes/Assets.php:101
+#: includes/Renderer.php:823
+msgid "Play"
+msgstr ""
+
+#: includes/Assets.php:102
+msgid "Pause"
+msgstr ""
+
+#: includes/Assets.php:103
+#: includes/Renderer.php:649
+#: includes/Renderer.php:650
+msgid "Play episode"
+msgstr ""
+
+#: includes/Assets.php:104
+#: includes/Renderer.php:651
+msgid "Pause episode"
+msgstr ""
+
+#: includes/Assets.php:105
+#: includes/Assets.php:193
+msgid "Play or pause"
+msgstr ""
+
+#: includes/Assets.php:106
+msgid "This audio could not be loaded. Check your connection and try again."
+msgstr ""
+
+#: includes/Assets.php:107
+msgid "Retry"
+msgstr ""
+
+#. translators: %s: playback speed, e.g. 1.5×
+#: includes/Assets.php:109
+#, php-format
+msgid "Playback speed: %s"
+msgstr ""
+
+#: includes/Assets.php:187
+#: includes/Renderer.php:665
+msgid "Seek"
+msgstr ""
+
+#: includes/Assets.php:198
+#: includes/Renderer.php:684
+msgid "Playback speed"
+msgstr ""
+
+#: includes/Assets.php:199
+msgid "Close player"
+msgstr ""
+
+#: includes/Elementor/Controls/EpisodeSelectControl.php:37
+msgid "Search all episodes by title. Newest first."
+msgstr ""
+
+#: includes/Elementor/Controls/EpisodeSelectControl.php:61
+#: includes/Elementor/Controls/EpisodeSelectControl.php:81
+msgid "Type to search episodes…"
+msgstr ""
+
+#: includes/Elementor/Controls/EpisodeSelectControl.php:62
+#: includes/EpisodePostType.php:36
+msgid "No episodes found."
+msgstr ""
+
+#: includes/Elementor/Controls/EpisodeSelectControl.php:63
+msgid "Loading…"
+msgstr ""
+
+#: includes/Elementor/Controls/EpisodeSelectControl.php:64
+msgid "Load more…"
+msgstr ""
+
+#: includes/Elementor/Widgets/ChaptersWidget.php:41
+msgid "Podcast Chapters"
+msgstr ""
+
+#: includes/Elementor/Widgets/ChaptersWidget.php:100
+#: includes/Elementor/Widgets/ChaptersWidget.php:110
+#: includes/Elementor/Widgets/ChaptersWidget.php:120
+#: includes/Elementor/Widgets/ChaptersWidget.php:143
+#: includes/EpisodeMeta.php:268
+#: includes/Renderer.php:309
+#: includes/Renderer.php:712
+#: includes/Shortcodes.php:142
+msgid "Chapters"
+msgstr ""
+
+#: includes/Elementor/Widgets/ChaptersWidget.php:108
+#: includes/Elementor/Widgets/ChaptersWidget.php:133
+#: includes/Elementor/Widgets/ShowNotesWidget.php:98
+#: includes/Elementor/Widgets/ShowNotesWidget.php:123
+#: includes/Elementor/Widgets/TranscriptWidget.php:98
+#: includes/Elementor/Widgets/TranscriptWidget.php:135
+msgid "Heading"
+msgstr ""
+
+#: includes/Elementor/Widgets/ChaptersWidget.php:126
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:117
+#: includes/Elementor/Widgets/EpisodeListWidget.php:231
+#: includes/Elementor/Widgets/GuestWidget.php:112
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:161
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:166
+#: includes/Elementor/Widgets/ShowNotesWidget.php:116
+#: includes/Elementor/Widgets/SubscribeLinksWidget.php:122
+#: includes/Elementor/Widgets/TranscriptWidget.php:128
+msgid "Text Color"
+msgstr ""
+
+#: includes/Elementor/Widgets/ChaptersWidget.php:127
+msgid "Timestamp Color"
+msgstr ""
+
+#: includes/Elementor/Widgets/ChaptersWidget.php:176
+msgid "This episode has no chapters yet."
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:41
+msgid "Podcast Episode Header"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:91
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:111
+msgid "Header"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:96
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:124
+msgid "Episode Label"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:97
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:126
+msgid "Episode Number in Label"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:98
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:127
+msgid "Season in Label"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:99
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:135
+#: includes/Elementor/Widgets/EpisodeListWidget.php:137
+#: includes/Elementor/Widgets/EpisodeListWidget.php:198
+#: includes/Elementor/Widgets/EpisodeListWidget.php:288
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:120
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:169
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:112
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:186
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:125
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:291
+msgid "Title"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:101
+#: includes/Elementor/Widgets/EpisodeListWidget.php:203
+#: includes/Elementor/Widgets/EpisodeMetadataWidget.php:106
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:122
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:130
+msgid "Date"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:118
+#: includes/Elementor/Widgets/EpisodeListWidget.php:232
+#: includes/Elementor/Widgets/GuestWidget.php:113
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:162
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:167
+#: includes/Elementor/Widgets/ShowNotesWidget.php:117
+#: includes/Elementor/Widgets/TranscriptWidget.php:129
+msgid "Muted Text Color"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:119
+#: includes/Elementor/Widgets/EpisodeListWidget.php:233
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:163
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:168
+msgid "Accent Color"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:145
+#: includes/Elementor/Widgets/EpisodeListWidget.php:298
+#: includes/Elementor/Widgets/EpisodeMetadataWidget.php:91
+#: includes/Elementor/Widgets/EpisodeMetadataWidget.php:130
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:179
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:314
+msgid "Metadata"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:42
+msgid "Episode List"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:99
+msgid "Query"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:107
+msgid "Number of Episodes"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:118
+msgid "Order"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:122
+msgid "Descending"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:123
+msgid "Ascending"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:131
+msgid "Order By"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:135
+msgid "Publish Date"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:136
+#: includes/Elementor/Widgets/EpisodeListWidget.php:200
+#: includes/Elementor/Widgets/EpisodeMetadataWidget.php:104
+msgid "Episode Number"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:145
+#: includes/Elementor/Widgets/EpisodeMetadataWidget.php:105
+msgid "Season"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:146
+msgid "0 shows episodes from all seasons."
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:156
+msgid "Pagination"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:160
+msgid "None"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:161
+msgid "Numbered"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:179
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:98
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:110
+msgid "Layout"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:194
+msgid "Artwork (cards/grid only)"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:199
+msgid "Excerpt"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:201
+msgid "Not shown in the Minimal List layout."
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:205
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:337
+msgid "Play Button"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:210
+msgid "Excerpt Length (words)"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:234
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:164
+msgid "Border Color"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:239
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:169
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:253
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:361
+msgid "Border Radius"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:251
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:173
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:207
+#: includes/Elementor/Widgets/SubscribeLinksWidget.php:140
+msgid "Gap"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:263
+msgid "Card Artwork Radius"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:277
+msgid "Typography"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:308
+msgid "Item Border"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeMetadataWidget.php:41
+msgid "Podcast Metadata"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeMetadataWidget.php:99
+msgid "Fields"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeMetadataWidget.php:109
+#: includes/Elementor/Widgets/GuestWidget.php:97
+#: includes/EpisodeMeta.php:491
+msgid "Company"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeMetadataWidget.php:110
+msgid "Episode Type"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeMetadataWidget.php:118
+msgid "Separator"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeMetadataWidget.php:136
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:274
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:297
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:320
+msgid "Color"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeMetadataWidget.php:191
+msgid "None of the selected fields has a value for this episode."
+msgstr ""
+
+#: includes/Elementor/Widgets/GuestWidget.php:40
+msgid "Podcast Guest"
+msgstr ""
+
+#: includes/Elementor/Widgets/GuestWidget.php:95
+msgid "Image"
+msgstr ""
+
+#: includes/Elementor/Widgets/GuestWidget.php:96
+msgid "Role"
+msgstr ""
+
+#: includes/Elementor/Widgets/GuestWidget.php:98
+msgid "Bio"
+msgstr ""
+
+#: includes/Elementor/Widgets/GuestWidget.php:118
+msgid "Image Size"
+msgstr ""
+
+#: includes/Elementor/Widgets/GuestWidget.php:131
+msgid "Name"
+msgstr ""
+
+#: includes/Elementor/Widgets/GuestWidget.php:141
+msgid "Role / Company"
+msgstr ""
+
+#: includes/Elementor/Widgets/GuestWidget.php:177
+msgid "This episode has no guest. Add guest details in the episode editor."
+msgstr ""
+
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:106
+msgid "Player Layout"
+msgstr ""
+
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:125
+msgid "Audio Player"
+msgstr ""
+
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:126
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:115
+msgid "Call to Action"
+msgstr ""
+
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:131
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:122
+msgid "CTA Text"
+msgstr ""
+
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:133
+msgid "Listen now"
+msgstr ""
+
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:141
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:132
+msgid "CTA URL"
+msgstr ""
+
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:143
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:134
+msgid "https://…"
+msgstr ""
+
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:200
+#: includes/Elementor/Widgets/WidgetHelpers.php:131
+msgid "No published episode with audio yet."
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:42
+msgid "Podcast Hero"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:90
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:159
+msgid "Hero"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:102
+msgid "Artwork Left"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:103
+msgid "Artwork Right"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:104
+msgid "Centered"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:116
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:138
+msgid "Platform Links"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:117
+#: includes/Elementor/Widgets/SubscribeLinksWidget.php:108
+msgid "RSS Link"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:124
+msgid "Latest episode"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:142
+msgid "Platform Links Display"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:146
+#: includes/Elementor/Widgets/SubscribeLinksWidget.php:101
+msgid "Icons"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:147
+#: includes/Elementor/Widgets/SubscribeLinksWidget.php:102
+msgid "Text"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:148
+#: includes/Elementor/Widgets/SubscribeLinksWidget.php:103
+msgid "Icons + Text"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:43
+msgid "Podcast Player"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:102
+msgid "Player"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:123
+msgid "Not shown in the Minimal and Editorial layouts."
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:129
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:132
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:135
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:136
+msgid "Not shown in the Minimal and Compact layouts."
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:132
+msgid "Playback Speed"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:133
+msgid "Skip Backward (−15s)"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:134
+msgid "Skip Forward (+30s)"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:135
+#: includes/Renderer.php:687
+#: includes/Renderer.php:688
+msgid "Volume"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:136
+msgid "Download Button"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:137
+msgid "Chapters Toggle"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:140
+msgid "Enable Sticky Player"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:157
+msgid "Container"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:194
+msgid "Padding"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:241
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:347
+msgid "Size"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:375
+msgid "Normal"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:392
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:429
+msgid "Icon Color"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:412
+msgid "Hover"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:445
+msgid "Timeline"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:455
+msgid "Track Color"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:465
+msgid "Played Color"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:475
+msgid "Height"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:490
+msgid "Time & Secondary Controls"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:496
+msgid "Time Color"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:510
+msgid "Secondary Icon Size"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:522
+msgid "Secondary Color"
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:532
+msgid "Secondary Hover Color"
+msgstr ""
+
+#: includes/Elementor/Widgets/ShowNotesWidget.php:40
+msgid "Podcast Show Notes"
+msgstr ""
+
+#: includes/Elementor/Widgets/ShowNotesWidget.php:90
+#: includes/Elementor/Widgets/ShowNotesWidget.php:100
+#: includes/Elementor/Widgets/ShowNotesWidget.php:110
+#: includes/Renderer.php:392
+#: includes/Shortcodes.php:123
+msgid "Show Notes"
+msgstr ""
+
+#: includes/Elementor/Widgets/ShowNotesWidget.php:133
+#: includes/Elementor/Widgets/TranscriptWidget.php:145
+msgid "Content"
+msgstr ""
+
+#: includes/Elementor/Widgets/ShowNotesWidget.php:166
+msgid "This episode has no show notes yet."
+msgstr ""
+
+#: includes/Elementor/Widgets/SubscribeLinksWidget.php:41
+msgid "Podcast Subscribe Links"
+msgstr ""
+
+#: includes/Elementor/Widgets/SubscribeLinksWidget.php:89
+#: includes/Elementor/Widgets/SubscribeLinksWidget.php:116
+msgid "Subscribe Links"
+msgstr ""
+
+#: includes/Elementor/Widgets/SubscribeLinksWidget.php:97
+msgid "Display"
+msgstr ""
+
+#: includes/Elementor/Widgets/SubscribeLinksWidget.php:123
+msgid "Hover Color"
+msgstr ""
+
+#: includes/Elementor/Widgets/SubscribeLinksWidget.php:128
+msgid "Icon Size"
+msgstr ""
+
+#: includes/Elementor/Widgets/SubscribeLinksWidget.php:181
+msgid "Add platform links under Podcast → Podcast Settings → Distribution."
+msgstr ""
+
+#: includes/Elementor/Widgets/TranscriptWidget.php:40
+msgid "Podcast Transcript"
+msgstr ""
+
+#: includes/Elementor/Widgets/TranscriptWidget.php:90
+#: includes/Elementor/Widgets/TranscriptWidget.php:100
+#: includes/Elementor/Widgets/TranscriptWidget.php:122
+#: includes/EpisodeMeta.php:277
+#: includes/Renderer.php:352
+#: includes/Shortcodes.php:162
+msgid "Transcript"
+msgstr ""
+
+#: includes/Elementor/Widgets/TranscriptWidget.php:107
+msgid "Collapsible"
+msgstr ""
+
+#: includes/Elementor/Widgets/TranscriptWidget.php:109
+msgid "Yes"
+msgstr ""
+
+#: includes/Elementor/Widgets/TranscriptWidget.php:110
+msgid "No"
+msgstr ""
+
+#: includes/Elementor/Widgets/TranscriptWidget.php:179
+msgid "This episode has no transcript yet."
+msgstr ""
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:32
+#: includes/Renderer.php:771
+#: includes/Renderer.php:773
+msgid "Episode"
+msgstr ""
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:40
+msgid "Episode Source"
+msgstr ""
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:44
+msgid "Current Episode"
+msgstr ""
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:45
+msgid "Specific Episode"
+msgstr ""
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:54
+msgid "Choose Episode"
+msgstr ""
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:127
+msgid "Choose an episode in the widget settings."
+msgstr ""
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:134
+msgid "Shows the current episode on episode pages. Publish an episode to preview it here."
+msgstr ""
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:153
+msgid "Show"
+msgstr ""
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:154
+msgid "Hide"
+msgstr ""
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:190
+msgid "Style Source"
+msgstr ""
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:194
+msgid "Use Global Podcast Styles"
+msgstr ""
+
+#: includes/EpisodeMeta.php:210
+msgid "Episode description"
+msgstr ""
+
+#: includes/EpisodeMeta.php:223
+msgid "Episode Audio"
+msgstr ""
+
+#: includes/EpisodeMeta.php:241
+msgid "Episode Information"
+msgstr ""
+
+#: includes/EpisodeMeta.php:259
+msgid "Description & Show Notes"
+msgstr ""
+
+#: includes/EpisodeMeta.php:286
+msgid "Platform Links (this episode)"
+msgstr ""
+
+#: includes/EpisodeMeta.php:356
+msgid "MP3 or M4A recommended for distribution. WAV is accepted for internal storage but excluded from the podcast feed. Duration and file size are detected automatically."
+msgstr ""
+
+#: includes/EpisodeMeta.php:359
+msgid "Duration (manual fallback)"
+msgstr ""
+
+#: includes/EpisodeMeta.php:361
+msgid "Format: minutes:seconds or hours:minutes:seconds."
+msgstr ""
+
+#: includes/EpisodeMeta.php:416
+msgid "Choose episode artwork"
+msgstr ""
+
+#: includes/EpisodeMeta.php:417
+#: includes/EpisodeMeta.php:504
+msgid "Choose image"
+msgstr ""
+
+#: includes/EpisodeMeta.php:423
+msgid "Optional square image (1400–3000 px, JPEG or PNG). Falls back to the featured image, then the podcast artwork."
+msgstr ""
+
+#: includes/EpisodeMeta.php:441
+msgid "Episode number"
+msgstr ""
+
+#: includes/EpisodeMeta.php:445
+msgid "Season number"
+msgstr ""
+
+#: includes/EpisodeMeta.php:449
+msgid "Episode type"
+msgstr ""
+
+#: includes/EpisodeMeta.php:451
+#: includes/Renderer.php:225
+msgid "Trailer"
+msgstr ""
+
+#: includes/EpisodeMeta.php:451
+#: includes/Renderer.php:226
+msgid "Bonus"
+msgstr ""
+
+#: includes/EpisodeMeta.php:459
+msgid "Inherit podcast setting"
+msgstr ""
+
+#: includes/EpisodeMeta.php:465
+msgid "Canonical URL (optional)"
+msgstr ""
+
+#: includes/EpisodeMeta.php:483
+msgid "Guest name"
+msgstr ""
+
+#: includes/EpisodeMeta.php:487
+msgid "Role / job title"
+msgstr ""
+
+#: includes/EpisodeMeta.php:495
+msgid "Guest bio (optional)"
+msgstr ""
+
+#: includes/EpisodeMeta.php:503
+msgid "Choose guest image"
+msgstr ""
+
+#: includes/EpisodeMeta.php:511
+msgid "All guest fields are optional. Solo episodes work without any guest data."
+msgstr ""
+
+#: includes/EpisodeMeta.php:526
+msgid "Used in lists, cards and the feed summary. Falls back to an excerpt of the full description."
+msgstr ""
+
+#: includes/EpisodeMeta.php:529
+msgid "Show notes"
+msgstr ""
+
+#: includes/EpisodeMeta.php:542
+msgid "Rich show notes for this episode. Shown on the episode page; optional and never required for publishing."
+msgstr ""
+
+#: includes/EpisodeMeta.php:545
+msgid "Video URL (optional)"
+msgstr ""
+
+#: includes/EpisodeMeta.php:549
+msgid "YouTube URL (optional)"
+msgstr ""
+
+#: includes/EpisodeMeta.php:575
+msgid "Add chapter"
+msgstr ""
+
+#: includes/EpisodeMeta.php:578
+msgid "Optional. Clicking a chapter seeks the player to its timestamp."
+msgstr ""
+
+#: includes/EpisodeMeta.php:594
+msgid "Move chapter up"
+msgstr ""
+
+#: includes/EpisodeMeta.php:595
+msgid "Move chapter down"
+msgstr ""
+
+#: includes/EpisodeMeta.php:597
+msgid "Timestamp"
+msgstr ""
+
+#: includes/EpisodeMeta.php:598
+msgid "Chapter title"
+msgstr ""
+
+#: includes/EpisodeMeta.php:599
+msgid "Chapter link (optional)"
+msgstr ""
+
+#: includes/EpisodeMeta.php:600
+msgid "Remove chapter"
+msgstr ""
+
+#: includes/EpisodeMeta.php:633
+msgid "Add platform link"
+msgstr ""
+
+#: includes/EpisodeMeta.php:636
+msgid "Optional. When set, these replace the podcast-wide platform links for this episode."
+msgstr ""
+
+#: includes/EpisodeMeta.php:687
+msgid "Optional. Rendered as semantic HTML by the Transcript widget."
+msgstr ""
+
+#: includes/EpisodeMeta.php:727
+msgid "The selected audio file is not a supported audio attachment. The previous audio association was kept."
+msgstr ""
+
+#: includes/EpisodeMeta.php:739
+msgid "The manual duration was not saved: use minutes:seconds (e.g. 48:12) or hours:minutes:seconds."
+msgstr ""
+
+#: includes/EpisodeMeta.php:760
+msgid "Duration could not be detected automatically. You can enter it manually below the audio upload."
+msgstr ""
+
+#: includes/EpisodeMeta.php:864
+msgid "You are not allowed to upload files."
+msgstr ""
+
+#: includes/EpisodeMeta.php:869
+#: includes/EpisodeMeta.php:905
+msgid "You are not allowed to edit this episode."
+msgstr ""
+
+#: includes/EpisodeMeta.php:886
+msgid "Please upload an audio file (MP3, M4A or WAV)."
+msgstr ""
+
+#: includes/EpisodeMeta.php:908
+#: includes/EpisodeMeta.php:931
+msgid "You are not allowed to manage episodes."
+msgstr ""
+
+#: includes/EpisodeMeta.php:912
+msgid "The selected file is not a supported audio file."
+msgstr ""
+
+#: includes/EpisodeMeta.php:958
+msgid "Draft"
+msgstr ""
+
+#: includes/EpisodeMeta.php:959
+msgid "Pending review"
+msgstr ""
+
+#: includes/EpisodeMeta.php:960
+msgid "Scheduled"
+msgstr ""
+
+#: includes/EpisodeMeta.php:961
+msgid "Private"
+msgstr ""
+
+#: includes/EpisodeMeta.php:973
+msgid "Password protected"
+msgstr ""
+
+#. translators: %d: episode post ID
+#: includes/EpisodeMeta.php:981
+#, php-format
+msgid "Episode #%d"
+msgstr ""
+
+#: includes/EpisodePostType.php:25
+msgctxt "Post type general name"
+msgid "Episodes"
+msgstr ""
+
+#: includes/EpisodePostType.php:26
+msgctxt "Post type singular name"
+msgid "Episode"
+msgstr ""
+
+#: includes/EpisodePostType.php:27
+msgctxt "Admin menu"
+msgid "Podcast"
+msgstr ""
+
+#: includes/EpisodePostType.php:28
+msgctxt "Add New on toolbar"
+msgid "Episode"
+msgstr ""
+
+#: includes/EpisodePostType.php:29
+msgctxt "podcast_episode"
+msgid "Add Episode"
+msgstr ""
+
+#: includes/EpisodePostType.php:30
+msgid "Add New Episode"
+msgstr ""
+
+#: includes/EpisodePostType.php:31
+msgid "New Episode"
+msgstr ""
+
+#: includes/EpisodePostType.php:33
+msgid "View Episode"
+msgstr ""
+
+#: includes/EpisodePostType.php:35
+msgid "Search Episodes"
+msgstr ""
+
+#: includes/EpisodePostType.php:37
+msgid "No episodes found in Trash."
+msgstr ""
+
+#: includes/EpisodePostType.php:38
+msgctxt "The post type archive label"
+msgid "Episode archives"
+msgstr ""
+
+#. translators: %s: episode title
+#: includes/Feed.php:923
+#, php-format
+msgid "Transcript: %s"
+msgstr ""
+
+#: includes/Feed.php:939
+msgid "Not found."
+msgstr ""
+
+#: includes/Plugin.php:370
+msgid "Elementor Podcast Manager: Elementor is not active. Podcast management and the RSS feed keep working; the Elementor widgets are unavailable until Elementor is installed and activated."
+msgstr ""
+
+#: includes/Presets.php:100
+msgid "Neutral"
+msgstr ""
+
+#: includes/Presets.php:101
+msgid "Clean, brand-independent defaults."
+msgstr ""
+
+#: includes/Presets.php:150
+msgid "Monochrome and compact."
+msgstr ""
+
+#: includes/Presets.php:185
+msgid "Large typography, separated metadata, generous whitespace."
+msgstr ""
+
+#: includes/Presets.php:218
+msgid "Card"
+msgstr ""
+
+#: includes/Presets.php:219
+msgid "Rounded cards with large artwork."
+msgstr ""
+
+#: includes/Presets.php:257
+msgid "Business Tuning"
+msgstr ""
+
+#: includes/Presets.php:258
+msgid "Reference implementation for businesstuning.at: dark editorial player with numbered episode rows."
+msgstr ""
+
+#: includes/Readiness.php:51
+msgid "Enter a podcast title in Podcast Settings."
+msgstr ""
+
+#: includes/Readiness.php:58
+#: includes/Readiness.php:60
+msgid "Podcast description"
+msgstr ""
+
+#: includes/Readiness.php:58
+msgid "Enter a podcast description in Podcast Settings."
+msgstr ""
+
+#: includes/Readiness.php:60
+#: includes/Readiness.php:150
+msgid "Present."
+msgstr ""
+
+#: includes/Readiness.php:65
+#: includes/Readiness.php:67
+msgid "Podcast author"
+msgstr ""
+
+#: includes/Readiness.php:65
+msgid "Recommended: set the author shown in directories."
+msgstr ""
+
+#: includes/Readiness.php:72
+msgid "Directories require a valid owner email address."
+msgstr ""
+
+#: includes/Readiness.php:79
+msgid "Recommended: set the podcast owner name."
+msgstr ""
+
+#: includes/Readiness.php:87
+msgid "No category set. Directories use it for discovery."
+msgstr ""
+
+#. translators: %s: category name
+#: includes/Readiness.php:94
+#, php-format
+msgid "“%s” is not a top-level Apple Podcasts category. Check the exact spelling."
+msgstr ""
+
+#: includes/Readiness.php:109
+msgid "Upload podcast artwork in Podcast Settings. Directories require it."
+msgstr ""
+
+#: includes/Readiness.php:113
+msgid "Podcast artwork format"
+msgstr ""
+
+#: includes/Readiness.php:113
+msgid "Directories only accept JPEG or PNG artwork."
+msgstr ""
+
+#. translators: %1$d: width, %2$d: height
+#: includes/Readiness.php:127
+#, php-format
+msgid "Artwork is %1$d×%2$d px. Apple Podcasts accepts at most 3000×3000 px."
+msgstr ""
+
+#. translators: %1$d: width, %2$d: height
+#: includes/Readiness.php:138
+#, php-format
+msgid "Artwork is %1$d×%2$d px. Directories recommend at least 1400×1400 px."
+msgstr ""
+
+#: includes/Readiness.php:144
+msgid "Artwork should be square."
+msgstr ""
+
+#. translators: %1$d: width, %2$d: height
+#: includes/Readiness.php:147
+#, php-format
+msgid "%1$d×%2$d px"
+msgstr ""
+
+#. translators: %s: episode title
+#: includes/Readiness.php:170
+#: includes/Readiness.php:179
+#: includes/Readiness.php:190
+#: includes/Readiness.php:199
+#: includes/Readiness.php:207
+#, php-format
+msgid "Episode: %s"
+msgstr ""
+
+#: includes/Readiness.php:171
+msgid "No audio attached — excluded from the feed."
+msgstr ""
+
+#: includes/Readiness.php:180
+msgid "The audio attachment is missing or not a supported audio file."
+msgstr ""
+
+#: includes/Readiness.php:191
+msgid "Audio format is for internal storage only (not MP3/M4A) — excluded from the feed."
+msgstr ""
+
+#: includes/Readiness.php:200
+msgid "File size could not be determined; the enclosure reports length 0."
+msgstr ""
+
+#. translators: %s: other episode title
+#: includes/Readiness.php:210
+#, php-format
+msgid "Duplicate audio URL — also used by “%s”."
+msgstr ""
+
+#: includes/Readiness.php:222
+#: includes/Readiness.php:226
+msgid "Distributable episodes"
+msgstr ""
+
+#: includes/Readiness.php:222
+msgid "No episode with distribution-ready audio (MP3/M4A) is published yet."
+msgstr ""
+
+#. translators: %d: number of episodes
+#: includes/Readiness.php:229
+#, php-format
+msgid "%d episode(s) with distribution-ready audio."
+msgstr ""
+
+#: includes/Readiness.php:284
+msgid "Ready for distribution"
+msgstr ""
+
+#: includes/Readiness.php:286
+msgid "Not ready"
+msgstr ""
+
+#. translators: %d: number of warnings
+#: includes/Readiness.php:290
+#, php-format
+msgid "%d warning"
+msgid_plural "%d warnings"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/Readiness.php:303
+msgid "Transport checks (public HTTP access, HEAD and byte-range support) depend on your hosting and must be verified separately against the live feed URL."
+msgstr ""
+
+#. translators: %s: episode title
+#: includes/Renderer.php:138
+#, php-format
+msgid "Artwork for %s"
+msgstr ""
+
+#. translators: %s: episode number
+#: includes/Renderer.php:194
+#, php-format
+msgid "Episode %s"
+msgstr ""
+
+#. translators: %s: season number
+#: includes/Renderer.php:202
+#: includes/Renderer.php:777
+#, php-format
+msgid "Season %s"
+msgstr ""
+
+#: includes/Renderer.php:224
+msgid "Full episode"
+msgstr ""
+
+#. translators: %s: chapter timestamp, e.g. 12:30
+#: includes/Renderer.php:320
+#, php-format
+msgid "Skip to %s"
+msgstr ""
+
+#: includes/Renderer.php:325
+msgid "Link"
+msgstr ""
+
+#: includes/Renderer.php:465
+msgid "RSS Feed"
+msgstr ""
+
+#: includes/Renderer.php:546
+msgid "Audio is not available for this episode yet."
+msgstr ""
+
+#: includes/Renderer.php:657
+msgid "Skip back 15 seconds"
+msgstr ""
+
+#: includes/Renderer.php:674
+msgid "Skip forward 30 seconds"
+msgstr ""
+
+#: includes/Renderer.php:691
+msgid "Download episode"
+msgstr ""
+
+#. translators: %s: episode title
+#: includes/Renderer.php:821
+#, php-format
+msgid "Play %s"
+msgstr ""
+
+#: includes/Renderer.php:1017
+msgid "No episodes published yet."
+msgstr ""

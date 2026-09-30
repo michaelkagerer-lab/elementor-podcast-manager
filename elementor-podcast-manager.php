@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Elementor Podcast Manager
  * Description:       Manage and display a podcast on Elementor websites. Episodes, RSS feed, custom player, and Elementor widgets — no external podcast platform required.
- * Version:           1.1.0
+ * Version:           1.2.0
  * Requires at least: 6.2
  * Requires PHP:      8.1
  * Author:            Internal
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'EPM_VERSION', '1.1.0' );
+define( 'EPM_VERSION', '1.2.0' );
 define( 'EPM_FILE', __FILE__ );
 define( 'EPM_PATH', plugin_dir_path( __FILE__ ) );
 define( 'EPM_URL', plugin_dir_url( __FILE__ ) );
@@ -71,16 +71,23 @@ register_activation_hook(
 	__FILE__,
 	function () {
 		// Classes are available via autoloader at activation time.
-		EPM\EpisodePostType::register();
+		// The feed rule must be registered before the post type so that
+		// /podcast/feed/ wins over the post type's archive-feed rule.
 		EPM\Feed::register_endpoint();
+		EPM\EpisodePostType::register();
 		flush_rewrite_rules();
+		update_option( 'epm_version', EPM_VERSION );
+		// Open the setup assistant on the next admin page load (once).
+		add_option( 'epm_activation_redirect', 1, '', false );
 	}
 );
 
-// Deactivation: flush rewrites so /podcast/feed/ stops resolving.
+// Deactivation: flush rewrites so /podcast/feed/ stops resolving, and stop
+// the host sync / background import schedules.
 register_deactivation_hook(
 	__FILE__,
 	function () {
+		EPM\Hosting::unschedule_all();
 		flush_rewrite_rules();
 	}
 );

@@ -33,15 +33,24 @@ final class PodcastSettings {
 			'website_url'          => home_url( '/' ),
 			'artwork_id'           => 0,
 			'category'             => '',
+			'subcategory'          => '',
 			'language'             => get_locale(),
 			'explicit'             => 'clean',
 			'copyright'            => '',
 			'owner_name'           => '',
 			'owner_email'          => '',
-			'type'               => 'episodic',
+			'type'                 => 'episodic',
 			'default_artwork_id'   => 0,
 			'default_author'       => '',
 			'feed_limit'           => 500,
+			'new_feed_url'         => '',
+			'moved_in'             => false,
+			'itunes_block'         => false,
+			'complete'             => false,
+			'locked'               => false,
+			'funding_url'          => '',
+			'funding_label'        => '',
+			'auto_embed'           => true,
 			'latest_cta_enabled'   => false,
 			'latest_cta_label'     => '',
 			'social_links'         => [],
@@ -123,8 +132,16 @@ final class PodcastSettings {
 		$out['title']             = sanitize_text_field( $input['title'] ?? '' );
 		$out['author']            = sanitize_text_field( $input['author'] ?? '' );
 		$out['host']              = sanitize_text_field( $input['host'] ?? '' );
-		$out['category']          = sanitize_text_field( $input['category'] ?? '' );
 		$out['language']          = sanitize_text_field( $input['language'] ?? '' );
+
+		// Category: the settings select sends "Category::Subcategory"; plain
+		// category names (pre-1.2 free text) are still accepted as-is.
+		[ $category, $subcategory ] = Categories::decode( sanitize_text_field( $input['category'] ?? '' ) );
+		if ( '' === $subcategory ) {
+			$subcategory = sanitize_text_field( $input['subcategory'] ?? '' );
+		}
+		$out['category']    = $category;
+		$out['subcategory'] = ( '' !== $subcategory && Categories::is_valid_subcategory( $category, $subcategory ) ) ? $subcategory : '';
 		$out['copyright']         = sanitize_text_field( $input['copyright'] ?? '' );
 		$out['owner_name']        = sanitize_text_field( $input['owner_name'] ?? '' );
 		$out['owner_email']       = sanitize_email( $input['owner_email'] ?? '' );
@@ -146,6 +163,15 @@ final class PodcastSettings {
 
 		$out['latest_cta_enabled'] = ! empty( $input['latest_cta_enabled'] );
 		$out['latest_cta_label']   = sanitize_text_field( $input['latest_cta_label'] ?? '' );
+
+		$out['new_feed_url']  = esc_url_raw( $input['new_feed_url'] ?? '' );
+		$out['moved_in']      = ! empty( $input['moved_in'] );
+		$out['itunes_block']  = ! empty( $input['itunes_block'] );
+		$out['complete']      = ! empty( $input['complete'] );
+		$out['locked']        = ! empty( $input['locked'] );
+		$out['funding_url']   = esc_url_raw( $input['funding_url'] ?? '' );
+		$out['funding_label'] = sanitize_text_field( $input['funding_label'] ?? '' );
+		$out['auto_embed']    = ! empty( $input['auto_embed'] );
 
 		$out['social_links']   = $this->sanitize_links( $input['social_links'] ?? [] );
 		$out['platform_links'] = $this->sanitize_links( $input['platform_links'] ?? [] );
