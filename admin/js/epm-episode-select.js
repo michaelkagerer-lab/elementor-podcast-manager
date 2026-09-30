@@ -86,8 +86,8 @@
 				s: term,
 				page: page
 			}).done(function (response) {
-				if (requestId !== self.requestId) {
-					return; // A newer search superseded this one.
+				if (requestId !== self.requestId || !self.isAlive()) {
+					return; // Superseded by a newer search, or the view is gone.
 				}
 				self.ui.results.find('.epm-episode-select__loading').remove();
 				if (response && response.success && response.data && response.data.items && response.data.items.length) {
@@ -110,12 +110,24 @@
 					self.ui.results.append($('<li class="epm-episode-select__empty"></li>').text(epmEpisodeSelect.noResults));
 				}
 			}).fail(function () {
-				if (requestId !== self.requestId) {
+				if (requestId !== self.requestId || !self.isAlive()) {
 					return;
 				}
 				self.ui.results.find('.epm-episode-select__loading').remove();
 				self.ui.results.append($('<li class="epm-episode-select__empty"></li>').text(epmEpisodeSelect.noResults));
 			});
+		},
+
+		/**
+		 * AJAX callbacks can outlive the view: Elementor destroys control
+		 * views when the panel switches to another element.
+		 */
+		isAlive: function () {
+			// Marionette 2 exposes a boolean, Marionette 3 a method.
+			var destroyed = typeof this.isDestroyed === 'function' ? this.isDestroyed() : !!this.isDestroyed;
+			return !destroyed &&
+				this.ui && this.ui.results && typeof this.ui.results.find === 'function' &&
+				this.ui.current && typeof this.ui.current.text === 'function';
 		},
 
 		label: function (item) {
@@ -140,13 +152,18 @@
 				_ajax_nonce: epmEpisodeSelect.nonce,
 				include: id
 			}).done(function (response) {
+				if (!self.isAlive()) {
+					return;
+				}
 				if (response && response.success && response.data && response.data.items && response.data.items.length) {
 					self.ui.current.text(self.label(response.data.items[0]));
 				} else {
 					self.ui.current.text('');
 				}
 			}).fail(function () {
-				self.ui.current.text('');
+				if (self.isAlive()) {
+					self.ui.current.text('');
+				}
 			});
 		}
 	});
