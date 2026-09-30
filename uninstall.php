@@ -21,9 +21,13 @@ if ( ! $delete ) {
 	return;
 }
 
-// Delete podcast settings and design options.
+// Delete podcast settings, design options and internal state.
 delete_option( 'epm_podcast_settings' );
 delete_option( 'epm_design_settings' );
+delete_option( 'epm_version' );
+delete_option( 'epm_guids_migrated' );
+delete_option( 'epm_podcast_guid' );
+delete_transient( 'epm_feed_cache' );
 
 // Delete episode posts and their meta.
 $episodes = get_posts(

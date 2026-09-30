@@ -274,8 +274,9 @@ final class EpisodeListWidget extends Widget_Base {
 		$this->start_controls_section(
 			'section_style_typography',
 			[
-				'label' => __( 'Typography', 'elementor-podcast-manager' ),
-				'tab'   => Controls_Manager::TAB_STYLE,
+				'label'     => __( 'Typography', 'elementor-podcast-manager' ),
+				'tab'       => Controls_Manager::TAB_STYLE,
+				'condition' => $this->custom_condition(),
 			]
 		);
 
@@ -348,7 +349,8 @@ final class EpisodeListWidget extends Widget_Base {
 		];
 
 		if ( 'numbered' === ( $settings['pagination'] ?? 'none' ) ) {
-			$paged                = max( 1, (int) get_query_var( 'paged' ) );
+			// Static front pages paginate with "page", archives with "paged".
+			$paged                = max( 1, (int) get_query_var( 'paged' ), (int) get_query_var( 'page' ) );
 			$query_args['paged']  = $paged;
 			$query                = epm()->episodes->query( $query_args );
 

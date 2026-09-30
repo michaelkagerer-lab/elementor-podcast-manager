@@ -7,6 +7,11 @@
  * [podcast_latest]
  * [podcast_episodes limit="10" layout="cards"]
  * [podcast_latest_cta label="Listen now"]
+ * [podcast_subscribe display="icon-text" rss="yes"]
+ * [podcast_guest id="123"] [podcast_show_notes] [podcast_chapters] [podcast_transcript]
+ *
+ * Episode components default to the current episode (the loop's episode
+ * or the episode page) and accept id="123" or source="latest".
  *
  * @package EPM
  */
@@ -27,6 +32,149 @@ final class Shortcodes {
 		add_shortcode( 'podcast_latest', [ $this, 'latest' ] );
 		add_shortcode( 'podcast_episodes', [ $this, 'episodes' ] );
 		add_shortcode( 'podcast_latest_cta', [ $this, 'latest_cta' ] );
+		add_shortcode( 'podcast_subscribe', [ $this, 'subscribe' ] );
+		add_shortcode( 'podcast_guest', [ $this, 'guest' ] );
+		add_shortcode( 'podcast_show_notes', [ $this, 'show_notes' ] );
+		add_shortcode( 'podcast_chapters', [ $this, 'chapters' ] );
+		add_shortcode( 'podcast_transcript', [ $this, 'transcript' ] );
+	}
+
+	/**
+	 * Resolve the episode for an episode-component shortcode.
+	 *
+	 * @param array $atts Attributes with id/source.
+	 * @return array<string, mixed>|null
+	 */
+	private function episode_from_atts( array $atts ): ?array {
+		$id     = absint( $atts['id'] ?? 0 );
+		$source = $id > 0 ? 'specific' : sanitize_key( (string) ( $atts['source'] ?? 'current' ) );
+
+		return epm()->renderer->resolve_episode( $source, $id );
+	}
+
+	/**
+	 * Whether a yes/no shortcode attribute is on.
+	 *
+	 * @param mixed $value Attribute value.
+	 * @return bool
+	 */
+	private function is_on( $value ): bool {
+		return in_array( strtolower( trim( (string) $value ) ), [ '1', 'yes', 'true', 'on' ], true );
+	}
+
+	/**
+	 * [podcast_subscribe display="icon-text|icon|text" rss="yes"]
+	 *
+	 * @param array $atts Shortcode attributes.
+	 * @return string
+	 */
+	public function subscribe( $atts ): string {
+		$atts = shortcode_atts(
+			[
+				'display' => 'icon-text',
+				'rss'     => 'yes',
+			],
+			$atts,
+			'podcast_subscribe'
+		);
+
+		$display = sanitize_key( $atts['display'] );
+		if ( ! in_array( $display, [ 'icon-text', 'icon', 'text' ], true ) ) {
+			$display = 'icon-text';
+		}
+
+		Assets::enqueue_style();
+
+		return epm()->renderer->subscribe_links(
+			(array) epm()->settings->get( 'platform_links' ),
+			[
+				'display'  => $display,
+				'show_rss' => $this->is_on( $atts['rss'] ),
+			]
+		);
+	}
+
+	/**
+	 * [podcast_guest id="123" bio="yes"]
+	 *
+	 * @param array $atts Shortcode attributes.
+	 * @return string
+	 */
+	public function guest( $atts ): string {
+		$atts    = shortcode_atts( [ 'id' => 0, 'source' => 'current', 'bio' => 'yes' ], $atts, 'podcast_guest' );
+		$episode = $this->episode_from_atts( $atts );
+
+		if ( ! $episode ) {
+			return '';
+		}
+
+		Assets::enqueue_style();
+
+		return epm()->renderer->guest( $episode, [ 'show_bio' => $this->is_on( $atts['bio'] ) ] );
+	}
+
+	/**
+	 * [podcast_show_notes id="123" heading="Show Notes"]
+	 *
+	 * @param array $atts Shortcode attributes.
+	 * @return string
+	 */
+	public function show_notes( $atts ): string {
+		$atts    = shortcode_atts( [ 'id' => 0, 'source' => 'current', 'heading' => __( 'Show Notes', 'elementor-podcast-manager' ) ], $atts, 'podcast_show_notes' );
+		$episode = $this->episode_from_atts( $atts );
+
+		if ( ! $episode ) {
+			return '';
+		}
+
+		Assets::enqueue_style();
+
+		return epm()->renderer->show_notes( $episode, [ 'heading' => sanitize_text_field( $atts['heading'] ) ] );
+	}
+
+	/**
+	 * [podcast_chapters id="123" heading="Chapters"]
+	 *
+	 * @param array $atts Shortcode attributes.
+	 * @return string
+	 */
+	public function chapters( $atts ): string {
+		$atts    = shortcode_atts( [ 'id' => 0, 'source' => 'current', 'heading' => __( 'Chapters', 'elementor-podcast-manager' ) ], $atts, 'podcast_chapters' );
+		$episode = $this->episode_from_atts( $atts );
+
+		if ( ! $episode ) {
+			return '';
+		}
+
+		// Chapters seek the episode's audio: needs the player engine.
+		Assets::enqueue();
+
+		return epm()->renderer->chapters( $episode, [ 'heading' => sanitize_text_field( $atts['heading'] ) ] );
+	}
+
+	/**
+	 * [podcast_transcript id="123" heading="Transcript" collapsible="no"]
+	 *
+	 * @param array $atts Shortcode attributes.
+	 * @return string
+	 */
+	public function transcript( $atts ): string {
+		$atts    = shortcode_atts( [ 'id' => 0, 'source' => 'current', 'heading' => __( 'Transcript', 'elementor-podcast-manager' ), 'collapsible' => 'no' ], $atts, 'podcast_transcript' );
+		$episode = $this->episode_from_atts( $atts );
+
+		if ( ! $episode ) {
+			return '';
+		}
+
+		Assets::enqueue_style();
+
+		return epm()->renderer->transcript(
+			$episode,
+			[
+				'heading'     => sanitize_text_field( $atts['heading'] ),
+				'collapsible' => $this->is_on( $atts['collapsible'] ),
+			]
+		);
 	}
 
 	/**
@@ -38,9 +186,11 @@ final class Shortcodes {
 	public function player( $atts ): string {
 		$atts = shortcode_atts(
 			[
-				'id'     => 0,
-				'source' => 'current',
-				'layout' => '',
+				'id'       => 0,
+				'source'   => 'current',
+				'layout'   => '',
+				'sticky'   => 'no',
+				'download' => 'no',
 			],
 			$atts,
 			'podcast_player'
@@ -53,7 +203,10 @@ final class Shortcodes {
 			return '';
 		}
 
-		$args = [];
+		$args = [
+			'sticky'        => $this->is_on( $atts['sticky'] ),
+			'show_download' => $this->is_on( $atts['download'] ),
+		];
 		if ( '' !== $atts['layout'] ) {
 			$args['layout'] = sanitize_key( $atts['layout'] );
 		}

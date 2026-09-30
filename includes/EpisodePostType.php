@@ -40,19 +40,31 @@ final class EpisodePostType {
 
 		// Capability policy: the epm_cap_manage_episodes filter governs every
 		// episode operation (menus, list, editor, meta saves, uploads, REST).
-		// Defaults to edit_posts so administrators and editors keep working.
-		$manage = Capabilities::manage_episodes();
+		//
+		// With the default ("edit_posts") episodes behave exactly like core
+		// posts: contributors draft, authors publish their own, editors manage
+		// all. A site that filters in a custom capability grants the whole
+		// episode workflow with that one capability.
+		//
+		// Only PRIMITIVE capabilities are ever mapped. The meta capabilities
+		// (edit_post, read_post, delete_post) keep their core names: with
+		// map_meta_cap, WordPress registers whatever they are mapped to as a
+		// site-wide meta capability — mapping them to "edit_posts" made every
+		// edit_posts check (posts, Elementor templates, episodes) fail for
+		// every user, administrators included.
+		$manage = self::primitive_cap( Capabilities::manage_episodes() );
 		$caps   = [];
-		foreach (
-			[
-				'edit_post', 'read_post', 'delete_post',
-				'edit_posts', 'edit_others_posts', 'edit_private_posts', 'edit_published_posts',
-				'publish_posts', 'read_private_posts',
-				'delete_posts', 'delete_others_posts', 'delete_private_posts', 'delete_published_posts',
-				'create_posts',
-			] as $cap
-		) {
-			$caps[ $cap ] = $manage;
+		if ( 'edit_posts' !== $manage ) {
+			foreach (
+				[
+					'edit_posts', 'edit_others_posts', 'edit_private_posts', 'edit_published_posts',
+					'publish_posts', 'read_private_posts',
+					'delete_posts', 'delete_others_posts', 'delete_private_posts', 'delete_published_posts',
+					'create_posts',
+				] as $cap
+			) {
+				$caps[ $cap ] = $manage;
+			}
 		}
 
 		$args = [
@@ -67,15 +79,36 @@ final class EpisodePostType {
 				'slug'       => 'podcast',
 				'with_front' => false,
 			],
+			'capability_type'    => 'post',
 			'capabilities'       => $caps,
 			'map_meta_cap'       => true,
 			'has_archive'        => 'podcast',
 			'hierarchical'       => false,
 			'menu_position'      => 20,
-			'supports'           => [ 'title', 'editor', 'thumbnail', 'excerpt', 'revisions', 'author' ],
+			// custom-fields: required for the registered episode meta to
+			// appear in the REST API (block editor, headless, dynamic tags).
+			'supports'           => [ 'title', 'editor', 'thumbnail', 'excerpt', 'revisions', 'author', 'custom-fields' ],
 			'show_in_nav_menus'  => true,
 		];
 
 		register_post_type( self::CPT, $args );
+	}
+
+	/**
+	 * Guard against a filtered capability that is a meta capability.
+	 * Meta capabilities are resolved per object and cannot stand in for the
+	 * primitive capabilities of a post type.
+	 *
+	 * @param string $cap Capability from the epm_cap_manage_episodes filter.
+	 * @return string
+	 */
+	private static function primitive_cap( string $cap ): string {
+		$meta_caps = [ 'edit_post', 'read_post', 'delete_post', 'edit_page', 'read_page', 'delete_page', 'publish_post' ];
+
+		if ( '' === $cap || in_array( $cap, $meta_caps, true ) ) {
+			return 'edit_posts';
+		}
+
+		return $cap;
 	}
 }

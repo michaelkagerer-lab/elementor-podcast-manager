@@ -24,12 +24,7 @@ final class Readiness {
 	 * @return string[]
 	 */
 	public static function apple_categories(): array {
-		return [
-			'Arts', 'Business', 'Comedy', 'Education', 'Fiction', 'Government',
-			'History', 'Health & Fitness', 'Kids & Family', 'Leisure', 'Music',
-			'News', 'Religion & Spirituality', 'Science', 'Society & Culture',
-			'Sports', 'Technology', 'True Crime', 'TV & Film',
-		];
+		return array_keys( Categories::all() );
 	}
 
 	/**
@@ -90,7 +85,7 @@ final class Readiness {
 		$category = trim( (string) $settings->get( 'category' ) );
 		if ( '' === $category ) {
 			$add( 'warning', __( 'Category', 'elementor-podcast-manager' ), __( 'No category set. Directories use it for discovery.', 'elementor-podcast-manager' ) );
-		} elseif ( ! in_array( $category, self::apple_categories(), true ) ) {
+		} elseif ( ! Categories::is_valid( $category ) ) {
 			$add(
 				'warning',
 				__( 'Category', 'elementor-podcast-manager' ),
@@ -101,7 +96,8 @@ final class Readiness {
 				)
 			);
 		} else {
-			$add( 'ok', __( 'Category', 'elementor-podcast-manager' ), $category );
+			$subcategory = (string) $settings->get( 'subcategory' );
+			$add( 'ok', __( 'Category', 'elementor-podcast-manager' ), '' !== $subcategory ? $category . ' › ' . $subcategory : $category );
 		}
 
 		$language = Feed::rss_language( (string) $settings->get( 'language' ) );
@@ -112,12 +108,28 @@ final class Readiness {
 		if ( $artwork_id <= 0 ) {
 			$add( 'error', __( 'Podcast artwork', 'elementor-podcast-manager' ), __( 'Upload podcast artwork in Podcast Settings. Directories require it.', 'elementor-podcast-manager' ) );
 		} else {
+			$mime = (string) get_post_mime_type( $artwork_id );
+			if ( '' !== $mime && ! in_array( $mime, [ 'image/jpeg', 'image/png' ], true ) ) {
+				$add( 'error', __( 'Podcast artwork format', 'elementor-podcast-manager' ), __( 'Directories only accept JPEG or PNG artwork.', 'elementor-podcast-manager' ) );
+			}
+
 			$meta   = wp_get_attachment_metadata( $artwork_id );
 			$width  = is_array( $meta ) ? (int) ( $meta['width'] ?? 0 ) : 0;
 			$height = is_array( $meta ) ? (int) ( $meta['height'] ?? 0 ) : 0;
 
 			if ( $width > 0 && $height > 0 ) {
-				if ( $width < 1400 || $height < 1400 ) {
+				if ( $width > 3000 || $height > 3000 ) {
+					$add(
+						'warning',
+						__( 'Podcast artwork', 'elementor-podcast-manager' ),
+						sprintf(
+							/* translators: %1$d: width, %2$d: height */
+							__( 'Artwork is %1$d×%2$d px. Apple Podcasts accepts at most 3000×3000 px.', 'elementor-podcast-manager' ),
+							$width,
+							$height
+						)
+					);
+				} elseif ( $width < 1400 || $height < 1400 ) {
 					$add(
 						'warning',
 						__( 'Podcast artwork', 'elementor-podcast-manager' ),
@@ -131,7 +143,8 @@ final class Readiness {
 				} elseif ( $width !== $height ) {
 					$add( 'warning', __( 'Podcast artwork', 'elementor-podcast-manager' ), __( 'Artwork should be square.', 'elementor-podcast-manager' ) );
 				} else {
-					$add( 'ok', __( 'Podcast artwork', 'elementor-podcast-manager' ), sprintf( __( '%d×%d px', 'elementor-podcast-manager' ), $width, $height ) );
+					/* translators: %1$d: width, %2$d: height */
+					$add( 'ok', __( 'Podcast artwork', 'elementor-podcast-manager' ), sprintf( __( '%1$d×%2$d px', 'elementor-podcast-manager' ), $width, $height ) );
 				}
 			} else {
 				$add( 'ok', __( 'Podcast artwork', 'elementor-podcast-manager' ), __( 'Present.', 'elementor-podcast-manager' ) );
@@ -218,6 +231,26 @@ final class Readiness {
 				)
 			);
 		}
+
+		// Problems first: errors, then warnings, then passed checks (stable).
+		$rank = [
+			'error'   => 0,
+			'warning' => 1,
+			'ok'      => 2,
+		];
+		$order = array_keys( $checks );
+		usort(
+			$order,
+			function ( $a, $b ) use ( $checks, $rank ) {
+				return [ $rank[ $checks[ $a ]['status'] ] ?? 3, $a ] <=> [ $rank[ $checks[ $b ]['status'] ] ?? 3, $b ];
+			}
+		);
+		$checks = array_map(
+			function ( $index ) use ( $checks ) {
+				return $checks[ $index ];
+			},
+			$order
+		);
 
 		$errors   = 0;
 		$warnings = 0;

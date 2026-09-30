@@ -33,11 +33,16 @@ final class Renderer {
 	 * @return array<string, mixed>|null
 	 */
 	public function resolve_episode( string $source = 'current', int $post_id = 0, string $context = 'auto' ): ?array {
+		// Authorized preview: the Elementor editor, or WordPress's native
+		// post preview. get_preview_data() still requires edit_post for
+		// anything that is not public, so visitors never see restricted data.
+		$preview_request = $this->is_elementor_preview() || is_preview();
+
 		if ( 'auto' === $context ) {
-			$context = $this->is_elementor_preview() ? 'preview' : 'public';
+			$context = $preview_request ? 'preview' : 'public';
 		}
 
-		$allow_preview = 'preview' === $context && $this->is_elementor_preview();
+		$allow_preview = 'preview' === $context && $preview_request;
 
 		$get = $allow_preview
 			? [ epm()->episodes, 'get_preview_data' ]
@@ -48,18 +53,25 @@ final class Renderer {
 				return $post_id > 0 ? call_user_func( $get, $post_id ) : null;
 
 			case 'latest':
-				$latest = epm()->episodes->get_latest();
+				$latest = epm()->episodes->get_latest( true );
 				return $latest ? call_user_func( $get, $latest ) : null;
 
 			case 'current':
 			default:
+				// The loop's post wins (Loop Grid items, related-episode
+				// loops, shortcodes inside a loop); on a single episode page
+				// it is the queried episode anyway.
+				$loop_post = get_post();
+				if ( $loop_post instanceof \WP_Post && EpisodePostType::CPT === $loop_post->post_type ) {
+					return call_user_func( $get, $loop_post );
+				}
 				$queried = get_queried_object();
 				if ( $queried instanceof \WP_Post && EpisodePostType::CPT === $queried->post_type ) {
 					return call_user_func( $get, $queried );
 				}
 				// Elementor editor preview fallback: latest episode (preview-aware).
 				if ( $allow_preview ) {
-					$latest = epm()->episodes->get_latest();
+					$latest = epm()->episodes->get_latest( true );
 					return $latest ? call_user_func( $get, $latest ) : null;
 				}
 				return null;
@@ -271,7 +283,7 @@ final class Renderer {
 			$out .= '<p class="epm-guest__company">' . esc_html( $company ) . '</p>';
 		}
 		if ( $args['show_bio'] && '' !== (string) ( $episode['guest_bio'] ?? '' ) ) {
-			$out .= '<div class="epm-guest__bio">' . wp_kses_post( $episode['guest_bio'] ) . '</div>';
+			$out .= '<div class="epm-guest__bio">' . wp_kses_post( wpautop( (string) $episode['guest_bio'] ) ) . '</div>';
 		}
 
 		$out .= '</div></div>';
@@ -403,7 +415,7 @@ final class Renderer {
 			return '';
 		}
 
-		$latest = epm()->episodes->get_latest();
+		$latest = epm()->episodes->get_latest( true );
 		if ( ! $latest ) {
 			return '';
 		}
@@ -585,7 +597,7 @@ final class Renderer {
 			. ' data-epm-episode-id="' . esc_attr( (string) ( $episode['id'] ?? 0 ) ) . '"'
 			. ' data-epm-duration="' . esc_attr( (string) $duration_seconds ) . '"'
 			. ' data-epm-title="' . esc_attr( (string) ( $episode['title'] ?? '' ) ) . '"'
-			. ' data-epm-artwork="' . esc_attr( $this->artwork_url( $episode, 'thumbnail' ) ) . '"'
+			. ' data-epm-artwork="' . esc_url( $this->artwork_url( $episode, 'medium' ) ) . '"'
 			. ' data-epm-src="' . esc_url( (string) $episode['audio_url'] ) . '"'
 			. $this->style_vars( (array) $args['style_vars'] )
 			. '>';
@@ -786,6 +798,30 @@ final class Renderer {
 	}
 
 	/**
+	 * Play button for cards and rows. Carries everything the player engine
+	 * needs to create the episode's controller lazily on first click.
+	 *
+	 * @param array<string, mixed> $episode Episode data.
+	 * @param string               $class   Button class.
+	 * @return string
+	 */
+	public function list_play_button( array $episode, string $class ): string {
+		$title = (string) ( $episode['title'] ?? '' );
+
+		return '<button type="button" class="' . esc_attr( $class ) . '"'
+			. ' data-epm-card-play="' . esc_attr( (string) $episode['id'] ) . '"'
+			. ' data-epm-src="' . esc_url( (string) $episode['audio_url'] ) . '"'
+			. ' data-epm-title="' . esc_attr( $title ) . '"'
+			. ' data-epm-artwork="' . esc_url( $this->artwork_url( $episode, 'medium' ) ) . '"'
+			. ' data-epm-duration="' . esc_attr( (string) (int) ( $episode['duration_seconds'] ?? 0 ) ) . '"'
+			. ' aria-pressed="false"'
+			/* translators: %s: episode title */
+			. ' aria-label="' . esc_attr( sprintf( __( 'Play %s', 'elementor-podcast-manager' ), $title ) ) . '">'
+			. $this->play_icon( 'play' )
+			. '<span>' . esc_html__( 'Play', 'elementor-podcast-manager' ) . '</span></button>';
+	}
+
+	/**
 	 * Episode card (grid/cards layouts).
 	 *
 	 * @param array<string, mixed> $episode Episode data.
@@ -866,9 +902,7 @@ final class Renderer {
 		}
 
 		if ( $args['show_play_button'] && ! empty( $episode['has_audio'] ) ) {
-			$out .= '<button type="button" class="epm-episode-card__play" data-epm-card-play="' . esc_attr( (string) $episode['id'] ) . '" data-epm-src="' . esc_url( (string) $episode['audio_url'] ) . '" data-epm-title="' . esc_attr( (string) $episode['title'] ) . '" aria-label="' . esc_attr( sprintf( __( 'Play %s', 'elementor-podcast-manager' ), $episode['title'] ) ) . '">'
-				. $this->play_icon( 'play' )
-				. '<span>' . esc_html__( 'Play', 'elementor-podcast-manager' ) . '</span></button>';
+			$out .= $this->list_play_button( $episode, 'epm-episode-card__play' );
 		}
 
 		$out .= '</div></article>';
@@ -943,9 +977,7 @@ final class Renderer {
 		}
 
 		if ( $args['show_play_button'] && ! empty( $episode['has_audio'] ) ) {
-			$out .= '<button type="button" class="epm-episode-row__play" data-epm-card-play="' . esc_attr( (string) $episode['id'] ) . '" data-epm-src="' . esc_url( (string) $episode['audio_url'] ) . '" data-epm-title="' . esc_attr( (string) $episode['title'] ) . '" aria-label="' . esc_attr( sprintf( __( 'Play %s', 'elementor-podcast-manager' ), $episode['title'] ) ) . '">'
-				. $this->play_icon( 'play' )
-				. '<span>' . esc_html__( 'Play', 'elementor-podcast-manager' ) . '</span></button>';
+			$out .= $this->list_play_button( $episode, 'epm-episode-row__play' );
 		}
 
 		$out .= '</div></article>';
@@ -976,6 +1008,14 @@ final class Renderer {
 		}
 
 		Assets::mark_player_used();
+
+		if ( empty( $posts ) ) {
+			$message = isset( $args['empty_message'] )
+				? (string) $args['empty_message']
+				: __( 'No episodes published yet.', 'elementor-podcast-manager' );
+
+			return '' === $message ? '' : '<p class="epm-episode-list__empty">' . esc_html( $message ) . '</p>';
+		}
 
 		// Prime attachment caches once for the whole list (F18).
 		Episodes::prime_attachments( $posts );

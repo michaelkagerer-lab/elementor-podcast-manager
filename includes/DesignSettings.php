@@ -47,6 +47,13 @@ final class DesignSettings {
 	public const EXPORT_VERSION = 1;
 
 	/**
+	 * Whether the token block was already printed on this request.
+	 *
+	 * @var bool
+	 */
+	private bool $tokens_printed = false;
+
+	/**
 	 * Default design tokens. Neutral on purpose — presets provide character.
 	 *
 	 * @return array<string, mixed>
@@ -83,11 +90,10 @@ final class DesignSettings {
 	 */
 	public function init(): void {
 		add_action( 'admin_init', [ $this, 'register_settings' ] );
-		// Priority 20: after wp_print_styles (8), so the tokens always win
-		// over the static :root fallback in epm-frontend.css.
+		// The stylesheet's fallback tokens use :where(:root) (specificity 0),
+		// so these :root tokens win regardless of document order. Printed once
+		// in the head; the footer hook only covers themes without wp_head.
 		add_action( 'wp_head', [ $this, 'output_tokens' ], 20 );
-		// Priority 1: before Assets::maybe_enqueue_late (5) prints the
-		// stylesheet in the footer on pages where widgets rendered late.
 		add_action( 'wp_footer', [ $this, 'output_tokens' ], 1 );
 	}
 
@@ -315,15 +321,19 @@ final class DesignSettings {
 	/**
 	 * Output the design tokens as CSS custom properties on :root.
 	 *
-	 * Printed on wp_head (priority 20, after stylesheets) and wp_footer
-	 * (priority 1, before late-enqueued assets), so it always comes AFTER
-	 * stylesheets in document order and wins over the static :root
-	 * fallback in epm-frontend.css. Specificity stays low (:root);
-	 * widget overrides on {{WRAPPER}} win by specificity.
+	 * Printed once per request (wp_head, or wp_footer as a fallback). The
+	 * static fallback in epm-frontend.css is :where(:root) with specificity
+	 * 0, so these tokens win regardless of document order. Specificity
+	 * stays low (:root); widget overrides on {{WRAPPER}} win by specificity.
 	 *
 	 * @return void
 	 */
 	public function output_tokens(): void {
+		if ( $this->tokens_printed ) {
+			return;
+		}
+		$this->tokens_printed = true;
+
 		$t = $this->all();
 
 		$vars = [

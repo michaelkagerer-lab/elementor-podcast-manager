@@ -159,6 +159,7 @@ final class EpisodeMetadataWidget extends Widget_Base {
 		$episode  = $this->resolve_widget_episode( $settings );
 
 		if ( ! $episode ) {
+			$this->editor_placeholder( $this->no_episode_message( $settings ) );
 			return;
 		}
 
@@ -187,6 +188,7 @@ final class EpisodeMetadataWidget extends Widget_Base {
 		}
 
 		if ( empty( $items ) ) {
+			$this->editor_placeholder( __( 'None of the selected fields has a value for this episode.', 'elementor-podcast-manager' ) );
 			return;
 		}
 

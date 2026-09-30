@@ -26,6 +26,8 @@ final class Admin {
 		add_filter( 'manage_edit-' . EpisodePostType::CPT . '_sortable_columns', [ $this, 'sortable_columns' ] );
 		add_action( 'pre_get_posts', [ $this, 'apply_admin_orderby' ] );
 		add_filter( 'parent_file', [ $this, 'menu_highlight' ] );
+		add_filter( 'post_updated_messages', [ $this, 'updated_messages' ] );
+		add_filter( 'bulk_post_updated_messages', [ $this, 'bulk_updated_messages' ], 10, 2 );
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue' ] );
 		add_action( 'admin_post_epm_design_export', [ $this, 'handle_design_export' ] );
 		add_action( 'admin_post_epm_design_import', [ $this, 'handle_design_import' ] );
@@ -50,14 +52,89 @@ final class Admin {
 		}
 
 		$orderby = $query->get( 'orderby' );
+		$keys    = [
+			'epm_episode_number' => Episodes::META_PREFIX . 'episode_number',
+			'epm_duration'       => Episodes::META_PREFIX . 'duration_seconds',
+		];
 
-		if ( 'epm_episode_number' === $orderby ) {
-			$query->set( 'meta_key', Episodes::META_PREFIX . 'episode_number' );
-			$query->set( 'orderby', 'meta_value_num' );
-		} elseif ( 'epm_duration' === $orderby ) {
-			$query->set( 'meta_key', Episodes::META_PREFIX . 'duration' );
-			$query->set( 'orderby', 'meta_value' );
+		if ( ! is_string( $orderby ) || ! isset( $keys[ $orderby ] ) ) {
+			return;
 		}
+
+		// Named clause + NOT EXISTS: sort numerically without dropping
+		// episodes that have no value for the key.
+		$query->set(
+			'meta_query',
+			[
+				'relation'     => 'OR',
+				'epm_sort_key' => [
+					'key'  => $keys[ $orderby ],
+					'type' => 'NUMERIC',
+				],
+				[
+					'key'     => $keys[ $orderby ],
+					'compare' => 'NOT EXISTS',
+				],
+			]
+		);
+		$query->set( 'orderby', 'epm_sort_key' );
+	}
+
+	/**
+	 * Episode-specific editor messages ("Episode published." instead of
+	 * WordPress's generic "Post published.").
+	 *
+	 * @param array $messages Messages per post type.
+	 * @return array
+	 */
+	public function updated_messages( array $messages ): array {
+		global $post;
+
+		$link = '';
+		if ( $post instanceof \WP_Post && is_post_type_viewable( EpisodePostType::CPT ) ) {
+			$link = sprintf( ' <a href="%s">%s</a>', esc_url( get_permalink( $post ) ), esc_html__( 'View episode', 'elementor-podcast-manager' ) );
+		}
+
+		$scheduled_for = $post instanceof \WP_Post
+			? date_i18n( __( 'M j, Y @ H:i', 'elementor-podcast-manager' ), strtotime( $post->post_date ) )
+			: '';
+
+		$messages[ EpisodePostType::CPT ] = [
+			0  => '',
+			1  => __( 'Episode updated.', 'elementor-podcast-manager' ) . $link,
+			2  => __( 'Custom field updated.', 'elementor-podcast-manager' ),
+			3  => __( 'Custom field deleted.', 'elementor-podcast-manager' ),
+			4  => __( 'Episode updated.', 'elementor-podcast-manager' ),
+			5  => isset( $_GET['revision'] ) ? __( 'Episode restored from a revision.', 'elementor-podcast-manager' ) : false, // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			6  => __( 'Episode published. It is now in the podcast feed if it has MP3 or M4A audio.', 'elementor-podcast-manager' ) . $link,
+			7  => __( 'Episode saved.', 'elementor-podcast-manager' ),
+			8  => __( 'Episode submitted for review.', 'elementor-podcast-manager' ),
+			/* translators: %s: scheduled date */
+			9  => sprintf( __( 'Episode scheduled for %s. It joins the podcast feed automatically at that time.', 'elementor-podcast-manager' ), '<strong>' . esc_html( $scheduled_for ) . '</strong>' ),
+			10 => __( 'Episode draft updated.', 'elementor-podcast-manager' ),
+		];
+
+		return $messages;
+	}
+
+	/**
+	 * Episode-specific bulk action messages.
+	 *
+	 * @param array $bulk_messages Messages per post type.
+	 * @param array $bulk_counts   Counts per action.
+	 * @return array
+	 */
+	public function bulk_updated_messages( array $bulk_messages, array $bulk_counts ): array {
+		/* translators: %s: number of episodes */
+		$bulk_messages[ EpisodePostType::CPT ] = [
+			'updated'   => _n( '%s episode updated.', '%s episodes updated.', $bulk_counts['updated'], 'elementor-podcast-manager' ),
+			'locked'    => _n( '%s episode not updated, somebody is editing it.', '%s episodes not updated, somebody is editing them.', $bulk_counts['locked'], 'elementor-podcast-manager' ),
+			'deleted'   => _n( '%s episode permanently deleted.', '%s episodes permanently deleted.', $bulk_counts['deleted'], 'elementor-podcast-manager' ),
+			'trashed'   => _n( '%s episode moved to the Trash.', '%s episodes moved to the Trash.', $bulk_counts['trashed'], 'elementor-podcast-manager' ),
+			'untrashed' => _n( '%s episode restored from the Trash.', '%s episodes restored from the Trash.', $bulk_counts['untrashed'], 'elementor-podcast-manager' ),
+		];
+
+		return $bulk_messages;
 	}
 
 	/**
@@ -214,7 +291,7 @@ final class Admin {
 			<div class="epm-repeat__rows" data-epm-repeat-rows>
 				<?php foreach ( array_values( $links ) as $index => $link ) : ?>
 					<div class="epm-repeat__row epm-repeat__row--links" data-epm-repeat-row>
-					<span class="epm-repeat__order" aria-hidden="true">
+					<span class="epm-repeat__order">
 						<button type="button" class="button-link" data-epm-repeat-up aria-label="<?php esc_attr_e( 'Move link up', 'elementor-podcast-manager' ); ?>" title="<?php esc_attr_e( 'Move up', 'elementor-podcast-manager' ); ?>">▲</button>
 						<button type="button" class="button-link" data-epm-repeat-down aria-label="<?php esc_attr_e( 'Move link down', 'elementor-podcast-manager' ); ?>" title="<?php esc_attr_e( 'Move down', 'elementor-podcast-manager' ); ?>">▼</button>
 					</span>
@@ -231,7 +308,7 @@ final class Admin {
 			</div>
 			<template data-epm-repeat-template>
 				<div class="epm-repeat__row epm-repeat__row--links" data-epm-repeat-row>
-					<span class="epm-repeat__order" aria-hidden="true">
+					<span class="epm-repeat__order">
 						<button type="button" class="button-link" data-epm-repeat-up aria-label="<?php esc_attr_e( 'Move link up', 'elementor-podcast-manager' ); ?>" title="<?php esc_attr_e( 'Move up', 'elementor-podcast-manager' ); ?>">▲</button>
 						<button type="button" class="button-link" data-epm-repeat-down aria-label="<?php esc_attr_e( 'Move link down', 'elementor-podcast-manager' ); ?>" title="<?php esc_attr_e( 'Move down', 'elementor-podcast-manager' ); ?>">▼</button>
 					</span>
@@ -575,10 +652,12 @@ final class Admin {
 				break;
 
 			case 'epm_audio':
-				if ( $data['has_audio'] ) {
-					echo '<span class="epm-status epm-status--ready">' . esc_html__( 'Ready', 'elementor-podcast-manager' ) . '</span>';
-				} else {
+				if ( ! $data['has_audio'] ) {
 					echo '<span class="epm-status epm-status--missing">' . esc_html__( 'Missing Audio', 'elementor-podcast-manager' ) . '</span>';
+				} elseif ( ! AudioMetadata::is_distribution_format( (string) $data['audio_mime'] ) ) {
+					echo '<span class="epm-status epm-status--warning" title="' . esc_attr__( 'Only MP3 and M4A audio is included in the podcast feed.', 'elementor-podcast-manager' ) . '">' . esc_html__( 'Not in feed', 'elementor-podcast-manager' ) . '</span>';
+				} else {
+					echo '<span class="epm-status epm-status--ready">' . esc_html__( 'Ready', 'elementor-podcast-manager' ) . '</span>';
 				}
 				break;
 		}

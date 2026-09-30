@@ -93,7 +93,11 @@ final class Assets {
 			'epm-player',
 			'epmPlayer',
 			[
-				'strings' => [
+				// Shown as the "artist" in lock-screen / OS media controls.
+				'podcastTitle' => (string) epm()->settings->get( 'title' ),
+				// Resume each episode where the visitor stopped (browser storage).
+				'resume'       => (bool) apply_filters( 'epm_player_resume', true ),
+				'strings'      => [
 					'play'         => __( 'Play', 'elementor-podcast-manager' ),
 					'pause'        => __( 'Pause', 'elementor-podcast-manager' ),
 					'playEpisode'  => __( 'Play episode', 'elementor-podcast-manager' ),

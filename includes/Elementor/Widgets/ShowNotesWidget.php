@@ -151,6 +151,7 @@ final class ShowNotesWidget extends Widget_Base {
 		$episode  = $this->resolve_widget_episode( $settings );
 
 		if ( ! $episode ) {
+			$this->editor_placeholder( $this->no_episode_message( $settings ) );
 			return;
 		}
 
@@ -162,6 +163,7 @@ final class ShowNotesWidget extends Widget_Base {
 		);
 
 		if ( '' === $html ) {
+			$this->editor_placeholder( __( 'This episode has no show notes yet.', 'elementor-podcast-manager' ) );
 			return;
 		}
 

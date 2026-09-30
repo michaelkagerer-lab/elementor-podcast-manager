@@ -149,6 +149,29 @@ final class Episodes {
 	}
 
 	/**
+	 * Store the episode duration in seconds (_epm_duration_seconds) next to
+	 * the human-readable duration, for numeric sorting and integrations.
+	 * Falls back to the length WordPress read from the audio file.
+	 *
+	 * @param int $post_id Episode post ID.
+	 * @return int Seconds stored.
+	 */
+	public static function sync_duration_seconds( int $post_id ): int {
+		$duration = (string) get_post_meta( $post_id, self::META_PREFIX . 'duration', true );
+		$seconds  = self::duration_to_seconds( $duration );
+
+		if ( 0 === $seconds ) {
+			$audio_id = (int) get_post_meta( $post_id, self::META_PREFIX . 'audio_id', true );
+			$meta     = $audio_id > 0 ? wp_get_attachment_metadata( $audio_id ) : [];
+			$seconds  = is_array( $meta ) && ! empty( $meta['length'] ) ? (int) $meta['length'] : 0;
+		}
+
+		update_post_meta( $post_id, self::META_PREFIX . 'duration_seconds', $seconds );
+
+		return $seconds;
+	}
+
+	/**
 	 * Clear the per-request data cache (e.g. after metadata changes).
 	 *
 	 * @param int $post_id Episode post ID.
@@ -183,15 +206,16 @@ final class Episodes {
 		}
 
 		if ( ! empty( $args['season'] ) ) {
-			$query_args['meta_query'] = [
-				[
-					'key'     => self::META_PREFIX . 'season_number',
-					'value'   => (int) $args['season'],
-					'compare' => '=',
-					'type'    => 'NUMERIC',
-				],
+			$meta_query   = isset( $query_args['meta_query'] ) && is_array( $query_args['meta_query'] ) ? $query_args['meta_query'] : [];
+			$meta_query[] = [
+				'key'     => self::META_PREFIX . 'season_number',
+				'value'   => (int) $args['season'],
+				'compare' => '=',
+				'type'    => 'NUMERIC',
 			];
+			$query_args['meta_query'] = $meta_query;
 		}
+		unset( $query_args['season'] );
 
 		$query_args = apply_filters( 'epm_episode_query_args', $query_args, $args );
 
@@ -298,16 +322,30 @@ final class Episodes {
 	/**
 	 * Get the latest published episode.
 	 *
+	 * @param bool $with_audio Only consider episodes with an attached audio
+	 *                         file (what listeners mean by "latest episode":
+	 *                         players, the latest-episode widget and CTA).
 	 * @return \WP_Post|null
 	 */
-	public function get_latest(): ?\WP_Post {
-		$episodes = $this->get_episodes(
-			[
-				'posts_per_page' => 1,
-				'orderby'        => 'date',
-				'order'          => 'DESC',
-			]
-		);
+	public function get_latest( bool $with_audio = false ): ?\WP_Post {
+		$args = [
+			'posts_per_page' => 1,
+			'orderby'        => 'date',
+			'order'          => 'DESC',
+		];
+
+		if ( $with_audio ) {
+			$args['meta_query'] = [
+				[
+					'key'     => self::META_PREFIX . 'audio_id',
+					'value'   => 0,
+					'compare' => '>',
+					'type'    => 'NUMERIC',
+				],
+			];
+		}
+
+		$episodes = $this->get_episodes( $args );
 
 		return $episodes[0] ?? null;
 	}
@@ -353,8 +391,13 @@ final class Episodes {
 		$audio_url  = $audio_id > 0 ? wp_get_attachment_url( $audio_id ) : '';
 		$audio_meta = $audio_id > 0 ? wp_get_attachment_metadata( $audio_id ) : [];
 
-		// Artwork fallback: episode -> default episode artwork -> podcast artwork.
-		$artwork_id = (int) $meta( 'artwork_id', 0 );
+		// Artwork fallback: episode artwork -> featured image -> default
+		// episode artwork -> podcast artwork.
+		$episode_artwork_id = (int) $meta( 'artwork_id', 0 );
+		$artwork_id         = $episode_artwork_id;
+		if ( $artwork_id <= 0 ) {
+			$artwork_id = (int) get_post_thumbnail_id( $post );
+		}
 		if ( $artwork_id <= 0 ) {
 			$artwork_id = (int) $settings->get( 'default_artwork_id' );
 		}
@@ -366,6 +409,17 @@ final class Episodes {
 		if ( 'inherit' === $explicit ) {
 			$explicit = $settings->get( 'explicit' );
 		}
+
+		// Duration: the stored (detected or manual) value wins; otherwise
+		// fall back to the length WordPress read from the audio file.
+		$duration = (string) $meta( 'duration', '' );
+		if ( '' === $duration && is_array( $audio_meta ) && ! empty( $audio_meta['length'] ) ) {
+			$duration = self::format_duration( (int) $audio_meta['length'] );
+		}
+
+		$audio_size = ( is_array( $audio_meta ) && ! empty( $audio_meta['filesize'] ) )
+			? (int) $audio_meta['filesize']
+			: (int) $meta( 'audio_size', 0 );
 
 		$data = [
 			'id'              => $post->ID,
@@ -379,10 +433,13 @@ final class Episodes {
 			'audio_id'        => $audio_id,
 			'audio_url'       => $audio_url ? (string) $audio_url : '',
 			'audio_mime'      => $audio_id > 0 ? (string) get_post_mime_type( $audio_id ) : '',
-			'audio_size'      => $audio_meta['filesize'] ?? (int) $meta( 'audio_size', 0 ),
-			'duration'        => $meta( 'duration', '' ),
-			'duration_seconds' => self::duration_to_seconds( (string) $meta( 'duration', '' ) ),
+			'audio_size'      => $audio_size,
+			'duration'        => $duration,
+			'duration_seconds' => self::duration_to_seconds( $duration ),
 			'artwork_id'      => $artwork_id,
+			// Episode-specific image (own artwork or featured image), 0 when
+			// the episode inherits the default/podcast artwork.
+			'own_artwork_id'  => $episode_artwork_id > 0 ? $episode_artwork_id : (int) get_post_thumbnail_id( $post ),
 			'episode_number'  => $meta( 'episode_number', '' ),
 			'season_number'   => $meta( 'season_number', '' ),
 			'episode_type'    => $meta( 'episode_type', 'full' ),

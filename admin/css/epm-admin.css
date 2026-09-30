@@ -136,6 +136,11 @@
 	color: #1a7f37;
 }
 
+.epm-status--warning {
+	background: #fcf0e3;
+	color: #8a4b08;
+}
+
 .epm-status--missing {
 	background: #fdecea;
 	color: #b32d2e;
@@ -153,7 +158,7 @@
 	margin: 0;
 	padding: 0;
 	list-style: none;
-	max-height: 320px;
+	max-height: 480px;
 	overflow: auto;
 }
 
@@ -275,4 +280,20 @@
 .epm-badge--off {
 	background: #f6f7f7;
 	color: #646970;
+}
+
+/* Classic episode screen: audio box directly below the title. */
+.epm-after-title {
+	margin-top: 20px;
+}
+
+.epm-after-title .postbox {
+	margin-bottom: 12px;
+}
+
+.epm-description-heading {
+	margin: 16px 0 8px;
+	padding: 0;
+	font-size: 14px;
+	font-weight: 600;
 }

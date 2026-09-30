@@ -253,15 +253,34 @@
 		}
 	});
 
-	// Copy buttons (feed URL).
+	// Copy buttons (feed URL). Falls back to selecting a temporary field
+	// where the async clipboard API is unavailable (non-HTTPS admin).
 	$(document).on('click', '[data-epm-copy]', function (e) {
 		e.preventDefault();
-		var text = $(this).data('epm-copy');
+		var text = String($(this).data('epm-copy'));
 		var btn = $(this);
-		if (navigator.clipboard && navigator.clipboard.writeText) {
-			navigator.clipboard.writeText(text).then(function () {
-				btn.text(btn.text() + ' ✓');
-			});
+		var label = btn.data('epm-label') || btn.text();
+		btn.data('epm-label', label);
+
+		var done = function () {
+			btn.text(label + ' ✓');
+			window.setTimeout(function () {
+				btn.text(label);
+			}, 2000);
+		};
+
+		if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
+			navigator.clipboard.writeText(text).then(done);
+			return;
 		}
+
+		var field = $('<textarea readonly></textarea>').val(text).css({ position: 'fixed', left: '-9999px' }).appendTo(document.body);
+		field[0].select();
+		try {
+			if (document.execCommand('copy')) {
+				done();
+			}
+		} catch (err) { /* copying is best-effort */ }
+		field.remove();
 	});
 })(jQuery);

@@ -96,6 +96,7 @@ $preset_extras = [
 ?>
 <div class="wrap epm-design">
 	<h1><?php esc_html_e( 'Podcast Design', 'elementor-podcast-manager' ); ?></h1>
+	<?php settings_errors(); ?>
 	<p class="description">
 		<?php esc_html_e( 'Global Podcast Styles: default appearance for all podcast components. Elementor widgets can inherit these values or override them individually.', 'elementor-podcast-manager' ); ?>
 	</p>
