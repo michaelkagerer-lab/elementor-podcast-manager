@@ -225,6 +225,10 @@ $settings = epm()->settings->all();
 				<td>
 					<input type="url" id="epm-s-new-feed-url" name="epm_podcast_settings[new_feed_url]" value="<?php echo esc_attr( (string) $settings['new_feed_url'] ); ?>" class="regular-text" placeholder="https://" />
 					<p class="description"><?php esc_html_e( 'Only when moving the podcast to another host: directories follow this URL to the new feed. Keep the old feed online until they have switched.', 'elementor-podcast-manager' ); ?></p>
+					<label>
+						<input type="checkbox" name="epm_podcast_settings[moved_in]" value="1" <?php checked( ! empty( $settings['moved_in'] ) ); ?> />
+						<?php esc_html_e( 'This show moved here from another host (the feed announces this address as its new home; keep it on for at least four weeks)', 'elementor-podcast-manager' ); ?>
+					</label>
 				</td>
 			</tr>
 			<tr>

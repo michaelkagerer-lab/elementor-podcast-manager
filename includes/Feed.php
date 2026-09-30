@@ -212,7 +212,7 @@ final class Feed {
 		printf(
 			'<link rel="alternate" type="application/rss+xml" title="%s" href="%s" />' . "\n",
 			esc_attr( (string) epm()->settings->get( 'title' ) ),
-			esc_url( self::url() )
+			esc_url( Hosting::public_feed_url() )
 		);
 	}
 
@@ -340,14 +340,7 @@ final class Feed {
 				'orderby'          => 'date',
 				'order'            => $serial ? 'ASC' : 'DESC',
 				'has_password'     => false,
-				'meta_query'       => [
-					[
-						'key'     => Episodes::META_PREFIX . 'audio_id',
-						'value'   => 0,
-						'compare' => '>',
-						'type'    => 'NUMERIC',
-					],
-				],
+				'meta_query'       => [ Episodes::audio_meta_query() ],
 				'no_found_rows'    => true,
 			]
 		);
@@ -489,6 +482,15 @@ final class Feed {
 	 * @return void
 	 */
 	public function serve_feed(): void {
+		// Another host publishes the show: send apps and directories there
+		// permanently (301), the standard way to move a podcast feed.
+		$redirect = Hosting::feed_redirect_target();
+		if ( '' !== $redirect ) {
+			// phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- the host's feed is external by design; admins set it.
+			wp_redirect( $redirect, 301, 'Elementor Podcast Manager' );
+			return;
+		}
+
 		$document = $this->get_document();
 
 		$charset = (string) get_option( 'blog_charset' );
@@ -624,7 +626,12 @@ final class Feed {
 		$x[] = "\t<itunes:explicit>" . ( 'explicit' === $settings->get( 'explicit' ) ? 'true' : 'false' ) . '</itunes:explicit>';
 		$x[] = "\t<itunes:type>" . epm_esc_xml( (string) $settings->get( 'type' ) ) . '</itunes:type>';
 
+		// Moving away: the new address. Moved here: this feed's own address,
+		// as Apple asks of the new feed after a host change.
 		$new_feed_url = (string) $settings->get( 'new_feed_url' );
+		if ( '' === $new_feed_url && ! empty( $settings->get( 'moved_in' ) ) ) {
+			$new_feed_url = self::url();
+		}
 		if ( '' !== $new_feed_url ) {
 			$x[] = "\t<itunes:new-feed-url>" . self::xml_url( $new_feed_url ) . '</itunes:new-feed-url>';
 		}
@@ -755,7 +762,9 @@ final class Feed {
 		$id = (int) ( $data['own_artwork_id'] ?? 0 );
 
 		if ( $id <= 0 ) {
-			return '';
+			// Imported episodes may keep the host's image; the host already
+			// served it as episode art, so it is passed through.
+			return (string) ( $data['own_artwork_url'] ?? '' );
 		}
 
 		$mime = (string) get_post_mime_type( $id );

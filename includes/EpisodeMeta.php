@@ -610,14 +610,7 @@ final class EpisodeMeta {
 	 */
 	public function box_platforms( \WP_Post $post ): void {
 		$links = Episodes::normalize_links( $this->meta( $post, 'platform_urls', [] ) );
-		$services = [
-			'spotify' => __( 'Spotify', 'elementor-podcast-manager' ),
-			'apple'   => __( 'Apple Podcasts', 'elementor-podcast-manager' ),
-			'youtube' => __( 'YouTube', 'elementor-podcast-manager' ),
-			'amazon'  => __( 'Amazon Music', 'elementor-podcast-manager' ),
-			'rss'     => __( 'RSS', 'elementor-podcast-manager' ),
-			'custom'  => __( 'Custom', 'elementor-podcast-manager' ),
-		];
+		$services = wp_list_pluck( Directories::services(), 'label' );
 		?>
 		<div class="epm-repeat" data-epm-repeat="episode-platforms">
 			<div class="epm-repeat__rows" data-epm-repeat-rows>

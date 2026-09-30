@@ -282,14 +282,7 @@ final class Admin {
 	 * @return void
 	 */
 	public function links_repeater( string $key, array $links ): void {
-		$services = [
-			'spotify' => __( 'Spotify', 'elementor-podcast-manager' ),
-			'apple'   => __( 'Apple Podcasts', 'elementor-podcast-manager' ),
-			'youtube' => __( 'YouTube', 'elementor-podcast-manager' ),
-			'amazon'  => __( 'Amazon Music', 'elementor-podcast-manager' ),
-			'rss'     => __( 'RSS', 'elementor-podcast-manager' ),
-			'custom'  => __( 'Custom', 'elementor-podcast-manager' ),
-		];
+		$services = wp_list_pluck( Directories::services(), 'label' );
 		?>
 		<div class="epm-repeat" data-epm-repeat="links">
 			<div class="epm-repeat__rows" data-epm-repeat-rows>
@@ -633,7 +626,9 @@ final class Admin {
 
 		switch ( $column ) {
 			case 'epm_artwork':
-				if ( (int) $data['artwork_id'] > 0 ) {
+				if ( '' !== (string) $data['artwork_url'] ) {
+					echo '<img src="' . esc_url( (string) $data['artwork_url'] ) . '" width="48" height="48" alt="" loading="lazy" />';
+				} elseif ( (int) $data['artwork_id'] > 0 ) {
 					echo wp_get_attachment_image( (int) $data['artwork_id'], [ 48, 48 ] );
 				} else {
 					echo '<span class="epm-list-empty">—</span>';
@@ -662,6 +657,9 @@ final class Admin {
 					echo '<span class="epm-status epm-status--warning" title="' . esc_attr__( 'Only MP3 and M4A audio is included in the podcast feed.', 'elementor-podcast-manager' ) . '">' . esc_html__( 'Not in feed', 'elementor-podcast-manager' ) . '</span>';
 				} else {
 					echo '<span class="epm-status epm-status--ready">' . esc_html__( 'Ready', 'elementor-podcast-manager' ) . '</span>';
+				}
+				if ( 'external' === $data['audio_source'] ) {
+					echo ' <span class="epm-list-muted">' . esc_html__( 'Audio URL', 'elementor-podcast-manager' ) . '</span>';
 				}
 				break;
 		}

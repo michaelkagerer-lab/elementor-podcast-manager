@@ -109,6 +109,8 @@ final class Plugin {
 		$this->episodes->init();
 		$this->feed->init();
 		$this->assets->init();
+		( new Hosting() )->init();
+		( new ImportJob() )->init();
 		$this->register_meta();
 		new Shortcodes();
 		( new EpisodeTemplate() )->init();
@@ -123,6 +125,7 @@ final class Plugin {
 		if ( is_admin() ) {
 			$admin = new Admin();
 			$admin->init();
+			( new AdminPages() )->init();
 		}
 
 		// Layer 3: Elementor presentation (only when Elementor is active).
@@ -240,6 +243,15 @@ final class Plugin {
 			'canonical_url'     => [ 'string', 'esc_url_raw', true ],
 			'video_url'         => [ 'string', 'esc_url_raw', true ],
 			'youtube_url'       => [ 'string', 'esc_url_raw', true ],
+			// Audio and image hosted elsewhere (host, CDN, storage bucket).
+			'audio_url'         => [ 'string', 'esc_url_raw', true ],
+			'audio_type'        => [ 'string', 'sanitize_text_field', true ],
+			'audio_length'      => [ 'integer', 'absint', true ],
+			'artwork_url'       => [ 'string', 'esc_url_raw', true ],
+			// Import bookkeeping: readable, written by the importer only.
+			'source'            => [ 'string', 'sanitize_key', false ],
+			'source_link'       => [ 'string', 'esc_url_raw', false ],
+			'source_feed'       => [ 'string', 'esc_url_raw', false ],
 			'guest_name'        => [ 'string', 'sanitize_text_field', true ],
 			'guest_role'        => [ 'string', 'sanitize_text_field', true ],
 			'guest_company'     => [ 'string', 'sanitize_text_field', true ],

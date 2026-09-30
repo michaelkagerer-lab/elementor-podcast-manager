@@ -44,6 +44,7 @@ final class PodcastSettings {
 			'default_author'       => '',
 			'feed_limit'           => 500,
 			'new_feed_url'         => '',
+			'moved_in'             => false,
 			'itunes_block'         => false,
 			'complete'             => false,
 			'locked'               => false,
@@ -164,6 +165,7 @@ final class PodcastSettings {
 		$out['latest_cta_label']   = sanitize_text_field( $input['latest_cta_label'] ?? '' );
 
 		$out['new_feed_url']  = esc_url_raw( $input['new_feed_url'] ?? '' );
+		$out['moved_in']      = ! empty( $input['moved_in'] );
 		$out['itunes_block']  = ! empty( $input['itunes_block'] );
 		$out['complete']      = ! empty( $input['complete'] );
 		$out['locked']        = ! empty( $input['locked'] );

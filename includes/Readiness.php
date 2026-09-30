@@ -45,6 +45,12 @@ final class Readiness {
 
 		$settings = epm()->settings;
 
+		// Another host publishes the feed: directory requirements are the
+		// host's job; what matters here is that the site stays in sync.
+		if ( Hosting::is_external() ) {
+			return self::finish( self::external_checks( $add, $checks ) );
+		}
+
 		// --- Required podcast metadata. ---
 		$title = trim( (string) $settings->get( 'title' ) );
 		if ( '' === $title ) {
@@ -163,7 +169,9 @@ final class Readiness {
 			}
 
 			$audio_id = (int) $data['audio_id'];
-			if ( $audio_id <= 0 ) {
+			$external = $audio_id <= 0 && 'external' === ( $data['audio_source'] ?? '' );
+
+			if ( $audio_id <= 0 && ! $external ) {
 				$add(
 					'warning',
 					/* translators: %s: episode title */
@@ -173,7 +181,15 @@ final class Readiness {
 				continue;
 			}
 
-			if ( ! AudioMetadata::is_valid_audio_attachment( $audio_id ) ) {
+			if ( $external && 0 !== stripos( (string) $data['audio_url'], 'https://' ) ) {
+				$add(
+					'warning',
+					sprintf( __( 'Episode: %s', 'elementor-podcast-manager' ), $data['title'] ),
+					__( 'The audio URL does not use HTTPS. Some apps refuse insecure audio; use an https:// address.', 'elementor-podcast-manager' )
+				);
+			}
+
+			if ( ! $external && ! AudioMetadata::is_valid_audio_attachment( $audio_id ) ) {
 				$add(
 					'error',
 					sprintf( __( 'Episode: %s', 'elementor-podcast-manager' ), $data['title'] ),
@@ -232,6 +248,74 @@ final class Readiness {
 			);
 		}
 
+		return self::finish( $checks );
+	}
+
+	/**
+	 * Checks for a show another host publishes.
+	 *
+	 * @param callable                                                     $add    Adds a check.
+	 * @param array<int, array{status: string, label: string, message: string}> $checks Checks (by reference through $add).
+	 * @return array<int, array{status: string, label: string, message: string}>
+	 */
+	private static function external_checks( callable $add, array &$checks ): array {
+		$feed  = (string) Hosting::get( 'feed_url' );
+		$state = Hosting::state();
+
+		$add( 'ok', __( 'Hosting', 'elementor-podcast-manager' ), Hosting::provider_name() );
+
+		if ( '' === $feed ) {
+			$add( 'error', __( 'Host feed', 'elementor-podcast-manager' ), __( 'Enter your host’s RSS feed address under Podcast → Hosting so episodes can sync.', 'elementor-podcast-manager' ) );
+			return $checks;
+		}
+
+		$add( 'ok', __( 'Host feed', 'elementor-podcast-manager' ), $feed );
+
+		if ( ! Hosting::get( 'sync' ) ) {
+			$add( 'warning', __( 'Automatic sync', 'elementor-podcast-manager' ), __( 'Off. New episodes from your host only appear here after “Sync now”.', 'elementor-podcast-manager' ) );
+		}
+
+		if ( 'error' === $state['status'] ) {
+			$add( 'error', __( 'Last sync', 'elementor-podcast-manager' ), (string) $state['message'] );
+		} elseif ( (int) $state['last_success'] > 0 ) {
+			$add(
+				'ok',
+				__( 'Last sync', 'elementor-podcast-manager' ),
+				sprintf(
+					/* translators: 1: time difference, 2: sync summary */
+					__( '%1$s ago — %2$s', 'elementor-podcast-manager' ),
+					human_time_diff( (int) $state['last_success'] ),
+					(string) $state['message']
+				)
+			);
+		} else {
+			$add( 'warning', __( 'Last sync', 'elementor-podcast-manager' ), __( 'Not synced yet. Run “Sync now” or import the show.', 'elementor-podcast-manager' ) );
+		}
+
+		if ( ! Hosting::get( 'redirect' ) ) {
+			$add( 'warning', __( 'Site feed', 'elementor-podcast-manager' ), __( 'This site still publishes its own feed. If apps find both, listeners may see the show twice; turn on the redirect to your host’s feed.', 'elementor-podcast-manager' ) );
+		} else {
+			$add( 'ok', __( 'Site feed', 'elementor-podcast-manager' ), __( 'Redirects permanently to your host’s feed.', 'elementor-podcast-manager' ) );
+		}
+
+		$count = epm()->episodes->count_published();
+		if ( 0 === $count ) {
+			$add( 'warning', __( 'Episodes', 'elementor-podcast-manager' ), __( 'No episodes on this site yet.', 'elementor-podcast-manager' ) );
+		} else {
+			/* translators: %s: number of episodes */
+			$add( 'ok', __( 'Episodes', 'elementor-podcast-manager' ), sprintf( _n( '%s published episode', '%s published episodes', $count, 'elementor-podcast-manager' ), number_format_i18n( $count ) ) );
+		}
+
+		return $checks;
+	}
+
+	/**
+	 * Sort checks and count problems.
+	 *
+	 * @param array<int, array{status: string, label: string, message: string}> $checks Checks.
+	 * @return array{ready: bool, errors: int, warnings: int, checks: array<int, array{status: string, label: string, message: string}>}
+	 */
+	private static function finish( array $checks ): array {
 		// Problems first: errors, then warnings, then passed checks (stable).
 		$rank = [
 			'error'   => 0,

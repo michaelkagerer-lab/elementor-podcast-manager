@@ -121,7 +121,18 @@ final class Renderer {
 	 * @return string
 	 */
 	public function artwork( array $episode, string $size = 'medium', string $class = '' ): string {
-		$id = (int) ( $episode['artwork_id'] ?? 0 );
+		$id  = (int) ( $episode['artwork_id'] ?? 0 );
+		$alt = sprintf(
+			/* translators: %s: episode title */
+			__( 'Artwork for %s', 'elementor-podcast-manager' ),
+			wp_strip_all_tags( (string) ( $episode['title'] ?? '' ) )
+		);
+
+		// Episode image hosted elsewhere (imported from a podcast host).
+		$remote = (string) ( $episode['artwork_url'] ?? '' );
+		if ( '' !== $remote ) {
+			return '<img class="' . esc_attr( trim( 'epm-artwork ' . $class ) ) . '" src="' . esc_url( $remote ) . '" alt="' . esc_attr( $alt ) . '" loading="lazy" decoding="async" />';
+		}
 
 		if ( $id <= 0 ) {
 			return '';
@@ -133,11 +144,7 @@ final class Renderer {
 			false,
 			[
 				'class'   => trim( 'epm-artwork ' . $class ),
-				'alt'     => sprintf(
-					/* translators: %s: episode title */
-					__( 'Artwork for %s', 'elementor-podcast-manager' ),
-					$episode['title'] ?? ''
-				),
+				'alt'     => $alt,
 				'loading' => 'lazy',
 			]
 		);
@@ -463,7 +470,7 @@ final class Renderer {
 		if ( $args['show_rss'] ) {
 			$links[] = [
 				'label'   => __( 'RSS Feed', 'elementor-podcast-manager' ),
-				'url'     => Feed::url(),
+				'url'     => Hosting::public_feed_url(),
 				'service' => 'rss',
 			];
 		}
@@ -476,7 +483,11 @@ final class Renderer {
 
 		foreach ( $links as $link ) {
 			$service = sanitize_key( $link['service'] ?? 'custom' );
-			$label   = '' !== (string) ( $link['label'] ?? '' ) ? (string) $link['label'] : ucfirst( $service );
+			if ( 'custom' === $service ) {
+				$service = Directories::detect_service( (string) $link['url'] );
+			}
+			$known   = Directories::services()[ $service ] ?? null;
+			$label   = '' !== (string) ( $link['label'] ?? '' ) ? (string) $link['label'] : ( null !== $known ? (string) $known['label'] : ucfirst( $service ) );
 
 			$out .= '<li class="epm-subscribe__item epm-subscribe__item--' . esc_attr( $service ) . '">';
 			$out .= '<a class="epm-subscribe__link" href="' . esc_url( $link['url'] ) . '" target="_blank" rel="noopener">';
@@ -505,7 +516,14 @@ final class Renderer {
 	 * @return string SVG markup.
 	 */
 	public function service_icon( string $service ): string {
-		// Neutral generic icons; services share shapes, no brand colors.
+		// Recognizable platform glyphs (monochrome, currentColor); neutral
+		// shapes for services without one.
+		$known = Directories::services()[ $service ] ?? null;
+		$glyph = null !== $known && '' !== $known['icon'] ? BrandIcons::svg( (string) $known['icon'] ) : '';
+		if ( '' !== $glyph ) {
+			return $glyph;
+		}
+
 		$paths = [
 			'spotify' => '<circle cx="12" cy="12" r="9"/><path d="M8 10.5c2.7-.8 5.6-.4 7.8 1M8.2 13.2c2.2-.6 4.4-.3 6.2.9M8.4 15.7c1.7-.5 3.3-.2 4.7.7"/>',
 			'apple'   => '<circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5c1-1 5-1 6 0"/>',
@@ -788,6 +806,10 @@ final class Renderer {
 	 * @return string
 	 */
 	public function artwork_url( array $episode, string $size = 'medium' ): string {
+		if ( '' !== (string) ( $episode['artwork_url'] ?? '' ) ) {
+			return (string) $episode['artwork_url'];
+		}
+
 		$id = (int) ( $episode['artwork_id'] ?? 0 );
 
 		if ( $id <= 0 ) {

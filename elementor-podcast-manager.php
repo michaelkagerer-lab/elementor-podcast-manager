@@ -77,13 +77,17 @@ register_activation_hook(
 		EPM\EpisodePostType::register();
 		flush_rewrite_rules();
 		update_option( 'epm_version', EPM_VERSION );
+		// Open the setup assistant on the next admin page load (once).
+		add_option( 'epm_activation_redirect', 1, '', false );
 	}
 );
 
-// Deactivation: flush rewrites so /podcast/feed/ stops resolving.
+// Deactivation: flush rewrites so /podcast/feed/ stops resolving, and stop
+// the host sync / background import schedules.
 register_deactivation_hook(
 	__FILE__,
 	function () {
+		EPM\Hosting::unschedule_all();
 		flush_rewrite_rules();
 	}
 );

@@ -1,0 +1,24 @@
+/**
+ * Hosting & import: two columns on wide screens (settings | moving guides).
+ */
+
+.epm-hosting-layout {
+	display: grid;
+	gap: 24px;
+	align-items: start;
+}
+
+@media (min-width: 1200px) {
+	.epm-app[data-epm-hosting] {
+		max-width: 1280px;
+	}
+
+	.epm-hosting-layout {
+		grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+	}
+}
+
+.epm-app[data-epm-hosting] .epm-checklist__text select {
+	inline-size: auto;
+	max-inline-size: 100%;
+}

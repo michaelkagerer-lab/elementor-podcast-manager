@@ -149,6 +149,30 @@ final class Episodes {
 	}
 
 	/**
+	 * Meta query clause: episodes with audio, either a Media Library file or
+	 * an audio URL. Both sub-clauses use operators WordPress can serve from
+	 * one postmeta join.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public static function audio_meta_query(): array {
+		return [
+			'relation' => 'OR',
+			[
+				'key'     => self::META_PREFIX . 'audio_id',
+				'value'   => 0,
+				'compare' => '>',
+				'type'    => 'NUMERIC',
+			],
+			[
+				'key'     => self::META_PREFIX . 'audio_url',
+				'value'   => '://',
+				'compare' => 'LIKE',
+			],
+		];
+	}
+
+	/**
 	 * Store the episode duration in seconds (_epm_duration_seconds) next to
 	 * the human-readable duration, for numeric sorting and integrations.
 	 * Falls back to the length WordPress read from the audio file.
@@ -335,14 +359,7 @@ final class Episodes {
 		];
 
 		if ( $with_audio ) {
-			$args['meta_query'] = [
-				[
-					'key'     => self::META_PREFIX . 'audio_id',
-					'value'   => 0,
-					'compare' => '>',
-					'type'    => 'NUMERIC',
-				],
-			];
+			$args['meta_query'] = [ self::audio_meta_query() ];
 		}
 
 		$episodes = $this->get_episodes( $args );
@@ -390,6 +407,20 @@ final class Episodes {
 		$audio_id   = (int) $meta( 'audio_id', 0 );
 		$audio_url  = $audio_id > 0 ? wp_get_attachment_url( $audio_id ) : '';
 		$audio_meta = $audio_id > 0 ? wp_get_attachment_metadata( $audio_id ) : [];
+		$audio_mime = $audio_id > 0 ? (string) get_post_mime_type( $audio_id ) : '';
+		$audio_source = $audio_url ? 'media' : '';
+
+		// Audio hosted elsewhere (a podcast host, CDN or storage bucket):
+		// used when no Media Library file is attached.
+		if ( ! $audio_url ) {
+			$external = esc_url_raw( (string) $meta( 'audio_url', '' ) );
+			if ( '' !== $external ) {
+				$audio_url    = $external;
+				$audio_mime   = AudioMetadata::normalize_mime( (string) $meta( 'audio_type', '' ), $external );
+				$audio_meta   = [ 'filesize' => (int) $meta( 'audio_length', 0 ) ];
+				$audio_source = 'external';
+			}
+		}
 
 		// Artwork fallback: episode artwork -> featured image -> default
 		// episode artwork -> podcast artwork.
@@ -421,6 +452,11 @@ final class Episodes {
 			? (int) $audio_meta['filesize']
 			: (int) $meta( 'audio_size', 0 );
 
+		// Image hosted elsewhere (imported episodes keep the host's image
+		// unless media was copied): used when no attachment is set.
+		$own_artwork_id  = $episode_artwork_id > 0 ? $episode_artwork_id : (int) get_post_thumbnail_id( $post );
+		$own_artwork_url = $own_artwork_id > 0 ? '' : esc_url_raw( (string) $meta( 'artwork_url', '' ) );
+
 		$data = [
 			'id'              => $post->ID,
 			'title'           => get_the_title( $post ),
@@ -432,14 +468,22 @@ final class Episodes {
 			'description'     => $post->post_content,
 			'audio_id'        => $audio_id,
 			'audio_url'       => $audio_url ? (string) $audio_url : '',
-			'audio_mime'      => $audio_id > 0 ? (string) get_post_mime_type( $audio_id ) : '',
+			'audio_mime'      => $audio_mime,
 			'audio_size'      => $audio_size,
+			'audio_source'    => $audio_source,
 			'duration'        => $duration,
 			'duration_seconds' => self::duration_to_seconds( $duration ),
 			'artwork_id'      => $artwork_id,
 			// Episode-specific image (own artwork or featured image), 0 when
 			// the episode inherits the default/podcast artwork.
-			'own_artwork_id'  => $episode_artwork_id > 0 ? $episode_artwork_id : (int) get_post_thumbnail_id( $post ),
+			'own_artwork_id'  => $own_artwork_id,
+			// Remote episode image (URL) when no attachment is set.
+			'own_artwork_url' => $own_artwork_url,
+			// What to display: a remote episode image beats the inherited
+			// default/podcast artwork (artwork_id), but not an attachment.
+			'artwork_url'     => ( $own_artwork_id <= 0 && '' !== $own_artwork_url ) ? $own_artwork_url : '',
+			'source'          => (string) $meta( 'source', '' ),
+			'source_link'     => esc_url_raw( (string) $meta( 'source_link', '' ) ),
 			'episode_number'  => $meta( 'episode_number', '' ),
 			'season_number'   => $meta( 'season_number', '' ),
 			'episode_type'    => $meta( 'episode_type', 'full' ),
@@ -456,7 +500,7 @@ final class Episodes {
 			'chapters'        => self::normalize_chapters( $meta( 'chapters', [] ) ),
 			'canonical_url'   => esc_url_raw( $meta( 'canonical_url', '' ) ),
 			'platform_urls'   => self::normalize_links( $meta( 'platform_urls', [] ) ),
-			'has_audio'       => $audio_id > 0 && '' !== $audio_url,
+			'has_audio'       => '' !== (string) $audio_url,
 			'guid'            => self::get_guid( $post->ID ),
 		];
 
