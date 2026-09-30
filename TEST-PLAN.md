@@ -1,14 +1,22 @@
-# TEST-PLAN — Player engine v2 (manual verification)
+# TEST-PLAN — Player engine (manual scenarios)
 
-> No browser, WordPress, or Elementor runtime is available in this
-> environment. Static checks only: `node --check` passes on
-> `assets/js/epm-player.js`; PHP files are brace/paren balanced and were
-> manually reviewed. **Every scenario below needs a real WordPress +
-> Elementor install.** Do not claim these passed until executed there.
-
-Scope: `assets/js/epm-player.js` (rewritten), `assets/css/epm-frontend.css`
-(additions), `includes/Assets.php` (early registration + localization),
-`get_script_depends()` / `get_style_depends()` on the 10 widgets.
+> **Status (1.2.0):** most scenarios below are now automated and run in CI:
+> `tests/e2e/run.mjs` drives Chromium against a real WordPress + Elementor
+> site (see `tests/README.md` and `docs/VERIFICATION-1.2.0.md`). Covered:
+> - initialization after an Elementor re-render (F4 #2)
+> - shared state between cards and players, and pause-others (F7 #5–7)
+> - the sticky bar: shows the active episode, speed, pause, close (F7 #8–9)
+> - chapter seeking and highlighting (F8 #13–14)
+> - keyboard seeking and aria-valuenow updates (F15 #20)
+> - the narrow-width layout (F15 #26)
+>
+> Still manual: duplicate-listener checks (F4 #1, #3–4), natural end
+> (F7 #11), chapters of a second episode (F8 #12), asset loading per page
+> type (F14), screen readers, error/retry and fallback (F15 #21–24) and
+> touch input (F15 #25).
+>
+> The list stays useful for manual checks on real devices and screen
+> readers, which the automated suites do not replace.
 
 ## F4 — Idempotent initialization
 
@@ -99,8 +107,7 @@ Scope: `assets/js/epm-player.js` (rewritten), `assets/css/epm-frontend.css`
 
 ## Known scope notes for the verifier
 
-- Text-only widgets still call `\EPM\Assets::enqueue()` in `render()`
-  (pre-existing), which loads the player JS even though they no longer
-  declare it via `get_script_depends()`. Consider removing those calls in a
-  follow-up; shortcodes still need the `Assets::enqueue()` path.
-- `Renderer.php` markup was frozen for this task and not modified.
+- Text-only widgets enqueue only the stylesheet (`Assets::enqueue_style()`);
+  shortcodes and the automatic episode page use `Assets::enqueue()`.
+- Seeking requires HTTP Range support on the host (Apache/nginx provide it;
+  PHP's built-in server does not — the test router adds it).

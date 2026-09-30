@@ -41,7 +41,19 @@ async function newPage(viewport = { width: 1280, height: 900 }) {
 	const page = await context.newPage();
 	page.problems = [];
 	page.on('pageerror', (e) => page.problems.push(`pageerror: ${e.message} ${(e.stack || '').split('\n').slice(1, 4).join(' | ')}`));
-	page.on('console', (m) => { if (m.type() === 'error' && !/ERR_BLOCKED_BY_CLIENT|net::ERR_FAILED/.test(m.text())) page.problems.push(`console: ${m.text()}`); });
+	page.on('console', (m) => {
+		if (m.type() !== 'error') {
+			return;
+		}
+		const where = `${m.text()} ${(m.location() && m.location().url) || ''}`;
+		// Uncaught exceptions always fail (pageerror above). Console errors
+		// only count when they come from this plugin: WordPress and
+		// Elementor log their own development warnings (React prop types).
+		if (/ERR_BLOCKED_BY_CLIENT|net::ERR_FAILED/.test(where) || !/elementor-podcast-manager|epm/i.test(where)) {
+			return;
+		}
+		page.problems.push(`console: ${where}`);
+	});
 	return page;
 }
 
@@ -79,6 +91,14 @@ console.log('Frontend player');
 		time: document.querySelector('[data-epm-player] [data-epm-current]').textContent,
 	}));
 	assert(chapter.active === 1 && chapter.time.startsWith('0:3'), `chapter click seeks the episode and highlights it (${JSON.stringify(chapter)})`);
+
+	const before = Number(await page.getAttribute('[data-epm-timeline]', 'aria-valuenow'));
+	await page.focus('.epm-player [data-epm-timeline]');
+	await page.keyboard.press('ArrowRight');
+	await page.keyboard.press('ArrowRight');
+	await page.waitForTimeout(400);
+	const after = Number(await page.getAttribute('[data-epm-timeline]', 'aria-valuenow'));
+	assert(after - before >= 9 && after - before <= 12, `keyboard seeking moves the slider and updates aria-valuenow (${before} → ${after})`);
 
 	await page.click('.epm-player__speed');
 	await page.click('.epm-player__skip >> nth=0');
@@ -149,7 +169,21 @@ if (fixtures.elementor_page) {
 	assert(state.widgets === 11, `all widgets render in the editor preview (${state.widgets})`);
 	assert(state.players, 'players initialize in the editor preview');
 
-	await frame.locator('.elementor-widget-epm-podcast-player').first().click({ position: { x: 5, y: 5 } });
+	// Select the widget through Elementor's command API (a click can land
+	// on onboarding overlays on a fresh install); fall back to clicking.
+	await page.keyboard.press('Escape');
+	const widgetId = await preview.evaluate(() => document.querySelector('.elementor-widget-epm-podcast-player').dataset.id);
+	const selected = await page.evaluate((id) => {
+		try {
+			window.$e.run('document/elements/select', { container: window.elementor.getContainer(id) });
+			return true;
+		} catch (e) {
+			return false;
+		}
+	}, widgetId);
+	if (!selected) {
+		await frame.locator('.elementor-widget-epm-podcast-player').first().click({ position: { x: 5, y: 5 } });
+	}
 	await page.locator('.elementor-control-source select >> visible=true').waitFor({ timeout: 20000 });
 	await page.click('.elementor-control-section_player >> visible=true');
 	await page.selectOption('.elementor-control-layout select >> visible=true', 'editorial');
@@ -236,9 +270,15 @@ console.log('Episode admin');
 
 // ---------------------------------------------------------------------------
 if (fixtures.elementor_page) {
-	console.log('Sticky player');
+	console.log('Elementor page and sticky player');
 	const page = await newPage();
 	await page.goto(`${BASE}/epm-elementor/`);
+	const custom = await page.evaluate(() => {
+		const button = document.querySelector('.elementor-widget-epm-podcast-player .epm-player__play');
+		const style = getComputedStyle(button);
+		return { background: style.backgroundColor, width: style.width };
+	});
+	assert(custom.background === 'rgb(10, 125, 51)' && custom.width === '72px', `custom Elementor play button color and size apply (${JSON.stringify(custom)})`);
 	assert(await page.locator('[data-epm-sticky]').isHidden(), 'sticky bar hidden until playback');
 	await page.locator('.elementor-widget-epm-podcast-player .epm-player__play').click();
 	await page.waitForTimeout(1500);
@@ -247,6 +287,9 @@ if (fixtures.elementor_page) {
 		return { hidden: bar.hidden, title: bar.querySelector('[data-epm-sticky-title]').textContent, artwork: !!bar.querySelector('img') };
 	});
 	assert(!sticky.hidden && sticky.title.startsWith('Episode One') && sticky.artwork, 'sticky bar follows the active episode');
+	await page.click('[data-epm-sticky] [data-epm-speed]');
+	const rate = await page.evaluate(() => window.epmPlayerEngine.getController(document.querySelector('.elementor-widget-epm-podcast-player [data-epm-player]').dataset.epmEpisodeId).audio.playbackRate);
+	assert(rate !== 1, `sticky speed button changes the real playback rate (${rate})`);
 	await page.click('[data-epm-sticky] [data-epm-play]');
 	await page.waitForTimeout(300);
 	assert(!(await page.evaluate(() => document.querySelector('.elementor-widget-epm-podcast-player [data-epm-player]').classList.contains('is-playing'))), 'sticky pause pauses the widget player');
