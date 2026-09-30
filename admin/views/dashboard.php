@@ -137,7 +137,7 @@ $epm_status_label = [
 			<div class="epm-dashboard__body">
 				<p class="epm-card__lede">
 					<?php
-					if ( $hosting['external'] ) {
+					if ( $hosting['external'] && '' !== \EPM\Hosting::source_feed_url() ) {
 						printf(
 							/* translators: %s: podcast host name */
 							esc_html__( '%s publishes your RSS feed. This website mirrors the episodes.', 'elementor-podcast-manager' ),
@@ -152,7 +152,7 @@ $epm_status_label = [
 					<span class="epm-dashboard__label"><?php esc_html_e( 'Feed address', 'elementor-podcast-manager' ); ?></span>
 					<div class="epm-copy">
 						<code class="epm-copy__value"><?php echo esc_html( (string) $hosting['feed'] ); ?></code>
-						<?php echo \EPM\Admin::copy_button( (string) $hosting['feed'], __( 'Copy feed URL', 'elementor-podcast-manager' ), '', __( 'Feed URL copied.', 'elementor-podcast-manager' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in copy_button(). ?>
+						<?php echo \EPM\Admin::copy_button( (string) $hosting['feed'], __( 'Copy feed address', 'elementor-podcast-manager' ), '', __( 'Feed address copied.', 'elementor-podcast-manager' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in copy_button(). ?>
 					</div>
 				</div>
 				<?php if ( $hosting['external'] ) : ?>

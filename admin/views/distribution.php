@@ -29,9 +29,12 @@ $epm_essential  = array_filter(
 	}
 );
 $epm_done_count = 0;
+$epm_next       = ''; // The one platform to submit to next (primary button).
 foreach ( array_keys( $epm_essential ) as $epm_id ) {
 	if ( ! empty( $epm_progress[ $epm_id ]['status'] ) ) {
 		++$epm_done_count;
+	} elseif ( '' === $epm_next ) {
+		$epm_next = (string) $epm_id;
 	}
 }
 
@@ -83,8 +86,8 @@ $epm_icon = static function ( array $dir ): string {
 			<p class="epm-app__lede"><?php esc_html_e( 'Get your podcast into Apple Podcasts, Spotify, YouTube and every other app. Each platform needs your feed address once.', 'elementor-podcast-manager' ); ?></p>
 		</div>
 		<p class="epm-distribution__score">
-			<strong class="epm-tabular"><?php echo esc_html( $epm_done_count . ' / ' . count( $epm_essential ) ); ?></strong>
-			<span><?php esc_html_e( 'essential platforms done', 'elementor-podcast-manager' ); ?></span>
+			<strong class="epm-tabular" data-dist-score><?php echo esc_html( sprintf( /* translators: 1: platforms done, 2: essential platforms */ __( '%1$s of %2$s', 'elementor-podcast-manager' ), number_format_i18n( $epm_done_count ), number_format_i18n( count( $epm_essential ) ) ) ); ?></strong>
+			<span><?php esc_html_e( 'essential platforms submitted', 'elementor-podcast-manager' ); ?></span>
 		</p>
 	</header>
 
@@ -94,7 +97,7 @@ $epm_icon = static function ( array $dir ): string {
 		<h2 class="epm-card__title" id="epm-dist-feed-title"><?php esc_html_e( 'Your feed address', 'elementor-podcast-manager' ); ?></h2>
 		<p class="epm-card__lede">
 			<?php
-			if ( $epm_external ) {
+			if ( $epm_external && '' !== \EPM\Hosting::source_feed_url() ) {
 				printf(
 					/* translators: %s: podcast host name */
 					esc_html__( '%s publishes your feed. Submit this address, or use the distribution tools in your host’s dashboard.', 'elementor-podcast-manager' ),
@@ -121,7 +124,7 @@ $epm_icon = static function ( array $dir ): string {
 			?>
 		</p>
 
-		<div class="epm-stack--tight epm-dist-check">
+		<div class="epm-stack--tight epm-dist-check" id="epm-dist-check">
 			<div>
 				<button type="button" class="button" data-action="server-check"><?php esc_html_e( 'Test feed and audio delivery', 'elementor-podcast-manager' ); ?></button>
 				<span class="epm-field__help"><?php esc_html_e( 'Checks what directories check: the feed, HTTPS, and whether your server answers audio requests the way apps need.', 'elementor-podcast-manager' ); ?></span>
@@ -157,12 +160,12 @@ $epm_icon = static function ( array $dir ): string {
 					$epm_badge  = 'listed' === $epm_status ? 'ok' : ( 'submitted' === $epm_status ? 'info' : '' );
 					$epm_auto   = '' !== $epm_dir['via'];
 					?>
-					<article class="epm-platform" data-directory="<?php echo esc_attr( $epm_id ); ?>" aria-labelledby="epm-dir-<?php echo esc_attr( $epm_id ); ?>">
+					<article class="epm-platform" data-directory="<?php echo esc_attr( $epm_id ); ?>" aria-labelledby="epm-dir-<?php echo esc_attr( $epm_id ); ?>"<?php echo isset( $epm_essential[ $epm_id ] ) ? ' data-essential' : ''; ?>>
 						<span class="epm-platform__icon"><?php echo $epm_icon( $epm_dir ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped SVG/markup. ?></span>
 						<h3 class="epm-platform__name" id="epm-dir-<?php echo esc_attr( $epm_id ); ?>">
 							<?php echo esc_html( (string) $epm_dir['name'] ); ?>
 							<?php if ( ! $epm_auto || '' !== $epm_status ) : ?>
-								<span class="epm-badge<?php echo '' !== $epm_badge ? ' epm-badge--' . esc_attr( $epm_badge ) : ''; ?>" data-status-badge><?php echo esc_html( $epm_status_label[ $epm_status ] ?? '' ); ?></span>
+								<span class="epm-badge<?php echo '' !== $epm_badge ? ' epm-badge--' . esc_attr( $epm_badge ) : ''; ?>" data-status-badge data-status="<?php echo esc_attr( $epm_status ); ?>"><?php echo esc_html( $epm_status_label[ $epm_status ] ?? '' ); ?></span>
 							<?php endif; ?>
 							<?php if ( '' !== $epm_dir['region'] ) : ?>
 								<span class="epm-badge"><?php echo esc_html( (string) $epm_dir['region'] ); ?></span>
@@ -170,7 +173,7 @@ $epm_icon = static function ( array $dir ): string {
 						</h3>
 						<div class="epm-platform__actions">
 							<?php if ( '' !== $epm_dir['submit_url'] ) : ?>
-								<a class="button<?php echo ( 'essential' === $epm_dir['priority'] && '' === $epm_status && ! $epm_auto ) ? ' button-primary' : ''; ?>" href="<?php echo esc_url( (string) $epm_dir['submit_url'] ); ?>" target="_blank" rel="noopener">
+								<a class="button<?php echo $epm_id === $epm_next ? ' button-primary' : ''; ?>" href="<?php echo esc_url( (string) $epm_dir['submit_url'] ); ?>" target="_blank" rel="noopener" data-submit-link>
 									<?php
 									/* translators: %s: platform name */
 									echo esc_html( sprintf( $epm_auto ? __( 'Open %s', 'elementor-podcast-manager' ) : __( 'Submit to %s', 'elementor-podcast-manager' ), (string) $epm_dir['name'] ) );
@@ -213,7 +216,7 @@ $epm_icon = static function ( array $dir ): string {
 											<button type="submit" class="button"><?php esc_html_e( 'Save', 'elementor-podcast-manager' ); ?></button>
 										</div>
 										<p class="epm-field__help" id="epm-dir-help-<?php echo esc_attr( $epm_id ); ?>"><?php esc_html_e( 'The listing link is added to your subscribe buttons automatically.', 'elementor-podcast-manager' ); ?></p>
-										<p class="epm-field__error" data-error hidden></p>
+										<p class="epm-field__error" id="epm-dir-error-<?php echo esc_attr( $epm_id ); ?>" data-error hidden></p>
 									</div>
 								</form>
 							</div>

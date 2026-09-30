@@ -59,7 +59,7 @@ $epm_steps = [
 	</header>
 
 	<noscript>
-		<div class="epm-callout epm-callout--warn"><p><?php esc_html_e( 'The setup assistant needs JavaScript. You can still configure everything under Podcast → Podcast Settings and Podcast → Hosting & import.', 'elementor-podcast-manager' ); ?></p></div>
+		<div class="epm-callout epm-callout--warn"><p><?php esc_html_e( 'The setup assistant needs JavaScript. You can still configure everything under Podcast → Podcast settings and Podcast → Hosting & import.', 'elementor-podcast-manager' ); ?></p></div>
 	</noscript>
 
 	<nav aria-label="<?php esc_attr_e( 'Setup progress', 'elementor-podcast-manager' ); ?>">
@@ -78,7 +78,7 @@ $epm_steps = [
 			<h2 class="epm-panel__title" id="epm-setup-path-title"><?php esc_html_e( 'Where should your podcast live?', 'elementor-podcast-manager' ); ?></h2>
 			<p class="epm-panel__lede"><?php esc_html_e( 'The host is where the audio files and the RSS feed live. Podcast apps read the feed; your website shows the episodes either way.', 'elementor-podcast-manager' ); ?></p>
 
-			<fieldset class="epm-choices epm-choices--rows">
+			<fieldset class="epm-choices epm-choices--rows" aria-describedby="epm-setup-path-error">
 				<legend class="epm-sr-only"><?php esc_html_e( 'Hosting', 'elementor-podcast-manager' ); ?></legend>
 				<label class="epm-choice">
 					<input type="radio" name="path" value="new" <?php checked( $epm_path, 'new' ); ?> required />
@@ -96,7 +96,7 @@ $epm_steps = [
 					<span class="epm-choice__text"><?php esc_html_e( 'Your host keeps publishing the feed. This website shows every episode with its own pages and player, and picks up new episodes automatically.', 'elementor-podcast-manager' ); ?></span>
 				</label>
 			</fieldset>
-			<p class="epm-field__error" data-error hidden></p>
+			<p class="epm-field__error" id="epm-setup-path-error" data-error hidden></p>
 
 			<div class="epm-card__footer">
 				<button type="submit" class="button button-primary button-large"><?php esc_html_e( 'Continue', 'elementor-podcast-manager' ); ?></button>
@@ -180,10 +180,11 @@ $epm_steps = [
 						<span class="epm-choice__text"><?php esc_html_e( 'Recommended when you close the old account. Large shows take a while; the copy continues in the background. Without it, the audio keeps playing from your old host.', 'elementor-podcast-manager' ); ?></span>
 					</label>
 					<label class="epm-choice" data-confirm-owner hidden>
-						<input type="checkbox" name="confirm_owner" value="1" />
+						<input type="checkbox" name="confirm_owner" value="1" aria-describedby="epm-setup-confirm-error" />
 						<span class="epm-choice__title"><?php esc_html_e( 'I own this podcast and have the right to move it', 'elementor-podcast-manager' ); ?></span>
 						<span class="epm-choice__text"><?php esc_html_e( 'Required for locked feeds.', 'elementor-podcast-manager' ); ?></span>
 					</label>
+					<p class="epm-field__error" id="epm-setup-confirm-error" data-error-for="confirm_owner" hidden><?php esc_html_e( 'Confirm that you own this podcast to move it.', 'elementor-podcast-manager' ); ?></p>
 				</fieldset>
 
 				<fieldset class="epm-stack--tight" data-path-only="external">
@@ -225,6 +226,11 @@ $epm_steps = [
 
 		<div class="epm-callout epm-callout--error" data-import-error hidden><p></p></div>
 
+		<div class="epm-callout epm-callout--warn" data-media-failed hidden>
+			<p><strong data-media-failed-title></strong> <?php esc_html_e( 'These episodes still play from the old host. Open each one to add the audio file, or run the import again, before you close the old account.', 'elementor-podcast-manager' ); ?></p>
+			<ul class="epm-callout__list" data-media-failed-list></ul>
+		</div>
+
 		<details class="epm-details" data-import-details>
 			<summary><?php esc_html_e( 'Show the import log', 'elementor-podcast-manager' ); ?></summary>
 			<div class="epm-details__body">
@@ -262,7 +268,7 @@ $epm_steps = [
 
 			<div class="epm-field-row">
 				<div class="epm-field">
-					<label class="epm-field__label" for="epm-setup-author"><?php esc_html_e( 'Author or host name', 'elementor-podcast-manager' ); ?></label>
+					<label class="epm-field__label" for="epm-setup-author"><?php esc_html_e( 'Author or presenter name', 'elementor-podcast-manager' ); ?></label>
 					<input type="text" id="epm-setup-author" name="author" value="<?php echo esc_attr( (string) $epm_settings['author'] ); ?>" autocomplete="name" />
 				</div>
 				<div class="epm-field">

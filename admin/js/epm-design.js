@@ -306,11 +306,24 @@
 
 			var key = fgKey + '/' + bgKey;
 			if (!silent && contrastState[key] !== undefined && contrastState[key] !== pass) {
-				speak(pass
-					/* translators: 1: color pair, e.g. "Text on background", 2: contrast ratio */
-					? sprintf(__('%1$s: contrast %2$s:1 passes.', 'elementor-podcast-manager'), label, decimal.format(ratio))
-					/* translators: 1: color pair, 2: contrast ratio, 3: required ratio */
-					: sprintf(__('%1$s: contrast %2$s:1 is too low. It needs at least %3$s:1.', 'elementor-podcast-manager'), label, decimal.format(ratio), decimal.format(min)));
+				var message;
+				if (pass) {
+					message = sprintf(
+						/* translators: 1: color pair, e.g. "Text on background", 2: contrast ratio */
+						__('%1$s: contrast %2$s:1 passes.', 'elementor-podcast-manager'),
+						label,
+						decimal.format(ratio)
+					);
+				} else {
+					message = sprintf(
+						/* translators: 1: color pair, 2: contrast ratio, 3: required ratio */
+						__('%1$s: contrast %2$s:1 is too low. It needs at least %3$s:1.', 'elementor-podcast-manager'),
+						label,
+						decimal.format(ratio),
+						decimal.format(min)
+					);
+				}
+				speak(message);
 			}
 			contrastState[key] = pass;
 		});
@@ -566,6 +579,24 @@
 		setDirty(false);
 	});
 
+	// Leaving with unsaved changes asks first (the browser shows its own
+	// message). Exporting downloads a file and stays on the page, so it
+	// doesn't ask.
+	var downloadUntil = 0;
+	var exportForm = root.querySelector('[data-epm-design-export]');
+	if (exportForm) {
+		exportForm.addEventListener('submit', function () {
+			downloadUntil = Date.now() + 2000;
+		});
+	}
+	window.addEventListener('beforeunload', function (e) {
+		if (!dirty || Date.now() < downloadUntil) {
+			return;
+		}
+		e.preventDefault();
+		e.returnValue = '';
+	});
+
 	// ---------------------------------------------------------------------
 	// Preset gallery.
 	// ---------------------------------------------------------------------
@@ -590,6 +621,8 @@
 
 		presetForm.addEventListener('submit', function (e) {
 			if (confirmed || !dialog || typeof dialog.showModal !== 'function') {
+				// Applying replaces the form values: nothing is left to warn about.
+				setDirty(false);
 				return;
 			}
 			e.preventDefault();
@@ -614,6 +647,8 @@
 		dialog.querySelector('[data-epm-dialog-confirm]').addEventListener('click', function () {
 			confirmed = true;
 			dialog.close();
+			// The user agreed to replace unsaved changes in the dialog.
+			setDirty(false);
 			if (typeof presetForm.requestSubmit === 'function') {
 				presetForm.requestSubmit();
 			} else {

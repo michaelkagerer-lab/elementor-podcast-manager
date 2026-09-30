@@ -40,8 +40,11 @@ $epm_public_feed  = \EPM\Hosting::public_feed_url();
 				<td><input type="text" id="epm-s-author" name="epm_podcast_settings[author]" value="<?php echo esc_attr( (string) $settings['author'] ); ?>" class="regular-text" /></td>
 			</tr>
 			<tr>
-				<th scope="row"><label for="epm-s-host"><?php esc_html_e( 'Host', 'elementor-podcast-manager' ); ?></label></th>
-				<td><input type="text" id="epm-s-host" name="epm_podcast_settings[host]" value="<?php echo esc_attr( (string) $settings['host'] ); ?>" class="regular-text" /></td>
+				<th scope="row"><label for="epm-s-host"><?php esc_html_e( 'Host (presenter)', 'elementor-podcast-manager' ); ?></label></th>
+				<td>
+					<input type="text" id="epm-s-host" name="epm_podcast_settings[host]" value="<?php echo esc_attr( (string) $settings['host'] ); ?>" class="regular-text" aria-describedby="epm-s-host-help" />
+					<p class="description" id="epm-s-host-help"><?php esc_html_e( 'The person who presents the show. Shown in the podcast header and in the feed.', 'elementor-podcast-manager' ); ?></p>
+				</td>
 			</tr>
 			<tr>
 				<th scope="row"><label for="epm-s-url"><?php esc_html_e( 'Website URL', 'elementor-podcast-manager' ); ?></label></th>
@@ -93,20 +96,20 @@ $epm_public_feed  = \EPM\Hosting::public_feed_url();
 				</td>
 			</tr>
 			<tr>
-				<th scope="row"><label for="epm-s-explicit"><?php esc_html_e( 'Explicit', 'elementor-podcast-manager' ); ?></label></th>
+				<th scope="row"><label for="epm-s-explicit"><?php esc_html_e( 'Content', 'elementor-podcast-manager' ); ?></label></th>
 				<td>
 					<select id="epm-s-explicit" name="epm_podcast_settings[explicit]">
-						<option value="clean" <?php selected( $settings['explicit'], 'clean' ); ?>><?php esc_html_e( 'Clean', 'elementor-podcast-manager' ); ?></option>
+						<option value="clean" <?php selected( $settings['explicit'], 'clean' ); ?>><?php esc_html_e( 'Suitable for all ages', 'elementor-podcast-manager' ); ?></option>
 						<option value="explicit" <?php selected( $settings['explicit'], 'explicit' ); ?>><?php esc_html_e( 'Explicit', 'elementor-podcast-manager' ); ?></option>
 					</select>
 				</td>
 			</tr>
 			<tr>
-				<th scope="row"><label for="epm-s-type"><?php esc_html_e( 'Podcast type', 'elementor-podcast-manager' ); ?></label></th>
+				<th scope="row"><label for="epm-s-type"><?php esc_html_e( 'Episode order', 'elementor-podcast-manager' ); ?></label></th>
 				<td>
 					<select id="epm-s-type" name="epm_podcast_settings[type]">
-						<option value="episodic" <?php selected( $settings['type'], 'episodic' ); ?>><?php esc_html_e( 'Episodic', 'elementor-podcast-manager' ); ?></option>
-						<option value="serial" <?php selected( $settings['type'], 'serial' ); ?>><?php esc_html_e( 'Serial', 'elementor-podcast-manager' ); ?></option>
+						<option value="episodic" <?php selected( $settings['type'], 'episodic' ); ?>><?php esc_html_e( 'Newest first (episodic)', 'elementor-podcast-manager' ); ?></option>
+						<option value="serial" <?php selected( $settings['type'], 'serial' ); ?>><?php esc_html_e( 'Oldest first (serial)', 'elementor-podcast-manager' ); ?></option>
 					</select>
 				</td>
 			</tr>
@@ -149,7 +152,7 @@ $epm_public_feed  = \EPM\Hosting::public_feed_url();
 			</tr>
 		</table>
 
-		<h2><?php esc_html_e( 'Distribution', 'elementor-podcast-manager' ); ?></h2>
+		<h2><?php esc_html_e( 'Feed and links', 'elementor-podcast-manager' ); ?></h2>
 		<table class="form-table" role="presentation">
 			<tr>
 				<th scope="row"><label for="epm-s-feed-limit"><?php esc_html_e( 'Feed episode limit', 'elementor-podcast-manager' ); ?></label></th>
@@ -174,11 +177,11 @@ $epm_public_feed  = \EPM\Hosting::public_feed_url();
 				</td>
 			</tr>
 			<tr>
-				<th scope="row"><?php esc_html_e( 'RSS feed URL', 'elementor-podcast-manager' ); ?></th>
+				<th scope="row"><?php esc_html_e( 'Feed address', 'elementor-podcast-manager' ); ?></th>
 				<td>
 					<div class="epm-copy">
 						<code class="epm-copy__value"><?php echo esc_html( $epm_public_feed ); ?></code>
-						<?php echo \EPM\Admin::copy_button( $epm_public_feed, __( 'Copy feed URL', 'elementor-podcast-manager' ), '', __( 'Feed URL copied.', 'elementor-podcast-manager' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in copy_button(). ?>
+						<?php echo \EPM\Admin::copy_button( $epm_public_feed, __( 'Copy feed address', 'elementor-podcast-manager' ), '', __( 'Feed address copied.', 'elementor-podcast-manager' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in copy_button(). ?>
 						<a href="<?php echo esc_url( $epm_public_feed ); ?>" target="_blank" rel="noopener" class="button"><?php esc_html_e( 'View feed', 'elementor-podcast-manager' ); ?><span class="screen-reader-text"> <?php esc_html_e( '(opens in a new tab)', 'elementor-podcast-manager' ); ?></span></a>
 					</div>
 					<p class="description">
@@ -212,7 +215,7 @@ $epm_public_feed  = \EPM\Hosting::public_feed_url();
 			<tr>
 				<th scope="row"><?php esc_html_e( 'Platform links', 'elementor-podcast-manager' ); ?></th>
 				<td>
-					<p class="description"><?php esc_html_e( 'Where listeners can follow the show, for example Apple Podcasts, Spotify or YouTube. Shown by the Subscribe Links widget. Links you add under Distribution appear here automatically.', 'elementor-podcast-manager' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Where listeners can follow the show, for example Apple Podcasts, Spotify or YouTube. Shown by the Subscribe Links widget. Links you add on the Distribution screen appear here automatically.', 'elementor-podcast-manager' ); ?></p>
 					<?php $this->links_repeater( 'platform_links', (array) ( $settings['platform_links'] ?? [] ) ); ?>
 				</td>
 			</tr>

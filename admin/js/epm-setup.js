@@ -110,6 +110,11 @@
 		} else {
 			button.removeAttribute( 'aria-busy' );
 			button.disabled = false;
+			// Disabling the focused button dropped focus to the page: put it
+			// back (never taken from a step that received focus meanwhile).
+			if ( ! document.activeElement || document.activeElement === document.body ) {
+				button.focus();
+			}
 		}
 	}
 
@@ -120,6 +125,9 @@
 		}
 		el.textContent = message || '';
 		el.hidden = ! message;
+		if ( message ) {
+			announce( message );
+		}
 	}
 
 	function formValues( form ) {
@@ -216,7 +224,8 @@
 					__( 'Step %1$s of %2$s: %3$s', 'elementor-podcast-manager' ),
 					index + 1,
 					steps.length,
-					title ? title.textContent.trim() : step
+					// innerText skips the hidden titles of the other paths.
+					title ? title.innerText.trim() : step
 				)
 			);
 		}
@@ -251,6 +260,7 @@
 
 		if ( ! values.path ) {
 			showError( form, __( 'Choose where your podcast lives to continue.', 'elementor-podcast-manager' ) );
+			form.querySelector( '[name="path"]' ).focus();
 			return;
 		}
 
@@ -307,6 +317,7 @@
 		if ( box ) {
 			box.hidden = true;
 		}
+		fieldError( connectForm, 'confirm_owner', false );
 		importButton.disabled = true;
 	}
 
@@ -348,7 +359,6 @@
 			.catch( function ( error ) {
 				input.setAttribute( 'aria-invalid', 'true' );
 				showError( connectForm, error.message );
-				announce( error.message );
 				return null;
 			} )
 			.then( function ( result ) {
@@ -455,7 +465,14 @@
 		importButton.disabled = result.episodes < 1;
 		box.hidden = false;
 
-		announce( ( channel.title || '' ) + ': ' + result.episodes );
+		announce(
+			format(
+				/* translators: 1: podcast title, 2: number of episodes */
+				_n( '%1$s: %2$s episode found.', '%1$s: %2$s episodes found.', result.episodes, 'elementor-podcast-manager' ),
+				channel.title || result.feed_url,
+				result.episodes
+			)
+		);
 	}
 
 	function startImport( form ) {
@@ -467,14 +484,12 @@
 		}
 
 		if ( state.path === 'move' && state.preview.locked && ! values.confirm_owner ) {
-			var confirmBox = $( '[data-confirm-owner] input', form );
-			showError( form, __( 'Confirm that you own this podcast to move it.', 'elementor-podcast-manager' ) );
-			if ( confirmBox ) {
-				confirmBox.focus();
-			}
+			// The message sits under the consent box, which gets focus.
+			fieldError( form, 'confirm_owner', true ).focus();
 			return;
 		}
 
+		fieldError( form, 'confirm_owner', false );
 		showError( form, '' );
 		busy( importButton, true );
 
@@ -511,7 +526,6 @@
 			} )
 			.catch( function ( error ) {
 				showError( form, error.message );
-				announce( error.message );
 			} )
 			.then( function () {
 				busy( importButton, false );
@@ -551,6 +565,8 @@
 			skipped: __( 'skipped', 'elementor-podcast-manager' ),
 			/* translators: import result label, e.g. "1 failed" */
 			failed: __( 'failed', 'elementor-podcast-manager' ),
+			/* translators: import result label, e.g. "2 audio not copied" */
+			media_failed: __( 'audio not copied', 'elementor-podcast-manager' ),
 		};
 		Object.keys( labels ).forEach( function ( key ) {
 			if ( counts[ key ] > 0 ) {
@@ -558,6 +574,7 @@
 			}
 		} );
 		$( '[data-import-summary]', importPanel ).textContent = summary.join( ' · ' );
+		renderMediaFailed( importPanel, job );
 
 		var log = $( '[data-import-log]', importPanel );
 		log.textContent = '';
@@ -594,7 +611,55 @@
 		$( '[data-action="cancel-import"]', importPanel ).hidden = finished;
 
 		if ( job.status === 'done' ) {
-			announce( format( app.strings.progress, done, total ) );
+			var media = $( '[data-media-failed]:not([hidden]) [data-media-failed-title]', importPanel );
+			announce( format( app.strings.progress, done, total ) + ( media ? ' ' + media.textContent : '' ) );
+		}
+	}
+
+	/**
+	 * After an import: the episodes whose audio stayed at the old host,
+	 * with links to fix them (the log only keeps the latest entries).
+	 */
+	function renderMediaFailed( scope, job ) {
+		var box = $( '[data-media-failed]', scope );
+		if ( ! box ) {
+			return;
+		}
+		var count = ( job.counts && job.counts.media_failed ) || 0;
+		var episodes = job.media_failed || [];
+		var finished = job.status !== 'running' && job.status !== 'ready';
+
+		box.hidden = ! ( finished && count > 0 );
+		if ( box.hidden ) {
+			return;
+		}
+
+		$( '[data-media-failed-title]', box ).textContent = format(
+			/* translators: %1$s: number of episodes */
+			_n( 'The audio of %1$s episode was not copied.', 'The audio of %1$s episodes was not copied.', count, 'elementor-podcast-manager' ),
+			count
+		);
+
+		var list = $( '[data-media-failed-list]', box );
+		list.textContent = '';
+		episodes.forEach( function ( episode ) {
+			var li = document.createElement( 'li' );
+			var link = document.createElement( episode.edit ? 'a' : 'span' );
+			link.textContent = episode.title;
+			if ( episode.edit ) {
+				link.href = episode.edit;
+			}
+			li.appendChild( link );
+			list.appendChild( li );
+		} );
+		if ( count > episodes.length ) {
+			var more = document.createElement( 'li' );
+			more.textContent = format(
+				/* translators: %1$s: number of episodes */
+				_n( 'and %1$s more', 'and %1$s more', count - episodes.length, 'elementor-podcast-manager' ),
+				count - episodes.length
+			);
+			list.appendChild( more );
 		}
 	}
 
@@ -912,7 +977,11 @@
 			case 'cancel-import':
 				busy( target, true );
 				request( 'epm_import_cancel', {}, app.importNonce )
-					.then( renderJob )
+					.then( function ( job ) {
+						renderJob( job );
+						// The stop button is gone: Continue is next.
+						$( '[data-import-continue]', importPanel ).focus();
+					} )
 					.catch( function ( error ) {
 						announce( error.message );
 					} )

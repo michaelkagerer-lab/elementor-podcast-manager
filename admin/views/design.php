@@ -69,8 +69,8 @@ $epm_sections = [
 		'title'  => __( 'Colors', 'elementor-podcast-manager' ),
 		'lede'   => __( 'Start with your site’s background, then pick text and accent colors that read well on it. The contrast check below updates as you go.', 'elementor-podcast-manager' ),
 		'fields' => [
-			'background'   => [ 'type' => 'color', 'label' => __( 'Background', 'elementor-podcast-manager' ), 'help' => __( 'The page behind podcast components. Use your site’s background color.', 'elementor-podcast-manager' ) ],
-			'surface'      => [ 'type' => 'color', 'label' => __( 'Surface', 'elementor-podcast-manager' ), 'help' => __( 'Players, cards and other raised areas.', 'elementor-podcast-manager' ) ],
+			'background'   => [ 'type' => 'color', 'label' => __( 'Background', 'elementor-podcast-manager' ), 'help' => __( 'Players and the area around podcast components. Usually your site’s background color.', 'elementor-podcast-manager' ) ],
+			'surface'      => [ 'type' => 'color', 'label' => __( 'Surface', 'elementor-podcast-manager' ), 'help' => __( 'Episode cards, the sticky player and error messages.', 'elementor-podcast-manager' ) ],
 			'text'         => [ 'type' => 'color', 'label' => __( 'Text', 'elementor-podcast-manager' ), 'help' => __( 'Titles and body text.', 'elementor-podcast-manager' ) ],
 			'muted'        => [ 'type' => 'color', 'label' => __( 'Muted text', 'elementor-podcast-manager' ), 'help' => __( 'Dates, durations and other secondary details.', 'elementor-podcast-manager' ) ],
 			'accent'       => [ 'type' => 'color', 'label' => __( 'Accent', 'elementor-podcast-manager' ), 'help' => __( 'Play buttons, links and the played part of timelines.', 'elementor-podcast-manager' ) ],
@@ -336,7 +336,7 @@ $epm_style = static function ( array $vars ): string {
 						<?php if ( 'colors' === $epm_section_id ) : ?>
 							<div class="epm-contrast-check" data-epm-contrast>
 								<h3 class="epm-design__subheading" id="epm-contrast-title"><?php esc_html_e( 'Contrast check', 'elementor-podcast-manager' ); ?></h3>
-								<p class="description"><?php esc_html_e( 'Text needs a contrast ratio of at least 4.5:1 and the timeline track 3:1 (WCAG AA), so everyone can read and use the player.', 'elementor-podcast-manager' ); ?></p>
+								<p class="description"><?php esc_html_e( 'Text needs a contrast ratio of at least 4.5:1 and the timeline track 3:1 (WCAG AA), on the background and on the surface of episode cards and the sticky player, so everyone can read and use them.', 'elementor-podcast-manager' ); ?></p>
 								<ul class="epm-contrast-list" aria-labelledby="epm-contrast-title">
 									<?php foreach ( Admin::contrast_pairs() as $epm_pair ) : ?>
 										<?php
@@ -439,7 +439,7 @@ $epm_style = static function ( array $vars ): string {
 				<h2 class="epm-card__title" id="epm-io-title"><?php esc_html_e( 'Move this design to another site', 'elementor-podcast-manager' ); ?></h2>
 				<p class="epm-card__lede"><?php esc_html_e( 'The file holds design values only: no episodes, media, text or web addresses.', 'elementor-podcast-manager' ); ?></p>
 				<div class="epm-design__io-grid">
-					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" data-epm-design-export>
 						<h3><?php esc_html_e( 'Export', 'elementor-podcast-manager' ); ?></h3>
 						<p class="description"><?php esc_html_e( 'Downloads the saved design as a .json file.', 'elementor-podcast-manager' ); ?></p>
 						<input type="hidden" name="action" value="epm_design_export" />

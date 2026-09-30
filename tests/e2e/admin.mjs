@@ -4,14 +4,17 @@
  *
  *   cd tests/e2e && WP_URL=http://localhost:8889 WP_CLI=/tmp/epm-wp/wp node admin.mjs
  *
- * Suites: Design screen (live preview, preset tiles, contrast, save),
- * episode editor (next number, paste chapters, half-filled rows), episode
- * list (Quick Edit), keyboard focus and narrow screens. The design option
- * and every episode touched are restored at the end.
+ * Suites: Design screen (live preview, preset tiles, contrast, save, the
+ * unsaved-changes warning, the save bar clear of focused fields), episode
+ * editor (next number, paste chapters: add or replace, half-filled rows),
+ * episode list (column widths, Quick Edit), keyboard focus and narrow
+ * screens. The design option and every episode touched are restored at
+ * the end.
  */
 import { chromium } from 'playwright';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import { login } from './lib.mjs';
 
 const BASE = process.env.WP_URL || 'http://localhost:8889';
 const WP = process.env.WP_CLI || 'wp';
@@ -61,10 +64,8 @@ async function newPage(viewport = { width: 1280, height: 900 }) {
 		}
 		page.problems.push(`console: ${where}`);
 	});
-	await page.goto(`${BASE}/wp-login.php`);
-	await page.fill('#user_login', 'admin');
-	await page.fill('#user_pass', 'admin');
-	await Promise.all([page.waitForURL(/\/wp-admin\//), page.click('#wp-submit')]);
+	// Retries a submit the login form swallows on a busy machine.
+	await login(page);
 	return page;
 }
 
@@ -77,6 +78,7 @@ try {
 		const page = await newPage();
 		await page.goto(`${BASE}/wp-admin/admin.php?page=epm-design`);
 		const canvasVar = (name) => page.evaluate((n) => document.querySelector('[data-epm-preview-canvas]').style.getPropertyValue(n).trim(), name);
+		assert(await page.evaluate(() => [...document.querySelectorAll('.epm-preset__desc')].every((d) => d.scrollHeight <= d.clientHeight + 1)), 'preset descriptions are shown in full');
 
 		await page.fill('#epm-d-accent', '#ff0055');
 		assert(await canvasVar('--epm-accent') === '#ff0055', 'preview updates live when a color changes');
@@ -93,6 +95,23 @@ try {
 		assert(!lists.cards && lists.rows, 'episode list layout switches the preview to cards');
 		assert((await page.textContent('[data-epm-dirty]')).trim() !== '', 'unsaved changes are flagged');
 
+		// Leaving with unsaved changes asks first (dismissed: the page stays);
+		// exporting downloads the saved design and doesn't ask.
+		const leaveDialogs = [];
+		const onDialog = (dialog) => {
+			leaveDialogs.push(dialog.type());
+			dialog.dismiss().catch(() => {});
+		};
+		page.on('dialog', onDialog);
+		await page.click('#adminmenu a[href="admin.php?page=epm-dashboard"]').catch(() => {});
+		await page.waitForTimeout(300);
+		assert(leaveDialogs.includes('beforeunload') && /page=epm-design/.test(page.url()), `leaving with unsaved changes asks first (${leaveDialogs.join(', ')})`);
+		leaveDialogs.length = 0;
+		const [download] = await Promise.all([page.waitForEvent('download'), page.click('[data-epm-design-export] [type="submit"]')]);
+		await page.waitForTimeout(300);
+		assert(leaveDialogs.length === 0 && /\.json$/.test(download.suggestedFilename()) && (await page.textContent('[data-epm-dirty]')).trim() !== '', 'exporting does not ask and keeps the unsaved changes');
+		page.off('dialog', onDialog);
+
 		await page.fill('#epm-d-text', '#eeeeee');
 		const failing = await page.evaluate(() => {
 			const item = document.querySelector('[data-epm-contrast-pair][data-fg="text"][data-bg="background"]');
@@ -101,6 +120,16 @@ try {
 		assert(failing.fail && /^1[.,]\d:1$/.test(failing.ratio), `contrast badge flags low text contrast (${failing.ratio})`);
 		await page.fill('#epm-d-text', '#111827');
 		assert(await page.evaluate(() => document.querySelector('[data-epm-contrast-pair][data-fg="text"][data-bg="background"]').classList.contains('is-pass')), 'contrast badge passes again');
+
+		// Cards and the sticky player sit on the surface color: muted text is
+		// checked there too (#6b7280 passes on white, not on #e5e7eb).
+		await page.fill('#epm-d-muted', '#6b7280');
+		await page.fill('#epm-d-surface', '#e5e7eb');
+		const onSurface = await page.evaluate(() => {
+			const pair = (fg, bg) => document.querySelector(`[data-epm-contrast-pair][data-fg="${fg}"][data-bg="${bg}"]`);
+			return { muted: pair('muted', 'surface') && pair('muted', 'surface').classList.contains('is-fail'), track: !!pair('track_color', 'surface'), accent: !!pair('accent', 'background') };
+		});
+		assert(onSurface.muted && onSurface.track && onSurface.accent, `contrast is checked on the surface and for accent text (${JSON.stringify(onSurface)})`);
 
 		await page.check('[data-epm-track-auto]');
 		const track = await page.evaluate(() => ({ value: document.querySelector('#epm-d-track_color').value, readonly: document.querySelector('#epm-d-track_color').readOnly }));
@@ -151,8 +180,12 @@ try {
 
 		// Keyboard: every focusable control shows a focus indicator.
 		await page.goto(`${BASE}/wp-admin/admin.php?page=epm-design`);
-		await page.focus('#wpbody-content');
+		// Start on the first stop of the screen (the preset tiles), so the
+		// loop walks the Design screen and not the admin menu.
+		await page.focus('input[name="epm_preset"]:checked');
 		const unringed = [];
+		const covered = [];
+		let formStops = 0;
 		for (let i = 0; i < 70; i++) {
 			await page.keyboard.press('Tab');
 			const info = await page.evaluate(() => {
@@ -164,13 +197,26 @@ try {
 				const tile = el.closest('.epm-preset, .epm-chip');
 				const ring = tile ? getComputedStyle(tile) : own;
 				const visible = (own.outlineStyle !== 'none' && own.outlineWidth !== '0px') || own.boxShadow !== 'none' || (ring.outlineStyle !== 'none' && ring.outlineWidth !== '0px');
-				return visible ? null : (el.id || el.name || el.className || el.tagName);
+				// The sticky save bar must not cover the focused field.
+				const bar = document.querySelector('.epm-design__savebar');
+				const box = (tile || el).getBoundingClientRect();
+				const barBox = bar ? bar.getBoundingClientRect() : null;
+				const hidden = !!(barBox && !bar.contains(el) && el.closest('.epm-design__form') && box.bottom > barBox.top + 1 && box.top < barBox.bottom);
+				return { name: el.id || el.name || el.className || el.tagName, ring: visible, hidden, form: !!el.closest('.epm-design__form') };
 			});
-			if (info) {
-				unringed.push(info);
+			if (info && info.form) {
+				formStops++;
+			}
+			if (info && !info.ring) {
+				unringed.push(info.name);
+			}
+			if (info && info.hidden) {
+				covered.push(info.name);
 			}
 		}
+		assert(formStops >= 20, `the keyboard walk reaches the design fields (${formStops} stops)`);
 		assert(unringed.length === 0, `keyboard focus is visible on the Design screen ${unringed.join(', ')}`);
+		assert(covered.length === 0, `the save bar never covers the focused field ${covered.join(', ')}`);
 		assert(await noOverflow(page), 'no horizontal overflow at 1280px');
 		await page.screenshot({ path: 'screenshots/admin-design.png' });
 		assert(page.problems.length === 0, `no browser errors ${page.problems.join('; ')}`);
@@ -186,6 +232,27 @@ try {
 			return top('.epm-design__presets') < top('.epm-design__preview') && top('.epm-design__preview') < top('.epm-design__form');
 		});
 		assert(order, 'on phones the preview follows the presets');
+		assert(await page.evaluate(() => [...document.querySelectorAll('.epm-preset__desc')].every((d) => d.scrollHeight <= d.clientHeight + 1)), 'preset descriptions are shown in full on phones');
+		// Tab through the form: the sticky save bar never covers the field.
+		await page.focus('#epm-d-background');
+		const coveredOnPhone = [];
+		for (let i = 0; i < 40; i++) {
+			await page.keyboard.press('Tab');
+			const name = await page.evaluate(() => {
+				const el = document.activeElement;
+				const bar = document.querySelector('.epm-design__savebar');
+				if (!el || !bar || bar.contains(el) || !el.closest('.epm-design__form')) {
+					return null;
+				}
+				const box = (el.closest('.epm-chip') || el).getBoundingClientRect();
+				const barBox = bar.getBoundingClientRect();
+				return box.bottom > barBox.top + 1 && box.top < barBox.bottom ? (el.id || el.name) : null;
+			});
+			if (name) {
+				coveredOnPhone.push(name);
+			}
+		}
+		assert(coveredOnPhone.length === 0, `the save bar never covers the focused field on phones ${coveredOnPhone.join(', ')}`);
 		await page.screenshot({ path: 'screenshots/admin-design-mobile.png', fullPage: true });
 		assert(page.problems.length === 0, `no browser errors ${page.problems.join('; ')}`);
 		await page.context().close();
@@ -257,6 +324,33 @@ try {
 	}
 
 	{
+		// Pasting next to existing chapters adds them unless "Replace" is
+		// checked; the button and the result say which one happened.
+		const page = await newPage({ width: 1280, height: 900 });
+		await page.goto(`${BASE}/wp-admin/post-new.php?post_type=podcast_episode`);
+		await page.waitForSelector('#title');
+		const rowCount = () => page.$$eval('[data-epm-repeat="chapters"] [data-epm-repeat-rows] [data-epm-repeat-row]', (list) => list.length);
+		const label = async () => (await page.textContent('[data-epm-paste-apply]')).trim();
+		await page.click('[data-epm-paste-chapters] summary');
+		await page.fill('[data-epm-paste-text]', '0:00 Intro\n1:00 Topic');
+		await page.click('[data-epm-paste-apply]');
+		assert((await rowCount()) === 2 && (await page.isVisible('[data-epm-paste-replace]')) && !(await page.isChecked('[data-epm-paste-replace]')), 'with chapters present, "Replace" is offered but not checked');
+		await page.fill('[data-epm-paste-text]', '2:00 Listener mail');
+		await page.click('[data-epm-paste-apply]');
+		assert((await rowCount()) === 3 && /Added 1 chapter/.test(await page.textContent('[data-epm-paste-result]')) && (await label()) === 'Add chapters from the list', 'pasting again adds to the chapters');
+		await page.check('[data-epm-paste-replace]');
+		assert((await label()) === 'Replace chapters with the list', 'the button says it will replace');
+		await page.fill('[data-epm-paste-text]', '0:00 A\n0:30 B');
+		await page.click('[data-epm-paste-apply]');
+		const replaced = await page.textContent('[data-epm-paste-result]');
+		assert((await rowCount()) === 2 && /Replaced 3 chapters with 2/.test(replaced), `replacing says how many chapters were replaced (${replaced.trim()})`);
+		await page.uncheck('[data-epm-paste-replace]');
+		assert((await label()) === 'Add chapters from the list', 'unchecking names the button "Add" again');
+		assert(page.problems.length === 0, `no browser errors ${page.problems.join('; ')}`);
+		await page.context().close();
+	}
+
+	{
 		// Transcript file: pick a .vtt in the Media Library; saving with an
 		// empty transcript fills the text from the file.
 		const vttPath = `${process.cwd()}/screenshots/e2e-transcript.vtt`;
@@ -302,6 +396,11 @@ try {
 		const before = { number: meta(id, '_epm_episode_number'), type: meta(id, '_epm_episode_type'), explicit: meta(id, '_epm_explicit') };
 		const page = await newPage({ width: 1280, height: 900 });
 		await page.goto(`${BASE}/wp-admin/edit.php?post_type=podcast_episode`);
+		const columns = await page.evaluate(() => ({
+			title: Math.round(document.querySelector('.wp-list-table thead th#title').getBoundingClientRect().width),
+			author: !!(document.querySelector('.wp-list-table thead th#author') || {}).offsetParent,
+		}));
+		assert(columns.title >= 250 && !columns.author, `the title column keeps room at 1280px (${columns.title}px, Author hidden by default)`);
 		const row = page.locator(`#post-${id}`);
 		await row.hover();
 		await row.locator('button.editinline').click();

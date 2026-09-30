@@ -19,7 +19,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const LOCKED_FEED = 'https://feeds.example.test/synthetic/locked-show.xml';
 const PAGED_FEED = 'https://feeds.example.test/synthetic/paged-1.xml';
 const LISTING = 'https://pca.st/itunes/epm-e2e-show';
-const OPTIONS = ['epm_hosting', 'epm_sync_state', 'epm_import_job', 'epm_import_lock', 'epm_setup', 'epm_distribution', 'epm_podcast_guid', 'epm_activation_redirect', 'epm_design_settings'];
+const OPTIONS = ['epm_hosting', 'epm_sync_state', 'epm_import_job', 'epm_import_lock', 'epm_setup', 'epm_distribution', 'epm_podcast_guid', 'epm_activation_redirect', 'epm_design_settings', 'epm_feed_build'];
 const phpList = (values) => `[ ${values.map((v) => `'${v}'`).join(', ')} ]`;
 
 // What the run changes, to put back at the end.
@@ -117,8 +117,15 @@ console.log('Setup assistant: keep the current host (keyboard)');
 	const pathError = page.locator('[data-panel="path"] [data-error]');
 	assert(await pathError.isVisible(), `continuing without a choice says what to do ("${(await pathError.textContent()) || ''}")`);
 	assert((await focusedPanel(page)) === '', 'and stays on step 1');
-
-	await tabTo(page, () => document.activeElement && document.activeElement.name === 'path', { back: true });
+	const told = await page.evaluate(() => ({
+		live: document.querySelector('[data-epm-announce]').textContent,
+		error: document.querySelector('#epm-setup-path-error').textContent,
+		described: document.querySelector('[data-step-form="path"] fieldset').getAttribute('aria-describedby'),
+		focus: document.activeElement && document.activeElement.name,
+	}));
+	assert(told.live === told.error && told.live.length > 0, `the error is announced ("${told.live}")`);
+	assert(told.described === 'epm-setup-path-error', 'and tied to the choices');
+	assert(told.focus === 'path', `focus goes to the choices (${told.focus})`);
 	// Arrow keys move through the choices (and select); Space selects the focused one.
 	for (let i = 0; i < 4; i++) {
 		const current = await page.evaluate(() => document.activeElement.value);
@@ -138,6 +145,9 @@ console.log('Setup assistant: keep the current host (keyboard)');
 	assert((await focusedPanel(page)) === 'connect', `focus moves to step 2 (${await focused(page)})`);
 	assert(!(await pathError.isVisible()), 'the error is gone');
 	assert((await visibleText(page, '#epm-setup-connect-title')) === 'Which host publishes your podcast?', 'step 2 asks for the host');
+	await page.waitForTimeout(200);
+	const stepSaid = await page.textContent('[data-epm-announce]');
+	assert(stepSaid === 'Step 2 of 6: Which host publishes your podcast?', `the step is announced with its visible title only ("${stepSaid}")`);
 	assert(/step=connect/.test(page.url()), 'the step is kept in the address');
 
 	// Step 2: paste the feed, check it with Enter.
@@ -147,6 +157,9 @@ console.log('Setup assistant: keep the current host (keyboard)');
 	await page.waitForSelector('[data-panel="connect"] [data-preview]:not([hidden])', { timeout: 30000 });
 	assert((await page.textContent('[data-preview-title]')) === 'Synthetic Show', 'the preview names the show');
 	assert((await page.textContent('[data-preview-episodes]')) === '5', 'and counts its episodes');
+	await page.waitForTimeout(200);
+	const found = await page.textContent('[data-epm-announce]');
+	assert(found === 'Synthetic Show: 5 episodes found.', `the preview is announced as a sentence ("${found}")`);
 	assert(await page.locator('[data-preview-locked]').isHidden(), 'a lock does not matter when the host stays');
 	assert(/\b1\b/.test((await page.textContent('[data-preview-notes]')) || ''), 'notes mention the hidden and duplicate episodes');
 	const importLabel = ((await page.textContent('[data-import-button]')) || '').trim();
@@ -167,6 +180,11 @@ console.log('Setup assistant: keep the current host (keyboard)');
 	await page.locator('[data-import-continue]').focus();
 	await Promise.all([page.waitForURL(/step=show/), page.keyboard.press('Enter')]);
 	await page.waitForSelector('[data-panel="show"]:not([hidden])');
+	const tops = await page.evaluate(() => {
+		const top = (id) => Math.round(document.querySelector(`label[for="${id}"]`).getBoundingClientRect().top);
+		return { author: top('epm-setup-author'), category: top('epm-setup-category'), owner: top('epm-setup-owner-name'), email: top('epm-setup-owner-email') };
+	});
+	assert(tops.author === tops.category && tops.owner === tops.email, `fields side by side line up (${JSON.stringify(tops)})`);
 	const show = await page.evaluate(() => ({
 		title: document.querySelector('#epm-setup-title').value,
 		author: document.querySelector('#epm-setup-author').value,
@@ -311,8 +329,14 @@ console.log('Setup assistant: move a locked show here');
 
 	await page.click('[data-import-button]');
 	await page.waitForTimeout(300);
-	const consent = page.locator('[data-panel="connect"] [data-error]');
+	const consent = page.locator('#epm-setup-confirm-error');
 	assert(await consent.isVisible(), `importing without consent is refused (${((await consent.textContent()) || '').trim()})`);
+	assert(await page.locator('#epm-setup-feed-error').isHidden(), 'the message is not shown under the feed address');
+	const box = await page.evaluate(() => {
+		const input = document.querySelector('[name="confirm_owner"]');
+		return { described: input.getAttribute('aria-describedby'), invalid: input.getAttribute('aria-invalid') };
+	});
+	assert(box.described === 'epm-setup-confirm-error' && box.invalid === 'true', `it belongs to the consent box (${JSON.stringify(box)})`);
 	assert((await focused(page)) === 'input[name=confirm_owner]', 'focus goes to the consent box');
 	assert(await page.locator('[data-panel="connect"]').isVisible(), 'the import does not start');
 	await page.screenshot({ path: 'screenshots/setup-move-locked.png', fullPage: true });
@@ -320,6 +344,7 @@ console.log('Setup assistant: move a locked show here');
 	await page.check('[name="confirm_owner"]');
 	await page.click('[data-import-button]');
 	await page.waitForSelector('[data-panel="import"]:not([hidden])', { timeout: 30000 });
+	assert(await consent.isHidden(), 'the consent message is gone once confirmed');
 	await page.waitForSelector('[data-import-continue]:not([disabled])', { timeout: 120000 });
 	assert(/5 new/.test((await page.textContent('[data-import-summary]')) || ''), `every episode moved (${await page.textContent('[data-import-summary]')})`);
 	await Promise.all([page.waitForURL(/step=show/), page.click('[data-import-continue]')]);
@@ -363,6 +388,9 @@ console.log('Hosting & import');
 	assert(await page.locator('[data-external-only]').isHidden() && (await page.locator('[data-self-only]').isVisible()), 'self-hosted: statistics, no host settings');
 	await page.check('input[name="epm_hosting[mode]"][value="external"]');
 	assert(await page.locator('[data-external-only]').isVisible() && (await page.locator('[data-self-only]').isHidden()), 'switching to another host shows its settings at once');
+	assert(await page.$eval('#epm-hosting-feed', (input) => input.required), 'another host needs its feed address');
+	await page.click('[data-hosting-form] [type="submit"]');
+	assert(/page=epm-hosting/.test(page.url()) && !/settings-updated/.test(page.url()), 'the form is not sent without it');
 	await page.selectOption('#epm-hosting-provider', 'buzzsprout');
 	assert(((await page.textContent('[data-provider-help]')) || '').length > 10, 'the host\'s help text follows the choice');
 	await page.fill('#epm-hosting-feed', PAGED_FEED);
@@ -384,10 +412,36 @@ console.log('Hosting & import');
 	await page.waitForSelector('[data-import-form] [data-preview]:not([hidden])', { timeout: 30000 });
 	assert(await page.locator('[data-import-form] [data-confirm-owner]').isVisible(), 'a locked feed asks for consent before copying');
 	await page.click('[data-import-form] [data-action="start"]');
+	await page.waitForSelector('[data-job]:not([hidden])', { timeout: 30000 });
+	assert(await page.evaluate(() => document.activeElement === document.querySelector('[data-job]')), 'focus moves to the progress, not to the page');
 	await page.waitForSelector('[data-job-episodes]:not([hidden])', { timeout: 60000 });
 	assert(/5 new/.test((await page.textContent('[data-job-summary]')) || ''), `the import runs with progress (${await page.textContent('[data-job-summary]')})`);
 	assert((await page.getAttribute('[data-job] [role="progressbar"]', 'aria-valuenow')) === '100', 'progress reaches 100 %');
 	await page.screenshot({ path: 'screenshots/hosting-import.png', fullPage: true });
+
+	// Copying a show while mirroring its host: asked first, and audio that
+	// could not be copied is listed with links to the episodes.
+	await page.fill('#epm-import-url', 'https://feeds.example.test/synthetic/missing-audio.xml');
+	await page.click('[data-import-form] [data-action="check"]');
+	await page.waitForSelector('[data-import-form] [data-preview]:not([hidden])', { timeout: 30000 });
+	await page.check('[data-import-form] [name="download_media"]');
+	let asked = '';
+	page.once('dialog', (dialog) => {
+		asked = dialog.message();
+		dialog.accept();
+	});
+	await page.click('[data-import-form] [data-action="start"]');
+	await page.waitForSelector('[data-media-failed]:not([hidden])', { timeout: 60000 });
+	assert(/This website/.test(asked), `copying the audio of a mirrored show asks first ("${asked}")`);
+	const media = await page.evaluate(() => ({
+		title: document.querySelector('[data-media-failed-title]').textContent,
+		links: Array.from(document.querySelectorAll('[data-media-failed-list] a')).map((a) => [a.textContent, /post\.php\?post=\d+&action=edit/.test(a.href)]),
+		summary: document.querySelector('[data-job-summary]').textContent,
+	}));
+	assert(/1 episode/.test(media.title) && JSON.stringify(media.links) === '[["Missing audio episode",true]]', `audio that was not copied is listed (${JSON.stringify(media)})`);
+	assert(/1 audio not copied/.test(media.summary), `and counted (${media.summary})`);
+	assert(php(`echo wp_json_encode( EPM\\Hosting::get( 'mode' ) )`) === 'self', 'the moved show is hosted here now');
+	await page.screenshot({ path: 'screenshots/hosting-media-failed.png', fullPage: true });
 
 	await page.setViewportSize({ width: 390, height: 844 });
 	assert(await noOverflow(page), 'Hosting & import fits 390 px');
@@ -408,6 +462,27 @@ console.log('Distribution');
 	const page = await newPage(browser);
 	await login(page);
 	await page.goto(`${BASE}/wp-admin/admin.php?page=epm-distribution`);
+	const progress = () =>
+		page.evaluate(() => ({
+			score: document.querySelector('[data-dist-score]').textContent.trim(),
+			primary: Array.from(document.querySelectorAll('[data-epm-distribution] [data-submit-link].button-primary')).map((a) => a.closest('[data-directory]').getAttribute('data-directory')),
+		}));
+	const before = await progress();
+	assert(before.score === '0 of 5' && JSON.stringify(before.primary) === '["apple"]', `one "Submit" button is primary: the next platform (${JSON.stringify(before)})`);
+	const apple = page.locator('[data-directory="apple"]');
+	await apple.locator('summary').click();
+	await apple.locator('[name="submitted"]').check();
+	await page.waitForFunction(() => document.querySelector('[data-dist-score]').textContent.trim() === '1 of 5', null, { timeout: 10000 }).catch(() => {});
+	const after = await progress();
+	assert(after.score === '1 of 5' && JSON.stringify(after.primary) === '["spotify"]', `the count and the next platform follow at once (${JSON.stringify(after)})`);
+	const gaps = await page.evaluate(() => {
+		const copy = document.querySelector('[data-epm-distribution] .epm-copy').getBoundingClientRect();
+		const help = document.querySelector('[data-epm-distribution] .epm-copy + .epm-field__help').getBoundingClientRect();
+		const check = document.querySelector('.epm-dist-check').getBoundingClientRect();
+		return { copyToHelp: Math.round(help.top - copy.bottom), helpToCheck: Math.round(check.top - help.bottom) };
+	});
+	assert(gaps.copyToHelp >= 8 && gaps.helpToCheck >= 16, `the feed card is spaced (${JSON.stringify(gaps)})`);
+
 	const row = page.locator('[data-directory="pocketcasts"]');
 	await row.locator('summary').click();
 	await row.locator('[name="submitted"]').check();
@@ -418,14 +493,17 @@ console.log('Distribution');
 	await row.locator('[type="submit"]').click();
 	const invalid = await page.evaluate(() => {
 		const form = document.querySelector('[data-directory-form="pocketcasts"]');
-		return { error: !form.querySelector('[data-error]').hidden, invalid: form.querySelector('[name="url"]').getAttribute('aria-invalid'), focus: document.activeElement === form.querySelector('[name="url"]') };
+		const input = form.querySelector('[name="url"]');
+		return { error: !form.querySelector('[data-error]').hidden, invalid: input.getAttribute('aria-invalid'), focus: document.activeElement === input, described: input.getAttribute('aria-describedby') };
 	});
 	assert(invalid.error && invalid.invalid === 'true' && invalid.focus, `an incomplete link is explained next to the field (${JSON.stringify(invalid)})`);
+	assert(/\bepm-dir-error-pocketcasts\b/.test(invalid.described || ''), `and tied to it (${invalid.described})`);
 
 	await row.locator('[name="url"]').fill(LISTING);
 	await row.locator('[type="submit"]').click();
 	await page.waitForFunction(() => document.querySelector('[data-directory="pocketcasts"] [data-status-badge]').textContent.trim() === 'Listed', null, { timeout: 10000 }).catch(() => {});
 	assert(((await row.locator('[data-status-badge]').textContent()) || '').trim() === 'Listed', 'saving the listing link marks it as listed');
+	assert(!/epm-dir-error/.test((await row.locator('[name="url"]').getAttribute('aria-describedby')) || ''), 'the fixed field loses the error reference');
 	await page.screenshot({ path: 'screenshots/distribution-listed.png', fullPage: true });
 
 	await page.reload();

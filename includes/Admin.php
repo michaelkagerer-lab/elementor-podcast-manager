@@ -22,6 +22,7 @@ final class Admin {
 	public function init(): void {
 		add_action( 'admin_menu', [ $this, 'register_menu' ] );
 		add_filter( 'manage_' . EpisodePostType::CPT . '_posts_columns', [ $this, 'list_columns' ] );
+		add_filter( 'default_hidden_columns', [ $this, 'default_hidden_columns' ], 10, 2 );
 		add_action( 'manage_' . EpisodePostType::CPT . '_posts_custom_column', [ $this, 'render_column' ], 10, 2 );
 		add_filter( 'manage_edit-' . EpisodePostType::CPT . '_sortable_columns', [ $this, 'sortable_columns' ] );
 		add_action( 'pre_get_posts', [ $this, 'apply_admin_orderby' ] );
@@ -341,26 +342,28 @@ final class Admin {
 
 		add_submenu_page(
 			'epm-dashboard',
-			__( 'Add Episode', 'elementor-podcast-manager' ),
-			__( 'Add Episode', 'elementor-podcast-manager' ),
+			__( 'Add episode', 'elementor-podcast-manager' ),
+			__( 'Add episode', 'elementor-podcast-manager' ),
 			Capabilities::manage_episodes(),
 			'post-new.php?post_type=' . EpisodePostType::CPT
 		);
 
-		if ( taxonomy_exists( EpisodePostType::TOPIC ) ) {
+		$topics = get_taxonomy( EpisodePostType::TOPIC );
+		if ( $topics ) {
+			// Only for users who may manage topics (like core Tags).
 			add_submenu_page(
 				'epm-dashboard',
 				__( 'Topics', 'elementor-podcast-manager' ),
 				__( 'Topics', 'elementor-podcast-manager' ),
-				Capabilities::manage_episodes(),
+				$topics->cap->manage_terms,
 				self::topics_menu_slug()
 			);
 		}
 
 		add_submenu_page(
 			'epm-dashboard',
-			__( 'Podcast Settings', 'elementor-podcast-manager' ),
-			__( 'Podcast Settings', 'elementor-podcast-manager' ),
+			__( 'Podcast settings', 'elementor-podcast-manager' ),
+			__( 'Podcast settings', 'elementor-podcast-manager' ),
 			Capabilities::manage_podcast(),
 			'epm-settings',
 			[ $this, 'render_settings' ]
@@ -1031,15 +1034,13 @@ final class Admin {
 
 	/**
 	 * Extra variables for designs on a dark background (white image
-	 * outline, lighter error red), as DesignSettings::output_tokens() adds.
+	 * outline, lighter error red, section surface and padding): the same
+	 * list DesignSettings::output_tokens() prints.
 	 *
 	 * @return array<string, string>
 	 */
 	public static function design_dark_vars(): array {
-		return [
-			'--epm-image-outline' => 'oklch(1 0 0 / 0.1)',
-			'--epm-danger'        => '#f87171',
-		];
+		return DesignSettings::dark_vars();
 	}
 
 	/**
@@ -1199,6 +1200,18 @@ final class Admin {
 				'label' => __( 'Muted text on background', 'elementor-podcast-manager' ),
 			],
 			[
+				'fg'    => 'muted',
+				'bg'    => 'surface',
+				'min'   => 4.5,
+				'label' => __( 'Muted text on surface', 'elementor-podcast-manager' ),
+			],
+			[
+				'fg'    => 'accent',
+				'bg'    => 'background',
+				'min'   => 4.5,
+				'label' => __( 'Accent text on background', 'elementor-podcast-manager' ),
+			],
+			[
 				'fg'    => 'on_accent',
 				'bg'    => 'accent',
 				'min'   => 4.5,
@@ -1209,6 +1222,12 @@ final class Admin {
 				'bg'    => 'background',
 				'min'   => 3.0,
 				'label' => __( 'Timeline track on background', 'elementor-podcast-manager' ),
+			],
+			[
+				'fg'    => 'track_color',
+				'bg'    => 'surface',
+				'min'   => 3.0,
+				'label' => __( 'Timeline track on surface', 'elementor-podcast-manager' ),
 			],
 		];
 	}
@@ -1396,6 +1415,39 @@ final class Admin {
 		$new['date'] = __( 'Published', 'elementor-podcast-manager' );
 
 		return $new;
+	}
+
+	/**
+	 * Columns the episode list hides until the user changes Screen Options,
+	 * so the title keeps room at laptop widths: Author, and Topics while no
+	 * topic exists yet.
+	 *
+	 * @param array<int, string> $hidden Hidden column keys.
+	 * @param \WP_Screen|mixed   $screen Current screen.
+	 * @return array<int, string>
+	 */
+	public function default_hidden_columns( $hidden, $screen ): array {
+		$hidden = is_array( $hidden ) ? $hidden : [];
+
+		if ( ! $screen instanceof \WP_Screen || 'edit-' . EpisodePostType::CPT !== $screen->id ) {
+			return $hidden;
+		}
+
+		$hidden[] = 'author';
+
+		if ( taxonomy_exists( EpisodePostType::TOPIC ) ) {
+			$count = wp_count_terms(
+				[
+					'taxonomy'   => EpisodePostType::TOPIC,
+					'hide_empty' => false,
+				]
+			);
+			if ( ! is_wp_error( $count ) && 0 === (int) $count ) {
+				$hidden[] = 'taxonomy-' . EpisodePostType::TOPIC;
+			}
+		}
+
+		return array_values( array_unique( $hidden ) );
 	}
 
 	/**

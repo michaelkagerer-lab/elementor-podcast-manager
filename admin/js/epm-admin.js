@@ -605,13 +605,22 @@
 		var number = suggestedNumber(next, season);
 		var empty = $.trim(field.val() || '') === '';
 
-		hint.text(
-			season !== '' && /^\d+$/.test(season)
+		var text;
+		if (season !== '' && /^\d+$/.test(season)) {
+			text = sprintf(
 				/* translators: 1: season number, 2: suggested episode number */
-				? sprintf(__('Next free number in season %1$s: %2$d', 'elementor-podcast-manager'), season, number)
+				__('Next free number in season %1$s: %2$d', 'elementor-podcast-manager'),
+				season,
+				number
+			);
+		} else {
+			text = sprintf(
 				/* translators: %d: suggested episode number */
-				: sprintf(__('Next free number: %d', 'elementor-podcast-manager'), number)
-		);
+				__('Next free number: %d', 'elementor-podcast-manager'),
+				number
+			);
+		}
+		hint.text(text);
 		hint.prop('hidden', !empty);
 		button.prop('hidden', !empty).data('epm-number', number);
 	}
@@ -666,6 +675,25 @@
 			$(this).find('[data-epm-repeat-down]').attr('aria-disabled', i === rows.length - 1 ? 'true' : 'false');
 		});
 		wrap.find('[data-epm-paste-replace-row]').prop('hidden', !rowsWithContent(wrap).length);
+		updatePasteLabel(wrap);
+	}
+
+	/**
+	 * Name the paste button after what it will do: replace the chapters
+	 * when "Replace the current chapters" is checked and there are
+	 * chapters to replace, add them otherwise.
+	 *
+	 * @param {jQuery} wrap Repeater.
+	 */
+	function updatePasteLabel(wrap) {
+		var button = wrap.find('[data-epm-paste-apply]');
+		if (!button.length) {
+			return;
+		}
+		var replace = wrap.find('[data-epm-paste-replace]').prop('checked') && rowsWithContent(wrap).length > 0;
+		button.text(replace
+			? __('Replace chapters with the list', 'elementor-podcast-manager')
+			: __('Add chapters from the list', 'elementor-podcast-manager'));
 	}
 
 	/**
@@ -962,6 +990,10 @@
 		return { chapters: chapters, skipped: skipped };
 	}
 
+	$(document).on('change', '[data-epm-paste-replace]', function () {
+		updatePasteLabel($(this).closest('[data-epm-repeat]'));
+	});
+
 	$(document).on('click', '[data-epm-paste-apply]', function (e) {
 		e.preventDefault();
 		var paste = $(this).closest('[data-epm-paste-chapters]');
@@ -981,6 +1013,7 @@
 
 		var replace = paste.find('[data-epm-paste-replace]').prop('checked');
 		var existing = rowsWithContent(wrap);
+		var removed = (replace && existing.length) ? existing.length : 0;
 		if (replace || !existing.length) {
 			rowsOf(wrap).remove();
 		}
@@ -993,11 +1026,18 @@
 		});
 		updateOrderButtons(wrap);
 
-		var added = sprintf(
-			/* translators: %d: number of chapters */
-			_n('Added %d chapter.', 'Added %d chapters.', parsed.chapters.length, 'elementor-podcast-manager'),
-			parsed.chapters.length
-		);
+		var added = removed > 0
+			? sprintf(
+				/* translators: 1: number of chapters removed, 2: number of chapters from the list */
+				_n('Replaced %1$d chapter with %2$d.', 'Replaced %1$d chapters with %2$d.', removed, 'elementor-podcast-manager'),
+				removed,
+				parsed.chapters.length
+			)
+			: sprintf(
+				/* translators: %d: number of chapters */
+				_n('Added %d chapter.', 'Added %d chapters.', parsed.chapters.length, 'elementor-podcast-manager'),
+				parsed.chapters.length
+			);
 		var messages = [added];
 		result.append($('<p class="epm-paste__ok" />').text(added));
 

@@ -839,12 +839,16 @@ textarea[aria-invalid="true"] {
 	inline-size: 88px;
 }
 
+.fixed .column-epm_guest {
+	inline-size: 12%;
+}
+
 .fixed .column-epm_duration {
 	inline-size: 80px;
 }
 
 .fixed .column-epm_audio {
-	inline-size: 150px;
+	inline-size: 120px;
 }
 
 .column-epm_episode_no,

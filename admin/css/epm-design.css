@@ -264,16 +264,13 @@
 	white-space: nowrap;
 }
 
+/* Shown in full: tiles in a grid row stretch to the same height. */
 .epm-preset__desc {
-	display: -webkit-box;
 	padding-inline: 4px;
-	overflow: hidden;
 	color: var(--epm-app-muted);
 	font-size: 12px;
 	line-height: 1.45;
 	text-wrap: pretty;
-	-webkit-box-orient: vertical;
-	-webkit-line-clamp: 3;
 }
 
 .epm-presets__actions {
@@ -601,6 +598,17 @@
 	border-radius: var(--epm-app-radius);
 	background: var(--epm-app-surface);
 	box-shadow: 0 0 0 1px var(--epm-app-line), 0 -4px 16px rgb(0 0 0 / 0.06);
+}
+
+/* Keyboard focus scrolls fields clear of the sticky save bar. */
+html:has(.epm-design__savebar) {
+	scroll-padding-block-end: 96px;
+}
+
+@media (max-width: 782px) {
+	html:has(.epm-design__savebar) {
+		scroll-padding-block-end: 112px;
+	}
 }
 
 .epm-design__dirty {
