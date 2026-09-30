@@ -140,17 +140,19 @@ final class Importer {
 	 * Import or update one parsed item.
 	 *
 	 * @param array<string, mixed> $item Item from FeedParser.
-	 * @return array{action: string, id: int, title: string, message: string}
+	 * @return array{action: string, id: int, title: string, message: string, media_failed: bool}
 	 */
 	public function import_item( array $item ): array {
 		$guid  = trim( (string) ( $item['guid'] ?? '' ) );
 		$title = sanitize_text_field( (string) ( $item['title'] ?? '' ) );
 
 		$result = [
-			'action'  => 'skipped',
-			'id'      => 0,
-			'title'   => $title,
-			'message' => '',
+			'action'       => 'skipped',
+			'id'           => 0,
+			'title'        => $title,
+			'message'      => '',
+			// "Copy media" was chosen, but the audio stayed at the host.
+			'media_failed' => false,
 		];
 
 		if ( '' === $guid ) {
@@ -180,13 +182,23 @@ final class Importer {
 				delete_post_meta( $post_id, Episodes::META_PREFIX . 'missing_since' );
 			}
 
+			// The host's feed moved: re-tag the imported episodes it still
+			// lists, so "unpublish episodes the host removed" keeps finding
+			// them. Episodes created on this site stay untagged.
+			$source_feed = (string) get_post_meta( $post_id, Episodes::META_PREFIX . 'source_feed', true );
+			if ( '' !== $this->options['feed_url'] && '' !== $source_feed && $source_feed !== $this->options['feed_url'] ) {
+				update_post_meta( $post_id, Episodes::META_PREFIX . 'source_feed', $this->options['feed_url'] );
+			}
+
 			// Moving a show that was mirrored before (or a copy that was
 			// interrupted): bring the audio over for existing episodes too.
+			// Not while another request is still downloading it.
 			$copied = false;
-			if ( $this->options['download_media'] && (int) get_post_meta( $post_id, Episodes::META_PREFIX . 'audio_id', true ) <= 0 && '' !== (string) ( $item['audio_url'] ?? '' ) ) {
-				$problem           = $this->copy_media( $post_id, $item );
-				$copied            = '' === $problem;
-				$result['message'] = $problem;
+			if ( $this->options['download_media'] && (int) get_post_meta( $post_id, Episodes::META_PREFIX . 'audio_id', true ) <= 0 && '' !== (string) ( $item['audio_url'] ?? '' ) && ! self::copy_in_progress( $post_id ) ) {
+				$problem                = $this->copy_media( $post_id, $item );
+				$copied                 = '' === $problem;
+				$result['message']      = $problem;
+				$result['media_failed'] = ! $copied;
 				Episodes::clear_data_cache( $post_id );
 			}
 
@@ -219,7 +231,8 @@ final class Importer {
 		if ( $this->options['download_media'] ) {
 			$media = $this->copy_media( $post_id, $item );
 			if ( '' !== $media ) {
-				$result['message'] = $media;
+				$result['message']      = $media;
+				$result['media_failed'] = true;
 			}
 		}
 
@@ -387,10 +400,39 @@ final class Importer {
 	/**
 	 * Stable hash of a field value.
 	 *
+	 * Saving an episode in an editor changes the bytes without changing the
+	 * content: textareas send CRLF line breaks, and the classic editor
+	 * stores show notes without the <p> tags the importer wrote. Both are
+	 * normalized away, so such a save does not count as a local edit.
+	 *
+	 * @param mixed  $value Value.
+	 * @param string $field Field the value belongs to.
+	 * @return string
+	 */
+	private static function hash( $value, string $field = '' ): string {
+		if ( ! is_scalar( $value ) ) {
+			return md5( (string) wp_json_encode( $value ) );
+		}
+
+		$value = str_replace( [ "\r\n", "\r" ], "\n", (string) $value );
+
+		if ( 'post_content' === $field ) {
+			$value = wpautop( $value );
+			$value = (string) preg_replace( '/\s+/', ' ', $value );
+			$value = trim( (string) preg_replace( '#\s*(</?(?:p|br|ul|ol|li|h[1-6]|blockquote|div|pre|table|tr|td|th)\b[^>]*>)\s*#i', '$1', $value ) );
+		}
+
+		return md5( $value );
+	}
+
+	/**
+	 * The hash earlier versions stored (raw bytes), still accepted as
+	 * "written by the importer" for episodes imported before.
+	 *
 	 * @param mixed $value Value.
 	 * @return string
 	 */
-	private static function hash( $value ): string {
+	private static function legacy_hash( $value ): string {
 		return md5( is_scalar( $value ) ? (string) $value : (string) wp_json_encode( $value ) );
 	}
 
@@ -415,13 +457,13 @@ final class Importer {
 			$current = $this->current( $post_id, $field );
 
 			if ( ! $is_new ) {
-				if ( self::hash( $current ) === self::hash( $value ) ) {
+				if ( self::hash( $current, $field ) === self::hash( $value, $field ) ) {
 					$owned[] = $field; // Already identical.
 					continue;
 				}
 
 				$untouched = isset( $hashes[ $field ] )
-					? self::hash( $current ) === $hashes[ $field ]
+					? in_array( $hashes[ $field ], [ self::hash( $current, $field ), self::legacy_hash( $current ) ], true )
 					: ( '' === $current || null === $current || false === $current );
 
 				if ( ! $untouched ) {
@@ -452,7 +494,7 @@ final class Importer {
 		// Remember what the site holds now (after sanitizers ran), so the
 		// next sync can tell importer-written values from local edits.
 		foreach ( $owned as $field ) {
-			$hashes[ $field ] = self::hash( $this->current( $post_id, $field ) );
+			$hashes[ $field ] = self::hash( $this->current( $post_id, $field ), $field );
 		}
 		update_post_meta( $post_id, Episodes::META_PREFIX . 'import_hash', $hashes );
 
@@ -632,17 +674,28 @@ final class Importer {
 			update_option( PodcastSettings::OPTION, $settings->sanitize( $next ) );
 		}
 
-		// Keep the show's podcast:guid when it moves here. Without the tag,
-		// derive it from the source feed address the way Podcast Index did.
+		self::adopt_podcast_guid( $channel, $feed_url, $overwrite );
+
+		return array_values( array_unique( $changed ) );
+	}
+
+	/**
+	 * Keep the show's podcast:guid when it moves here. Without the tag, it
+	 * is derived from the source feed address the way Podcast Index did.
+	 *
+	 * @param array<string, mixed> $channel  Channel from FeedParser.
+	 * @param string               $feed_url Source feed address ('' for none).
+	 * @param bool                 $force    Replace a guid already stored here.
+	 * @return void
+	 */
+	public static function adopt_podcast_guid( array $channel, string $feed_url, bool $force ): void {
 		$guid = strtolower( trim( (string) ( $channel['podcast_guid'] ?? '' ) ) );
 		if ( '' === $guid && '' !== $feed_url ) {
 			$guid = Feed::uuid_v5( Feed::GUID_NAMESPACE, rtrim( (string) preg_replace( '#^[a-z][a-z0-9+.-]*://#i', '', $feed_url ), '/' ) );
 		}
-		if ( preg_match( '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', $guid ) && ( $overwrite || '' === (string) get_option( Feed::GUID_OPTION, '' ) ) ) {
+		if ( preg_match( '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', $guid ) && ( $force || '' === (string) get_option( Feed::GUID_OPTION, '' ) ) ) {
 			update_option( Feed::GUID_OPTION, $guid, false );
 		}
-
-		return array_values( array_unique( $changed ) );
 	}
 
 	/**
@@ -667,6 +720,19 @@ final class Importer {
 	}
 
 	/**
+	 * Whether another request is downloading this episode's audio right
+	 * now (a marker younger than the longest audio download).
+	 *
+	 * @param int $post_id Episode ID.
+	 * @return bool
+	 */
+	private static function copy_in_progress( int $post_id ): bool {
+		$since = (int) get_post_meta( $post_id, Episodes::META_PREFIX . 'copying', true );
+
+		return $since > 0 && time() - $since < 17 * MINUTE_IN_SECONDS;
+	}
+
+	/**
 	 * Download audio and the episode image into the Media Library.
 	 *
 	 * @param int                  $post_id Episode ID.
@@ -678,7 +744,11 @@ final class Importer {
 
 		$audio_url = (string) ( $item['audio_url'] ?? '' );
 		if ( '' !== $audio_url && (int) get_post_meta( $post_id, Episodes::META_PREFIX . 'audio_id', true ) <= 0 ) {
+			// Marks the download in progress for other requests (a retried
+			// import step must not download the same file twice).
+			update_post_meta( $post_id, Episodes::META_PREFIX . 'copying', time() );
 			$attachment = self::sideload( $audio_url, $post_id, (string) ( $item['title'] ?? '' ), 'audio' );
+			delete_post_meta( $post_id, Episodes::META_PREFIX . 'copying' );
 			if ( is_wp_error( $attachment ) ) {
 				$problems[] = sprintf(
 					/* translators: %s: error message */

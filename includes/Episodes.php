@@ -407,7 +407,7 @@ final class Episodes {
 		$audio_id   = (int) $meta( 'audio_id', 0 );
 		$audio_url  = $audio_id > 0 ? wp_get_attachment_url( $audio_id ) : '';
 		$audio_meta = $audio_id > 0 ? wp_get_attachment_metadata( $audio_id ) : [];
-		$audio_mime = $audio_id > 0 ? (string) get_post_mime_type( $audio_id ) : '';
+		$audio_mime = $audio_id > 0 ? AudioMetadata::attachment_mime( $audio_id ) : '';
 		$audio_source = $audio_url ? 'media' : '';
 
 		// Audio hosted elsewhere (a podcast host, CDN or storage bucket):

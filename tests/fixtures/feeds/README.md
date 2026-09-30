@@ -63,6 +63,7 @@ Made-up shows for cases no real feed shows in three items.
 | `paged-1.xml`, `paged-2.xml` | two pages linked with `rel="next"`; page 2 links back to page 1 (the importer must stop) |
 | `broken-markup.xml` | BOM, leading whitespace, bare `&`, HTML named entities, control characters |
 | `atom.xml` | an Atom feed (rejected: podcast apps need RSS) |
+| `missing-audio.xml` | two episodes; the first one's audio answers 404, so "copy media" must list it as not copied |
 
 Audio (`/media/<name>.mp3|m4a`) and images (`/media/<name>.png`,
 `<name>-<w>x<h>.png`) are generated on request by the HTTP fixture server.

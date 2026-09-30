@@ -51,10 +51,15 @@ delete_option( 'epm_hosting' );
 delete_option( 'epm_sync_state' );
 delete_option( 'epm_setup' );
 delete_option( 'epm_distribution' );
+delete_option( 'epm_feed_build' );
 delete_transient( 'epm_feed_cache' );
 
+// The plugin is not loaded here: register the Topics taxonomy so that
+// wp_delete_post() removes each episode's topic relationships.
+register_taxonomy( 'podcast_topic', 'podcast_episode' );
+
 // Delete episode posts and their meta.
-$episodes = get_posts(
+$epm_episodes = get_posts(
 	[
 		'post_type'      => 'podcast_episode',
 		'post_status'    => 'any',
@@ -63,6 +68,20 @@ $episodes = get_posts(
 	]
 );
 
-foreach ( $episodes as $episode_id ) {
-	wp_delete_post( $episode_id, true );
+foreach ( $epm_episodes as $epm_episode_id ) {
+	wp_delete_post( $epm_episode_id, true );
+}
+
+// Then the topics themselves.
+$epm_terms = get_terms(
+	[
+		'taxonomy'   => 'podcast_topic',
+		'hide_empty' => false,
+		'fields'     => 'ids',
+	]
+);
+if ( is_array( $epm_terms ) ) {
+	foreach ( $epm_terms as $epm_term_id ) {
+		wp_delete_term( (int) $epm_term_id, 'podcast_topic' );
+	}
 }

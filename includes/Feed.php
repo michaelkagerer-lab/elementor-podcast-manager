@@ -58,6 +58,12 @@ final class Feed {
 	public const GUID_OPTION = 'epm_podcast_guid';
 
 	/**
+	 * Hash of the last feed built and when its content last changed
+	 * (Last-Modified and lastBuildDate).
+	 */
+	public const BUILD_OPTION = 'epm_feed_build';
+
+	/**
 	 * Podcasting 2.0 namespace UUID for podcast:guid (UUIDv5 of the feed URL).
 	 */
 	public const GUID_NAMESPACE = 'ead4c236-bf58-58c6-a2c6-a6b28d128cb6';
@@ -252,11 +258,15 @@ final class Feed {
 
 	/**
 	 * Wrap HTML in a CDATA section (splitting any "]]>" it contains).
+	 * Control characters, which XML 1.0 does not allow even in CDATA, are
+	 * removed.
 	 *
 	 * @param string $html HTML.
 	 * @return string
 	 */
 	public static function cdata( string $html ): string {
+		$html = (string) preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $html );
+
 		return '<![CDATA[' . str_replace( ']]>', ']]]]><![CDATA[>', $html ) . ']]>';
 	}
 
@@ -316,12 +326,21 @@ final class Feed {
 		$guid = (string) get_option( self::GUID_OPTION, '' );
 
 		if ( '' === $guid ) {
-			$name = rtrim( (string) preg_replace( '#^[a-z][a-z0-9+.-]*://#i', '', self::url() ), '/' );
-			$guid = self::uuid_v5( self::GUID_NAMESPACE, $name );
+			$guid = self::derived_podcast_guid();
 			update_option( self::GUID_OPTION, $guid, false );
 		}
 
 		return $guid;
+	}
+
+	/**
+	 * The podcast:guid this site derives from its own feed address (what
+	 * podcast_guid() stores when nothing else set one).
+	 *
+	 * @return string
+	 */
+	public static function derived_podcast_guid(): string {
+		return self::uuid_v5( self::GUID_NAMESPACE, rtrim( (string) preg_replace( '#^[a-z][a-z0-9+.-]*://#i', '', self::url() ), '/' ) );
 	}
 
 	/**
@@ -332,7 +351,8 @@ final class Feed {
 	 * "Feed episode limit" setting (0 = unlimited). Episodes without audio
 	 * or with non-distribution audio (e.g. WAV) never displace eligible
 	 * episodes — filtering happens before the window is applied.
-	 * Serial podcasts are ordered oldest-first; episodic newest-first.
+	 * Serial podcasts are ordered oldest-first; episodic newest-first. The
+	 * window always keeps the newest episodes, for serial shows too.
 	 *
 	 * @return array<int, \WP_Post>
 	 */
@@ -348,7 +368,7 @@ final class Feed {
 				'posts_per_page'   => -1,
 				'fields'           => 'ids',
 				'orderby'          => 'date',
-				'order'            => $serial ? 'ASC' : 'DESC',
+				'order'            => 'DESC',
 				'has_password'     => false,
 				'meta_query'       => [ Episodes::audio_meta_query() ],
 				'no_found_rows'    => true,
@@ -382,6 +402,10 @@ final class Feed {
 			if ( $limit > 0 && count( $eligible ) >= $limit ) {
 				break;
 			}
+		}
+
+		if ( $serial ) {
+			$eligible = array_reverse( $eligible );
 		}
 
 		return $eligible;
@@ -519,6 +543,29 @@ final class Feed {
 		}
 
 		$xml = $this->build( $episodes, $modified );
+
+		// Channel settings, a removed episode or a lower episode limit change
+		// the feed without a newer episode date: the build time moves only
+		// when the content changed since the last build (the option outlives
+		// the cache), so Last-Modified and lastBuildDate follow the content.
+		$pattern = '#<lastBuildDate>[^<]*</lastBuildDate>#';
+		$hash    = md5( (string) preg_replace( $pattern, '', $xml ) );
+		$built   = get_option( self::BUILD_OPTION, [] );
+		$built   = is_array( $built ) ? $built : [];
+		if ( ( $built['hash'] ?? '' ) === $hash ) {
+			$modified = max( $modified, (int) ( $built['modified'] ?? 0 ) );
+		} else {
+			$modified = max( $modified, time(), (int) ( $built['modified'] ?? 0 ) );
+			update_option(
+				self::BUILD_OPTION,
+				[
+					'hash'     => $hash,
+					'modified' => $modified,
+				],
+				false
+			);
+		}
+		$xml = (string) preg_replace( $pattern, '<lastBuildDate>' . gmdate( 'D, d M Y H:i:s', $modified ) . ' +0000</lastBuildDate>', $xml, 1 );
 
 		$document = [
 			'xml'      => $xml,

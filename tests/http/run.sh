@@ -44,6 +44,14 @@ check "ETag header present" '[ -n "$etag" ]'
 check "If-None-Match answers 304" '[ "$(curl -s -o /dev/null -w "%{http_code}" -H "If-None-Match: $etag" "$URL/podcast/feed/")" = 304 ]'
 check "If-Modified-Since answers 304" '[ "$(curl -s -o /dev/null -w "%{http_code}" -H "If-Modified-Since: $lastmod" "$URL/podcast/feed/")" = 304 ]'
 check "stale ETag gets the full feed" '[ "$(curl -s -o /dev/null -w "%{http_code}" -H "If-None-Match: \"stale\"" "$URL/podcast/feed/")" = 200 ]'
+# A channel change without a new episode moves Last-Modified too, so a
+# client that only sends If-Modified-Since gets the new feed.
+SETTINGS_BEFORE="$($WP option get epm_podcast_settings --format=json 2>/dev/null | grep '^{' | head -1)"
+sleep 1
+$WP eval 'update_option( "epm_podcast_settings", array_merge( (array) get_option( "epm_podcast_settings" ), [ "copyright" => "Changed by the HTTP tests" ] ) );' > /dev/null 2>&1
+check "a channel change answers If-Modified-Since with the full feed" '[ "$(curl -s -o /dev/null -w "%{http_code}" -H "If-Modified-Since: $lastmod" "$URL/podcast/feed/")" = 200 ]'
+check "and names its new build time" '[ "$(curl -s -D - -o /dev/null "$URL/podcast/feed/" | grep -i "^last-modified:" | cut -d" " -f2- | tr -d "\r")" != "$lastmod" ]'
+[ -n "$SETTINGS_BEFORE" ] && $WP option update epm_podcast_settings "$SETTINGS_BEFORE" --format=json > /dev/null 2>&1
 
 echo "Companion documents"
 check "chapters JSON for a public episode" 'curl -s "$URL/?epm_chapters=$EP1" | php -r "\$d = json_decode(stream_get_contents(STDIN), true); exit(isset(\$d[\"chapters\"][1][\"startTime\"]) && 30 === \$d[\"chapters\"][1][\"startTime\"] ? 0 : 1);"'

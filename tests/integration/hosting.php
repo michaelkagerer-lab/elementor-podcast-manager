@@ -26,6 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 use EPM\AdminPages;
 use EPM\AudioMetadata;
 use EPM\Directories;
+use EPM\EpisodePostType;
 use EPM\Episodes;
 use EPM\Feed;
 use EPM\FeedParser;
@@ -63,7 +64,7 @@ EPM_Test_HTTP::$log     = [];
 // What the run changes, to put back at the end.
 $GLOBALS['epm_h_max_id']  = (int) $GLOBALS['wpdb']->get_var( "SELECT MAX(ID) FROM {$GLOBALS['wpdb']->posts}" );
 $GLOBALS['epm_h_options'] = [];
-foreach ( [ PodcastSettings::OPTION, Hosting::OPTION, Hosting::STATE_OPTION, ImportJob::OPTION, 'epm_import_lock', AdminPages::SETUP_OPTION, Directories::OPTION, Feed::GUID_OPTION, 'epm_design_settings' ] as $epm_h_name ) {
+foreach ( [ PodcastSettings::OPTION, Hosting::OPTION, Hosting::STATE_OPTION, ImportJob::OPTION, 'epm_import_lock', AdminPages::SETUP_OPTION, Directories::OPTION, Feed::GUID_OPTION, Feed::BUILD_OPTION, 'epm_design_settings' ] as $epm_h_name ) {
 	$GLOBALS['epm_h_options'][ $epm_h_name ] = get_option( $epm_h_name, '__epm_absent__' );
 }
 
@@ -537,6 +538,57 @@ $t->test(
 	}
 );
 
+$t->test(
+	'pubDate: a wrong weekday never moves the date; localized and long weekday names and "UT" are understood',
+	static function ( EPM_Test_Runner $t ) {
+		$cases = [
+			'Mon, 16 Jun 2020 13:13:18 +0200'  => '2020-06-16 11:13:18', // Was a Tuesday: strtotime() alone says Jun 22.
+			'Thu, 30 Sep 2026 17:11:52 +0000'  => '2026-09-30 17:11:52', // Was a Wednesday: strtotime() alone says Oct 1.
+			'Di, 16 Jun 2020 13:13:18 +0200'   => '2020-06-16 11:13:18',
+			'Tues, 16 Jun 2020 13:13:18 +0200' => '2020-06-16 11:13:18',
+			'Mié, 16 Jun 2020 13:13:18 GMT'    => '2020-06-16 13:13:18',
+			'Tue, 16 Jun 2020 13:13:18 UT'     => '2020-06-16 13:13:18',
+			'Tue, 16 Jun 2020 13:13:18 GMT'    => '2020-06-16 13:13:18',
+			'June 16, 2020'                    => '2020-06-16 00:00:00',
+			'2020-06-16T13:13:18Z'             => '2020-06-16 13:13:18',
+		];
+		foreach ( $cases as $pub => $expected ) {
+			$timestamp = FeedParser::pub_timestamp( $pub );
+			$t->same( $expected, false === $timestamp ? 'false' : gmdate( 'Y-m-d H:i:s', $timestamp ), $pub );
+		}
+		$t->same( false, FeedParser::pub_timestamp( 'not a date' ) );
+
+		// Through the parser: a date with the wrong weekday stays in the past.
+		$xml    = str_replace( gmdate( DATE_RSS, gmmktime( 8, 0, 0, 5, 1, 2026 ) ), 'Thu, 30 Sep 2026 06:00:00 +0000', epm_h_sync_feed( [ 1 ] ) );
+		$parsed = ( new FeedParser() )->parse( $xml );
+		$t->same( gmmktime( 6, 0, 0, 9, 30, 2026 ), is_wp_error( $parsed ) ? $parsed->get_error_message() : $parsed['items'][0]['pub_date'] );
+	}
+);
+
+$t->test(
+	'entity expansion stays bounded: a "billion laughs" feed is refused or harmless, and fast',
+	static function ( EPM_Test_Runner $t ) {
+		// 50 characters, ten times per level, eight levels: 5 GB if expanded.
+		$dtd = '<!ENTITY l0 "' . str_repeat( 'x', 50 ) . '">';
+		for ( $level = 1; $level <= 8; $level++ ) {
+			$dtd .= '<!ENTITY l' . $level . ' "' . str_repeat( '&l' . ( $level - 1 ) . ';', 10 ) . '">';
+		}
+		$xml = '<?xml version="1.0"?><!DOCTYPE rss [' . $dtd . ']><rss version="2.0"><channel><title>&l8;</title>'
+			. '<item><title>&l8;</title><guid>bomb-1</guid><enclosure url="https://feeds.example.test/media/bomb.mp3" type="audio/mpeg" length="1"/></item></channel></rss>';
+
+		$start  = microtime( true );
+		$parsed = ( new FeedParser() )->parse( $xml );
+		$took   = microtime( true ) - $start;
+		$t->assert( $took < 1.0, sprintf( 'parsed in %.3f s', $took ) );
+		if ( ! is_wp_error( $parsed ) ) {
+			$t->assert( strlen( (string) $parsed['channel']['title'] ) < MB_IN_BYTES, 'channel title: ' . strlen( (string) $parsed['channel']['title'] ) . ' bytes' );
+			foreach ( $parsed['items'] as $item ) {
+				$t->assert( strlen( (string) $item['title'] ) < MB_IN_BYTES, 'item title: ' . strlen( (string) $item['title'] ) . ' bytes' );
+			}
+		}
+	}
+);
+
 /* ------------------------------------------------------------------------- */
 WP_CLI::log( 'Hosts, platforms, addresses and media types' );
 /* ------------------------------------------------------------------------- */
@@ -714,6 +766,30 @@ $t->test(
 		$t->same( 'other', Hosting::sanitize( [ 'feed_url' => 'https://example.com/feed' ] )['provider'] );
 		$t->same( 'self', Hosting::sanitize( [ 'mode' => 'something' ] )['mode'] );
 		$t->same( Hosting::defaults(), Hosting::sanitize( 'junk' ) );
+
+		// Another host needs its feed: without one, hosting stays here; a
+		// bad address keeps the one saved before. Both are reported once.
+		global $wp_settings_errors;
+		$errors             = $wp_settings_errors;
+		$wp_settings_errors = [];
+		try {
+			epm_h_hosting( [ 'mode' => 'self' ] );
+			$t->same( [ 'self', '' ], array_values( array_intersect_key( Hosting::sanitize( [ 'mode' => 'external', 'feed_url' => 'my show feed' ] ), [ 'mode' => 1, 'feed_url' => 1 ] ) ), 'no feed: stays on this website' );
+			Hosting::sanitize( [ 'mode' => 'external' ] );
+			$t->same( [ 'epm_hosting_feed' ], array_column( get_settings_errors( 'epm_hosting_group' ), 'code' ), 'reported once' );
+
+			epm_h_hosting(
+				[
+					'mode'     => 'external',
+					'feed_url' => 'https://feeds.buzzsprout.com/123.rss',
+				]
+			);
+			$kept = Hosting::sanitize( array_merge( Hosting::all(), [ 'feed_url' => 'not a feed' ] ) );
+			$t->same( [ 'external', 'https://feeds.buzzsprout.com/123.rss' ], [ $kept['mode'], $kept['feed_url'] ], 'a bad address keeps the saved one' );
+		} finally {
+			$wp_settings_errors = $errors;
+			epm_h_restore( Hosting::OPTION );
+		}
 	}
 );
 
@@ -747,6 +823,64 @@ $t->test(
 		$t->same( 'https://show.example.test/podcast.xml', is_wp_error( $relative ) ? $relative->get_error_message() : $relative['url'], 'relative href' );
 		$none = Hosting::locate( 'https://show.example.test/no-feed/' );
 		$t->same( 'epm_feed_html', is_wp_error( $none ) ? $none->get_error_code() : 'found' );
+	}
+);
+
+$t->test(
+	'a WordPress page leads to its podcast feed, not the blog feed listed first',
+	static function ( EPM_Test_Runner $t ) {
+		$feed  = static function () {
+			return EPM_Test_HTTP::response( 200, epm_h_sync_feed( [ 1 ] ), [ 'content-type' => 'application/rss+xml' ] );
+		};
+		$page  = static function ( array $links ): callable {
+			$head = '<!DOCTYPE html><html><head><title>Site</title>';
+			foreach ( $links as [ $href, $title ] ) {
+				$head .= '<link rel="alternate" type="application/rss+xml" title="' . esc_attr( $title ) . '" href="' . esc_url( $href ) . '" />';
+			}
+			return static function () use ( $head ) {
+				return EPM_Test_HTTP::response( 200, $head . '</head><body></body></html>', [ 'content-type' => 'text/html' ] );
+			};
+		};
+		$site  = 'https://wp.example.test/';
+		$pages = [
+			// This plugin: WordPress prints the blog and comment feeds first.
+			'plugin/'     => [
+				[ [ $site . 'feed/', 'Coffee Talk &raquo; Feed' ], [ $site . 'comments/feed/', 'Coffee Talk &raquo; Comments Feed' ], [ $site . 'podcast/feed/', 'Coffee Talk' ] ],
+				$site . 'podcast/feed/',
+			],
+			// PowerPress on a site whose name says "Podcast".
+			'powerpress/' => [
+				[ [ $site . 'feed/', 'The Daily Podcast &raquo; Feed' ], [ $site . 'comments/feed/', 'The Daily Podcast &raquo; Comments Feed' ], [ $site . 'feed/podcast/', 'The Daily Podcast &raquo; Podcast Feed' ] ],
+				$site . 'feed/podcast/',
+			],
+			// A host's show page.
+			'host/'       => [
+				[ [ $site . 'feed/', 'Blog' ], [ 'https://feeds.example.test/show.rss', 'Show' ] ],
+				'https://feeds.example.test/show.rss',
+			],
+			// Only the blog feed: still found.
+			'blog-only/'  => [
+				[ [ $site . 'feed/', 'Just a blog &raquo; Feed' ], [ $site . 'comments/feed/', 'Just a blog &raquo; Comments Feed' ] ],
+				$site . 'feed/',
+			],
+		];
+		foreach ( [ 'feed/', 'comments/feed/', 'podcast/feed/', 'feed/podcast/' ] as $path ) {
+			EPM_Test_HTTP::$routes[ $site . $path ] = $feed;
+		}
+		EPM_Test_HTTP::$routes['https://feeds.example.test/show.rss'] = $feed;
+		try {
+			foreach ( $pages as $path => [ $links, $expected ] ) {
+				EPM_Test_HTTP::$routes[ $site . 'page/' . $path ] = $page( $links );
+				$found = Hosting::locate( $site . 'page/' . $path );
+				$t->same( $expected, is_wp_error( $found ) ? $found->get_error_message() : $found['url'], $path );
+			}
+		} finally {
+			foreach ( array_keys( EPM_Test_HTTP::$routes ) as $route ) {
+				if ( 0 === strpos( $route, $site ) || 'https://feeds.example.test/show.rss' === $route ) {
+					unset( EPM_Test_HTTP::$routes[ $route ] );
+				}
+			}
+		}
 	}
 );
 
@@ -1308,6 +1442,215 @@ $t->test(
 	}
 );
 
+$t->test(
+	'a move keeps the show\'s podcast:guid without "fill in empty settings": it replaces a guid this site only derived, never one set on purpose',
+	static function ( EPM_Test_Runner $t ) use ( $epm_h_show ) {
+		try {
+			// The first request of this site's feed stored a derived guid.
+			update_option( Feed::GUID_OPTION, Feed::derived_podcast_guid(), false );
+			$run = epm_h_import(
+				$epm_h_show,
+				[
+					'purpose'       => 'move',
+					'confirm_owner' => true,
+				]
+			);
+			$t->same( 'done', is_wp_error( $run ) ? $run->get_error_message() : $run['state']['status'] );
+			$t->same( 'c0ffee00-1234-5abc-8def-0123456789ab', get_option( Feed::GUID_OPTION ), 'adopted over the derived guid' );
+
+			update_option( Feed::GUID_OPTION, '11111111-2222-5333-8444-555555555555', false );
+			epm_h_import(
+				$epm_h_show,
+				[
+					'purpose'       => 'move',
+					'confirm_owner' => true,
+				]
+			);
+			$t->same( '11111111-2222-5333-8444-555555555555', get_option( Feed::GUID_OPTION ), 'a guid set here is kept' );
+
+			delete_option( Feed::GUID_OPTION );
+			epm_h_import(
+				$epm_h_show,
+				[
+					'purpose' => 'mirror',
+				]
+			);
+			$t->same( false, get_option( Feed::GUID_OPTION ), 'mirroring never adopts it' );
+		} finally {
+			epm_h_restore( PodcastSettings::OPTION );
+			epm_h_restore( Feed::GUID_OPTION );
+			Feed::flush_cache();
+		}
+	}
+);
+
+$t->test(
+	'moving a show here while mirroring its host switches hosting to this website: no sync, no redirect back (no loop)',
+	static function ( EPM_Test_Runner $t ) use ( $epm_h_show ) {
+		try {
+			epm_h_hosting(
+				[
+					'mode'     => 'external',
+					'feed_url' => $epm_h_show,
+					'sync'     => true,
+					'redirect' => true,
+				]
+			);
+			$t->same( $epm_h_show, Hosting::feed_redirect_target(), 'mirroring: the feed redirects to the host' );
+			$run = epm_h_import(
+				$epm_h_show,
+				[
+					'purpose'       => 'move',
+					'confirm_owner' => true,
+				]
+			);
+			$t->same( 'done', is_wp_error( $run ) ? $run->get_error_message() : $run['state']['status'] );
+			$t->same( 'self', Hosting::get( 'mode' ) );
+			$t->same( '', Hosting::feed_redirect_target(), 'no redirect to the old host' );
+			$t->same( false, Hosting::sync_enabled() );
+			$t->same( false, wp_next_scheduled( Hosting::CRON_HOOK ), 'sync unscheduled' );
+			$t->same( true, epm()->settings->get( 'moved_in' ) );
+
+			// A plain import (mirror) changes nothing about hosting.
+			epm_h_hosting( [ 'mode' => 'external' ] );
+			epm_h_import( $epm_h_show, [ 'purpose' => 'mirror' ] );
+			$t->same( 'external', Hosting::get( 'mode' ), 'mirror import' );
+		} finally {
+			epm_h_restore( Hosting::OPTION );
+			epm_h_restore( PodcastSettings::OPTION );
+			epm_h_restore( Feed::GUID_OPTION );
+			wp_clear_scheduled_hook( Hosting::CRON_HOOK );
+			Feed::flush_cache();
+		}
+	}
+);
+
+$t->test(
+	'audio that could not be copied is counted and listed, on new and existing episodes',
+	static function ( EPM_Test_Runner $t ) {
+		$url = epm_h_url( 'missing-audio.xml' );
+		$xml = str_replace( 'https://feeds.example.test/media/sync-1.mp3', 'https://feeds.example.test/gone/sync-1.mp3', epm_h_sync_feed( [ 1, 2 ] ) );
+		EPM_Test_HTTP::$routes[ $url ] = static function () use ( $xml ) {
+			return EPM_Test_HTTP::response( 200, $xml, [ 'content-type' => 'application/rss+xml' ] );
+		};
+		try {
+			foreach ( [ 'new episodes' => 2, 'existing episodes' => 0 ] as $label => $created ) {
+				$run = epm_h_import(
+					$url,
+					[
+						'purpose'        => 'mirror',
+						'download_media' => true,
+					]
+				);
+				if ( is_wp_error( $run ) ) {
+					$t->assert( false, $run->get_error_message() );
+					return;
+				}
+				$state = $run['state'];
+				$t->same( [ 'done', $created, 1 ], [ $state['status'], $state['counts']['created'], $state['counts']['media_failed'] ], $label );
+				$t->same( [ 'Sync episode 1' ], array_column( $state['media_failed'], 'title' ), $label . ': listed' );
+				$t->same( 0, (int) get_post_meta( epm_h_id( 'sync-1' ), '_epm_audio_id', true ), $label . ': audio stays at the host' );
+				$t->assert( (int) get_post_meta( epm_h_id( 'sync-2' ), '_epm_audio_id', true ) > 0, $label . ': the other audio was copied' );
+			}
+			$t->same( 0, ImportJob::client_state( [] )['counts']['media_failed'], 'no job: zero' );
+		} finally {
+			unset( EPM_Test_HTTP::$routes[ $url ] );
+			foreach ( epm_h_from_feed( $url ) as $id ) {
+				wp_delete_post( $id, true );
+			}
+		}
+	}
+);
+
+$t->test(
+	'an episode whose audio another request is copying is not downloaded twice',
+	static function ( EPM_Test_Runner $t ) {
+		$url = epm_h_url( 'copying.xml' );
+		$xml = epm_h_sync_feed( [ 1 ] );
+		EPM_Test_HTTP::$routes[ $url ] = static function () use ( $xml ) {
+			return EPM_Test_HTTP::response( 200, $xml, [ 'content-type' => 'application/rss+xml' ] );
+		};
+		try {
+			epm_h_import( $url, [ 'purpose' => 'mirror' ] );
+			$id = epm_h_id( 'sync-1' );
+			update_post_meta( $id, '_epm_copying', time() - 60 );
+			EPM_Test_HTTP::$log = [];
+			epm_h_import(
+				$url,
+				[
+					'purpose'        => 'mirror',
+					'download_media' => true,
+				]
+			);
+			$t->same( [], epm_h_requests( 'https://feeds.example.test/media/sync-1.mp3' ), 'no second download while one runs' );
+			$t->same( 0, (int) get_post_meta( $id, '_epm_audio_id', true ) );
+
+			update_post_meta( $id, '_epm_copying', time() - 18 * MINUTE_IN_SECONDS );
+			epm_h_import(
+				$url,
+				[
+					'purpose'        => 'mirror',
+					'download_media' => true,
+				]
+			);
+			$t->assert( (int) get_post_meta( $id, '_epm_audio_id', true ) > 0, 'a stale marker (crashed request) does not block the copy' );
+			$t->same( '', get_post_meta( $id, '_epm_copying', true ), 'marker removed after the copy' );
+		} finally {
+			unset( EPM_Test_HTTP::$routes[ $url ] );
+			foreach ( epm_h_from_feed( $url ) as $id ) {
+				wp_delete_post( $id, true );
+			}
+		}
+	}
+);
+
+$t->test(
+	'stopping an import while a step runs: the step never undoes the cancel, and a cancelled move is not finished',
+	static function ( EPM_Test_Runner $t ) {
+		$url = epm_h_url( 'cancel.xml' );
+		$xml = str_replace( '<guid isPermaLink="false">sync-', '<guid isPermaLink="false">cancel-', epm_h_sync_feed( [ 1, 2, 3 ] ) );
+		EPM_Test_HTTP::$routes[ $url ] = static function () use ( $xml ) {
+			return EPM_Test_HTTP::response( 200, $xml, [ 'content-type' => 'application/rss+xml' ] );
+		};
+		$settings             = epm()->settings->all();
+		$settings['moved_in'] = false;
+		update_option( PodcastSettings::OPTION, $settings );
+		// "Stop the import" pressed while the step imports its first episode.
+		$cancel = static function ( $post_id, $post ) {
+			if ( EpisodePostType::CPT === $post->post_type ) {
+				remove_action( 'wp_insert_post', $GLOBALS['epm_h_cancel'], 10 );
+				ImportJob::cancel();
+			}
+		};
+		$GLOBALS['epm_h_cancel'] = $cancel;
+		try {
+			$preview = ImportJob::preview( $url );
+			ImportJob::start(
+				(string) $preview['token'],
+				[
+					'purpose' => 'move',
+				]
+			);
+			add_action( 'wp_insert_post', $cancel, 10, 2 );
+			$state = ImportJob::step( 8.0 );
+			$t->same( 'cancelled', $state['status'], 'the step reports the cancel' );
+			$t->same( 'cancelled', ImportJob::get()['status'] ?? '', 'and keeps it' );
+			$t->same( false, wp_next_scheduled( ImportJob::CRON_HOOK ), 'no background continuation' );
+			$t->same( false, epm()->settings->get( 'moved_in' ), 'the move is not finished' );
+			$t->same( 'cancelled', ImportJob::step( 8.0 )['status'], 'a later step does nothing' );
+		} finally {
+			remove_action( 'wp_insert_post', $cancel, 10 );
+			unset( EPM_Test_HTTP::$routes[ $url ], $GLOBALS['epm_h_cancel'] );
+			foreach ( epm_h_from_feed( $url ) as $id ) {
+				wp_delete_post( $id, true );
+			}
+			epm_h_restore( PodcastSettings::OPTION );
+			epm_h_restore( Feed::GUID_OPTION );
+			wp_clear_scheduled_hook( ImportJob::CRON_HOOK );
+		}
+	}
+);
+
 /* ------------------------------------------------------------------------- */
 WP_CLI::log( 'Sync with the host' );
 /* ------------------------------------------------------------------------- */
@@ -1412,6 +1755,41 @@ $t->test(
 );
 
 $t->test(
+	'saving a synced episode in the classic editor is no local edit: later changes at the host still arrive',
+	static function ( EPM_Test_Runner $t ) {
+		$ep8 = epm_h_id( 'sync-8' );
+		$GLOBALS['epm_h_sync']['changes'][8] = [ 'notes' => "Paragraph one.\n\nParagraph two." ];
+		Hosting::sync();
+		$stored = (string) get_post_field( 'post_content', $ep8 );
+		$t->assert( false !== strpos( $stored, '<p>Paragraph one.</p>' ), 'notes synced as paragraphs: ' . $stored );
+
+		// What the classic editor sends back on "Update": no <p> tags, CRLF.
+		wp_update_post(
+			[
+				'ID'           => $ep8,
+				'post_content' => "Paragraph one.\r\n\r\nParagraph two.",
+			]
+		);
+
+		$GLOBALS['epm_h_sync']['changes'][8] = [ 'notes' => "Paragraph one, corrected.\n\nParagraph two." ];
+		$result                              = Hosting::sync();
+		$t->assert( false !== strpos( (string) get_post_field( 'post_content', $ep8 ), 'Paragraph one, corrected.' ), 'the host\'s correction arrived (' . $result['message'] . ')' );
+
+		// A real edit is still kept.
+		wp_update_post(
+			[
+				'ID'           => $ep8,
+				'post_content' => 'Rewritten on this site.',
+			]
+		);
+		$GLOBALS['epm_h_sync']['changes'][8] = [ 'notes' => "Paragraph one, again.\n\nParagraph two." ];
+		Hosting::sync();
+		$t->same( 'Rewritten on this site.', get_post_field( 'post_content', $ep8 ), 'local edit kept' );
+		unset( $GLOBALS['epm_h_sync']['changes'][8] );
+	}
+);
+
+$t->test(
 	'an episode deleted here is not brought back by the sync',
 	static function ( EPM_Test_Runner $t ) {
 		wp_trash_post( epm_h_id( 'sync-7' ) );
@@ -1484,10 +1862,28 @@ $t->test(
 		$t->same( 'ok', $result['status'], $result['message'] );
 		$t->same( 'https://feeds.example.test/sync-moved.xml', Hosting::get( 'feed_url' ) );
 
-		epm_h_hosting( [ 'feed_url' => $epm_h_sync ] );
-		$GLOBALS['epm_h_sync']['extra'] = '<itunes:new-feed-url>' . esc_xml( Feed::url() ) . '</itunes:new-feed-url>';
+		// The host sends apps here (this site's feed, with or without the
+		// trailing slash): the show moved here, so hosting switches to this
+		// website instead of redirecting back to the host (a loop).
+		foreach ( [ Feed::url(), untrailingslashit( Feed::url() ) ] as $own ) {
+			epm_h_hosting(
+				[
+					'mode'     => 'external',
+					'feed_url' => $epm_h_sync,
+				]
+			);
+			$GLOBALS['epm_h_sync']['extra'] = '<itunes:new-feed-url>' . esc_xml( $own ) . '</itunes:new-feed-url>';
+			$moved                          = Hosting::sync();
+			$t->same( $epm_h_sync, Hosting::get( 'feed_url' ), 'this site\'s own feed is never followed: ' . $own );
+			$t->same( [ 'self', '' ], [ Hosting::get( 'mode' ), Hosting::feed_redirect_target() ], 'hosting switched to this website: ' . $own );
+			$t->assert( false !== strpos( $moved['message'], 'This website' ), $moved['message'] );
+		}
+		epm_h_hosting( [ 'mode' => 'external' ] );
+
+		// An https feed never moves to http.
+		$GLOBALS['epm_h_sync']['extra'] = '<itunes:new-feed-url>http://feeds.example.test/sync-plain.xml</itunes:new-feed-url>';
 		Hosting::sync();
-		$t->same( $epm_h_sync, Hosting::get( 'feed_url' ), 'this site\'s own feed is never followed' );
+		$t->same( $epm_h_sync, Hosting::get( 'feed_url' ), 'no move from https to http' );
 		$GLOBALS['epm_h_sync']['extra'] = '';
 
 		// Redirected by the host: permanent moves are followed, temporary ones not.
@@ -1502,6 +1898,32 @@ $t->test(
 			$t->same( epm_h_url( $expected ), Hosting::get( 'feed_url' ), $hops[0] . ' (' . $result['message'] . ')' );
 		}
 		epm_h_hosting( [ 'feed_url' => $epm_h_sync ] );
+	}
+);
+
+$t->test(
+	'after the host feed moved, episodes the host removed are still found (re-tagged with the new address)',
+	static function ( EPM_Test_Runner $t ) use ( $epm_h_sync ) {
+		$renamed                          = epm_h_url( 'sync-renamed.xml' );
+		EPM_Test_HTTP::$routes[ $renamed ] = EPM_Test_HTTP::$routes[ $epm_h_sync ];
+		$numbers                          = $GLOBALS['epm_h_sync']['numbers'];
+		try {
+			epm_h_hosting( [ 'feed_url' => $renamed ] );
+			$result = Hosting::sync();
+			$t->same( 'ok', $result['status'], $result['message'] );
+			$t->same( $renamed, get_post_meta( epm_h_id( 'sync-10' ), '_epm_source_feed', true ), 'listed episodes carry the new address' );
+
+			// Episode 10 disappears at the new address.
+			$GLOBALS['epm_h_sync']['numbers'] = array_values( array_diff( $numbers, [ 10 ] ) );
+			Hosting::sync();
+			$t->assert( (int) get_post_meta( epm_h_id( 'sync-10' ), '_epm_missing_since', true ) > 0, 'the removal is noticed' );
+		} finally {
+			$GLOBALS['epm_h_sync']['numbers'] = $numbers;
+			unset( EPM_Test_HTTP::$routes[ $renamed ] );
+			delete_post_meta( epm_h_id( 'sync-10' ), '_epm_missing_since' );
+			epm_h_hosting( [ 'feed_url' => $epm_h_sync ] );
+			Hosting::sync();
+		}
 	}
 );
 
@@ -1552,9 +1974,44 @@ $t->test(
 		$t->assert( ImportJob::acquire_lock(), 'lock taken' );
 		$t->same( 'busy', Hosting::sync()['status'] );
 		ImportJob::release_lock();
+		$t->same( false, get_option( 'epm_import_lock' ), 'released' );
 		update_option( 'epm_import_lock', (string) ( time() - 10 * MINUTE_IN_SECONDS ), false );
 		$t->assert( ImportJob::acquire_lock(), 'a stale lock is taken over' );
 		ImportJob::release_lock();
+
+		// A lock belongs to the request that took it: one taken over by
+		// another request is not released by the first one.
+		$t->assert( ImportJob::acquire_lock(), 'lock taken again' );
+		$other = time() . ':another-request';
+		update_option( 'epm_import_lock', $other, false );
+		$t->same( false, ImportJob::refresh_lock(), 'not ours any more' );
+		ImportJob::release_lock();
+		$t->same( $other, get_option( 'epm_import_lock' ), 'the other request\'s lock stays' );
+		delete_option( 'epm_import_lock' );
+
+		// Refreshed while held; a running copy of media keeps it for longer.
+		$t->assert( ImportJob::acquire_lock(), 'lock taken once more' );
+		$suffix = substr( (string) get_option( 'epm_import_lock' ), strpos( (string) get_option( 'epm_import_lock' ), ':' ) );
+		update_option( 'epm_import_lock', ( time() - 100 ) . $suffix, false );
+		$t->assert( ImportJob::refresh_lock(), 'refreshed' );
+		$t->assert( (int) strtok( (string) get_option( 'epm_import_lock' ), ':' ) >= time() - 5, 'with the current time' );
+		ImportJob::release_lock();
+
+		$job = get_option( ImportJob::OPTION );
+		update_option(
+			ImportJob::OPTION,
+			[
+				'status'  => 'running',
+				'options' => [ 'download_media' => true ],
+			],
+			false
+		);
+		update_option( 'epm_import_lock', ( time() - 10 * MINUTE_IN_SECONDS ) . ':copying', false );
+		$t->same( false, ImportJob::acquire_lock(), 'copying media: 10 minutes is not stale' );
+		update_option( 'epm_import_lock', ( time() - 21 * MINUTE_IN_SECONDS ) . ':copying', false );
+		$t->assert( ImportJob::acquire_lock(), 'copying media: 21 minutes is stale' );
+		ImportJob::release_lock();
+		update_option( ImportJob::OPTION, $job, false );
 
 		epm_h_hosting(
 			[
@@ -1671,6 +2128,88 @@ $t->test(
 		);
 		$xp = epm_test_xpath( epm_test_feed() );
 		$t->same( 0, $xp->query( '/rss/channel/itunes:new-feed-url' )->length, 'not by default' );
+	}
+);
+
+$t->test(
+	'after a move, readiness warns while imported episodes still load their audio from the old host',
+	static function ( EPM_Test_Runner $t ) {
+		$count = static function (): ?int {
+			foreach ( \EPM\Readiness::report()['checks'] as $check ) {
+				if ( 'Audio at the old host' === $check['label'] ) {
+					return preg_match( '/(\d+)/', str_replace( [ ',', '.' ], '', $check['message'] ), $m ) ? (int) $m[1] : -1;
+				}
+			}
+			return null;
+		};
+		$link  = static function (): string {
+			foreach ( \EPM\Readiness::report()['checks'] as $check ) {
+				if ( 'Audio at the old host' === $check['label'] ) {
+					return (string) $check['url'];
+				}
+			}
+			return '';
+		};
+		$make  = static function ( string $title, array $meta ): int {
+			$id = (int) wp_insert_post(
+				[
+					'post_type'   => 'podcast_episode',
+					'post_status' => 'publish',
+					'post_title'  => $title,
+				]
+			);
+			foreach ( $meta as $key => $value ) {
+				update_post_meta( $id, '_epm_' . $key, $value );
+			}
+			Episodes::clear_data_cache( $id );
+			return $id;
+		};
+
+		$admin    = get_users(
+			[
+				'role'   => 'administrator',
+				'number' => 1,
+				'fields' => 'ID',
+			]
+		);
+		$previous = get_current_user_id();
+		wp_set_current_user( (int) $admin[0] );
+
+		$imported = $make(
+			'Old host audio',
+			[
+				'audio_url'    => 'https://old-host.example.test/audio/old-1.mp3',
+				'audio_length' => 1000,
+				'source'       => 'import',
+			]
+		);
+		$own      = $make(
+			'Own CDN audio',
+			[
+				'audio_url'    => 'https://cdn.example.test/audio/own-1.mp3',
+				'audio_length' => 1000,
+			]
+		);
+
+		try {
+			$t->same( null, $count(), 'no warning without a move' );
+			epm_test_with_settings(
+				[ 'moved_in' => true ],
+				static function () use ( $t, $count, $link, $imported ) {
+					$before = $count();
+					$t->assert( null !== $before && $before >= 1, 'warning after a move' );
+					$t->assert( false !== strpos( $link(), 'page=epm-hosting' ), 'links to Hosting & import' );
+					wp_delete_post( $imported, true );
+					$after = $count();
+					$t->same( null === $before ? null : ( 1 === $before ? null : $before - 1 ), $after, 'counts imported episodes only, not audio this site added' );
+				}
+			);
+		} finally {
+			foreach ( [ $imported, $own ] as $id ) {
+				wp_delete_post( $id, true );
+			}
+			wp_set_current_user( $previous );
+		}
 	}
 );
 
@@ -1889,6 +2428,136 @@ $t->test(
 	}
 );
 
+$t->test(
+	'a control character in an episode field never breaks the feed',
+	static function ( EPM_Test_Runner $t ) {
+		$dirty = static function ( $data ) {
+			$data['title']             = "Our\x08 guest";
+			$data['short_description'] = "A pasted\x0B summary\x1F.";
+			$data['guest_name']        = "Gia\x07 Guest";
+			$data['show_notes']        = "Notes with a \x0C form feed.";
+			return $data;
+		};
+		add_filter( 'epm_feed_episode', $dirty );
+		try {
+			Feed::flush_cache();
+			$xml = epm()->feed->get_document()['xml'];
+			$t->assert( false !== simplexml_load_string( $xml ), 'the feed is well-formed XML' );
+			$t->assert( false !== strpos( $xml, '<title>Our guest</title>' ), 'the text itself stays' );
+			$t->assert( 1 !== preg_match( '/[\x00-\x08\x0B\x0C\x0E-\x1F]/', $xml ), 'no control characters left' );
+		} finally {
+			remove_filter( 'epm_feed_episode', $dirty );
+			Feed::flush_cache();
+		}
+		$t->same( 'a &amp; b', epm_esc_xml( "a\x01 &\x1F b" ) );
+		$t->same( '<![CDATA[<p>x</p>]]>', Feed::cdata( "<p>x\x08</p>" ) );
+	}
+);
+
+$t->test(
+	'Last-Modified and lastBuildDate move when the feed changes without a new episode (channel settings)',
+	static function ( EPM_Test_Runner $t ) {
+		$settings = get_option( PodcastSettings::OPTION );
+		try {
+			Feed::flush_cache();
+			epm()->feed->get_document();
+			// Pretend the current feed was built long ago.
+			$built             = get_option( Feed::BUILD_OPTION );
+			$built['modified'] = time() - 30 * DAY_IN_SECONDS;
+			update_option( Feed::BUILD_OPTION, $built, false );
+			Feed::flush_cache();
+			$same   = epm()->feed->get_document();
+			$newest = 0;
+			foreach ( epm()->feed->eligible_episodes() as $post ) {
+				$newest = max( $newest, (int) get_post_modified_time( 'U', true, $post ), (int) get_post_time( 'U', true, $post ) );
+			}
+			$t->same( max( $newest, $built['modified'] ), $same['modified'], 'unchanged content keeps its time (not the time of the rebuild)' );
+
+			$start = time();
+			update_option( PodcastSettings::OPTION, array_merge( (array) $settings, [ 'copyright' => '© Changed ' . wp_generate_password( 6, false ) ] ) );
+			$changed = epm()->feed->get_document();
+			$t->assert( $changed['modified'] >= $start, 'a channel change moves Last-Modified' );
+			$t->assert( false !== strpos( $changed['xml'], '<lastBuildDate>' . gmdate( 'D, d M Y H:i:s', $changed['modified'] ) . ' +0000</lastBuildDate>' ), 'lastBuildDate follows' );
+			$t->same( $changed['modified'], (int) get_option( Feed::BUILD_OPTION )['modified'], 'remembered' );
+
+			Feed::flush_cache();
+			$again = epm()->feed->get_document();
+			$t->same( [ $changed['modified'], $changed['etag'] ], [ $again['modified'], $again['etag'] ], 'a rebuild of the same content keeps both' );
+		} finally {
+			update_option( PodcastSettings::OPTION, $settings );
+			Feed::flush_cache();
+		}
+	}
+);
+
+$t->test(
+	'an M4A file in the Media Library is published as audio/x-m4a and described as M4A',
+	static function ( EPM_Test_Runner $t ) {
+		$m4a = epm_h_attachment( 'episode-12.m4a', EPM_Test_HTTP::mp3( 1 ), 'audio/mpeg' );
+		$mp3 = epm_h_attachment( 'episode-13.mp3', EPM_Test_HTTP::mp3( 1 ), 'audio/mpeg' );
+		$id  = (int) wp_insert_post(
+			[
+				'post_type'   => EpisodePostType::CPT,
+				'post_status' => 'publish',
+				'post_title'  => 'M4A from the Media Library',
+				'meta_input'  => [ '_epm_audio_id' => $m4a ],
+			]
+		);
+		try {
+			$t->same( 'audio/x-m4a', AudioMetadata::attachment_mime( $m4a ), 'WordPress files .m4a as audio/mpeg' );
+			$t->same( 'audio/mpeg', AudioMetadata::attachment_mime( $mp3 ) );
+			$t->same( 'audio/x-m4a', AudioMetadata::describe( $m4a )['mime'] );
+			Episodes::clear_data_cache( $id );
+			$data = epm()->episodes->get_data( $id );
+			$t->same( 'audio/x-m4a', $data['audio_mime'] ?? '' );
+			$t->same( 'audio/x-m4a', AudioMetadata::enclosure( $data )['type'] );
+			$t->same( 'audio/x-m4a', AudioMetadata::mime_from_url( 'https://cdn.example.test/book.m4b' ) );
+		} finally {
+			wp_delete_post( $id, true );
+			wp_delete_attachment( $m4a, true );
+			wp_delete_attachment( $mp3, true );
+			Feed::flush_cache();
+		}
+	}
+);
+
+$t->test(
+	'the delivery check only makes safe requests: an author\'s audio URL cannot reach private addresses',
+	static function ( EPM_Test_Runner $t ) {
+		$id      = (int) wp_insert_post(
+			[
+				'post_type'   => EpisodePostType::CPT,
+				'post_status' => 'publish',
+				'post_title'  => 'Metadata probe',
+				'post_date'   => gmdate( 'Y-m-d H:i:s', time() - 60 ),
+				'meta_input'  => [ '_epm_audio_url' => 'http://169.254.169.254/latest/meta-data/' ],
+			]
+		);
+		$seen    = [];
+		$capture = static function ( $pre, $args, $url ) use ( &$seen ) {
+			$seen[] = [ $url, ! empty( $args['reject_unsafe_urls'] ) ];
+			// Nothing leaves the machine: answer like a working server.
+			if ( 'HEAD' === ( $args['method'] ?? '' ) ) {
+				return EPM_Test_HTTP::response( 200, '', [ 'content-length' => '1000', 'content-type' => 'audio/mpeg' ] );
+			}
+			if ( isset( $args['headers']['Range'] ) ) {
+				return EPM_Test_HTTP::response( 206, 'ab', [ 'content-type' => 'audio/mpeg' ] );
+			}
+			return EPM_Test_HTTP::response( 200, '<?xml version="1.0"?><rss version="2.0"></rss>', [ 'content-type' => 'application/rss+xml' ] );
+		};
+		add_filter( 'pre_http_request', $capture, 1, 3 );
+		try {
+			AdminPages::server_check();
+			$t->same( [ Hosting::public_feed_url(), 'http://169.254.169.254/latest/meta-data/', 'http://169.254.169.254/latest/meta-data/' ], array_column( $seen, 0 ), 'the feed, then the newest episode\'s audio (HEAD, range)' );
+			$t->same( [ true, true, true ], array_column( $seen, 1 ), 'every request rejects unsafe addresses' );
+		} finally {
+			remove_filter( 'pre_http_request', $capture, 1 );
+			wp_delete_post( $id, true );
+			Feed::flush_cache();
+		}
+	}
+);
+
 /* ------------------------------------------------------------------------- */
 WP_CLI::log( 'Transcript files' );
 /* ------------------------------------------------------------------------- */
@@ -2063,13 +2732,26 @@ $t->test(
 			$t->same( 'epm_setup_path', ( static function ( $r ) {
 				return is_wp_error( $r ) ? $r->get_error_code() : 'saved';
 			} )( $pages->save_step( 'path', [ 'path' => 'somewhere' ] ) ) );
+			// Choosing a path switches nothing yet: another host needs its
+			// feed first (next step). Only "host it here" switches back.
+			epm_h_hosting( [ 'mode' => 'self' ] );
 			$t->same( [ 'path' => 'external' ], $pages->save_step( 'path', [ 'path' => 'external' ] ) );
-			$t->same( [ 'external', 'external' ], [ AdminPages::setup_state()['path'], Hosting::get( 'mode' ) ] );
-			foreach ( [ 'new', 'move' ] as $path ) {
-				$pages->save_step( 'path', [ 'path' => $path ] );
-				$t->same( [ $path, 'self' ], [ AdminPages::setup_state()['path'], Hosting::get( 'mode' ) ], $path );
-			}
+			$t->same( [ 'external', 'self', '' ], [ AdminPages::setup_state()['path'], Hosting::get( 'mode' ), Hosting::feed_redirect_target() ], 'external chosen, no feed yet' );
+			epm_h_hosting(
+				[
+					'mode'     => 'external',
+					'feed_url' => 'https://feeds.example.test/old.xml',
+				]
+			);
+			$pages->save_step( 'path', [ 'path' => 'move' ] );
+			$t->same( [ 'move', 'external' ], [ AdminPages::setup_state()['path'], Hosting::get( 'mode' ) ], 'move chosen: unchanged until the host step' );
+			$pages->save_step( 'hosting', [ 'feed_url' => 'https://feeds.example.test/old.xml', 'provider' => 'buzzsprout', 'mode' => 'external' ] );
+			$t->same( 'self', Hosting::get( 'mode' ), 'moving: the host step keeps the show here' );
+			epm_h_hosting( [ 'mode' => 'external' ] );
+			$pages->save_step( 'path', [ 'path' => 'new' ] );
+			$t->same( [ 'new', 'self' ], [ AdminPages::setup_state()['path'], Hosting::get( 'mode' ) ], 'new: hosted here' );
 
+			$pages->save_step( 'path', [ 'path' => 'external' ] );
 			$saved = $pages->save_step(
 				'hosting',
 				[
@@ -2235,6 +2917,71 @@ $t->test(
 		} finally {
 			epm_h_restore( Directories::OPTION );
 			epm_h_restore( PodcastSettings::OPTION );
+		}
+	}
+);
+
+$t->test(
+	'uninstalling with data deletion removes the topics and their relationships (the plugin is not loaded then)',
+	static function ( EPM_Test_Runner $t ) {
+		global $wpdb;
+
+		$episode = (int) wp_insert_post(
+			[
+				'post_type'   => EpisodePostType::CPT,
+				'post_status' => 'publish',
+				'post_title'  => 'Uninstall probe',
+			]
+		);
+		$term    = wp_insert_term( 'Uninstall probe ' . wp_generate_password( 6, false ), EpisodePostType::TOPIC );
+		$term_id = is_wp_error( $term ) ? 0 : (int) $term['term_id'];
+		$tt_id   = is_wp_error( $term ) ? 0 : (int) $term['term_taxonomy_id'];
+		wp_set_object_terms( $episode, [ $term_id ], EpisodePostType::TOPIC );
+		$t->assert( $term_id > 0 && has_term( $term_id, EpisodePostType::TOPIC, $episode ), 'probe topic assigned' );
+
+		// Everything uninstall.php deletes is kept aside and put back; only
+		// the probe episode and topic are offered to it.
+		$options = $wpdb->get_results( "SELECT option_name, option_value, autoload FROM {$wpdb->options} WHERE option_name LIKE 'epm%'", ARRAY_A );
+		$posts   = static function ( $pre, $query ) use ( $episode ) {
+			return EpisodePostType::CPT === $query->get( 'post_type' ) ? [ $episode ] : $pre;
+		};
+		// Only the "all topics" query (not term lookups WordPress makes).
+		$terms   = static function ( $pre, $query ) use ( $term_id ) {
+			$vars = $query->query_vars;
+			$all  = in_array( EpisodePostType::TOPIC, (array) ( $vars['taxonomy'] ?? [] ), true ) && 'ids' === ( $vars['fields'] ?? '' ) && empty( $vars['object_ids'] ) && empty( $vars['include'] ) && empty( $vars['name'] ) && empty( $vars['slug'] );
+			return $all ? [ $term_id ] : $pre;
+		};
+		add_filter( 'posts_pre_query', $posts, 10, 2 );
+		add_filter( 'terms_pre_query', $terms, 10, 2 );
+		add_filter( 'epm_delete_data_on_uninstall', '__return_true' );
+		unregister_taxonomy( EpisodePostType::TOPIC );
+		try {
+			if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+				define( 'WP_UNINSTALL_PLUGIN', 'elementor-podcast-manager/elementor-podcast-manager.php' );
+			}
+			( static function () {
+				include dirname( __DIR__, 2 ) . '/uninstall.php';
+			} )();
+
+			$t->same( null, get_post( $episode ), 'episode deleted' );
+			$t->same( 0, (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->term_relationships} WHERE object_id = %d OR term_taxonomy_id = %d", $episode, $tt_id ) ), 'no topic relationships left' );
+			$t->same( 0, (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->term_taxonomy} WHERE term_taxonomy_id = %d", $tt_id ) ), 'topic deleted' );
+		} finally {
+			remove_filter( 'posts_pre_query', $posts, 10 );
+			remove_filter( 'terms_pre_query', $terms, 10 );
+			remove_filter( 'epm_delete_data_on_uninstall', '__return_true' );
+			EpisodePostType::register_topics();
+			foreach ( $options as $option ) {
+				delete_option( $option['option_name'] );
+				add_option( $option['option_name'], maybe_unserialize( $option['option_value'] ), '', in_array( $option['autoload'], [ 'yes', 'on', 'auto-on' ], true ) );
+			}
+			wp_cache_flush();
+			if ( get_post( $episode ) ) {
+				wp_delete_post( $episode, true );
+			}
+			if ( $term_id > 0 && term_exists( $term_id, EpisodePostType::TOPIC ) ) {
+				wp_delete_term( $term_id, EpisodePostType::TOPIC );
+			}
 		}
 	}
 );

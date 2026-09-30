@@ -22,3 +22,14 @@
 	inline-size: auto;
 	max-inline-size: 100%;
 }
+
+/* The import progress sits below the import form, not against it. */
+.epm-app[data-epm-hosting] [data-import-form] + [data-job] {
+	margin-block-start: 16px;
+}
+
+/* The import progress receives focus when an import starts (programmatic
+   focus only, never a Tab stop). */
+.epm-app[data-epm-hosting] [data-job]:focus {
+	outline: none;
+}

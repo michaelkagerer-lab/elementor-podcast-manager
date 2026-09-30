@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic show whose first episode's audio file is gone (the fixture server answers 404): copying the media must report it. -->
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+	<channel>
+		<title>Half-Moved Show</title>
+		<link>https://show.example.test/half-moved/</link>
+		<description>A show with one audio file missing at its host.</description>
+		<language>en</language>
+		<item>
+			<title>Missing audio episode</title>
+			<guid isPermaLink="false">half-moved-1</guid>
+			<pubDate>Mon, 01 Jun 2026 08:00:00 +0000</pubDate>
+			<description>Its audio file is gone.</description>
+			<enclosure url="https://feeds.example.test/gone/half-moved-1.mp3" length="1000" type="audio/mpeg"/>
+		</item>
+		<item>
+			<title>Copied audio episode</title>
+			<guid isPermaLink="false">half-moved-2</guid>
+			<pubDate>Tue, 02 Jun 2026 08:00:00 +0000</pubDate>
+			<description>Its audio file is there.</description>
+			<enclosure url="https://feeds.example.test/media/half-moved-2.mp3" length="2000" type="audio/mpeg"/>
+		</item>
+	</channel>
+</rss>

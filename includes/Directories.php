@@ -281,7 +281,7 @@ final class Directories {
 	/**
 	 * Save one directory's progress.
 	 *
-	 * A listing URL also becomes a platform link (Podcast Settings →
+	 * A listing URL also becomes a platform link (Podcast settings →
 	 * platform links) unless one for that service exists already, so the
 	 * subscribe buttons fill themselves as the show gets listed.
 	 *

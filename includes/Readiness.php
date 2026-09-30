@@ -194,6 +194,8 @@ final class Readiness {
 		Episodes::prime_attachments( $episodes );
 		$distributable = 0;
 		$seen_urls     = [];
+		$left_at_host  = 0;
+		$moved_in      = ! empty( epm()->settings->get( 'moved_in' ) );
 
 		foreach ( $episodes as $post ) {
 			$data = epm()->episodes->get_public_data( $post );
@@ -204,6 +206,10 @@ final class Readiness {
 			$audio_id  = (int) $data['audio_id'];
 			$external  = $audio_id <= 0 && 'external' === ( $data['audio_source'] ?? '' );
 			$edit_url  = (string) get_edit_post_link( $post->ID, 'raw' );
+
+			if ( $external && $moved_in && 'import' === get_post_meta( $post->ID, Episodes::META_PREFIX . 'source', true ) ) {
+				++$left_at_host;
+			}
 			$edit_text = __( 'Edit episode', 'elementor-podcast-manager' );
 
 			if ( $audio_id <= 0 && ! $external ) {
@@ -279,6 +285,20 @@ final class Readiness {
 			$seen_urls[ $enclosure['url'] ] = $data['title'];
 
 			$distributable++;
+		}
+
+		if ( $left_at_host > 0 ) {
+			$add(
+				'warning',
+				__( 'Audio at the old host', 'elementor-podcast-manager' ),
+				sprintf(
+					/* translators: %s: number of episodes */
+					_n( 'The audio of %s episode still loads from the old host. Copy it before closing that account.', 'The audio of %s episodes still loads from the old host. Copy it before closing that account.', $left_at_host, 'elementor-podcast-manager' ),
+					number_format_i18n( $left_at_host )
+				),
+				self::admin_page_url( 'epm-hosting' ),
+				__( 'Import with “Copy audio”', 'elementor-podcast-manager' )
+			);
 		}
 
 		if ( 0 === $distributable ) {
@@ -467,7 +487,14 @@ final class Readiness {
 		}
 
 		if ( ! Hosting::is_external() ) {
-			$out .= '<p class="description epm-readiness__note">' . esc_html__( 'Transport checks (public HTTP access, HEAD and byte-range support) depend on your hosting and must be verified separately against the live feed URL.', 'elementor-podcast-manager' ) . '</p>';
+			// The delivery test lives on the Distribution screen; the link is
+			// only there for users who can open it.
+			$check_url = self::admin_page_url( 'epm-distribution', 'epm-dist-check' );
+			$out      .= '<p class="description epm-readiness__note">' . esc_html__( 'Directories also check that your server delivers the audio correctly.', 'elementor-podcast-manager' );
+			if ( '' !== $check_url ) {
+				$out .= ' <a href="' . esc_url( $check_url ) . '">' . esc_html__( 'Test feed and audio delivery', 'elementor-podcast-manager' ) . '</a>';
+			}
+			$out .= '</p>';
 		}
 
 		$out .= '</div>';

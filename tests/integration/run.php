@@ -304,6 +304,22 @@ $t->test(
 				$t->same( '1', $xp->query( '/rss/channel/item/itunes:episode' )->item( 0 )->textContent, 'oldest first' );
 			}
 		);
+		// A limit keeps the newest episodes of a serial show too (new
+		// episodes must reach the feed), still oldest first.
+		epm_test_with_settings(
+			[
+				'type'       => 'serial',
+				'feed_limit' => 2,
+			],
+			static function () use ( $t ) {
+				$xp     = epm_test_xpath( epm_test_feed() );
+				$titles = [];
+				foreach ( $xp->query( '/rss/channel/item/title' ) as $node ) {
+					$titles[] = $node->textContent;
+				}
+				$t->same( [ 'Episode Two', 'Episode Three (bonus)' ], $titles, 'serial with a limit: the newest two, oldest first' );
+			}
+		);
 	}
 );
 

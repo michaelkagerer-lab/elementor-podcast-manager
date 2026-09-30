@@ -969,11 +969,13 @@ final class EpisodeMeta {
 		<p class="description"><?php esc_html_e( 'Links, credits and resources for this episode. Shown on the episode page; optional.', 'elementor-podcast-manager' ); ?></p>
 		<p>
 			<label for="epm-video-url"><?php esc_html_e( 'Video URL', 'elementor-podcast-manager' ); ?> <span class="epm-optional"><?php esc_html_e( '(optional)', 'elementor-podcast-manager' ); ?></span></label><br />
-			<input type="url" id="epm-video-url" name="epm[video_url]" value="<?php echo esc_attr( (string) $this->meta( $post, 'video_url', '' ) ); ?>" class="widefat" inputmode="url" spellcheck="false" />
+			<input type="url" id="epm-video-url" name="epm[video_url]" value="<?php echo esc_attr( (string) $this->meta( $post, 'video_url', '' ) ); ?>" class="widefat" inputmode="url" spellcheck="false" aria-describedby="epm-video-url-help" />
+			<span class="description" id="epm-video-url-help"><?php esc_html_e( 'YouTube, Vimeo or an MP4 file. Shown as a click-to-play video on the episode page.', 'elementor-podcast-manager' ); ?></span>
 		</p>
 		<p>
 			<label for="epm-youtube-url"><?php esc_html_e( 'YouTube URL', 'elementor-podcast-manager' ); ?> <span class="epm-optional"><?php esc_html_e( '(optional)', 'elementor-podcast-manager' ); ?></span></label><br />
-			<input type="url" id="epm-youtube-url" name="epm[youtube_url]" value="<?php echo esc_attr( (string) $this->meta( $post, 'youtube_url', '' ) ); ?>" class="widefat" inputmode="url" spellcheck="false" />
+			<input type="url" id="epm-youtube-url" name="epm[youtube_url]" value="<?php echo esc_attr( (string) $this->meta( $post, 'youtube_url', '' ) ); ?>" class="widefat" inputmode="url" spellcheck="false" aria-describedby="epm-youtube-url-help" />
+			<span class="description" id="epm-youtube-url-help"><?php esc_html_e( 'When set, this video is shown instead of the Video URL.', 'elementor-podcast-manager' ); ?></span>
 		</p>
 		<?php
 	}
@@ -1017,7 +1019,7 @@ final class EpisodeMeta {
 					</p>
 					<p class="epm-paste__replace" data-epm-paste-replace-row hidden>
 						<label>
-							<input type="checkbox" data-epm-paste-replace checked />
+							<input type="checkbox" data-epm-paste-replace />
 							<?php esc_html_e( 'Replace the current chapters', 'elementor-podcast-manager' ); ?>
 						</label>
 					</p>
@@ -1245,7 +1247,10 @@ final class EpisodeMeta {
 		$old_audio_id = (int) get_post_meta( $post_id, $p . 'audio_id', true );
 		$new_audio_id = absint( $input['audio_id'] ?? 0 );
 
-		if ( $new_audio_id > 0 && ! AudioMetadata::is_valid_audio_attachment( $new_audio_id ) ) {
+		// A newly chosen file must also be one the user may read (media
+		// attached to someone else's unpublished episode is not). The stored
+		// file is not checked again, so another editor can re-save the episode.
+		if ( $new_audio_id > 0 && ( ! AudioMetadata::is_valid_audio_attachment( $new_audio_id ) || ( $new_audio_id !== $old_audio_id && ! current_user_can( 'read_post', $new_audio_id ) ) ) ) {
 			self::add_notice(
 				__( 'The selected audio file is not a supported audio attachment. The previous audio association was kept.', 'elementor-podcast-manager' ),
 				'error',
@@ -1538,9 +1543,10 @@ final class EpisodeMeta {
 	/**
 	 * Save the transcript file and text.
 	 *
-	 * The file must be a WebVTT or SubRip attachment; anything else keeps
-	 * the stored file and explains why next to the field. When the text is
-	 * empty and a file is attached, the text is filled from the file.
+	 * The file must be a WebVTT or SubRip attachment that the user may read
+	 * (checked when the file changes); anything else keeps the stored file
+	 * and explains why next to the field. When the text is empty and a file
+	 * is attached, the text is filled from the file.
 	 *
 	 * @param int                  $post_id Post ID.
 	 * @param array<string, mixed> $input   Unslashed form input.
@@ -1553,7 +1559,9 @@ final class EpisodeMeta {
 		if ( array_key_exists( 'transcript_file_id', $input ) ) {
 			$new_id = absint( $input['transcript_file_id'] );
 
-			if ( $new_id > 0 && ! self::is_transcript_attachment( $new_id ) ) {
+			// A newly chosen file must also be one the user may read: its text
+			// is copied into this episode. The stored file is not checked again.
+			if ( $new_id > 0 && ( ! self::is_transcript_attachment( $new_id ) || ( $new_id !== $file_id && ! current_user_can( 'read_post', $new_id ) ) ) ) {
 				self::add_notice(
 					__( 'The transcript file was not saved. Choose a WebVTT (.vtt) or SubRip (.srt) file.', 'elementor-podcast-manager' ),
 					'error',
@@ -1645,7 +1653,9 @@ final class EpisodeMeta {
 			wp_send_json_error( [ 'message' => __( 'You are not allowed to manage episodes.', 'elementor-podcast-manager' ) ] );
 		}
 
-		if ( ! AudioMetadata::is_valid_audio_attachment( $attachment_id ) ) {
+		// The user must be able to read the file (media attached to someone
+		// else's unpublished episode is not theirs to see).
+		if ( ! AudioMetadata::is_valid_audio_attachment( $attachment_id ) || ! current_user_can( 'read_post', $attachment_id ) ) {
 			wp_send_json_error( [ 'message' => __( 'This file can’t be used as episode audio. Choose an MP3 or M4A file.', 'elementor-podcast-manager' ) ] );
 		}
 
@@ -1707,8 +1717,9 @@ final class EpisodeMeta {
 	 * AJAX: searchable, paginated episode list for the Elementor editor.
 	 *
 	 * Reaches the whole catalog (no 100-item cap). Only users who can
-	 * manage episodes may search; only titles/dates of episodes they
-	 * could edit are exposed.
+	 * manage episodes may search. Returns episodes the user could see in
+	 * the Episodes list: published, drafts/pending/scheduled (as in core),
+	 * and private episodes only when the user may read them.
 	 *
 	 * @return void
 	 */
@@ -1726,6 +1737,9 @@ final class EpisodeMeta {
 		$query_args = [
 			'post_type'      => EpisodePostType::CPT,
 			'post_status'    => [ 'publish', 'draft', 'pending', 'future', 'private' ],
+			// Private episodes only for users with read_private_posts, or
+			// their own (applies to the search and to "include").
+			'perm'           => 'readable',
 			'posts_per_page' => 20,
 			'paged'          => $page,
 			'orderby'        => 'date',

@@ -206,6 +206,23 @@ final class Hosting {
 			$out['stats'] = '';
 		}
 
+		// Another host needs its feed address. A bad one keeps the address
+		// saved before; without one, hosting stays on this website.
+		if ( 'external' === $out['mode'] && '' === $out['feed_url'] ) {
+			$previous = self::all();
+			if ( 'external' === $previous['mode'] && '' !== (string) $previous['feed_url'] ) {
+				$out['feed_url'] = (string) $previous['feed_url'];
+			} else {
+				$out['mode'] = 'self';
+			}
+			self::report(
+				'epm_hosting_feed',
+				'self' === $out['mode']
+					? __( 'Enter your host’s RSS feed address (it starts with https://) to switch to another host. Hosting stays on this website until then.', 'elementor-podcast-manager' )
+					: __( 'Enter your host’s RSS feed address (it starts with https://). The address saved before is kept.', 'elementor-podcast-manager' )
+			);
+		}
+
 		// Detect the host from the feed address when none was chosen.
 		if ( '' === $out['provider'] && '' !== $out['feed_url'] ) {
 			$detected        = Providers::detect( $out['feed_url'] );
@@ -213,6 +230,30 @@ final class Hosting {
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Show a message on the Hosting screen once (WordPress runs the
+	 * sanitizer twice when the option is saved for the first time).
+	 *
+	 * @param string $code    Error code.
+	 * @param string $message Message.
+	 * @return void
+	 */
+	private static function report( string $code, string $message ): void {
+		// Outside the settings form (setup assistant, cron) there is no
+		// place to show it.
+		if ( ! function_exists( 'add_settings_error' ) || ! function_exists( 'get_settings_errors' ) ) {
+			return;
+		}
+
+		foreach ( get_settings_errors( 'epm_hosting_group' ) as $existing ) {
+			if ( ( $existing['code'] ?? '' ) === $code ) {
+				return;
+			}
+		}
+
+		add_settings_error( 'epm_hosting_group', $code, $message );
 	}
 
 	/**
@@ -687,8 +728,10 @@ final class Hosting {
 			return '';
 		}
 
+		// A blog feed (-1) is still taken when it is the only one; comment
+		// feeds (-5) never are.
 		$best  = '';
-		$score = -1;
+		$score = -2;
 		foreach ( $tags[0] as $tag ) {
 			if ( ! preg_match( '#\brel=["\']?alternate#i', $tag ) || ! preg_match( '#\btype=["\']?application/rss\+xml#i', $tag ) ) {
 				continue;
@@ -703,12 +746,23 @@ final class Hosting {
 				$href = \WP_Http::make_absolute_url( $href, $base );
 			}
 
-			$points = 0;
-			if ( preg_match( '#podcast|itunes|rss|feed\.xml#i', $tag ) ) {
+			// Score what names the feed (its address, then its title), never
+			// the type attribute: every candidate is application/rss+xml. The
+			// address counts more: on a site called "… Podcast" the blog
+			// feed's title names the podcast too.
+			$title = preg_match( '#\btitle=["\']([^"\']*)["\']#i', $tag, $label ) ? html_entity_decode( $label[1], ENT_QUOTES, 'UTF-8' ) : '';
+			$named = (bool) preg_match( '#podcast|itunes|feed\.xml|\.rss(?:$|\?)|/rss/?(?:$|\?)#i', $href );
+
+			$points = $named ? 3 : 0;
+			if ( preg_match( '#podcast|itunes#i', $title ) ) {
 				$points += 2;
 			}
-			if ( preg_match( '#comments#i', $tag ) ) {
+			if ( preg_match( '#comments#i', $href . ' ' . $title ) ) {
 				$points -= 5;
+			}
+			// WordPress's blog feed (/feed/) comes first on every WordPress site.
+			if ( ! $named && preg_match( '#^/feed/?$#', (string) wp_parse_url( $href, PHP_URL_PATH ) ) ) {
+				--$points;
 			}
 			if ( $points > $score ) {
 				$score = $points;
@@ -851,7 +905,8 @@ final class Hosting {
 			$guids   = [];
 
 			// Oldest first, so a capped run imports in publishing order.
-			$items = array_reverse( $parsed['items'] );
+			$items     = array_reverse( $parsed['items'] );
+			$refreshed = time();
 			foreach ( $items as $item ) {
 				$guids[ (string) $item['guid'] ] = true;
 
@@ -860,6 +915,12 @@ final class Hosting {
 					continue;
 				}
 
+				// A long run keeps its lock (new episodes fetch chapters and
+				// transcripts); renewed once a minute at most.
+				if ( time() - $refreshed >= MINUTE_IN_SECONDS ) {
+					ImportJob::refresh_lock();
+					$refreshed = time();
+				}
 				$outcome = $importer->import_item( $item );
 				if ( 'created' === $outcome['action'] ) {
 					++$result['created'];
@@ -879,13 +940,24 @@ final class Hosting {
 			} elseif ( $fetched['permanent'] ) {
 				$next_url = self::sanitize_feed_url( $fetched['final_url'] );
 			}
-			if ( '' !== $next_url && $next_url !== $url && $next_url !== Feed::url() ) {
+			$own_feed   = '' !== $next_url && self::is_own_feed( $next_url );
+			$moved_here = $own_feed && 'external' === $settings['mode'];
+			if ( $moved_here ) {
+				// The host sends apps to this website's feed (any scheme): the
+				// show moved here. Redirecting back to the host would loop.
+				$settings['mode'] = 'self';
+				update_option( self::OPTION, $settings );
+			} elseif ( ! $own_feed && '' !== $next_url && $next_url !== $url && ( 0 !== stripos( $url, 'https://' ) || 0 === stripos( $next_url, 'https://' ) ) ) {
+				// Never adopt a move from https to http (fetch() has the same rule).
 				$settings['feed_url'] = $next_url;
 				update_option( self::OPTION, $settings );
 			}
 
 			$result['status']  = 'ok';
 			$result['message'] = self::summary( $result );
+			if ( $moved_here ) {
+				$result['message'] .= ' ' . __( 'Your host now sends podcast apps to this website’s feed, so hosting switched to “This website”: the feed here is no longer redirected and syncing stopped.', 'elementor-podcast-manager' );
+			}
 
 			self::update_state(
 				[

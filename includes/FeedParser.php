@@ -10,7 +10,9 @@
  * hosts serve variants of the iTunes URI), CDATA and HTML are both
  * accepted, byte-order marks and stray ampersands are repaired, and
  * missing optional tags never fail the parse. External entities are never
- * loaded (LIBXML_NONET, no DTD loading).
+ * loaded (LIBXML_NONET, no DTD loading), and entity expansion stays bounded:
+ * LIBXML_PARSEHUGE is not used, so libxml's amplification guard rejects
+ * "billion laughs" documents.
  *
  * @package EPM
  */
@@ -159,18 +161,43 @@ final class FeedParser {
 	}
 
 	/**
-	 * Load XML safely (no network, no external entities).
+	 * Load XML safely (no network, no external entities, and libxml's
+	 * entity-amplification guard left on: no LIBXML_PARSEHUGE).
 	 *
 	 * @param string $xml XML.
 	 * @return \SimpleXMLElement|null
 	 */
 	private function load( string $xml ): ?\SimpleXMLElement {
 		$previous = libxml_use_internal_errors( true );
-		$doc      = simplexml_load_string( $xml, \SimpleXMLElement::class, LIBXML_NOCDATA | LIBXML_NONET | LIBXML_COMPACT | LIBXML_PARSEHUGE );
+		$doc      = simplexml_load_string( $xml, \SimpleXMLElement::class, LIBXML_NOCDATA | LIBXML_NONET | LIBXML_COMPACT );
 		libxml_clear_errors();
 		libxml_use_internal_errors( $previous );
 
 		return $doc instanceof \SimpleXMLElement ? $doc : null;
+	}
+
+	/**
+	 * Timestamp of a pubDate.
+	 *
+	 * The weekday is dropped before parsing: strtotime() moves a date with
+	 * the wrong weekday ("Mon, 16 Jun 2020" was a Tuesday) to the next such
+	 * weekday, up to six days later, and rejects localized or long names
+	 * ("Di,", "Tues,"). Only a word directly followed by a comma and a digit
+	 * is removed, so "June 16, 2020" keeps its month. RFC 822's "UT" zone
+	 * becomes "UTC".
+	 *
+	 * @param string $pub Date as published.
+	 * @return int|false
+	 */
+	public static function pub_timestamp( string $pub ) {
+		$clean     = (string) preg_replace( '/^\s*\p{L}+\.?\s*,\s*(?=\d)/u', '', $pub );
+		$clean     = (string) preg_replace( '/\sUT$/i', ' UTC', $clean );
+		$timestamp = strtotime( $clean );
+		if ( false === $timestamp ) {
+			$timestamp = strtotime( $pub );
+		}
+
+		return $timestamp;
 	}
 
 	/**
@@ -473,7 +500,7 @@ final class FeedParser {
 		if ( '' === $pub ) {
 			$pub = $this->text( $i, 'dc', 'date' );
 		}
-		$timestamp = '' !== $pub ? strtotime( $pub ) : false;
+		$timestamp = '' !== $pub ? self::pub_timestamp( $pub ) : false;
 
 		$image = $this->attr( $i, 'itunes', 'image', 'href' );
 		if ( '' === $image ) {

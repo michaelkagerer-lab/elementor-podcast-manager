@@ -35,13 +35,33 @@ final class EpisodePostType {
 	 * Register the Topics taxonomy: tags for episodes (themes, guests'
 	 * fields, series), with an archive at /podcast-topic/<slug>/, a column
 	 * and Quick Edit field in the episode list, and REST support for the
-	 * block editor. Managing, editing, deleting and assigning topics needs
-	 * the episode-management capability.
+	 * block editor.
+	 *
+	 * Like core tags: everyone who can edit episodes can assign topics
+	 * (and add new ones while tagging), but renaming, re-slugging and
+	 * deleting topics, which changes published episodes, needs
+	 * manage_categories (editors and administrators). A site with a custom
+	 * episode capability uses that capability for all four; the
+	 * epm_cap_manage_topics filter changes the one for managing topics.
 	 *
 	 * @return void
 	 */
 	public static function register_topics(): void {
 		$manage = self::primitive_cap( Capabilities::manage_episodes() );
+
+		/**
+		 * Filters the capability needed to manage, edit and delete topics.
+		 *
+		 * @since 1.3.0
+		 *
+		 * @param string $capability Default: manage_categories, or the
+		 *                           filtered episode capability.
+		 */
+		$terms_cap = (string) apply_filters( 'epm_cap_manage_topics', 'edit_posts' === $manage ? 'manage_categories' : $manage );
+		// Meta capabilities are resolved per object and cannot stand in here.
+		if ( '' === $terms_cap || $terms_cap !== self::primitive_cap( $terms_cap ) || in_array( $terms_cap, [ 'edit_term', 'delete_term', 'assign_term' ], true ) ) {
+			$terms_cap = 'manage_categories';
+		}
 
 		$labels = [
 			'name'                       => _x( 'Topics', 'Taxonomy general name', 'elementor-podcast-manager' ),
@@ -88,9 +108,9 @@ final class EpisodePostType {
 					'with_front' => false,
 				],
 				'capabilities'       => [
-					'manage_terms' => $manage,
-					'edit_terms'   => $manage,
-					'delete_terms' => $manage,
+					'manage_terms' => $terms_cap,
+					'edit_terms'   => $terms_cap,
+					'delete_terms' => $terms_cap,
 					'assign_terms' => $manage,
 				],
 			]
@@ -108,15 +128,15 @@ final class EpisodePostType {
 			'singular_name'         => _x( 'Episode', 'Post type singular name', 'elementor-podcast-manager' ),
 			'menu_name'             => _x( 'Podcast', 'Admin menu', 'elementor-podcast-manager' ),
 			'name_admin_bar'        => _x( 'Episode', 'Add New on toolbar', 'elementor-podcast-manager' ),
-			'add_new'               => _x( 'Add Episode', 'podcast_episode', 'elementor-podcast-manager' ),
-			'add_new_item'          => __( 'Add New Episode', 'elementor-podcast-manager' ),
-			'new_item'              => __( 'New Episode', 'elementor-podcast-manager' ),
-			'edit_item'             => __( 'Edit Episode', 'elementor-podcast-manager' ),
-			'view_item'             => __( 'View Episode', 'elementor-podcast-manager' ),
+			'add_new'               => _x( 'Add episode', 'podcast_episode', 'elementor-podcast-manager' ),
+			'add_new_item'          => __( 'Add episode', 'elementor-podcast-manager' ),
+			'new_item'              => __( 'New episode', 'elementor-podcast-manager' ),
+			'edit_item'             => __( 'Edit episode', 'elementor-podcast-manager' ),
+			'view_item'             => __( 'View episode', 'elementor-podcast-manager' ),
 			'all_items'             => __( 'Episodes', 'elementor-podcast-manager' ),
-			'search_items'          => __( 'Search Episodes', 'elementor-podcast-manager' ),
+			'search_items'          => __( 'Search episodes', 'elementor-podcast-manager' ),
 			'not_found'             => __( 'No episodes found.', 'elementor-podcast-manager' ),
-			'not_found_in_trash'    => __( 'No episodes found in Trash.', 'elementor-podcast-manager' ),
+			'not_found_in_trash'    => __( 'No episodes found in the trash.', 'elementor-podcast-manager' ),
 			'archives'              => _x( 'Episode archives', 'The post type archive label', 'elementor-podcast-manager' ),
 		];
 

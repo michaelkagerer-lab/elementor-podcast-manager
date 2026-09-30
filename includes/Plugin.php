@@ -319,6 +319,9 @@ final class Plugin {
 
 		// Password-protected episodes keep their metadata private in REST.
 		add_filter( 'rest_prepare_' . EpisodePostType::CPT, [ $this, 'protect_rest_meta' ], 10, 2 );
+
+		// Audio and transcript files set through REST must be readable media.
+		add_filter( 'rest_pre_insert_' . EpisodePostType::CPT, [ $this, 'rest_check_attachment_meta' ], 10, 2 );
 	}
 
 	/**
@@ -331,6 +334,55 @@ final class Plugin {
 	 */
 	public function meta_auth( $allowed, $meta_key = '', $post_id = 0 ): bool {
 		return current_user_can( 'edit_post', (int) $post_id );
+	}
+
+	/**
+	 * REST: a newly set audio or transcript file must be an attachment of
+	 * the right kind that the user may read (media attached to someone
+	 * else's unpublished episode is not). Unchanged values pass, so
+	 * re-saving keeps the stored file.
+	 *
+	 * The check lives here and not in the meta sanitizers: those also run
+	 * for the editor's own saves and for imports from cron, where there is
+	 * no user, and would silently clear stored files.
+	 *
+	 * @param \stdClass|\WP_Error $prepared Prepared post.
+	 * @param \WP_REST_Request     $request  Request.
+	 * @return \stdClass|\WP_Error
+	 */
+	public function rest_check_attachment_meta( $prepared, $request ) {
+		$meta = $request->get_param( 'meta' );
+		if ( is_wp_error( $prepared ) || ! is_array( $meta ) ) {
+			return $prepared;
+		}
+
+		$post_id = (int) ( $prepared->ID ?? 0 );
+		$checks  = [
+			'audio_id'           => [ AudioMetadata::class, 'is_valid_audio_attachment' ],
+			'transcript_file_id' => [ EpisodeMeta::class, 'is_transcript_attachment' ],
+		];
+
+		foreach ( $checks as $key => $is_valid ) {
+			$name = Episodes::META_PREFIX . $key;
+			if ( ! array_key_exists( $name, $meta ) ) {
+				continue;
+			}
+
+			$id = absint( $meta[ $name ] );
+			if ( $id <= 0 || ( $post_id > 0 && (int) get_post_meta( $post_id, $name, true ) === $id ) ) {
+				continue;
+			}
+
+			if ( ! $is_valid( $id ) || ! current_user_can( 'read_post', $id ) ) {
+				return new \WP_Error(
+					'rest_forbidden_meta',
+					__( 'You can’t use this file for the episode.', 'elementor-podcast-manager' ),
+					[ 'status' => 403 ]
+				);
+			}
+		}
+
+		return $prepared;
 	}
 
 	/**
