@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Elementor Podcast Manager
  * Description:       Manage and display a podcast on Elementor websites. Episodes, RSS feed, custom player, and Elementor widgets — no external podcast platform required.
- * Version:           1.2.0
+ * Version:           1.3.0
  * Requires at least: 6.2
  * Requires PHP:      8.1
  * Author:            Internal
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'EPM_VERSION', '1.2.0' );
+define( 'EPM_VERSION', '1.3.0' );
 define( 'EPM_FILE', __FILE__ );
 define( 'EPM_PATH', plugin_dir_path( __FILE__ ) );
 define( 'EPM_URL', plugin_dir_url( __FILE__ ) );

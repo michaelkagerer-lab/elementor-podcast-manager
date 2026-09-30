@@ -649,11 +649,12 @@
 
 	function saveShow( form ) {
 		var values = formValues( form );
-		var firstInvalid = null;
-
-		firstInvalid = fieldError( form, 'title', ! values.title.trim() ) || firstInvalid;
 		var emailInvalid = !! values.owner_email && ! /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test( values.owner_email.trim() );
-		firstInvalid = fieldError( form, 'owner_email', emailInvalid ) || firstInvalid;
+
+		// Every error is shown; focus goes to the first field to fix.
+		var titleField = fieldError( form, 'title', ! values.title.trim() );
+		var emailField = fieldError( form, 'owner_email', emailInvalid );
+		var firstInvalid = titleField || emailField;
 
 		if ( firstInvalid ) {
 			firstInvalid.focus();

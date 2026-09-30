@@ -117,6 +117,7 @@ final class Plugin {
 		$this->register_meta();
 		new Shortcodes();
 		( new EpisodeTemplate() )->init();
+		( new Embed() )->init();
 
 		// One-time upgrade tasks (rewrite rules) after a plugin update.
 		add_action( 'init', [ $this, 'maybe_upgrade' ], 99 );
@@ -228,6 +229,13 @@ final class Plugin {
 			return ( '' === $value || null === $value ) ? '' : absint( $value );
 		};
 
+		// GUIDs are kept byte-for-byte: sanitize_text_field() drops
+		// %-escapes ("f%C3%BCr"), and the next import would then create the
+		// episode again.
+		$guid = static function ( $value ): string {
+			return trim( (string) preg_replace( '/[\x00-\x1F\x7F]/', '', wp_check_invalid_utf8( (string) $value ) ) );
+		};
+
 		$fields = [
 			// key => [ REST type, sanitize callback, editable via REST ].
 			'audio_id'          => [ 'integer', 'absint', true ],
@@ -265,7 +273,7 @@ final class Plugin {
 			'guest_company'     => [ 'string', 'sanitize_text_field', true ],
 			'guest_bio'         => [ 'string', 'sanitize_textarea_field', true ],
 			// Immutable identity: readable, never writable through REST.
-			'guid'              => [ 'string', 'sanitize_text_field', false ],
+			'guid'              => [ 'string', $guid, false ],
 		];
 
 		foreach ( $fields as $key => [ $type, $sanitize, $editable ] ) {

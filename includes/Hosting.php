@@ -232,6 +232,12 @@ final class Hosting {
 		$url = (string) preg_replace( '#^(?:feed|podcast|pcast|itpc)://#i', 'https://', $url );
 		$url = (string) preg_replace( '#^feed:(https?://)#i', '$1', $url );
 
+		// Text with spaces, or another scheme (ftp:, mailto:, javascript:),
+		// is no feed address. "example.com:8080/feed" is a host with a port.
+		if ( preg_match( '/\s/', $url ) || ( ! preg_match( '#^https?://#i', $url ) && preg_match( '#^[a-z][a-z0-9+.-]*://|^[a-z][a-z0-9+-]*:(?!\d)#i', $url ) ) ) {
+			return '';
+		}
+
 		if ( ! preg_match( '#^https?://#i', $url ) ) {
 			$url = 'https://' . ltrim( $url, '/' );
 		}
@@ -291,11 +297,36 @@ final class Hosting {
 		$target = (string) self::get( 'feed_url' );
 
 		// Never redirect the feed to itself.
-		if ( '' === $target || untrailingslashit( $target ) === untrailingslashit( Feed::url() ) ) {
+		if ( '' === $target || self::is_own_feed( $target ) ) {
 			return '';
 		}
 
 		return $target;
+	}
+
+	/**
+	 * Whether a URL is one of this site's own podcast feed addresses (any
+	 * scheme, with or without a trailing slash, the feed's sub-paths or the
+	 * query form).
+	 *
+	 * @param string $url URL.
+	 * @return bool
+	 */
+	public static function is_own_feed( string $url ): bool {
+		$home = strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) );
+		if ( '' === $home || strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) ) !== $home ) {
+			return false;
+		}
+
+		parse_str( (string) wp_parse_url( $url, PHP_URL_QUERY ), $query );
+		if ( isset( $query[ Feed::QUERY_VAR ] ) ) {
+			return true;
+		}
+
+		$path = untrailingslashit( (string) wp_parse_url( $url, PHP_URL_PATH ) );
+		$feed = untrailingslashit( (string) wp_parse_url( Feed::url(), PHP_URL_PATH ) );
+
+		return '' !== $feed && ( $path === $feed || 0 === strpos( $path . '/', $feed . '/' ) );
 	}
 
 	/**

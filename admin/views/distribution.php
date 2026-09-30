@@ -193,7 +193,7 @@ $epm_icon = static function ( array $dir ): string {
 							</summary>
 							<div class="epm-details__body epm-stack--tight">
 								<p class="epm-field__help"><?php echo esc_html( (string) $epm_dir['needs'] ); ?></p>
-								<form class="epm-dist-form" data-directory-form="<?php echo esc_attr( $epm_id ); ?>">
+								<form class="epm-dist-form" data-directory-form="<?php echo esc_attr( $epm_id ); ?>" novalidate>
 									<?php if ( ! $epm_auto ) : ?>
 										<label class="epm-check">
 											<input type="checkbox" name="submitted" value="1" <?php checked( '' !== $epm_status ); ?> />
