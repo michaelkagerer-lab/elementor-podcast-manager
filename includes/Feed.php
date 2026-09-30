@@ -818,6 +818,15 @@ final class Feed {
 			$x[] = "\t\t" . '<itunes:image href="' . self::xml_url( $item_artwork ) . '" />';
 		}
 
+		// Timed files first (apps use WebVTT/SRT for captions), then the
+		// readable HTML page.
+		foreach ( (array) ( $data['transcript_files'] ?? [] ) as $file ) {
+			if ( ! is_array( $file ) || '' === (string) ( $file['url'] ?? '' ) || '' === (string) ( $file['type'] ?? '' ) ) {
+				continue;
+			}
+			$captions = in_array( $file['type'], [ 'text/vtt', 'application/x-subrip' ], true ) ? ' rel="captions"' : '';
+			$x[]      = "\t\t" . '<podcast:transcript url="' . self::xml_url( (string) $file['url'] ) . '" type="' . epm_esc_xml( (string) $file['type'] ) . '"' . $captions . ' />';
+		}
 		if ( '' !== trim( (string) $data['transcript'] ) ) {
 			$x[] = "\t\t" . '<podcast:transcript url="' . self::xml_url( self::transcript_url( (int) $data['id'] ) ) . '" type="text/html" />';
 		}

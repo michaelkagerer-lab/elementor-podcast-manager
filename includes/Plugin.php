@@ -113,6 +113,7 @@ final class Plugin {
 		( new ImportJob() )->init();
 		Cli::register();
 		( new StructuredData() )->init();
+		Transcripts::init();
 		$this->register_meta();
 		new Shortcodes();
 		( new EpisodeTemplate() )->init();
@@ -242,6 +243,11 @@ final class Plugin {
 			'short_description' => [ 'string', 'sanitize_textarea_field', true ],
 			'show_notes'        => [ 'string', 'wp_kses_post', true ],
 			'transcript'        => [ 'string', 'wp_kses_post', true ],
+			// Transcript file for captions (WebVTT/SRT/JSON): an upload, or
+			// a URL kept from an imported feed.
+			'transcript_file_id' => [ 'integer', 'absint', true ],
+			'transcript_url'    => [ 'string', 'esc_url_raw', true ],
+			'transcript_type'   => [ 'string', 'sanitize_text_field', true ],
 			'canonical_url'     => [ 'string', 'esc_url_raw', true ],
 			'video_url'         => [ 'string', 'esc_url_raw', true ],
 			'youtube_url'       => [ 'string', 'esc_url_raw', true ],

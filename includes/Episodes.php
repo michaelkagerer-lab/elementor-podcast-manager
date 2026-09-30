@@ -496,6 +496,7 @@ final class Episodes {
 			'video_url'       => esc_url_raw( $meta( 'video_url', '' ) ),
 			'youtube_url'     => esc_url_raw( $meta( 'youtube_url', '' ) ),
 			'transcript'      => $meta( 'transcript', '' ),
+			'transcript_files' => Transcripts::files( $post->ID ),
 			'show_notes'      => $meta( 'show_notes', '' ),
 			'chapters'        => self::normalize_chapters( $meta( 'chapters', [] ) ),
 			'canonical_url'   => esc_url_raw( $meta( 'canonical_url', '' ) ),
