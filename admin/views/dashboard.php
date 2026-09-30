@@ -1,0 +1,102 @@
+<?php
+/**
+ * Podcast dashboard view.
+ *
+ * @package EPM
+ *
+ * @var EPM\PodcastSettings $settings
+ * @var \WP_Post|null       $latest
+ * @var array|null          $latest_data
+ * @var int                 $count
+ * @var string              $artwork
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+?>
+<div class="wrap epm-dashboard">
+	<h1><?php esc_html_e( 'Podcast Dashboard', 'elementor-podcast-manager' ); ?></h1>
+
+	<div class="epm-dashboard__grid">
+		<div class="epm-card epm-dashboard__podcast">
+			<?php if ( $artwork ) : ?>
+				<img src="<?php echo esc_url( $artwork ); ?>" alt="" class="epm-dashboard__artwork" />
+			<?php endif; ?>
+			<h2><?php echo esc_html( (string) $settings->get( 'title' ) ?: __( 'Untitled Podcast', 'elementor-podcast-manager' ) ); ?></h2>
+			<p class="epm-dashboard__status">
+				<?php if ( $settings->is_configured() ) : ?>
+					<span class="epm-status epm-status--ready"><?php esc_html_e( 'Configured', 'elementor-podcast-manager' ); ?></span>
+				<?php else : ?>
+					<span class="epm-status epm-status--missing"><?php esc_html_e( 'Not configured yet', 'elementor-podcast-manager' ); ?></span>
+				<?php endif; ?>
+			</p>
+			<p>
+				<?php
+				/* translators: %d: number of published episodes */
+				printf( esc_html( _n( '%d published episode', '%d published episodes', $count, 'elementor-podcast-manager' ) ), (int) $count );
+				?>
+			</p>
+		</div>
+
+		<div class="epm-card">
+			<h2><?php esc_html_e( 'Latest Episode', 'elementor-podcast-manager' ); ?></h2>
+			<?php if ( $latest_data ) : ?>
+				<p><strong><?php echo esc_html( (string) $latest_data['title'] ); ?></strong></p>
+				<p class="epm-dashboard__meta">
+					<?php echo esc_html( (string) $latest_data['date'] ); ?>
+					<?php if ( '' !== (string) $latest_data['duration'] ) : ?>
+						· <?php echo esc_html( (string) $latest_data['duration'] ); ?>
+					<?php endif; ?>
+				</p>
+				<p>
+					<a href="<?php echo esc_url( get_edit_post_link( $latest ) ); ?>" class="button">
+						<?php esc_html_e( 'Edit Episode', 'elementor-podcast-manager' ); ?>
+					</a>
+				</p>
+			<?php else : ?>
+				<p><?php esc_html_e( 'No episodes yet.', 'elementor-podcast-manager' ); ?></p>
+			<?php endif; ?>
+		</div>
+
+		<div class="epm-card">
+			<h2><?php esc_html_e( 'Distribution', 'elementor-podcast-manager' ); ?></h2>
+			<p><?php esc_html_e( 'Use this URL when submitting your podcast to podcast platforms.', 'elementor-podcast-manager' ); ?></p>
+			<p class="epm-feed-row">
+				<code><?php echo esc_html( \EPM\Feed::url() ); ?></code>
+			</p>
+			<p>
+				<button type="button" class="button" data-epm-copy="<?php echo esc_attr( \EPM\Feed::url() ); ?>">
+					<?php esc_html_e( 'Copy', 'elementor-podcast-manager' ); ?>
+				</button>
+				<a href="<?php echo esc_url( \EPM\Feed::url() ); ?>" target="_blank" rel="noopener" class="button">
+					<?php esc_html_e( 'Open Feed', 'elementor-podcast-manager' ); ?>
+				</a>
+			</p>
+		</div>
+
+		<div class="epm-card epm-dashboard__readiness">
+			<h2><?php esc_html_e( 'Distribution Readiness', 'elementor-podcast-manager' ); ?></h2>
+			<?php echo \EPM\Readiness::render_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+		</div>
+
+		<div class="epm-card">
+			<h2><?php esc_html_e( 'Actions', 'elementor-podcast-manager' ); ?></h2>
+			<p>
+				<a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=' . \EPM\EpisodePostType::CPT ) ); ?>" class="button button-primary">
+					<?php esc_html_e( 'Add Episode', 'elementor-podcast-manager' ); ?>
+				</a>
+			</p>
+			<?php if ( \EPM\Capabilities::can_manage_podcast() ) : ?>
+				<p>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=epm-settings' ) ); ?>" class="button">
+						<?php esc_html_e( 'Podcast Settings', 'elementor-podcast-manager' ); ?>
+					</a>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=epm-design' ) ); ?>" class="button">
+						<?php esc_html_e( 'Design', 'elementor-podcast-manager' ); ?>
+					</a>
+				</p>
+			<?php endif; ?>
+		</div>
+	</div>
+</div>

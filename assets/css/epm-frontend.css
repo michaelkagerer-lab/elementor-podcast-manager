@@ -1,0 +1,1184 @@
+/**
+ * Elementor Podcast Manager — frontend styles.
+ *
+ * DESIGN TOKEN PRECEDENCE (highest wins):
+ *
+ *  1. Theme / Elementor Site Settings — anything this stylesheet does not
+ *     set keeps inheriting (typography in particular is never set here,
+ *     so theme and Elementor Global Fonts always apply).
+ *  2. Global Podcast Styles — the :root tokens printed by
+ *     DesignSettings::output_tokens() as <style id="epm-design-tokens">.
+ *     It prints on wp_head (priority 20, after stylesheets) and again on
+ *     wp_footer (priority 1, before late-enqueued assets), so it always
+ *     comes AFTER stylesheets and wins over the static fallback below.
+ *  3. Presets — applied INTO Global Podcast Styles when a preset is
+ *     chosen under Podcast → Design. Presets initialize values; they
+ *     never lock them.
+ *  4. Explicit widget overrides — Elementor controls with Style Source
+ *     "Custom" set --epm-* variables on {{WRAPPER}} (specificity 0,2,0),
+ *     which beats :root (0,1,0) and inherits down into nested components.
+ *     Style Source "Use Global Podcast Styles" emits no overrides at all.
+ *
+ * The static :root block below is a safety net for pages where the
+ * plugin's wp_head/wp_footer token output is absent. Do not add competing
+ * :root definitions elsewhere. Never write self-referential declarations
+ * (--epm-x: var(--epm-x, ...)) — they invalidate the variable. Consume
+ * tokens as var(--epm-x, <literal fallback>).
+ */
+
+:root {
+	--epm-accent: #1d4ed8;
+	--epm-on-accent: #ffffff;
+	--epm-text: #111827;
+	--epm-text-muted: #6b7280;
+	--epm-background: #ffffff;
+	--epm-surface: #f9fafb;
+	--epm-border: #e5e7eb;
+	--epm-radius: 12px;
+	--epm-artwork-radius: 8px;
+	--epm-gap: 24px;
+	--epm-title-size: 22px;
+	--epm-meta-size: 14px;
+	--epm-artwork-size: 96px;
+	--epm-progress-height: 4px;
+	--epm-subscribe-gap: 12px;
+	--epm-subscribe-icon-size: 18px;
+	--epm-subscribe-hover: var(--epm-text);
+	--epm-hero-background: transparent;
+	--epm-latest-background: transparent;
+	--epm-secondary-icon-size: 20px;
+	--epm-secondary-color: var(--epm-text-muted);
+	--epm-guest-image-size: 72px;
+	--epm-card-artwork-radius: 0;
+}
+
+/* ---------- Base (scoped, no token resets) ---------- */
+
+.epm-player,
+.epm-episode-list,
+.epm-podcast-hero,
+.epm-chapters,
+.epm-transcript,
+.epm-subscribe,
+.epm-guest,
+.epm-sticky,
+.epm-latest,
+.epm-episode-header {
+	box-sizing: border-box;
+}
+
+.epm-player *,
+.epm-episode-list *,
+.epm-podcast-hero *,
+.epm-sticky * {
+	box-sizing: inherit;
+}
+
+/* Visible focus for keyboard users. */
+.epm-player button:focus-visible,
+.epm-player [role="slider"]:focus-visible,
+.epm-episode-card button:focus-visible,
+.epm-episode-row button:focus-visible,
+.epm-chapters button:focus-visible,
+.epm-sticky button:focus-visible {
+	outline: 2px solid var(--epm-accent, #1d4ed8);
+	outline-offset: 2px;
+}
+
+/* ---------- Player (one engine, five layouts) ---------- */
+
+.epm-player {
+	display: flex;
+	gap: var(--epm-gap, 24px);
+	align-items: flex-start;
+	background: var(--epm-background, #ffffff);
+	color: var(--epm-text, #111827);
+	border: 1px solid var(--epm-border, #e5e7eb);
+	border-radius: var(--epm-radius, 12px);
+	padding: var(--epm-gap, 24px);
+}
+
+.epm-player audio {
+	display: none;
+}
+
+.epm-player__artwork {
+	flex: 0 0 auto;
+	width: var(--epm-artwork-size, 96px);
+}
+
+.epm-player__artwork-img,
+.epm-artwork {
+	width: 100%;
+	height: auto;
+	aspect-ratio: 1 / 1;
+	object-fit: cover;
+	border-radius: var(--epm-artwork-radius, 8px);
+	display: block;
+}
+
+.epm-player__main {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: calc(var(--epm-gap, 24px) / 2);
+}
+
+.epm-player__label {
+	margin: 0;
+	font-size: var(--epm-meta-size, 14px);
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--epm-text-muted, #6b7280);
+}
+
+.epm-player__title {
+	margin: 0;
+	font-size: var(--epm-title-size, 22px);
+	line-height: 1.2;
+	color: var(--epm-text, #111827);
+}
+
+.epm-meta {
+	margin: 0;
+	font-size: var(--epm-meta-size, 14px);
+	color: var(--epm-text-muted, #6b7280);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25em 0;
+}
+
+.epm-meta__sep {
+	margin: 0 0.5em;
+	opacity: 0.6;
+}
+
+.epm-player__controls {
+	display: flex;
+	align-items: center;
+	gap: calc(var(--epm-gap, 24px) / 2);
+}
+
+.epm-player__play {
+	flex: 0 0 auto;
+	width: 56px;
+	height: 56px;
+	border-radius: 50%;
+	border: 1px solid var(--epm-accent, #1d4ed8);
+	background: var(--epm-accent, #1d4ed8);
+	color: var(--epm-on-accent, #ffffff);
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+}
+
+.epm-player__play svg {
+	width: 22px;
+	height: 22px;
+}
+
+.epm-player__icon-pause {
+	display: none;
+}
+
+.epm-player.is-playing .epm-player__icon-pause,
+.epm-player__play.is-playing .epm-player__icon-pause {
+	display: block;
+}
+
+.epm-player.is-playing .epm-player__icon-play,
+.epm-player__play.is-playing .epm-player__icon-play {
+	display: none;
+}
+
+.epm-player__play:hover {
+	filter: brightness(1.08);
+}
+
+.epm-player__skip {
+	background: none;
+	border: none;
+	color: var(--epm-secondary-color, var(--epm-text-muted, #6b7280));
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	font-size: 12px;
+	padding: 6px;
+}
+
+.epm-player__skip svg {
+	width: 20px;
+	height: 20px;
+}
+
+.epm-player__skip:hover {
+	color: var(--epm-text, #111827);
+}
+
+.epm-player__timeline-wrap {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.epm-player__timeline {
+	position: relative;
+	height: 20px;
+	cursor: pointer;
+	touch-action: none;
+}
+
+.epm-player__track {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 50%;
+	transform: translateY(-50%);
+	height: var(--epm-progress-height, 4px);
+	background: var(--epm-border, #e5e7eb);
+	border-radius: 999px;
+	overflow: hidden;
+}
+
+.epm-player__progress {
+	height: 100%;
+	width: 0;
+	background: var(--epm-accent, #1d4ed8);
+	border-radius: 999px;
+}
+
+.epm-player__handle {
+	position: absolute;
+	top: 50%;
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	background: var(--epm-accent, #1d4ed8);
+	transform: translate(-50%, -50%);
+	left: 0;
+	pointer-events: none;
+}
+
+.epm-player__times {
+	display: flex;
+	justify-content: space-between;
+	font-size: 12px;
+	color: var(--epm-text-muted, #6b7280);
+	font-variant-numeric: tabular-nums;
+}
+
+.epm-player__secondary {
+	display: flex;
+	align-items: center;
+	gap: calc(var(--epm-gap, 24px) / 2);
+}
+
+.epm-player__secondary svg {
+	width: var(--epm-secondary-icon-size, 20px);
+	height: var(--epm-secondary-icon-size, 20px);
+}
+
+.epm-player__speed {
+	background: none;
+	border: 1px solid var(--epm-border, #e5e7eb);
+	border-radius: 999px;
+	color: var(--epm-secondary-color, var(--epm-text-muted, #6b7280));
+	font-size: 12px;
+	padding: 4px 10px;
+	cursor: pointer;
+	font-variant-numeric: tabular-nums;
+}
+
+.epm-player__speed:hover {
+	color: var(--epm-text, #111827);
+	border-color: var(--epm-text-muted, #6b7280);
+}
+
+.epm-player__volume {
+	display: inline-flex;
+	align-items: center;
+}
+
+.epm-player__volume input {
+	width: 80px;
+	accent-color: var(--epm-accent, #1d4ed8);
+}
+
+.epm-player__download {
+	color: var(--epm-secondary-color, var(--epm-text-muted, #6b7280));
+	display: inline-flex;
+	padding: 6px;
+}
+
+.epm-player__download:hover {
+	color: var(--epm-text, #111827);
+}
+
+.epm-player__description {
+	font-size: var(--epm-meta-size, 14px);
+	color: var(--epm-text-muted, #6b7280);
+	margin: 0;
+}
+
+.epm-player__chapters {
+	border-top: 1px solid var(--epm-border, #e5e7eb);
+	padding-top: 8px;
+}
+
+.epm-player__chapters-toggle {
+	cursor: pointer;
+	font-size: var(--epm-meta-size, 14px);
+	color: var(--epm-accent, #1d4ed8);
+	font-weight: 600;
+}
+
+.epm-player__platforms {
+	border-top: 1px solid var(--epm-border, #e5e7eb);
+	padding-top: 12px;
+}
+
+.epm-player__missing {
+	color: var(--epm-text-muted, #6b7280);
+	font-style: italic;
+}
+
+/*
+ * Layout restrictions are intentional: Minimal hides artwork, secondary
+ * controls and description; Compact hides secondary controls and
+ * description; Editorial hides artwork. The matching widget toggles
+ * carry editor notes about these restrictions.
+ *
+ * :where() keeps layout sizing at (0,1,0) so explicit widget overrides
+ * ({{WRAPPER}} …, 0,2,0) always win deterministically.
+ */
+
+/* Layout: minimal — play + title + timeline */
+.epm-player--minimal {
+	align-items: center;
+}
+
+.epm-player--minimal .epm-player__artwork,
+.epm-player--minimal .epm-player__secondary,
+.epm-player--minimal .epm-player__description {
+	display: none;
+}
+
+/* Layout: compact — small horizontal player for cards/lists */
+.epm-player--compact {
+	--epm-artwork-size: 56px;
+	align-items: center;
+	padding: calc(var(--epm-gap, 24px) / 2);
+}
+
+:where(.epm-player--compact) .epm-player__play {
+	width: 44px;
+	height: 44px;
+}
+
+.epm-player--compact .epm-player__play svg {
+	width: 18px;
+	height: 18px;
+}
+
+:where(.epm-player--compact) .epm-player__title {
+	font-size: calc(var(--epm-title-size, 22px) * 0.75);
+}
+
+.epm-player--compact .epm-player__secondary,
+.epm-player--compact .epm-player__description {
+	display: none;
+}
+
+/* Layout: editorial — large typography, separated metadata */
+:where(.epm-player--editorial) .epm-player__title {
+	font-size: calc(var(--epm-title-size, 22px) * 1.4);
+	letter-spacing: -0.01em;
+}
+
+.epm-player--editorial .epm-player__controls {
+	border-top: 1px solid var(--epm-border, #e5e7eb);
+	padding-top: calc(var(--epm-gap, 24px) / 2);
+}
+
+.epm-player--editorial {
+	--epm-artwork-size: 0px;
+}
+
+.epm-player--editorial .epm-player__artwork {
+	display: none;
+}
+
+/* Layout: artwork — artwork + info + controls */
+.epm-player--artwork {
+	--epm-artwork-size: 160px;
+}
+
+/* Layout: full — everything including description */
+.epm-player--full {
+	--epm-artwork-size: 140px;
+	flex-wrap: wrap;
+}
+
+/* ---------- Episode list ---------- */
+
+.epm-episode-list {
+	display: flex;
+	flex-direction: column;
+}
+
+.epm-episode-list--cards .epm-episode-card,
+.epm-episode-list--grid {
+	display: grid;
+}
+
+.epm-episode-list--grid {
+	grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+	gap: var(--epm-gap, 24px);
+}
+
+.epm-episode-list--cards {
+	gap: var(--epm-gap, 24px);
+}
+
+.epm-episode-list--list .epm-episode-row,
+.epm-episode-list--editorial-rows .epm-episode-row,
+.epm-episode-list--minimal .epm-episode-row {
+	border-bottom: 1px solid var(--epm-border, #e5e7eb);
+}
+
+/* Row */
+.epm-episode-row {
+	display: flex;
+	gap: var(--epm-gap, 24px);
+	align-items: flex-start;
+	padding: calc(var(--epm-gap, 24px) * 0.9) 0;
+	color: var(--epm-text, #111827);
+}
+
+.epm-episode-row__number {
+	font-size: calc(var(--epm-title-size, 22px) * 1.1);
+	color: var(--epm-text-muted, #6b7280);
+	min-width: 2.2em;
+	font-variant-numeric: tabular-nums;
+}
+
+.epm-episode-row__content {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.epm-episode-row__guest {
+	margin: 0 0 4px;
+	font-size: var(--epm-meta-size, 14px);
+	color: var(--epm-text-muted, #6b7280);
+}
+
+.epm-episode-row__title {
+	margin: 0 0 6px;
+	font-size: var(--epm-title-size, 22px);
+	line-height: 1.25;
+}
+
+.epm-episode-row__title a {
+	color: inherit;
+	text-decoration: none;
+}
+
+.epm-episode-row__title a:hover {
+	color: var(--epm-accent, #1d4ed8);
+}
+
+.epm-episode-row__excerpt {
+	margin: 0;
+	color: var(--epm-text-muted, #6b7280);
+	font-size: var(--epm-meta-size, 14px);
+}
+
+.epm-episode-row__aside {
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 8px;
+	text-align: right;
+}
+
+.epm-episode-row__play,
+.epm-episode-card__play {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	background: none;
+	border: 1px solid var(--epm-border, #e5e7eb);
+	border-radius: 999px;
+	color: var(--epm-text, #111827);
+	padding: 8px 16px;
+	cursor: pointer;
+	font-size: var(--epm-meta-size, 14px);
+}
+
+.epm-episode-row__play svg,
+.epm-episode-card__play svg {
+	width: 14px;
+	height: 14px;
+}
+
+.epm-episode-row__play:hover,
+.epm-episode-card__play:hover {
+	border-color: var(--epm-accent, #1d4ed8);
+	color: var(--epm-accent, #1d4ed8);
+}
+
+/* Card */
+.epm-episode-card {
+	background: var(--epm-surface, #f9fafb);
+	border: 1px solid var(--epm-border, #e5e7eb);
+	border-radius: var(--epm-radius, 12px);
+	overflow: hidden;
+	color: var(--epm-text, #111827);
+	display: flex;
+	flex-direction: column;
+}
+
+.epm-episode-card__artwork-img {
+	border-radius: var(--epm-card-artwork-radius, 0);
+	aspect-ratio: 16 / 10;
+}
+
+.epm-episode-card__body {
+	padding: var(--epm-gap, 24px);
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	flex: 1 1 auto;
+}
+
+.epm-episode-card__label {
+	margin: 0;
+	font-size: var(--epm-meta-size, 14px);
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--epm-text-muted, #6b7280);
+}
+
+.epm-episode-card__guest {
+	margin: 0;
+	font-size: var(--epm-meta-size, 14px);
+	color: var(--epm-text-muted, #6b7280);
+}
+
+.epm-episode-card__title {
+	margin: 0;
+	font-size: var(--epm-title-size, 22px);
+	line-height: 1.25;
+}
+
+.epm-episode-card__title a {
+	color: inherit;
+	text-decoration: none;
+}
+
+.epm-episode-card__title a:hover {
+	color: var(--epm-accent, #1d4ed8);
+}
+
+.epm-episode-card__excerpt {
+	margin: 0;
+	color: var(--epm-text-muted, #6b7280);
+	font-size: var(--epm-meta-size, 14px);
+}
+
+/* Minimal list: no cards, no numbers, tight rows.
+ * (The episode-number toggle is intentionally without effect here;
+ * the widget toggle carries an editor note about this.) */
+.epm-episode-list--minimal .epm-episode-row {
+	padding: calc(var(--epm-gap, 24px) / 2) 0;
+}
+
+.epm-episode-list--minimal .epm-episode-row__number {
+	display: none;
+}
+
+/* Editorial rows: numbered, generous */
+.epm-episode-list--editorial-rows .epm-episode-row {
+	padding: calc(var(--epm-gap, 24px) * 1.25) 0;
+}
+
+/* ---------- Hero ---------- */
+
+.epm-podcast-hero {
+	display: flex;
+	gap: calc(var(--epm-gap, 24px) * 1.5);
+	align-items: center;
+	color: var(--epm-text, #111827);
+	background: var(--epm-hero-background, transparent);
+}
+
+.epm-podcast-hero--centered {
+	flex-direction: column;
+	text-align: center;
+	align-items: center;
+}
+
+.epm-podcast-hero--artwork-right {
+	flex-direction: row-reverse;
+}
+
+.epm-podcast-hero__artwork {
+	flex: 0 0 auto;
+	width: min(320px, 40%);
+}
+
+.epm-podcast-hero__artwork img {
+	width: 100%;
+	height: auto;
+	border-radius: var(--epm-artwork-radius, 8px);
+	display: block;
+}
+
+.epm-podcast-hero__content {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.epm-podcast-hero__title {
+	margin: 0 0 12px;
+	font-size: calc(var(--epm-title-size, 22px) * 1.8);
+	line-height: 1.1;
+}
+
+.epm-podcast-hero__description {
+	color: var(--epm-text-muted, #6b7280);
+	max-width: 60ch;
+}
+
+.epm-podcast-hero__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin-top: 16px;
+}
+
+/* ---------- Latest episode wrapper ---------- */
+
+.epm-latest {
+	background: var(--epm-latest-background, transparent);
+}
+
+/* ---------- Guest ---------- */
+
+.epm-guest {
+	display: flex;
+	gap: 16px;
+	align-items: flex-start;
+}
+
+.epm-guest__image {
+	width: var(--epm-guest-image-size, 72px);
+	height: var(--epm-guest-image-size, 72px);
+	border-radius: 50%;
+	object-fit: cover;
+	flex: 0 0 auto;
+}
+
+.epm-guest__name {
+	margin: 0;
+	font-weight: 600;
+	color: var(--epm-text, #111827);
+}
+
+.epm-guest__role,
+.epm-guest__company {
+	margin: 0;
+	font-size: var(--epm-meta-size, 14px);
+	color: var(--epm-text-muted, #6b7280);
+}
+
+.epm-guest__bio {
+	font-size: var(--epm-meta-size, 14px);
+	color: var(--epm-text-muted, #6b7280);
+}
+
+/* ---------- Chapters ---------- */
+
+.epm-chapters__heading {
+	font-size: var(--epm-title-size, 22px);
+	margin: 0 0 12px;
+	color: var(--epm-text, #111827);
+}
+
+.epm-chapters__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.epm-chapters__item {
+	display: flex;
+	gap: 12px;
+	align-items: baseline;
+	padding: 8px 0;
+	border-bottom: 1px solid var(--epm-border, #e5e7eb);
+}
+
+.epm-chapters__time {
+	background: none;
+	border: none;
+	color: var(--epm-accent, #1d4ed8);
+	font-variant-numeric: tabular-nums;
+	cursor: pointer;
+	padding: 0;
+	font-size: var(--epm-meta-size, 14px);
+}
+
+.epm-chapters__time:hover {
+	text-decoration: underline;
+}
+
+.epm-chapters__title {
+	color: var(--epm-text, #111827);
+}
+
+.epm-chapters__link {
+	margin-left: auto;
+	font-size: var(--epm-meta-size, 14px);
+	color: var(--epm-text-muted, #6b7280);
+}
+
+/* ---------- Show notes ---------- */
+
+.epm-show-notes {
+	color: var(--epm-text, #111827);
+}
+
+.epm-show-notes__heading {
+	font-size: var(--epm-title-size, 22px);
+	margin: 0 0 12px;
+	color: var(--epm-text, #111827);
+}
+
+.epm-show-notes__content {
+	color: var(--epm-text, #111827);
+	line-height: 1.7;
+}
+
+/* ---------- Transcript ---------- */
+
+.epm-transcript__heading {
+	font-size: var(--epm-title-size, 22px);
+	margin: 0 0 12px;
+	color: var(--epm-text, #111827);
+}
+
+.epm-transcript__content {
+	color: var(--epm-text, #111827);
+	line-height: 1.7;
+}
+
+.epm-transcript--collapsible summary {
+	cursor: pointer;
+}
+
+/* ---------- Subscribe links ---------- */
+
+.epm-subscribe {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--epm-subscribe-gap, 12px);
+}
+
+.epm-subscribe__link {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--epm-text-muted, #6b7280);
+	text-decoration: none;
+	border: 1px solid var(--epm-border, #e5e7eb);
+	border-radius: 999px;
+	padding: 8px 16px;
+	font-size: var(--epm-meta-size, 14px);
+}
+
+.epm-subscribe__link:hover {
+	color: var(--epm-subscribe-hover, var(--epm-text, #111827));
+	border-color: currentColor;
+}
+
+.epm-subscribe__icon svg {
+	width: var(--epm-subscribe-icon-size, 18px);
+	height: var(--epm-subscribe-icon-size, 18px);
+	display: block;
+}
+
+/* ---------- Sticky player ---------- */
+
+.epm-sticky {
+	position: fixed;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 9990;
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	background: var(--epm-surface, #f9fafb);
+	color: var(--epm-text, #111827);
+	border-top: 1px solid var(--epm-border, #e5e7eb);
+	padding: 10px 20px;
+}
+
+.epm-sticky[hidden] {
+	display: none;
+}
+
+.epm-sticky__artwork img {
+	width: 44px;
+	height: 44px;
+	border-radius: 8px;
+	object-fit: cover;
+	display: block;
+}
+
+.epm-sticky__info {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.epm-sticky__title {
+	margin: 0 0 4px;
+	font-size: 14px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.epm-sticky__timeline {
+	height: 16px;
+	position: relative;
+	cursor: pointer;
+}
+
+.epm-sticky__track {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 50%;
+	transform: translateY(-50%);
+	height: 3px;
+	background: var(--epm-border, #e5e7eb);
+	border-radius: 999px;
+	overflow: hidden;
+}
+
+.epm-sticky__progress {
+	height: 100%;
+	width: 0;
+	background: var(--epm-accent, #1d4ed8);
+}
+
+.epm-sticky__controls {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.epm-sticky__controls button {
+	background: none;
+	border: none;
+	color: var(--epm-text, #111827);
+	cursor: pointer;
+	padding: 6px;
+	display: inline-flex;
+}
+
+.epm-sticky__controls button svg {
+	width: 22px;
+	height: 22px;
+}
+
+.epm-sticky__time {
+	font-size: 12px;
+	color: var(--epm-text-muted, #6b7280);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+/* ---------- Episode header ---------- */
+
+.epm-episode-header {
+	color: var(--epm-text, #111827);
+}
+
+.epm-episode-header__artwork {
+	margin-bottom: 16px;
+	max-width: 280px;
+}
+
+.epm-episode-header__artwork-img {
+	width: 100%;
+	height: auto;
+	aspect-ratio: 1 / 1;
+	object-fit: cover;
+	border-radius: var(--epm-artwork-radius, 8px);
+	display: block;
+}
+
+.epm-episode-header__label {
+	margin: 0 0 8px;
+	font-size: var(--epm-meta-size, 14px);
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--epm-text-muted, #6b7280);
+}
+
+.epm-episode-header__title {
+	margin: 0 0 12px;
+	font-size: calc(var(--epm-title-size, 22px) * 1.6);
+	line-height: 1.15;
+}
+
+.epm-episode-header__description {
+	color: var(--epm-text-muted, #6b7280);
+	margin-top: 12px;
+	max-width: 70ch;
+}
+
+/* ---------- Latest episode header (no player) ---------- */
+
+.epm-latest__header {
+	display: flex;
+	gap: var(--epm-gap, 24px);
+	align-items: flex-start;
+	color: var(--epm-text, #111827);
+}
+
+.epm-latest__artwork {
+	flex: 0 0 auto;
+	width: 120px;
+}
+
+.epm-latest__artwork-img {
+	width: 100%;
+	height: auto;
+	aspect-ratio: 1 / 1;
+	object-fit: cover;
+	border-radius: var(--epm-artwork-radius, 8px);
+	display: block;
+}
+
+.epm-latest__info {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.epm-latest__title {
+	margin: 0 0 8px;
+	font-size: var(--epm-title-size, 22px);
+	line-height: 1.25;
+}
+
+.epm-latest__description {
+	color: var(--epm-text-muted, #6b7280);
+	font-size: var(--epm-meta-size, 14px);
+	margin: 8px 0 0;
+}
+
+.epm-podcast-hero__host {
+	font-size: var(--epm-meta-size, 14px);
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--epm-text-muted, #6b7280);
+	margin: 0 0 12px;
+}
+
+.epm-podcast-hero__cta,
+.epm-latest__cta {
+	display: inline-block;
+	background: var(--epm-accent, #1d4ed8);
+	color: var(--epm-on-accent, #ffffff);
+	border-radius: 999px;
+	padding: 12px 28px;
+	text-decoration: none;
+	font-weight: 600;
+}
+
+.epm-podcast-hero__cta:hover,
+.epm-latest__cta:hover {
+	filter: brightness(1.08);
+	color: var(--epm-on-accent, #ffffff);
+}
+
+.epm-latest__cta-wrap {
+	margin-top: 16px;
+}
+
+/* ---------- Pagination ---------- */
+
+.epm-pagination ul {
+	list-style: none;
+	margin: var(--epm-gap, 24px) 0 0;
+	padding: 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.epm-pagination a,
+.epm-pagination span {
+	display: inline-block;
+	padding: 8px 14px;
+	border: 1px solid var(--epm-border, #e5e7eb);
+	border-radius: 8px;
+	color: var(--epm-text-muted, #6b7280);
+	text-decoration: none;
+	font-size: var(--epm-meta-size, 14px);
+}
+
+.epm-pagination a:hover {
+	color: var(--epm-text, #111827);
+	border-color: var(--epm-text-muted, #6b7280);
+}
+
+.epm-pagination .current {
+	background: var(--epm-accent, #1d4ed8);
+	border-color: var(--epm-accent, #1d4ed8);
+	color: var(--epm-on-accent, #ffffff);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 768px) {
+	.epm-player--artwork,
+	.epm-player--full {
+		flex-direction: column;
+	}
+
+	.epm-player--artwork .epm-player__artwork,
+	.epm-player--full .epm-player__artwork {
+		width: 100%;
+		max-width: 320px;
+	}
+
+	.epm-episode-row {
+		flex-wrap: wrap;
+	}
+
+	.epm-episode-row__aside {
+		flex-direction: row;
+		align-items: center;
+		width: 100%;
+		text-align: left;
+	}
+
+	.epm-podcast-hero {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.epm-podcast-hero--centered {
+		align-items: center;
+	}
+
+	.epm-podcast-hero__artwork {
+		width: min(280px, 100%);
+	}
+
+	.epm-player__volume input {
+		width: 56px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.epm-player *,
+	.epm-sticky * {
+		transition: none;
+	}
+}
+
+/* ------------------------------------------------------------------ */
+/* Player engine v2 additions: a11y, error states, touch targets.      */
+/* Flat specificity; no !important.                                    */
+/* ------------------------------------------------------------------ */
+
+/* Visually hidden (screen-reader live region). */
+.epm-sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* Inline error state with retry. */
+.epm-player__error {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+	background: var(--epm-surface, #f9fafb);
+	border: 1px solid var(--epm-border, #e5e7eb);
+	border-left: 3px solid #b91c1c;
+	border-radius: 8px;
+	padding: 10px 14px;
+	font-size: var(--epm-meta-size, 14px);
+	color: var(--epm-text, #111827);
+}
+
+.epm-player__error[hidden] {
+	display: none;
+}
+
+.epm-player__error-msg {
+	flex: 1 1 auto;
+	min-width: 200px;
+}
+
+.epm-player__error-retry {
+	flex: 0 0 auto;
+	min-height: 44px;
+	padding: 8px 18px;
+	border-radius: 999px;
+	border: 1px solid var(--epm-accent, #1d4ed8);
+	background: var(--epm-accent, #1d4ed8);
+	color: var(--epm-on-accent, #ffffff);
+	font: inherit;
+	cursor: pointer;
+}
+
+/* Init-failure fallback: reveal the native audio element. */
+.epm-player--fallback audio {
+	display: block;
+	width: 100%;
+	margin-top: 12px;
+}
+
+/* Minimum 44px touch targets for play controls. */
+.epm-player__play {
+	min-width: 44px;
+	min-height: 44px;
+}
+
+.epm-episode-card__play,
+.epm-episode-row__play {
+	min-height: 44px;
+}
+
+.epm-sticky__controls button {
+	min-width: 44px;
+	min-height: 44px;
+	align-items: center;
+	justify-content: center;
+}
