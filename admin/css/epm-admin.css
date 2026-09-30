@@ -1,0 +1,278 @@
+/* Elementor Podcast Manager — admin styles. */
+
+.epm-upload__drop {
+	border: 2px dashed #c3c4c7;
+	border-radius: 8px;
+	padding: 32px;
+	text-align: center;
+	background: #fafafa;
+}
+
+.epm-upload__drop.is-dragover {
+	border-color: #2271b1;
+	background: #f0f6fc;
+}
+
+.epm-upload__file {
+	margin: 0 0 12px;
+}
+
+.epm-upload__meta {
+	color: #646970;
+}
+
+.epm-upload__preview {
+	max-width: 100%;
+	margin: 12px 0;
+}
+
+.epm-upload__hint {
+	font-size: 15px;
+	color: #646970;
+}
+
+.epm-upload__actions {
+	margin: 12px 0 0;
+	display: flex;
+	gap: 8px;
+	justify-content: center;
+}
+
+.epm-upload__warning {
+	color: #b32d2e;
+	font-size: 12px;
+}
+
+.epm-upload__progress {
+	margin: 12px 0;
+	background: #e5e5e5;
+	border-radius: 999px;
+	height: 22px;
+	position: relative;
+	overflow: hidden;
+}
+
+.epm-upload__bar {
+	height: 100%;
+	width: 0;
+	background: #2271b1;
+	border-radius: 999px;
+	transition: width 0.2s;
+}
+
+.epm-upload__progress-label {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 12px;
+	color: #1d2327;
+}
+
+.epm-upload__error {
+	margin: 12px 0;
+}
+
+.epm-media-preview__img {
+	max-width: 160px;
+	height: auto;
+	border-radius: 4px;
+	display: block;
+	margin-bottom: 8px;
+}
+
+.epm-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0 16px;
+}
+
+.epm-repeat__row {
+	display: grid;
+	grid-template-columns: 36px 90px 1fr 1fr 32px;
+	gap: 8px;
+	align-items: center;
+	margin-bottom: 8px;
+}
+
+.epm-repeat__row--links {
+	grid-template-columns: 36px 160px 1fr 1fr 32px;
+}
+
+.epm-repeat__order {
+	display: flex;
+	gap: 2px;
+}
+
+.epm-repeat__order .button-link {
+	text-decoration: none;
+	font-size: 11px;
+	padding: 0 2px;
+	color: #646970;
+}
+
+.epm-repeat__order .button-link:hover {
+	color: #2271b1;
+}
+
+.epm-repeat__remove {
+	font-size: 20px;
+	line-height: 1;
+	color: #b32d2e;
+	cursor: pointer;
+}
+
+.epm-status {
+	display: inline-block;
+	padding: 2px 10px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.epm-status--ready {
+	background: #e6f4ea;
+	color: #1a7f37;
+}
+
+.epm-status--missing {
+	background: #fdecea;
+	color: #b32d2e;
+}
+
+.epm-readiness__summary {
+	margin: 0 0 8px;
+}
+
+.epm-readiness__warnings {
+	color: #996800;
+}
+
+.epm-readiness__list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	max-height: 320px;
+	overflow: auto;
+}
+
+.epm-readiness__item {
+	padding: 6px 0;
+	border-top: 1px solid #f0f0f1;
+}
+
+.epm-readiness__item--ok::before {
+	content: "✓ ";
+	color: #008a20;
+}
+
+.epm-readiness__item--warning::before {
+	content: "! ";
+	color: #996800;
+	font-weight: 700;
+}
+
+.epm-readiness__item--error::before {
+	content: "✕ ";
+	color: #b32d2e;
+	font-weight: 700;
+}
+
+.epm-dashboard__readiness {
+	grid-column: 1 / -1;
+}
+
+.epm-list-empty,
+.epm-list-muted {
+	color: #a7aaad;
+}
+
+.epm-dashboard__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+	gap: 20px;
+	margin-top: 20px;
+}
+
+.epm-card {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	padding: 20px;
+}
+
+.epm-card h2 {
+	margin-top: 0;
+}
+
+.epm-dashboard__artwork {
+	max-width: 160px;
+	height: auto;
+	border-radius: 8px;
+}
+
+.epm-dashboard__meta {
+	color: #646970;
+}
+
+.epm-feed-row code {
+	font-size: 13px;
+	word-break: break-all;
+}
+
+.epm-design .epm-card {
+	max-width: 800px;
+	margin: 20px 0;
+}
+
+.epm-design-summary h3 {
+	margin-top: 20px;
+}
+
+.epm-design-summary h4 {
+	margin: 12px 0 4px;
+}
+
+.epm-design-flags {
+	border-collapse: collapse;
+	margin: 4px 0 12px;
+}
+
+.epm-design-flags th,
+.epm-design-flags td {
+	padding: 3px 12px 3px 0;
+	text-align: left;
+	font-weight: normal;
+}
+
+.epm-design-flags code {
+	background: #f6f7f7;
+	padding: 1px 6px;
+	border-radius: 3px;
+}
+
+.epm-badge {
+	display: inline-block;
+	min-width: 20px;
+	padding: 2px 10px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 600;
+	text-align: center;
+}
+
+.epm-badge--custom {
+	background: #fcf0e2;
+	color: #8a5a00;
+}
+
+.epm-badge--on {
+	background: #e6f4ea;
+	color: #1a7f37;
+}
+
+.epm-badge--off {
+	background: #f6f7f7;
+	color: #646970;
+}
