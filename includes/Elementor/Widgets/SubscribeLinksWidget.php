@@ -146,6 +146,8 @@ final class SubscribeLinksWidget extends Widget_Base {
 			]
 		);
 
+		$this->add_button_shape_control( 'subscribe_button_shape', '{{WRAPPER}} .epm-subscribe' );
+
 		$this->add_group_control(
 			Group_Control_Typography::get_type(),
 			[
@@ -178,7 +180,7 @@ final class SubscribeLinksWidget extends Widget_Base {
 		);
 
 		if ( '' === $html ) {
-			$this->editor_placeholder( __( 'Add platform links under Podcast → Podcast Settings → Distribution.', 'elementor-podcast-manager' ) );
+			$this->editor_placeholder( __( 'Add platform links under Podcast → Podcast settings → Platform links.', 'elementor-podcast-manager' ) );
 			return;
 		}
 

@@ -34,6 +34,56 @@
 		listed: __( 'Listed', 'elementor-podcast-manager' ),
 	};
 
+	function format( template ) {
+		var args = Array.prototype.slice.call( arguments, 1 );
+		return template.replace( /%(\d+)\$s/g, function ( match, index ) {
+			var value = args[ Number( index ) - 1 ];
+			return value === undefined ? match : String( value );
+		} );
+	}
+
+	/**
+	 * Tie an error message to its field (or untie it) for screen readers.
+	 */
+	function describe( field, id, on ) {
+		var ids = ( field.getAttribute( 'aria-describedby' ) || '' ).split( /\s+/ ).filter( function ( value ) {
+			return value && value !== id;
+		} );
+		if ( on ) {
+			ids.push( id );
+		}
+		field.setAttribute( 'aria-describedby', ids.join( ' ' ) );
+	}
+
+	/**
+	 * The essential-platform count in the header, and the one "Submit to"
+	 * button that is primary: the first essential platform not submitted.
+	 */
+	function updateProgress() {
+		var rows = Array.prototype.slice.call( root.querySelectorAll( '[data-essential]' ) );
+		var done = 0;
+		var next = null;
+
+		rows.forEach( function ( row ) {
+			var badge = row.querySelector( '[data-status-badge]' );
+			if ( badge && badge.getAttribute( 'data-status' ) ) {
+				done++;
+			} else if ( ! next ) {
+				next = row;
+			}
+		} );
+
+		root.querySelectorAll( '[data-submit-link]' ).forEach( function ( link ) {
+			link.classList.toggle( 'button-primary', !! next && next.contains( link ) );
+		} );
+
+		var score = root.querySelector( '[data-dist-score]' );
+		if ( score ) {
+			/* translators: 1: platforms done, 2: essential platforms */
+			score.textContent = format( __( '%1$s of %2$s', 'elementor-podcast-manager' ), done, rows.length );
+		}
+	}
+
 	function save( form ) {
 		var id = form.getAttribute( 'data-directory-form' );
 		var row = root.querySelector( '[data-directory="' + id + '"]' );
@@ -46,11 +96,13 @@
 			error.textContent = __( 'Paste the full link to your show, starting with https://', 'elementor-podcast-manager' );
 			error.hidden = false;
 			url.setAttribute( 'aria-invalid', 'true' );
+			describe( url, error.id, true );
 			url.focus();
 			return;
 		}
 		error.hidden = true;
 		url.removeAttribute( 'aria-invalid' );
+		describe( url, error.id, false );
 
 		var body = new window.FormData();
 		body.append( 'action', 'epm_distribution_save' );
@@ -76,15 +128,19 @@
 				if ( badge ) {
 					badge.textContent = labels[ status ] || '';
 					badge.className = 'epm-badge' + ( status === 'listed' ? ' epm-badge--ok' : status === 'submitted' ? ' epm-badge--info' : '' );
+					badge.setAttribute( 'data-status', status );
 				}
 				if ( submitted ) {
 					submitted.checked = status !== '';
 				}
+				updateProgress();
 				announce( app.strings.saved + ': ' + ( labels[ status ] || '' ) );
 			} )
 			.catch( function ( e ) {
 				error.textContent = e.message;
 				error.hidden = false;
+				describe( url, error.id, true );
+				announce( e.message );
 			} )
 			.then( function () {
 				button.disabled = false;

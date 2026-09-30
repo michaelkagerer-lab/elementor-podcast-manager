@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:googleplay="http://www.google.com/schemas/play-podcasts/1.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:media="http://search.yahoo.com/mrss/" xmlns:podcast="https://podcastindex.org/namespace/1.0">
+  <channel>
+    <atom:link href="https://feeds.simplecast.com/6HKOhNgS" rel="self" title="MP3 Audio" type="application/atom+xml"/>
+    <atom:link href="https://simplecast.superfeedr.com" rel="hub" xmlns="http://www.w3.org/2005/Atom"/>
+    <generator>https://simplecast.com</generator>
+    <title>Hard Fork</title>
+    <description>“Hard Fork” is a show about the future that’s already here. Each week, journalists Kevin Roose and Casey Newton explore and make sense of the latest in the rapidly changing world of tech. 
+
+Subscribe today at nytimes.com/podcasts or on Apple Podcasts, Spotify and Amazon Music. You can also subscribe via your favorite podcast app here https://www.nytimes.com/activate-access/audio?source=podcatcher. For more podcasts and narrated articles, download The New York Times app at nytimes.com/app.</description>
+    <copyright>© 2022 THE NEW YORK TIMES COMPANY; The New York Times encourages the use of RSS feeds for personal use in a news reader or as part of a non-commercial blog, subject to your agreement to our Terms of Service.</copyright>
+    <language>en</language>
+    <pubDate>Fri, 25 Sep 2026 11:00:00 +0000</pubDate>
+    <lastBuildDate>Fri, 25 Sep 2026 12:07:47 +0000</lastBuildDate>
+    <image>
+      <link>https://www.nytimes.com/column/hard-fork</link>
+      <title>Hard Fork</title>
+      <url>https://image.simplecastcdn.com/images/4105a47a-42e5-4ccc-887a-832af7989986/23965394-f5e4-4fdb-b150-639f4910353e/3000x3000/nyt-hf-album-art-3000-2.jpg?aid=rss_feed</url>
+    </image>
+    <link>https://www.nytimes.com/column/hard-fork</link>
+    <itunes:type>episodic</itunes:type>
+    <itunes:summary>“Hard Fork” is a show about the future that’s already here. Each week, journalists Kevin Roose and Casey Newton explore and make sense of the latest in the rapidly changing world of tech. 
+
+Subscribe today at nytimes.com/podcasts or on Apple Podcasts, Spotify and Amazon Music. You can also subscribe via your favorite podcast app here https://www.nytimes.com/activate-access/audio?source=podcatcher. For more podcasts and narrated articles, download The New York Times app at nytimes.com/app.</itunes:summary>
+    <itunes:author>The New York Times</itunes:author>
+    <itunes:explicit>false</itunes:explicit>
+    <itunes:image href="https://image.simplecastcdn.com/images/4105a47a-42e5-4ccc-887a-832af7989986/23965394-f5e4-4fdb-b150-639f4910353e/3000x3000/nyt-hf-album-art-3000-2.jpg?aid=rss_feed"/>
+    <itunes:new-feed-url>https://feeds.simplecast.com/6HKOhNgS</itunes:new-feed-url>
+    <itunes:owner>
+      <itunes:name>The New York Times</itunes:name>
+      <itunes:email>hardfork@nytimes.com</itunes:email>
+    </itunes:owner>
+    <itunes:category text="Technology"/>
+    <item>
+      <guid isPermaLink="false">0270f621-aa0b-4262-90d5-b9cdc4604dee</guid>
+      <title>The Ezra Klein Show: Jensen Huang Thinks A.I. Alarmism Has Gone Too Far</title>
+      <description><![CDATA[<p>In this episode, Ezra travels to Nvidia’s headquarters in Santa Clara, Calif., for a wide-ranging conversation with the chief executive Jensen Huang about the future of A.I. and why he thinks predictions of imminent doom are overblown.</p><p>&nbsp;</p><p><strong>Guests:</strong></p><p><strong>Jensen Huang,</strong> chief executive of Nvidia</p><p>&nbsp;</p><p><strong>Additional Reading:</strong></p><ul><li>A transcript and video of this episode can be found <a href="https://www.nytimes.com/2026/09/23/opinion/ezra-klein-podcast-jensen-huang.html" rel="noopener noreferrer"><u>here</u></a>.</li><li><a href="https://www.nytimes.com/2026/09/23/us/politics/ai-leaders-united-nations-global-response.html" rel="noopener noreferrer"><u>America’s A.I. Leaders Warn U.N. of Possible Peril Absent a Global Response</u></a></li><li><a href="https://www.nytimes.com/2026/09/22/technology/anthropic-ai-model-safety.html" rel="noopener noreferrer"><u>Anthropic Releases a New A.I. Model, Opus 5.5, Amid Safety Debate</u></a></li><li><a href="https://www.nytimes.com/2026/09/22/technology/ai-hacks-list.html" rel="noopener noreferrer"><u>What to Know About Recent A.I. Hacks at Google, Anthropic, OpenAI and Meta</u></a></li><li><a href="https://www.nytimes.com/2026/09/21/technology/agi-house-ai-culture.html" rel="noopener noreferrer"><u>The A.I. Party House Where Networking Has a Dark Side</u></a><br>&nbsp;</li></ul><p>We want to hear from you. Email us at hardfork@nytimes.com. Find “Hard Fork” on <a href="https://www.youtube.com/hardfork" rel="noopener noreferrer"><u>YouTube</u></a> and <a href="https://www.tiktok.com/@hardfork" rel="noopener noreferrer"><u>TikTok</u></a>.<br>&nbsp;</p>
+<p><p>Subscribe today at <a href="http://nytimes.com/podcasts">nytimes.com/podcasts</a> or on Apple Podcasts, Spotify and Amazon Music. You can also subscribe via your favorite podcast app here <a href="https://www.nytimes.com/activate-access/audio?source=podcatcher">https://www.nytimes.com/activate-access/audio?source=podcatcher</a>. For more podcasts and narrated articles, download The New York Times app at nytimes.com/app.</p></p><br/> <p>Hosted by Simplecast, an AdsWizz company. See <a href="https://pcm.adswizz.com">pcm.adswizz.com</a> for information about our collection and use of personal data for advertising.</p>]]></description>
+      <pubDate>Fri, 25 Sep 2026 11:00:00 +0000</pubDate>
+      <author>hardfork@nytimes.com (The New York Times)</author>
+      <link>https://www.nytimes.com/column/hard-fork</link>
+      <content:encoded><![CDATA[<p>In this episode, Ezra travels to Nvidia’s headquarters in Santa Clara, Calif., for a wide-ranging conversation with the chief executive Jensen Huang about the future of A.I. and why he thinks predictions of imminent doom are overblown.</p><p>&nbsp;</p><p><strong>Guests:</strong></p><p><strong>Jensen Huang,</strong> chief executive of Nvidia</p><p>&nbsp;</p><p><strong>Additional Reading:</strong></p><ul><li>A transcript and video of this episode can be found <a href="https://www.nytimes.com/2026/09/23/opinion/ezra-klein-podcast-jensen-huang.html" rel="noopener noreferrer"><u>here</u></a>.</li><li><a href="https://www.nytimes.com/2026/09/23/us/politics/ai-leaders-united-nations-global-response.html" rel="noopener noreferrer"><u>America’s A.I. Leaders Warn U.N. of Possible Peril Absent a Global Response</u></a></li><li><a href="https://www.nytimes.com/2026/09/22/technology/anthropic-ai-model-safety.html" rel="noopener noreferrer"><u>Anthropic Releases a New A.I. Model, Opus 5.5, Amid Safety Debate</u></a></li><li><a href="https://www.nytimes.com/2026/09/22/technology/ai-hacks-list.html" rel="noopener noreferrer"><u>What to Know About Recent A.I. Hacks at Google, Anthropic, OpenAI and Meta</u></a></li><li><a href="https://www.nytimes.com/2026/09/21/technology/agi-house-ai-culture.html" rel="noopener noreferrer"><u>The A.I. Party House Where Networking Has a Dark Side</u></a><br>&nbsp;</li></ul><p>We want to hear from you. Email us at hardfork@nytimes.com. Find “Hard Fork” on <a href="https://www.youtube.com/hardfork" rel="noopener noreferrer"><u>YouTube</u></a> and <a href="https://www.tiktok.com/@hardfork" rel="noopener noreferrer"><u>TikTok</u></a>.<br>&nbsp;</p>
+<p><p>Subscribe today at <a href="http://nytimes.com/podcasts">nytimes.com/podcasts</a> or on Apple Podcasts, Spotify and Amazon Music. You can also subscribe via your favorite podcast app here <a href="https://www.nytimes.com/activate-access/audio?source=podcatcher">https://www.nytimes.com/activate-access/audio?source=podcatcher</a>. For more podcasts and narrated articles, download The New York Times app at nytimes.com/app.</p></p><br/> <p>Hosted by Simplecast, an AdsWizz company. See <a href="https://pcm.adswizz.com">pcm.adswizz.com</a> for information about our collection and use of personal data for advertising.</p>]]></content:encoded>
+      <enclosure length="103974524" type="audio/mpeg" url="https://dts.podtrac.com/redirect.mp3/pdst.fm/e/pfx.vpixl.com/6qj4J/pscrb.fm/rss/p/nyt.simplecastaudio.com/3e43d072-f8a5-430f-bc8e-4c70aafdf3c7/episodes/9b87bc12-2f6c-4524-8eae-3d09a80e685b/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3e43d072-f8a5-430f-bc8e-4c70aafdf3c7&amp;awEpisodeId=9b87bc12-2f6c-4524-8eae-3d09a80e685b&amp;feed=6HKOhNgS"/>
+      <itunes:title>The Ezra Klein Show: Jensen Huang Thinks A.I. Alarmism Has Gone Too Far</itunes:title>
+      <itunes:author>The New York Times</itunes:author>
+      <itunes:duration>01:48:18</itunes:duration>
+      <itunes:summary>Ezra Klein interviews the Nvidia chief executive Jensen Huang.</itunes:summary>
+      <itunes:subtitle>Ezra Klein interviews the Nvidia chief executive Jensen Huang.</itunes:subtitle>
+      <itunes:explicit>false</itunes:explicit>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:episode>214</itunes:episode>
+    </item>
+    <item>
+      <guid isPermaLink="false">c196b474-cd43-40c0-ab3a-2bed3756a248</guid>
+      <title>A.I. Safety Goes Mainstream + a ‘Hard Fork’ Exit AMA</title>
+      <description><![CDATA[<p>This week, we break down why everyone is suddenly talking about A.I. safety, why frontier A.I. companies are asking for regulation and why the Trump administration is rejecting them. And then, to close out this chapter of “Hard Fork,” we answer all your questions about the show, tech and what’s happening next.</p><p>&nbsp;</p><p><strong>Additional Reading:</strong></p><ul><li><a href="https://www.nytimes.com/2026/09/14/podcasts/the-daily/the-ai-researcher-whose-rebellion-is-changing-everything.html" rel="noopener noreferrer"><strong><u>The A.I. Researcher Whose Rebellion Is Changing Everything</u></strong></a></li><li><a href="https://www.nytimes.com/2026/09/12/technology/anthropic-dario-amodei-ai-slowdown.html" rel="noopener noreferrer"><strong><u>Top A.I. Leaders Call for Slowing Down A.I. Development</u></strong></a></li><li><a href="https://www.nytimes.com/2026/09/14/technology/trump-ai-safety-jensen-huang.html" rel="noopener noreferrer"><strong><u>President Trump Is on the Line About an A.I. Slowdown</u></strong></a></li><li><a href="https://www.nytimes.com/2026/09/15/technology/mark-zuckerberg-anthropic-ai-safety.html" rel="noopener noreferrer"><strong><u>Mark Zuckerberg Takes Aim at Anthropic in Debate Over A.I. Slowdown</u></strong></a></li><li><a href="https://www.nytimes.com/2026/09/15/opinion/ezra-klein-podcast-matt-sheehan.html" rel="noopener noreferrer"><strong><u>The ‘But China!’ Dilemma Driving the A.I. Race</u></strong></a></li></ul><p>&nbsp;</p><p>We want to hear from you. Email us at hardfork@nytimes.com. Find “Hard Fork” on <a href="https://www.youtube.com/hardfork" rel="noopener noreferrer"><u>YouTube</u></a> and <a href="https://www.tiktok.com/@hardfork" rel="noopener noreferrer"><u>TikTok</u></a>.</p><p><br><br>&nbsp;</p>
+<p><p>Subscribe today at <a href="http://nytimes.com/podcasts">nytimes.com/podcasts</a> or on Apple Podcasts, Spotify and Amazon Music. You can also subscribe via your favorite podcast app here <a href="https://www.nytimes.com/activate-access/audio?source=podcatcher">https://www.nytimes.com/activate-access/audio?source=podcatcher</a>. For more podcasts and narrated articles, download The New York Times app at nytimes.com/app.</p></p><br/> <p>Hosted by Simplecast, an AdsWizz company. See <a href="https://pcm.adswizz.com">pcm.adswizz.com</a> for information about our collection and use of personal data for advertising.</p>]]></description>
+      <pubDate>Fri, 18 Sep 2026 11:00:00 +0000</pubDate>
+      <author>hardfork@nytimes.com (The New York Times)</author>
+      <link>https://www.nytimes.com/column/hard-fork</link>
+      <content:encoded><![CDATA[<p>This week, we break down why everyone is suddenly talking about A.I. safety, why frontier A.I. companies are asking for regulation and why the Trump administration is rejecting them. And then, to close out this chapter of “Hard Fork,” we answer all your questions about the show, tech and what’s happening next.</p><p>&nbsp;</p><p><strong>Additional Reading:</strong></p><ul><li><a href="https://www.nytimes.com/2026/09/14/podcasts/the-daily/the-ai-researcher-whose-rebellion-is-changing-everything.html" rel="noopener noreferrer"><strong><u>The A.I. Researcher Whose Rebellion Is Changing Everything</u></strong></a></li><li><a href="https://www.nytimes.com/2026/09/12/technology/anthropic-dario-amodei-ai-slowdown.html" rel="noopener noreferrer"><strong><u>Top A.I. Leaders Call for Slowing Down A.I. Development</u></strong></a></li><li><a href="https://www.nytimes.com/2026/09/14/technology/trump-ai-safety-jensen-huang.html" rel="noopener noreferrer"><strong><u>President Trump Is on the Line About an A.I. Slowdown</u></strong></a></li><li><a href="https://www.nytimes.com/2026/09/15/technology/mark-zuckerberg-anthropic-ai-safety.html" rel="noopener noreferrer"><strong><u>Mark Zuckerberg Takes Aim at Anthropic in Debate Over A.I. Slowdown</u></strong></a></li><li><a href="https://www.nytimes.com/2026/09/15/opinion/ezra-klein-podcast-matt-sheehan.html" rel="noopener noreferrer"><strong><u>The ‘But China!’ Dilemma Driving the A.I. Race</u></strong></a></li></ul><p>&nbsp;</p><p>We want to hear from you. Email us at hardfork@nytimes.com. Find “Hard Fork” on <a href="https://www.youtube.com/hardfork" rel="noopener noreferrer"><u>YouTube</u></a> and <a href="https://www.tiktok.com/@hardfork" rel="noopener noreferrer"><u>TikTok</u></a>.</p><p><br><br>&nbsp;</p>
+<p><p>Subscribe today at <a href="http://nytimes.com/podcasts">nytimes.com/podcasts</a> or on Apple Podcasts, Spotify and Amazon Music. You can also subscribe via your favorite podcast app here <a href="https://www.nytimes.com/activate-access/audio?source=podcatcher">https://www.nytimes.com/activate-access/audio?source=podcatcher</a>. For more podcasts and narrated articles, download The New York Times app at nytimes.com/app.</p></p><br/> <p>Hosted by Simplecast, an AdsWizz company. See <a href="https://pcm.adswizz.com">pcm.adswizz.com</a> for information about our collection and use of personal data for advertising.</p>]]></content:encoded>
+      <enclosure length="80766964" type="audio/mpeg" url="https://dts.podtrac.com/redirect.mp3/pdst.fm/e/pfx.vpixl.com/6qj4J/pscrb.fm/rss/p/nyt.simplecastaudio.com/3e43d072-f8a5-430f-bc8e-4c70aafdf3c7/episodes/b5fddcd2-e4f2-4f57-8d28-b0a48c5956a8/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3e43d072-f8a5-430f-bc8e-4c70aafdf3c7&amp;awEpisodeId=b5fddcd2-e4f2-4f57-8d28-b0a48c5956a8&amp;feed=6HKOhNgS"/>
+      <itunes:title>A.I. Safety Goes Mainstream + a ‘Hard Fork’ Exit AMA</itunes:title>
+      <itunes:author>The New York Times</itunes:author>
+      <itunes:duration>01:24:07</itunes:duration>
+      <itunes:summary>“It has been one of the fastest, most sudden shifts I&apos;ve experienced.”</itunes:summary>
+      <itunes:subtitle>“It has been one of the fastest, most sudden shifts I&apos;ve experienced.”</itunes:subtitle>
+      <itunes:explicit>false</itunes:explicit>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:episode>213</itunes:episode>
+    </item>
+    <item>
+      <guid isPermaLink="false">4e573fc5-f8ff-404c-af6e-a003d8835d31</guid>
+      <title>What’s a Hard Fork?</title>
+      <description><![CDATA[<p>Hosts Kevin Roose and Casey Newton explore stories from the wild frontier of tech.</p><p>What’s real? What’s hype? “Hard Fork” is here to help you make sense of it. Tune in every Friday.</p>
+<p><p>Subscribe today at <a href="http://nytimes.com/podcasts">nytimes.com/podcasts</a> or on Apple Podcasts, Spotify and Amazon Music. You can also subscribe via your favorite podcast app here <a href="https://www.nytimes.com/activate-access/audio?source=podcatcher">https://www.nytimes.com/activate-access/audio?source=podcatcher</a>. For more podcasts and narrated articles, download The New York Times app at nytimes.com/app.</p></p><br/> <p>Hosted by Simplecast, an AdsWizz company. See <a href="https://pcm.adswizz.com">pcm.adswizz.com</a> for information about our collection and use of personal data for advertising.</p>]]></description>
+      <pubDate>Tue, 27 Sep 2022 14:00:00 +0000</pubDate>
+      <author>hardfork@nytimes.com (The New York Times)</author>
+      <link>https://www.nytimes.com/2022/10/04/podcasts/hard-fork-technology.html</link>
+      <content:encoded><![CDATA[<p>Hosts Kevin Roose and Casey Newton explore stories from the wild frontier of tech.</p><p>What’s real? What’s hype? “Hard Fork” is here to help you make sense of it. Tune in every Friday.</p>
+<p><p>Subscribe today at <a href="http://nytimes.com/podcasts">nytimes.com/podcasts</a> or on Apple Podcasts, Spotify and Amazon Music. You can also subscribe via your favorite podcast app here <a href="https://www.nytimes.com/activate-access/audio?source=podcatcher">https://www.nytimes.com/activate-access/audio?source=podcatcher</a>. For more podcasts and narrated articles, download The New York Times app at nytimes.com/app.</p></p><br/> <p>Hosted by Simplecast, an AdsWizz company. See <a href="https://pcm.adswizz.com">pcm.adswizz.com</a> for information about our collection and use of personal data for advertising.</p>]]></content:encoded>
+      <enclosure length="1352917" type="audio/mpeg" url="https://dts.podtrac.com/redirect.mp3/pdst.fm/e/pfx.vpixl.com/6qj4J/pscrb.fm/rss/p/nyt.simplecastaudio.com/3e43d072-f8a5-430f-bc8e-4c70aafdf3c7/episodes/e8ace451-6d90-460a-acca-9e715422ea13/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3e43d072-f8a5-430f-bc8e-4c70aafdf3c7&amp;awEpisodeId=e8ace451-6d90-460a-acca-9e715422ea13&amp;feed=6HKOhNgS"/>
+      <itunes:title>What’s a Hard Fork?</itunes:title>
+      <itunes:author>The New York Times</itunes:author>
+      <itunes:duration>00:01:24</itunes:duration>
+      <itunes:summary>Hosts Kevin Roose and Casey Newton explore stories from the wild frontier of tech.
+
+What’s real? What’s hype? “Hard Fork” is here to help you make sense of it. Tune in every Friday.
+</itunes:summary>
+      <itunes:subtitle>Hosts Kevin Roose and Casey Newton explore stories from the wild frontier of tech.
+
+What’s real? What’s hype? “Hard Fork” is here to help you make sense of it. Tune in every Friday.
+</itunes:subtitle>
+      <itunes:explicit>false</itunes:explicit>
+      <itunes:episodeType>trailer</itunes:episodeType>
+    </item>
+  </channel>
+</rss>

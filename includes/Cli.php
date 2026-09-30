@@ -119,6 +119,26 @@ final class Cli {
 				(int) $counts['failed']
 			)
 		);
+
+		// Audio that stayed at the old host must be copied before that
+		// account is closed.
+		if ( (int) ( $counts['media_failed'] ?? 0 ) > 0 ) {
+			\WP_CLI::warning(
+				sprintf(
+					'The audio of %d episode(s) was not copied and still loads from the old host: %s',
+					(int) $counts['media_failed'],
+					implode(
+						', ',
+						array_map(
+							static function ( $episode ) {
+								return (string) $episode['title'];
+							},
+							(array) ( $job['media_failed'] ?? [] )
+						)
+					)
+				)
+			);
+		}
 	}
 
 	/**

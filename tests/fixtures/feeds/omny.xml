@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" xmlns:psc="http://podlove.org/simple-chapters" xmlns:omny="https://omny.fm/rss-extensions" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:acast="https://schema.acast.com/1.0/" xmlns:podcast="https://podcastindex.org/namespace/1.0" version="2.0">
+  <channel>
+    <omny:organizationId>f827ca1a-debe-42dd-b8cd-b474015f5c95</omny:organizationId>
+    <omny:programId>5c694155-a573-4636-acf5-b4740161f6cd</omny:programId>
+    <omny:playlistId>0b596773-ac6b-4d72-88b1-b4740161fb87</omny:playlistId>
+    <language>en-US</language>
+    <atom:link rel="self" type="application/rss+xml" href="https://www.omnycontent.com/d/playlist/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/0b596773-ac6b-4d72-88b1-b4740161fb87/podcast.rss" />
+    <atom:link rel="first" type="application/rss+xml" href="https://www.omnycontent.com/d/playlist/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/0b596773-ac6b-4d72-88b1-b4740161fb87/podcast.rss?page=1" />
+    <atom:link rel="last" type="application/rss+xml" href="https://www.omnycontent.com/d/playlist/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/0b596773-ac6b-4d72-88b1-b4740161fb87/podcast.rss?page=1" />
+    <title>Drop bears - the italian edition</title>
+    <link>https://omny.fm/</link>
+    <description><![CDATA[<p>The best drop bears content</p>]]></description>
+    <itunes:type>episodic</itunes:type>
+    <itunes:summary>The best drop bears content</itunes:summary>
+    <itunes:owner>
+      <itunes:name>omny</itunes:name>
+      <itunes:email>help@omnystudio.com</itunes:email>
+    </itunes:owner>
+    <itunes:author>Omny</itunes:author>
+    <itunes:explicit>no</itunes:explicit>
+    <itunes:category text="Business"></itunes:category>
+    <itunes:image href="https://www.omnycontent.com/d/programs/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/image.jpg?t=1782422928&amp;size=Large" />
+    <image>
+      <url>https://www.omnycontent.com/d/programs/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/image.jpg?t=1782422928&amp;size=Large</url>
+      <title>Drop bears - the italian edition</title>
+      <link>https://omny.fm/</link>
+    </image>
+    <podcast:image href="https://www.omnycontent.com/d/playlist/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/0b596773-ac6b-4d72-88b1-b4740161fb87/image-wide.jpg?t=1785302438&amp;size=Large" aspect-ratio="16/9" width="1920" height="1080" />
+    <item>
+      <title>Taylor Swift Back In Charge Of Her Own Music &amp; 'Lemonading'</title>
+      <itunes:title>Taylor Swift Back In Charge Of Her Own Music &amp; 'Lemonading'</itunes:title>
+      <description><![CDATA[<p>Test :)</p><p>See <a href="https://omnystudio.com/listener">omnystudio.com/listener</a> for privacy information.</p>]]></description>
+      <content:encoded><![CDATA[<p>Test :)</p><p>See <a href="https://omnystudio.com/listener">omnystudio.com/listener</a> for privacy information.</p>]]></content:encoded>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>Omny</itunes:author>
+      <itunes:image href="https://www.omnycontent.com/d/programs/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/image.jpg?t=1782422928&amp;size=Large" />
+      <media:content url="https://traffic.omny.fm/d/clips/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/465f480e-54dc-40d5-ab16-b4d400fef892/audio.mp3?utm_source=Podcast&amp;in_playlist=0b596773-ac6b-4d72-88b1-b4740161fb87" type="audio/mpeg">
+        <media:player url="https://omny.fm/shows/drop-bears-the-italian-edition/taylor-swift-back-in-charge-of-her-own-music-lemonading/embed?media=Audio" />
+      </media:content>
+      <media:content url="https://www.omnycontent.com/d/programs/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/image.jpg?t=1782422928&amp;size=Large" type="image/jpeg" />
+      <podcast:image href="https://www.omnycontent.com/d/playlist/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/0b596773-ac6b-4d72-88b1-b4740161fb87/image-wide.jpg?t=1785302438&amp;size=Large" aspect-ratio="16/9" width="1920" height="1080" />
+      <guid isPermaLink="false">465f480e-54dc-40d5-ab16-b4d400fef892</guid>
+      <omny:clipId>465f480e-54dc-40d5-ab16-b4d400fef892</omny:clipId>
+      <pubDate>Tue, 29 Sep 2026 15:29:47 +0000</pubDate>
+      <itunes:duration>613</itunes:duration>
+      <enclosure url="https://traffic.omny.fm/d/clips/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/465f480e-54dc-40d5-ab16-b4d400fef892/audio.mp3?utm_source=Podcast&amp;in_playlist=0b596773-ac6b-4d72-88b1-b4740161fb87" length="9820155" type="audio/mpeg" />
+      <link>https://omny.fm/shows/drop-bears-the-italian-edition/taylor-swift-back-in-charge-of-her-own-music-lemonading</link>
+    </item>
+    <item>
+      <title>test epsiode 2</title>
+      <itunes:title>test epsiode 2</itunes:title>
+      <description><![CDATA[<p>test</p><p>See <a href="https://omnystudio.com/listener">omnystudio.com/listener</a> for privacy information.</p>]]></description>
+      <content:encoded><![CDATA[<p>test</p><p>See <a href="https://omnystudio.com/listener">omnystudio.com/listener</a> for privacy information.</p>]]></content:encoded>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>Omny</itunes:author>
+      <itunes:image href="https://www.omnycontent.com/d/programs/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/image.jpg?t=1782422928&amp;size=Large" />
+      <media:content url="https://traffic.omny.fm/d/clips/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/dccd4235-0e65-4515-8c53-b486004c49e7/audio.mp3?utm_source=Podcast&amp;in_playlist=0b596773-ac6b-4d72-88b1-b4740161fb87" type="audio/mpeg">
+        <media:player url="https://omny.fm/shows/drop-bears-the-italian-edition/original-your-most-urgent-perimenopause-questions-answered-by-25-leading-expe/embed?media=Audio" />
+      </media:content>
+      <media:content url="https://www.omnycontent.com/d/programs/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/image.jpg?t=1782422928&amp;size=Large" type="image/jpeg" />
+      <podcast:image href="https://www.omnycontent.com/d/playlist/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/0b596773-ac6b-4d72-88b1-b4740161fb87/image-wide.jpg?t=1785302438&amp;size=Large" aspect-ratio="16/9" width="1920" height="1080" />
+      <guid isPermaLink="false">dccd4235-0e65-4515-8c53-b486004c49e7</guid>
+      <omny:clipId>dccd4235-0e65-4515-8c53-b486004c49e7</omny:clipId>
+      <pubDate>Mon, 13 Jul 2026 04:52:15 +0000</pubDate>
+      <itunes:duration>408</itunes:duration>
+      <enclosure url="https://traffic.omny.fm/d/clips/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/dccd4235-0e65-4515-8c53-b486004c49e7/audio.mp3?utm_source=Podcast&amp;in_playlist=0b596773-ac6b-4d72-88b1-b4740161fb87" length="6531104" type="audio/mpeg" />
+      <podcast:alternateEnclosure length="500137691" type="video/mp4">
+        <podcast:source uri="https://traffic.omny.fm/d/clips/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/dccd4235-0e65-4515-8c53-b486004c49e7/video.mp4?utm_source=Podcast&amp;in_playlist=0b596773-ac6b-4d72-88b1-b4740161fb87" />
+      </podcast:alternateEnclosure>
+      <podcast:alternateEnclosure length="0" type="application/vnd.apple.mpegurl">
+        <podcast:source uri="https://traffic.omny.fm/d/clips/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/dccd4235-0e65-4515-8c53-b486004c49e7/video-hls.m3u8?utm_source=Podcast&amp;in_playlist=0b596773-ac6b-4d72-88b1-b4740161fb87" />
+      </podcast:alternateEnclosure>
+      <link>https://omny.fm/shows/drop-bears-the-italian-edition/original-your-most-urgent-perimenopause-questions-answered-by-25-leading-expe</link>
+    </item>
+    <item>
+      <title>ScreenRecording_06-25-2026 16-47-25_1_lowres</title>
+      <itunes:title>ScreenRecording_06-25-2026 16-47-25_1_lowres</itunes:title>
+      <description><![CDATA[<p>See <a href="https://omnystudio.com/listener">omnystudio.com/listener</a> for privacy information.</p>]]></description>
+      <content:encoded><![CDATA[<p>See <a href="https://omnystudio.com/listener">omnystudio.com/listener</a> for privacy information.</p>]]></content:encoded>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>Omny</itunes:author>
+      <itunes:image href="https://www.omnycontent.com/d/programs/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/image.jpg?t=1782422928&amp;size=Large" />
+      <media:content url="https://traffic.omny.fm/d/clips/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/5c8df3ed-b642-41c0-9fff-b4740167a3f7/audio.mp3?utm_source=Podcast&amp;in_playlist=0b596773-ac6b-4d72-88b1-b4740161fb87" type="audio/mpeg">
+        <media:player url="https://omny.fm/shows/drop-bears-the-italian-edition/screenrecording-06-25-2026-16-47-25-1-lowres/embed?media=Audio" />
+      </media:content>
+      <media:content url="https://www.omnycontent.com/d/programs/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/image.jpg?t=1782422928&amp;size=Large" type="image/jpeg" />
+      <podcast:image href="https://www.omnycontent.com/d/clips/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/5c8df3ed-b642-41c0-9fff-b4740167a3f7/image-wide.jpg?t=1785302595&amp;size=Large" aspect-ratio="16/9" width="1920" height="1080" />
+      <guid isPermaLink="false">5c8df3ed-b642-41c0-9fff-b4740167a3f7</guid>
+      <omny:clipId>5c8df3ed-b642-41c0-9fff-b4740167a3f7</omny:clipId>
+      <pubDate>Thu, 25 Jun 2026 21:54:08 +0000</pubDate>
+      <itunes:duration>263</itunes:duration>
+      <enclosure url="https://traffic.omny.fm/d/clips/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/5c8df3ed-b642-41c0-9fff-b4740167a3f7/audio.mp3?utm_source=Podcast&amp;in_playlist=0b596773-ac6b-4d72-88b1-b4740161fb87" length="4225923" type="audio/mpeg" />
+      <podcast:alternateEnclosure length="12463229" type="video/mp4">
+        <podcast:source uri="https://traffic.omny.fm/d/clips/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/5c8df3ed-b642-41c0-9fff-b4740167a3f7/video.mp4?utm_source=Podcast&amp;in_playlist=0b596773-ac6b-4d72-88b1-b4740161fb87" />
+      </podcast:alternateEnclosure>
+      <podcast:alternateEnclosure length="0" type="application/vnd.apple.mpegurl">
+        <podcast:source uri="https://traffic.omny.fm/d/clips/f827ca1a-debe-42dd-b8cd-b474015f5c95/5c694155-a573-4636-acf5-b4740161f6cd/5c8df3ed-b642-41c0-9fff-b4740167a3f7/video-hls.m3u8?utm_source=Podcast&amp;in_playlist=0b596773-ac6b-4d72-88b1-b4740161fb87" />
+      </podcast:alternateEnclosure>
+      <link>https://omny.fm/shows/drop-bears-the-italian-edition/screenrecording-06-25-2026-16-47-25-1-lowres</link>
+    </item>
+  </channel>
+</rss>

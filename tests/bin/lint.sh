@@ -11,7 +11,8 @@ while IFS= read -r -d '' file; do
 	fi
 done < <(find . -name '*.php' -not -path './tests/e2e/node_modules/*' -not -path './.git/*' -print0)
 
-for file in assets/js/*.js admin/js/*.js; do
+for file in assets/js/*.js admin/js/*.js tests/e2e/*.mjs; do
+	[ -f "$file" ] || continue
 	node --check "$file" || status=1
 done
 

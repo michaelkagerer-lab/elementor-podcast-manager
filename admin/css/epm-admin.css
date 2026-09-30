@@ -1,428 +1,371 @@
-/* Elementor Podcast Manager — admin styles. */
+/**
+ * Elementor Podcast Manager — classic admin styles.
+ *
+ * Episode editor (audio box, pickers, repeaters), episode list, Podcast
+ * Settings, Design, and the dashboard extras that sit on top of the shared
+ * app components (admin/css/epm-app.css).
+ *
+ * Motion is opt-in (prefers-reduced-motion: no-preference), limited to
+ * opacity/transform, and falls back to short opacity-only fades.
+ */
+
+:root {
+	--epm-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+	--epm-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+	--epm-ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+	--epm-ease-icon: cubic-bezier(0.2, 0, 0, 1);
+
+	--epm-admin-accent: var(--wp-admin-theme-color, #2271b1);
+	--epm-admin-text: #1d2327;
+	--epm-admin-muted: #50575e;
+	--epm-admin-subtle: #646970;
+	--epm-admin-line: #dcdcde;
+	--epm-admin-line-strong: #c3c4c7;
+	--epm-admin-canvas: #f6f7f7;
+	--epm-admin-ok: #007017;
+	--epm-admin-ok-soft: #e6f4ea;
+	--epm-admin-warn: #8a4b08;
+	--epm-admin-warn-soft: #fcf0e3;
+	--epm-admin-error: #b32d2e;
+	--epm-admin-error-soft: #fdecea;
+
+	/* One type scale on WordPress's 13px admin base. */
+	--epm-admin-text-sm: 12px;
+	--epm-admin-text-md: 13px;
+	--epm-admin-text-lg: 14px;
+}
+
+/* Components set display; the hidden attribute must still win (core
+   .button sets display: inline-block). */
+.epm-upload [hidden],
+.epm-media [hidden],
+.epm-number-row [hidden],
+.epm-transcript-file [hidden],
+.epm-paste [hidden],
+.epm-inline-edit [hidden],
+.epm-repeat [hidden],
+.epm-copy-button [hidden],
+.epm-design [hidden],
+.epm-dashboard [hidden] {
+	display: none !important;
+}
+
+/* ---------- Shared field messages ---------- */
+
+.epm-field-error {
+	margin: 6px 0 0;
+	color: var(--epm-admin-error);
+	font-size: var(--epm-admin-text-md);
+	font-weight: 600;
+	line-height: 1.5;
+	max-inline-size: 65ch;
+}
+
+.epm-field-error::before {
+	content: "\f534" / "";
+	display: inline-block;
+	margin-inline-end: 4px;
+	font: normal 16px/1 dashicons;
+	vertical-align: -3px;
+}
+
+input[aria-invalid="true"],
+select[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+	border-color: var(--epm-admin-error);
+	box-shadow: 0 0 0 1px var(--epm-admin-error);
+}
+
+.epm-optional {
+	color: var(--epm-admin-subtle);
+	font-weight: 400;
+}
+
+/* ---------- Episode audio box ---------- */
 
 .epm-upload__drop {
-	border: 2px dashed #c3c4c7;
-	border-radius: 8px;
+	position: relative;
 	padding: 32px;
-	text-align: center;
+	border: 2px dashed var(--epm-admin-line-strong);
+	border-radius: 8px;
 	background: #fafafa;
+	text-align: center;
 }
 
-.epm-upload__drop.is-dragover {
-	border-color: #2271b1;
-	background: #f0f6fc;
+/* Drag-over state: an overlay faded in with opacity, so crossing the
+   hint text or buttons never flashes the border. */
+.epm-upload__drop::after {
+	content: "";
+	position: absolute;
+	inset: -2px;
+	border: 2px solid var(--epm-admin-accent);
+	border-radius: inherit;
+	background: rgb(34 113 177 / 0.06);
+	background: color-mix(in srgb, var(--epm-admin-accent) 6%, transparent);
+	opacity: 0;
+	pointer-events: none;
 }
 
-.epm-upload__file {
-	margin: 0 0 12px;
+.epm-upload__drop.is-dragover::after {
+	opacity: 1;
 }
 
-.epm-upload__meta {
-	color: #646970;
-}
-
-.epm-upload__preview {
-	max-width: 100%;
-	margin: 12px 0;
+.epm-upload__state > :first-child {
+	margin-block-start: 0;
 }
 
 .epm-upload__hint {
-	font-size: 15px;
-	color: #646970;
+	margin: 0;
+	color: var(--epm-admin-muted);
+	font-size: var(--epm-admin-text-lg);
+}
+
+.epm-upload__file {
+	display: grid;
+	justify-items: center;
+	gap: 2px;
+	margin: 0 0 12px;
+}
+
+.epm-upload__name {
+	font-size: var(--epm-admin-text-lg);
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+.epm-upload__meta {
+	color: var(--epm-admin-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.epm-upload__source {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: #fff;
+	box-shadow: inset 0 0 0 1px var(--epm-admin-line);
+	color: var(--epm-admin-muted);
+	font-size: var(--epm-admin-text-sm);
+	font-weight: 600;
+}
+
+.epm-upload__source .dashicons {
+	inline-size: 16px;
+	block-size: 16px;
+	font-size: 16px;
+}
+
+.epm-upload__url {
+	max-inline-size: 100%;
+	color: var(--epm-admin-subtle);
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	font-size: var(--epm-admin-text-sm);
+	overflow-wrap: anywhere;
+}
+
+.epm-upload__note {
+	max-inline-size: 65ch;
+	margin: 0 auto 12px;
+	color: var(--epm-admin-muted);
+	text-wrap: pretty;
+}
+
+.epm-upload__preview {
+	display: block;
+	inline-size: 100%;
+	max-inline-size: 520px;
+	margin: 12px auto;
+}
+
+.epm-upload .notice.inline {
+	margin: 12px 0;
+	text-align: start;
 }
 
 .epm-upload__actions {
-	margin: 12px 0 0;
 	display: flex;
-	gap: 8px;
+	flex-wrap: wrap;
 	justify-content: center;
-}
-
-.epm-upload__warning {
-	color: #b32d2e;
-	font-size: 12px;
+	gap: 8px;
+	margin: 12px 0 0;
 }
 
 .epm-upload__progress {
-	margin: 12px 0;
-	background: #e5e5e5;
-	border-radius: 999px;
-	height: 22px;
-	position: relative;
+	display: block;
+	inline-size: 100%;
+	block-size: 8px;
+	margin: 12px 0 0;
 	overflow: hidden;
-}
-
-.epm-upload__bar {
-	height: 100%;
-	width: 0;
-	background: #2271b1;
+	border: 0;
 	border-radius: 999px;
-	transition: width 0.2s;
+	background: #e5e5e5;
+	color: var(--epm-admin-accent);
+	accent-color: var(--epm-admin-accent);
+	appearance: none;
 }
 
-.epm-upload__progress-label {
-	position: absolute;
-	inset: 0;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 12px;
-	color: #1d2327;
+.epm-upload__progress::-webkit-progress-bar {
+	border-radius: 999px;
+	background: #e5e5e5;
+}
+
+.epm-upload__progress::-webkit-progress-value {
+	border-radius: 999px;
+	background: var(--epm-admin-accent);
+}
+
+.epm-upload__progress::-moz-progress-bar {
+	border-radius: 999px;
+	background: var(--epm-admin-accent);
+}
+
+.epm-upload__status {
+	margin: 8px 0 0;
+	color: var(--epm-admin-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.epm-upload__status:empty {
+	margin: 0;
 }
 
 .epm-upload__error {
 	margin: 12px 0;
 }
 
-.epm-media-preview__img {
-	max-width: 160px;
-	height: auto;
-	border-radius: 4px;
-	display: block;
-	margin-bottom: 8px;
+.epm-upload__import {
+	margin: 0 0 12px;
 }
 
-.epm-grid {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 0 16px;
+/* Audio hosted elsewhere. */
+.epm-audio-url {
+	margin: 16px 0 0;
+	border-block-start: 1px solid var(--epm-admin-line);
 }
 
-.epm-repeat__row {
-	display: grid;
-	grid-template-columns: 36px 90px 1fr 1fr 32px;
-	gap: 8px;
-	align-items: center;
-	margin-bottom: 8px;
-}
-
-.epm-repeat__row--links {
-	grid-template-columns: 36px 160px 1fr 1fr 32px;
-}
-
-.epm-repeat__order {
+.epm-audio-url > summary {
 	display: flex;
-	gap: 2px;
-}
-
-.epm-repeat__order .button-link {
-	text-decoration: none;
-	font-size: 11px;
-	padding: 0 2px;
-	color: #646970;
-}
-
-.epm-repeat__order .button-link:hover {
-	color: #2271b1;
-}
-
-.epm-repeat__remove {
-	font-size: 20px;
-	line-height: 1;
-	color: #b32d2e;
+	align-items: center;
+	gap: 8px;
+	min-block-size: 44px;
+	font-weight: 600;
 	cursor: pointer;
+	list-style: none;
 }
 
-.epm-status {
-	display: inline-block;
-	padding: 2px 10px;
-	border-radius: 999px;
-	font-size: 12px;
+.epm-audio-url > summary::-webkit-details-marker {
+	display: none;
+}
+
+.epm-audio-url > summary::before {
+	content: "";
+	inline-size: 7px;
+	block-size: 7px;
+	border-block-end: 2px solid currentColor;
+	border-inline-end: 2px solid currentColor;
+	transform: rotate(-45deg);
+}
+
+[dir="rtl"] .epm-audio-url > summary::before {
+	transform: rotate(135deg);
+}
+
+.epm-audio-url[open] > summary::before {
+	transform: rotate(45deg);
+}
+
+.epm-audio-url > summary:focus-visible {
+	outline: 2px solid var(--epm-admin-accent);
+	outline-offset: 2px;
+	border-radius: 2px;
+}
+
+.epm-audio-url__body {
+	padding-block-end: 8px;
+}
+
+.epm-audio-url__label {
+	display: block;
+	margin-block-end: 4px;
 	font-weight: 600;
 }
 
-.epm-status--ready {
-	background: #e6f4ea;
-	color: #1a7f37;
-}
-
-.epm-status--warning {
-	background: #fcf0e3;
-	color: #8a4b08;
-}
-
-.epm-status--missing {
-	background: #fdecea;
-	color: #b32d2e;
-}
-
-.epm-readiness__summary {
-	margin: 0 0 8px;
-}
-
-.epm-readiness__warnings {
-	color: #996800;
-}
-
-.epm-readiness__list {
-	margin: 0;
-	padding: 0;
-	list-style: none;
-	max-height: 480px;
-	overflow: auto;
-}
-
-.epm-readiness__item {
-	padding: 6px 0;
-	border-top: 1px solid #f0f0f1;
-}
-
-.epm-readiness__item--ok::before {
-	content: "✓ ";
-	color: #008a20;
-}
-
-.epm-readiness__item--warning::before {
-	content: "! ";
-	color: #996800;
-	font-weight: 700;
-}
-
-.epm-readiness__item--error::before {
-	content: "✕ ";
-	color: #b32d2e;
-	font-weight: 700;
-}
-
-.epm-dashboard__readiness {
-	grid-column: 1 / -1;
-}
-
-.epm-list-empty,
-.epm-list-muted {
-	color: #a7aaad;
-}
-
-.epm-dashboard__grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-	gap: 20px;
-	margin-top: 20px;
-}
-
-.epm-card {
-	background: #fff;
-	border: 1px solid #dcdcde;
-	border-radius: 8px;
-	padding: 20px;
-}
-
-.epm-card h2 {
-	margin-top: 0;
-}
-
-.epm-dashboard__artwork {
-	max-width: 160px;
-	height: auto;
-	border-radius: 8px;
-	box-shadow: 0 10px 28px rgba(17, 24, 39, 0.12);
-}
-
-.epm-dashboard .epm-card {
-	border-color: #e2e8f0;
-	border-radius: 12px;
-	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-	padding: 24px;
-}
-
-.epm-dashboard .epm-card h2 {
-	font-size: 16px;
-	font-weight: 650;
-	letter-spacing: -0.01em;
-	margin-bottom: 8px;
-}
-
-.epm-dashboard__podcast {
-	background: linear-gradient(145deg, #fff 0%, #f8fafc 100%);
-}
-
-.epm-dashboard__podcast h2 {
-	font-size: 22px !important;
-	letter-spacing: -0.025em !important;
-}
-
-.epm-dashboard__artwork-note {
-	color: #64748b;
-	font-size: 12px;
-	margin-top: -8px;
-}
-
-.epm-dashboard__actions {
+.epm-audio-url__row {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 8px;
-	margin-top: 18px;
+	align-items: center;
 }
 
-.epm-dashboard .button {
-	border-radius: 6px;
-	min-height: 34px;
-	padding: 2px 12px;
+.epm-audio-url__row input {
+	flex: 1 1 320px;
+	min-inline-size: 0;
+	max-inline-size: 100%;
 }
 
-.epm-dashboard .button-primary {
-	background: #1d4ed8;
-	border-color: #1d4ed8;
+.epm-audio-url .description {
+	max-inline-size: 65ch;
+	text-wrap: pretty;
 }
 
-.epm-dashboard .button-primary:hover,
-.epm-dashboard .button-primary:focus {
-	background: #1e40af;
-	border-color: #1e40af;
+.epm-audio-url__inactive {
+	padding: 8px 12px;
+	border-inline-start: 4px solid #dba617;
+	background: #fcf9e8;
 }
 
-.epm-dashboard__readiness {
-	background: #fbfdff;
+.epm-upload__duration {
+	margin: 16px 0 0;
 }
 
-.epm-readiness__heading {
-	align-items: flex-start;
-	display: flex;
-	justify-content: space-between;
-	gap: 24px;
+.epm-upload__duration label {
+	display: block;
+	margin-block-end: 4px;
+	font-weight: 600;
 }
 
-.epm-readiness__count {
-	align-items: baseline;
-	background: #eff6ff;
-	border: 1px solid #dbeafe;
-	border-radius: 8px;
-	color: #1d4ed8;
-	display: inline-flex;
-	flex: 0 0 auto;
-	gap: 3px;
-	padding: 6px 10px;
-}
-
-.epm-readiness__count > [aria-hidden="true"] {
-	align-items: baseline;
-	display: inline-flex;
-	gap: 3px;
-}
-
-.epm-readiness__count strong {
-	font-size: 17px;
+.epm-upload__duration input {
 	font-variant-numeric: tabular-nums;
 }
 
-.epm-readiness__count strong + span {
-	color: #64748b;
-	font-size: 12px;
+.epm-upload__duration .description {
+	max-inline-size: 65ch;
 }
 
-.epm-readiness__list {
-	max-height: 420px;
+/* ---------- Media pickers ---------- */
+
+.epm-media-preview__img {
+	display: block;
+	max-inline-size: 160px;
+	block-size: auto;
+	margin-block-end: 8px;
+	border-radius: 4px;
+	outline: 1px solid oklch(0 0 0 / 0.1);
+	outline-offset: -1px;
 }
 
-.epm-readiness__item {
-	padding: 10px 4px;
-}
-
-.epm-readiness__item strong {
-	color: #1e293b;
-}
-
-.epm-empty-state {
-	align-items: flex-start;
+.epm-media__actions {
 	display: flex;
-	flex-direction: column;
-	gap: 8px;
-	padding: 14px 0 2px;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 12px;
 }
 
-.epm-empty-state__icon {
-	color: #94a3b8;
-	font-size: 24px;
-	height: 24px;
-	width: 24px;
+.epm-media__remove.button-link {
+	min-block-size: 24px;
+	color: var(--epm-admin-error);
 }
 
-.epm-empty-state p {
-	color: #64748b;
-	margin: 0 0 4px;
+/* ---------- Episode editor layout ---------- */
+
+.epm-field-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+	gap: 0 16px;
 }
 
-.epm-dashboard__meta {
-	color: #646970;
-}
-
-.epm-feed-row code {
-	font-size: 13px;
-	word-break: break-all;
-}
-
-@media screen and (max-width: 782px) {
-	.epm-dashboard__grid {
-		grid-template-columns: minmax(0, 1fr);
-		gap: 12px;
-	}
-
-	.epm-dashboard .epm-card {
-		padding: 18px;
-	}
-
-	.epm-readiness__heading {
-		gap: 12px;
-	}
-}
-
-.epm-design .epm-card {
-	max-width: 800px;
-	margin: 20px 0;
-}
-
-.epm-design-summary h3 {
-	margin-top: 20px;
-}
-
-.epm-design-summary h4 {
-	margin: 12px 0 4px;
-}
-
-.epm-design-flags {
-	border-collapse: collapse;
-	margin: 4px 0 12px;
-}
-
-.epm-design-flags th,
-.epm-design-flags td {
-	padding: 3px 12px 3px 0;
-	text-align: left;
-	font-weight: normal;
-}
-
-.epm-design-flags code {
-	background: #f6f7f7;
-	padding: 1px 6px;
-	border-radius: 3px;
-}
-
-.epm-badge {
-	display: inline-block;
-	min-width: 20px;
-	padding: 2px 10px;
-	border-radius: 999px;
-	font-size: 12px;
-	font-weight: 600;
-	text-align: center;
-}
-
-.epm-badge--custom {
-	background: #fcf0e2;
-	color: #8a5a00;
-}
-
-.epm-badge--on {
-	background: #e6f4ea;
-	color: #1a7f37;
-}
-
-.epm-badge--off {
-	background: #f6f7f7;
-	color: #646970;
-}
-
-/* Classic episode screen: audio box directly below the title. */
 .epm-after-title {
 	margin-top: 20px;
 }
@@ -434,6 +377,1097 @@
 .epm-description-heading {
 	margin: 16px 0 8px;
 	padding: 0;
-	font-size: 14px;
+	font-size: var(--epm-admin-text-lg);
 	font-weight: 600;
+}
+
+.epm-editor-label {
+	display: block;
+	margin: 16px 0 6px;
+	font-weight: 600;
+}
+
+.epm-import-note p {
+	max-inline-size: 70ch;
+}
+
+/* Episode information (sidebar): label above field, 12px between fields. */
+.epm-details-field + .epm-details-field {
+	margin-block-start: 12px;
+}
+
+.epm-details-field > label {
+	display: block;
+	margin-block-end: 4px;
+	font-weight: 600;
+}
+
+.epm-details-field select {
+	max-inline-size: 100%;
+}
+
+.epm-number-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.epm-number-row input {
+	font-variant-numeric: tabular-nums;
+}
+
+.epm-number-hint {
+	margin: 4px 0 0;
+	font-variant-numeric: tabular-nums;
+}
+
+/* Disclosures inside meta boxes (paste chapters). Same pattern as the
+   audio URL disclosure: native <details>, 44px summary. */
+.epm-disclosure {
+	margin: 8px 0 0;
+	border-block-start: 1px solid var(--epm-admin-line);
+}
+
+.epm-disclosure > summary {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-block-size: 44px;
+	font-weight: 600;
+	cursor: pointer;
+	list-style: none;
+}
+
+.epm-disclosure > summary::-webkit-details-marker {
+	display: none;
+}
+
+.epm-disclosure > summary::before {
+	content: "";
+	inline-size: 7px;
+	block-size: 7px;
+	border-block-end: 2px solid currentColor;
+	border-inline-end: 2px solid currentColor;
+	transform: rotate(-45deg);
+}
+
+[dir="rtl"] .epm-disclosure > summary::before {
+	transform: rotate(135deg);
+}
+
+.epm-disclosure[open] > summary::before {
+	transform: rotate(45deg);
+}
+
+.epm-disclosure > summary:focus-visible {
+	outline: 2px solid var(--epm-admin-accent);
+	outline-offset: 2px;
+	border-radius: 2px;
+}
+
+.epm-paste__body {
+	max-inline-size: 72ch;
+	padding-block-end: 8px;
+}
+
+.epm-paste__label {
+	display: block;
+	margin-block-end: 4px;
+	font-weight: 600;
+}
+
+.epm-paste__body textarea {
+	font-variant-numeric: tabular-nums;
+}
+
+.epm-paste__body .description {
+	text-wrap: pretty;
+}
+
+.epm-paste__replace label {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-block-size: 24px;
+}
+
+.epm-paste__actions {
+	margin: 12px 0 0;
+}
+
+.epm-paste__result:empty {
+	display: none;
+}
+
+.epm-paste__result {
+	margin-block-start: 12px;
+	padding: 8px 12px;
+	border-inline-start: 4px solid var(--epm-admin-line-strong);
+	background: var(--epm-admin-canvas);
+}
+
+.epm-paste__result p {
+	margin: 4px 0;
+}
+
+.epm-paste__ok {
+	color: var(--epm-admin-ok);
+	font-weight: 600;
+}
+
+.epm-paste__warn,
+.epm-paste__hint {
+	color: var(--epm-admin-warn);
+}
+
+.epm-paste__skipped {
+	margin: 4px 0 8px;
+	padding-inline-start: 20px;
+	list-style: disc;
+}
+
+.epm-paste__skipped code {
+	overflow-wrap: anywhere;
+}
+
+/* Transcript file. */
+.epm-transcript-file {
+	margin-block-end: 16px;
+	padding-block-end: 16px;
+	border-block-end: 1px solid var(--epm-admin-line);
+}
+
+.epm-transcript-file__title {
+	margin-block-start: 0;
+}
+
+.epm-transcript-file .description {
+	max-inline-size: 65ch;
+	text-wrap: pretty;
+}
+
+.epm-transcript-file__current {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px 8px;
+	margin: 8px 0;
+}
+
+.epm-transcript-file__current a {
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+.epm-transcript-file__type {
+	padding: 1px 8px;
+	border-radius: 999px;
+	background: var(--epm-admin-canvas);
+	box-shadow: inset 0 0 0 1px var(--epm-admin-line);
+	color: var(--epm-admin-muted);
+	font-size: var(--epm-admin-text-sm);
+	font-weight: 600;
+}
+
+.epm-transcript-file__type:empty {
+	display: none;
+}
+
+.epm-transcript-file__hosted {
+	margin-block-start: 12px;
+	padding: 8px 12px;
+	border-inline-start: 4px solid var(--epm-admin-accent);
+	background: var(--epm-admin-canvas);
+}
+
+.epm-transcript-file__hosted p {
+	max-inline-size: 70ch;
+	margin: 4px 0;
+}
+
+.epm-transcript-file__url a {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	font-size: var(--epm-admin-text-sm);
+	overflow-wrap: anywhere;
+}
+
+/* Quick Edit / Bulk Edit fields in the episode list. */
+.epm-inline-edit .inline-edit-col {
+	padding-block-start: 4px;
+}
+
+.epm-inline-edit__legend {
+	display: block;
+	margin-block-end: 6px;
+}
+
+.epm-inline-edit__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+	gap: 8px 16px;
+}
+
+.epm-inline-edit__grid label {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin: 0;
+}
+
+.epm-inline-edit__grid .title {
+	float: none;
+	inline-size: auto;
+	line-height: 1.5;
+}
+
+.epm-inline-edit__grid .input-text-wrap {
+	margin: 0;
+}
+
+.epm-inline-edit__grid input,
+.epm-inline-edit__grid select {
+	inline-size: 100%;
+	max-inline-size: 100%;
+	font-variant-numeric: tabular-nums;
+}
+
+.epm-inline-edit__help {
+	margin: 8px 0 0;
+	max-inline-size: 65ch;
+}
+
+/* ---------- Repeaters (chapters, platform and social links) ---------- */
+
+.epm-repeat {
+	container-type: inline-size;
+}
+
+.epm-repeat__rows {
+	display: grid;
+	gap: 8px;
+	margin-block-end: 8px;
+}
+
+.epm-repeat__rows:empty {
+	display: none;
+}
+
+.epm-repeat__row {
+	display: grid;
+	grid-template-columns: auto minmax(4.5rem, 6rem) minmax(0, 1fr) minmax(0, 1fr) auto;
+	gap: 8px;
+	align-items: end;
+}
+
+.epm-repeat__row--links {
+	grid-template-columns: auto minmax(0, 10rem) minmax(0, 1fr) minmax(0, 1.5fr) auto;
+}
+
+.epm-repeat__row > * {
+	min-inline-size: 0;
+}
+
+.epm-repeat__field {
+	display: block;
+	margin: 0;
+}
+
+.epm-repeat__field input,
+.epm-repeat__field select {
+	inline-size: 100%;
+	max-inline-size: 100%;
+	margin: 0;
+}
+
+.epm-repeat__label {
+	display: block;
+	margin-block-end: 4px;
+	color: var(--epm-admin-muted);
+	font-size: var(--epm-admin-text-sm);
+	font-weight: 600;
+	line-height: 1.4;
+}
+
+.epm-repeat__time {
+	font-variant-numeric: tabular-nums;
+}
+
+.epm-repeat__order {
+	display: flex;
+	gap: 4px;
+}
+
+.epm-repeat__order .button-link,
+.epm-repeat__remove.button-link {
+	display: inline-grid;
+	place-items: center;
+	min-inline-size: 24px;
+	min-block-size: 24px;
+	padding: 2px;
+	border-radius: 4px;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+/* Keeps the 30px control height so buttons sit on the input baseline. */
+.epm-repeat__order,
+.epm-repeat__remove.button-link {
+	min-block-size: 30px;
+	align-items: center;
+}
+
+.epm-repeat__order .button-link {
+	color: var(--epm-admin-muted);
+}
+
+.epm-repeat__order .button-link[aria-disabled="true"] {
+	opacity: 0.4;
+	cursor: default;
+}
+
+.epm-repeat__remove.button-link {
+	color: var(--epm-admin-error);
+}
+
+.epm-repeat__order .dashicons,
+.epm-repeat__remove .dashicons {
+	inline-size: 20px;
+	block-size: 20px;
+	font-size: 20px;
+}
+
+.epm-repeat__error {
+	grid-column: 1 / -1;
+	margin: 0;
+}
+
+.epm-repeat__row.is-invalid {
+	padding: 8px;
+	border-radius: 4px;
+	background: var(--epm-admin-error-soft);
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.epm-repeat__order .button-link:not([aria-disabled="true"]):hover {
+		color: var(--epm-admin-accent);
+	}
+}
+
+/* Wide rows: the first row's labels act as column headers. Every field
+   keeps its own label for assistive technology. */
+@container (min-width: 561px) {
+	.epm-repeat__row:not(:first-child) .epm-repeat__label {
+		position: absolute;
+		inline-size: 1px;
+		block-size: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+}
+
+/* Narrow rows (sidebar boxes, phones): fields stack, every field shows its
+   label, controls share the first line. */
+@container (max-width: 560px) {
+	.epm-repeat__rows {
+		gap: 0;
+	}
+
+	.epm-repeat__row,
+	.epm-repeat__row--links {
+		grid-template-columns: minmax(0, 1fr) auto;
+		row-gap: 8px;
+		padding-block: 12px;
+		border-block-start: 1px solid var(--epm-admin-line);
+	}
+
+	.epm-repeat__row.is-invalid {
+		padding-inline: 8px;
+	}
+
+	.epm-repeat__order {
+		grid-column: 1;
+		grid-row: 1;
+	}
+
+	.epm-repeat__remove.button-link {
+		grid-column: 2;
+		grid-row: 1;
+		justify-self: end;
+	}
+
+	.epm-repeat__row > .epm-repeat__field {
+		grid-column: 1 / -1;
+	}
+}
+
+/* ---------- Status labels (episode list, audio box) ---------- */
+
+.epm-status {
+	display: inline-block;
+	padding: 2px 10px;
+	border-radius: 999px;
+	font-size: var(--epm-admin-text-sm);
+	font-weight: 600;
+	line-height: 1.6;
+	white-space: nowrap;
+}
+
+.epm-status--ready {
+	background: var(--epm-admin-ok-soft);
+	color: var(--epm-admin-ok);
+}
+
+.epm-status--warning {
+	background: var(--epm-admin-warn-soft);
+	color: var(--epm-admin-warn);
+}
+
+.epm-status--missing {
+	background: var(--epm-admin-error-soft);
+	color: var(--epm-admin-error);
+}
+
+/* ---------- Episode list ---------- */
+
+.fixed .column-epm_artwork {
+	inline-size: 56px;
+}
+
+.fixed .column-epm_episode_no {
+	inline-size: 88px;
+}
+
+.fixed .column-epm_guest {
+	inline-size: 12%;
+}
+
+.fixed .column-epm_duration {
+	inline-size: 80px;
+}
+
+.fixed .column-epm_audio {
+	inline-size: 120px;
+}
+
+.column-epm_episode_no,
+.column-epm_duration {
+	font-variant-numeric: tabular-nums;
+}
+
+.column-epm_artwork img {
+	display: block;
+	inline-size: 48px;
+	block-size: 48px;
+	border-radius: 4px;
+	object-fit: cover;
+	outline: 1px solid oklch(0 0 0 / 0.1);
+	outline-offset: -1px;
+}
+
+.epm-list-empty {
+	color: #a7aaad;
+}
+
+.epm-list-muted {
+	color: var(--epm-admin-subtle);
+}
+
+.epm-list-source {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	margin-block-start: 4px;
+	color: var(--epm-admin-subtle);
+	font-size: var(--epm-admin-text-sm);
+}
+
+.epm-list-source .dashicons {
+	inline-size: 16px;
+	block-size: 16px;
+	font-size: 16px;
+}
+
+/* ---------- Copy button (label cross-fade, fixed width) ---------- */
+
+.epm-copy-button.button {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.epm-copy-button__icons,
+.epm-copy-button__labels {
+	display: inline-grid;
+	place-items: center;
+}
+
+/* "Copied" starts where "Copy feed URL" starts, next to its icon. */
+.epm-copy-button__labels {
+	justify-items: start;
+}
+
+.epm-copy-button__icons > *,
+.epm-copy-button__labels > * {
+	grid-area: 1 / 1;
+}
+
+.epm-copy-button__icons .dashicons {
+	inline-size: 16px;
+	block-size: 16px;
+	font-size: 16px;
+	line-height: 1;
+}
+
+.epm-copy-button__done,
+.epm-copy-button__icon-done {
+	opacity: 0;
+}
+
+.epm-copy-button.is-copied .epm-copy-button__idle,
+.epm-copy-button.is-copied .epm-copy-button__icon-idle {
+	opacity: 0;
+}
+
+.epm-copy-button.is-copied .epm-copy-button__done,
+.epm-copy-button.is-copied .epm-copy-button__icon-done {
+	opacity: 1;
+}
+
+/* ---------- Podcast Settings ---------- */
+
+.epm-settings .epm-copy {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	max-inline-size: 720px;
+}
+
+.epm-settings .epm-copy__value {
+	flex: 1 1 260px;
+	min-inline-size: 0;
+	padding: 6px 10px;
+	border: 1px solid var(--epm-admin-line);
+	border-radius: 4px;
+	background: var(--epm-admin-canvas);
+	font-size: var(--epm-admin-text-md);
+	line-height: 1.5;
+	overflow-wrap: anywhere;
+}
+
+/* Checkbox options: box and text share one hit target, the text wraps
+   under itself instead of under the box. */
+.epm-settings .form-table td > label:has(> input[type="checkbox"]) {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	max-inline-size: 65ch;
+	margin-block: 4px;
+}
+
+.epm-settings .form-table td > label > input[type="checkbox"] {
+	flex: 0 0 auto;
+	margin: 2px 0 0;
+}
+
+.epm-settings .form-table td .description {
+	max-inline-size: 65ch;
+	text-wrap: pretty;
+}
+
+/* ---------- Dashboard (inside .epm-app) ---------- */
+
+.epm-dashboard .wp-heading-inline {
+	margin-block-end: 0;
+}
+
+.epm-dashboard .wp-header-end {
+	margin-block-end: 20px;
+}
+
+/* The dashboard shows its own setup card. */
+.toplevel_page_epm-dashboard .epm-setup-notice[data-epm-setup-notice] {
+	display: none;
+}
+
+.epm-dashboard__setup {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px 24px;
+	border-inline-start: 4px solid var(--epm-app-accent);
+}
+
+.epm-dashboard__setup .epm-card__lede {
+	margin-block-end: 0;
+}
+
+.epm-dashboard__setup-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px 16px;
+	margin: 0;
+}
+
+.epm-dashboard__show {
+	display: grid;
+	grid-template-columns: 112px minmax(0, 1fr) auto;
+	gap: 16px 24px;
+	align-items: center;
+}
+
+.epm-dashboard__art {
+	display: grid;
+	place-items: center;
+	inline-size: 112px;
+	block-size: 112px;
+	overflow: hidden;
+	border-radius: var(--epm-app-radius);
+	background: var(--epm-app-canvas);
+	color: var(--epm-app-subtle);
+}
+
+.epm-dashboard__art img {
+	inline-size: 100%;
+	block-size: 100%;
+	object-fit: cover;
+	border-radius: inherit;
+	outline: 1px solid oklch(0 0 0 / 0.1);
+	outline-offset: -1px;
+}
+
+.epm-dashboard__art .dashicons {
+	inline-size: 40px;
+	block-size: 40px;
+	font-size: 40px;
+}
+
+.epm-dashboard__show-title {
+	margin: 0 0 6px;
+	font-size: 20px;
+	font-weight: 600;
+	line-height: 1.3;
+	overflow-wrap: anywhere;
+	text-wrap: balance;
+}
+
+.epm-dashboard__badges {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 0;
+}
+
+.epm-dashboard__show .epm-facts {
+	margin-block-start: 12px;
+}
+
+.epm-dashboard__show-actions {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 8px;
+}
+
+.epm-dashboard__show-actions .button {
+	text-align: center;
+}
+
+.epm-dashboard__grid {
+	margin-block-start: 24px;
+	align-items: start;
+}
+
+/* (0,3,0): beats ".epm-card + .epm-card" from epm-app.css, which would
+   push every card after the first 24px down inside the grid row. */
+.epm-dashboard .epm-dashboard__grid > .epm-card {
+	display: flex;
+	flex-direction: column;
+	block-size: 100%;
+	margin: 0;
+}
+
+.epm-dashboard__grid .epm-card__footer {
+	margin-block-start: auto;
+	padding-block-start: 16px;
+}
+
+.epm-dashboard__grid .epm-card__footer:not(:first-child) {
+	margin-block-start: auto;
+}
+
+.epm-dashboard__body {
+	display: grid;
+	gap: 12px;
+	margin-block-end: 16px;
+}
+
+.epm-dashboard__body p {
+	margin: 0;
+}
+
+.epm-dashboard__label {
+	display: block;
+	margin-block-end: 4px;
+	color: var(--epm-app-muted);
+	font-size: var(--epm-admin-text-sm);
+	font-weight: 600;
+}
+
+.epm-dashboard .epm-copy__value {
+	flex-basis: 100%;
+}
+
+.epm-dashboard .epm-kv {
+	grid-template-columns: max-content minmax(0, 1fr);
+	gap: 6px 16px;
+}
+
+.epm-dashboard__when {
+	font-variant-numeric: tabular-nums;
+}
+
+.epm-dashboard__score {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+}
+
+.epm-dashboard__score strong {
+	font-size: 22px;
+	font-variant-numeric: tabular-nums;
+	line-height: 1.2;
+}
+
+.epm-dashboard__meter {
+	position: relative;
+	block-size: 6px;
+	overflow: hidden;
+	border-radius: 999px;
+	background: var(--epm-app-canvas);
+	box-shadow: inset 0 0 0 1px var(--epm-app-line);
+}
+
+.epm-dashboard__meter span {
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	background: var(--epm-app-ok);
+	transform: scaleX(var(--epm-progress, 0));
+	transform-origin: left center;
+}
+
+[dir="rtl"] .epm-dashboard__meter span {
+	transform-origin: right center;
+}
+
+.epm-dashboard__platforms {
+	display: grid;
+	gap: 0;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.epm-dashboard__platforms li {
+	display: grid;
+	grid-template-columns: 24px minmax(0, 1fr) auto;
+	gap: 10px;
+	align-items: center;
+	margin: 0;
+	padding: 8px 0;
+}
+
+.epm-dashboard__platforms li + li {
+	border-block-start: 1px solid var(--epm-app-line);
+}
+
+.epm-dashboard__platform-icon {
+	display: grid;
+	place-items: center;
+	inline-size: 24px;
+	block-size: 24px;
+	color: var(--epm-app-text);
+	font-weight: 700;
+}
+
+.epm-dashboard__platform-icon svg {
+	inline-size: 18px;
+	block-size: 18px;
+}
+
+.epm-dashboard__platform-name {
+	overflow-wrap: anywhere;
+}
+
+.epm-dashboard__episode {
+	display: grid;
+	grid-template-columns: 64px minmax(0, 1fr);
+	gap: 12px;
+	align-items: start;
+}
+
+.epm-dashboard__episode-art {
+	inline-size: 64px;
+	block-size: 64px;
+	border-radius: var(--epm-app-radius-sm);
+	background: var(--epm-app-canvas);
+	object-fit: cover;
+	outline: 1px solid oklch(0 0 0 / 0.1);
+	outline-offset: -1px;
+}
+
+.epm-dashboard__episode-title {
+	margin: 0 0 2px;
+	font-size: var(--epm-admin-text-lg);
+	font-weight: 600;
+	line-height: 1.4;
+	overflow-wrap: anywhere;
+	text-wrap: balance;
+}
+
+.epm-dashboard__episode-title a {
+	color: inherit;
+	text-decoration: none;
+}
+
+.epm-dashboard__episode-title a:hover {
+	color: var(--epm-app-accent);
+	text-decoration: underline;
+}
+
+.epm-dashboard__meta {
+	margin: 0 0 6px;
+	color: var(--epm-app-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.epm-dashboard__empty {
+	max-inline-size: 65ch;
+	margin: 0 0 16px;
+	color: var(--epm-app-muted);
+	text-wrap: pretty;
+}
+
+.epm-dashboard__readiness {
+	margin-block-start: 24px;
+}
+
+.epm-readiness__heading {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px 24px;
+}
+
+.epm-readiness__heading .epm-card__lede {
+	margin-block-end: 0;
+}
+
+/* Passed-checks counter, e.g. "8/11". */
+.epm-readiness__count {
+	display: inline-flex;
+	flex: 0 0 auto;
+	align-items: baseline;
+	padding: 6px 10px;
+	border-radius: var(--epm-app-radius, 8px);
+	background: var(--epm-app-accent-soft, #f0f6fc);
+	color: var(--epm-app-accent, #2271b1);
+	white-space: nowrap;
+}
+
+.epm-readiness__count > [aria-hidden="true"] {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 3px;
+}
+
+.epm-readiness__count strong {
+	font-size: 17px;
+	font-variant-numeric: tabular-nums;
+}
+
+.epm-readiness__count strong + span {
+	color: var(--epm-app-muted, #50575e);
+	font-size: 12px;
+}
+
+/* Readiness report (dashboard). */
+.epm-readiness__summary {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 12px;
+	margin: 0 0 8px;
+}
+
+.epm-readiness__counts {
+	color: var(--epm-app-muted, #50575e);
+	font-variant-numeric: tabular-nums;
+}
+
+.epm-readiness__fix {
+	white-space: nowrap;
+}
+
+.epm-readiness__empty {
+	margin: 12px 0;
+	color: var(--epm-app-muted, #50575e);
+}
+
+.epm-readiness__passed {
+	margin-block-start: 8px;
+}
+
+.epm-readiness__note {
+	max-inline-size: 70ch;
+	margin: 12px 0 0;
+	text-wrap: pretty;
+}
+
+@media (max-width: 782px) {
+	.epm-dashboard__show {
+		grid-template-columns: 80px minmax(0, 1fr);
+	}
+
+	.epm-dashboard__art {
+		inline-size: 80px;
+		block-size: 80px;
+	}
+
+	.epm-dashboard__show-actions {
+		grid-column: 1 / -1;
+		flex-direction: row;
+		flex-wrap: wrap;
+	}
+}
+
+@media (max-width: 480px) {
+	.epm-dashboard__show {
+		grid-template-columns: 64px minmax(0, 1fr);
+		gap: 12px 16px;
+	}
+
+	.epm-dashboard__art {
+		inline-size: 64px;
+		block-size: 64px;
+	}
+
+	.epm-dashboard__show-title {
+		font-size: 17px;
+	}
+
+	.epm-dashboard .epm-card {
+		padding: 16px;
+	}
+}
+
+/* ---------- Motion (opt-in) ---------- */
+
+@media (prefers-reduced-motion: no-preference) {
+	.epm-upload__drop::after {
+		transition: opacity 150ms var(--epm-ease-out);
+	}
+
+	/* Uploaded / linked audio: the new details settle in. Scoped to the
+	   class JS sets, so it never replays on page load. */
+	[data-epm-audio-state].is-fresh > * {
+		transition: opacity 250ms var(--epm-ease-out), transform 250ms var(--epm-ease-out);
+	}
+
+	@starting-style {
+		[data-epm-audio-state].is-fresh > * {
+			opacity: 0;
+			transform: translateY(4px);
+		}
+	}
+
+	.epm-copy-button__labels > * {
+		transition: opacity 150ms var(--epm-ease-out), transform 150ms var(--epm-ease-out);
+	}
+
+	.epm-copy-button__done {
+		transform: translateY(4px);
+	}
+
+	.epm-copy-button.is-copied .epm-copy-button__idle {
+		transform: translateY(-4px);
+	}
+
+	.epm-copy-button.is-copied .epm-copy-button__done {
+		transform: none;
+	}
+
+	/* Icon swap: both icons stay in the DOM. */
+	.epm-copy-button__icons > * {
+		transition: opacity 300ms var(--epm-ease-icon), transform 300ms var(--epm-ease-icon), filter 300ms var(--epm-ease-icon);
+	}
+
+	.epm-copy-button__icon-done {
+		transform: scale(0.25);
+		filter: blur(4px);
+	}
+
+	.epm-copy-button.is-copied .epm-copy-button__icon-idle {
+		transform: scale(0.25);
+		filter: blur(4px);
+	}
+
+	.epm-copy-button.is-copied .epm-copy-button__icon-done {
+		transform: none;
+		filter: none;
+	}
+
+	.epm-audio-url > summary::before {
+		transition: transform 150ms var(--epm-ease-out);
+	}
+
+	.epm-dashboard__meter span {
+		transition: transform 300ms var(--epm-ease-out);
+	}
+
+	.epm-setup-notice.is-leaving,
+	.epm-dashboard__setup.is-leaving {
+		opacity: 0;
+		transition: opacity 150ms var(--epm-ease-out);
+	}
+
+	.epm-disclosure > summary::before {
+		transition: transform 150ms var(--epm-ease-out);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.epm-upload__drop::after {
+		transition: opacity 100ms linear;
+	}
+
+	[data-epm-audio-state].is-fresh > * {
+		transition: opacity 150ms ease-out;
+	}
+
+	@starting-style {
+		[data-epm-audio-state].is-fresh > * {
+			opacity: 0;
+		}
+	}
+
+	.epm-copy-button__labels > *,
+	.epm-copy-button__icons > * {
+		transition: opacity 100ms linear;
+	}
+}
+
+@media (forced-colors: active) {
+	.epm-upload__drop.is-dragover::after {
+		border-color: Highlight;
+	}
+
+	.epm-dashboard__meter span {
+		background: Highlight;
+	}
 }

@@ -191,7 +191,7 @@ trait WidgetHelpers {
 				'type'    => Controls_Manager::SELECT,
 				'default' => 'global',
 				'options' => [
-					'global' => __( 'Use Global Podcast Styles', 'elementor-podcast-manager' ),
+					'global' => __( 'Use Podcast → Design styles', 'elementor-podcast-manager' ),
 					'custom' => __( 'Custom', 'elementor-podcast-manager' ),
 				],
 			]
@@ -205,6 +205,60 @@ trait WidgetHelpers {
 	 */
 	protected function custom_condition(): array {
 		return [ 'style_source' => 'custom' ];
+	}
+
+	/**
+	 * Add the "Heading level" control for section widgets (show notes,
+	 * chapters, transcript). The right level depends on the page outline.
+	 *
+	 * @return void
+	 */
+	protected function add_heading_tag_control(): void {
+		$this->add_control(
+			'heading_tag',
+			[
+				'label'       => __( 'Heading Level', 'elementor-podcast-manager' ),
+				'type'        => Controls_Manager::SELECT,
+				'default'     => 'h3',
+				'options'     => [
+					'h2' => 'H2',
+					'h3' => 'H3',
+					'h4' => 'H4',
+				],
+				'description' => __( 'Pick the level that follows the heading above this widget, so screen reader users can navigate by headings.', 'elementor-podcast-manager' ),
+			]
+		);
+	}
+
+	/**
+	 * Add a button shape control that sets --epm-button-radius (text
+	 * buttons such as list "Play", speed, subscribe links and calls to
+	 * action). Uses the same shapes as Podcast → Design.
+	 *
+	 * @param string $id       Control ID.
+	 * @param string $selector Selector relative to {{WRAPPER}}.
+	 * @return void
+	 */
+	protected function add_button_shape_control( string $id, string $selector ): void {
+		$this->add_control(
+			$id,
+			[
+				'label'                => __( 'Button Shape', 'elementor-podcast-manager' ),
+				'type'                 => Controls_Manager::SELECT,
+				'default'              => '',
+				'options'              => [
+					''        => __( 'Default', 'elementor-podcast-manager' ),
+					'rounded' => __( 'Rounded', 'elementor-podcast-manager' ),
+					'pill'    => __( 'Pill', 'elementor-podcast-manager' ),
+					'square'  => __( 'Square', 'elementor-podcast-manager' ),
+				],
+				'selectors_dictionary' => \EPM\DesignSettings::button_shapes(),
+				'selectors'            => [
+					$selector => '--epm-button-radius: {{VALUE}};',
+				],
+				'condition'            => $this->custom_condition(),
+			]
+		);
 	}
 
 	/**

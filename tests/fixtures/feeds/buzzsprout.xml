@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<?xml-stylesheet href="https://rss.buzzsprout.com/styles.xsl" type="text/xsl"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:podcast="https://podcastindex.org/namespace/1.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:psc="http://podlove.org/simple-chapters" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+  <atom:link href="https://rss.buzzsprout.com/231452.rss" rel="self" type="application/rss+xml" />
+  <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" xmlns="http://www.w3.org/2005/Atom" />
+  <title>Buzzcast</title>
+
+  <lastBuildDate>Tue, 29 Sep 2026 11:02:47 -0400</lastBuildDate>
+  <link>https://buzzcast.buzzsprout.com/</link>
+  <language>en-us</language>
+  <copyright>© 2026 Buzzsprout</copyright>
+  <podcast:locked>yes</podcast:locked>
+    <podcast:guid>29cdca4a-32d8-56ba-b48b-09a011c5daa9</podcast:guid>
+  <podcast:txt purpose="verify">albanbrooke@gmail.com</podcast:txt>
+<podcast:podroll>
+    <podcast:remoteItem feedGuid="7f070883-c06a-5a63-94bd-a12f168f0576" feedUrl="https://feeds.buzzsprout.com/2208836.rss" />
+    <podcast:remoteItem feedGuid="c562cd80-014a-5f04-a6a0-6c76a00f208d" feedUrl="https://feeds.buzzsprout.com/2366845.rss" />
+    <podcast:remoteItem feedGuid="396d9ae0-da7e-5557-b894-b606231fa3ea" feedUrl="https://feeds.buzzsprout.com/1538779.rss" />
+    <podcast:remoteItem feedGuid="917393e3-1b1e-5cef-ace4-edaa54e1f810" feedUrl="http://mp3s.nashownotes.com/pc20rss.xml" />
+    <podcast:remoteItem feedGuid="b3a4c44f-73cf-5d38-82b8-e4475190fd97" feedUrl="https://feeds.buzzsprout.com/328919.rss" />
+    <podcast:remoteItem feedGuid="7d1a25c1-c5d2-540b-95eb-ba83ec2521de" feedUrl="https://feeds.buzzsprout.com/1.rss" />
+    <podcast:remoteItem feedGuid="e4b357cd-e380-5b7a-bab7-02ca01f3b12c" feedUrl="https://feeds.buzzsprout.com/328913.rss" />
+    <podcast:remoteItem feedGuid="9b024349-ccf0-5f69-a609-6b82873eab3c" feedUrl="https://podnews.net/rss" />
+    <podcast:remoteItem feedGuid="01c8728f-c3dc-57d2-a47a-a57bc9ea4b2b" feedUrl="https://rss.buzzsprout.com/406843.rss" />
+    <podcast:remoteItem feedGuid="9a1acca3-3dca-5dbc-9bcd-a01ba68dd799" feedUrl="https://rss.buzzsprout.com/367916.rss" />
+    <podcast:remoteItem feedGuid="82a28382-782b-5198-91aa-52557919e294" feedUrl="https://feeds.buzzsprout.com/186317.rss" />
+  </podcast:podroll>
+  <itunes:author>Buzzsprout</itunes:author>
+  <itunes:type>episodic</itunes:type>
+  <itunes:explicit>false</itunes:explicit>
+  <description><![CDATA[<p>Buzzcast helps podcasters stay informed, inspired, and excited to keep podcasting.<br><br>Each week, Jordan, Kevin, and Alban break down the podcasting news, trends, tools, and creator debates that actually matter. We share what we’re seeing at Buzzsprout, what we’re testing ourselves, and what podcasters should pay attention to without chasing every new thing.<br><br>The goal is to help you keep podcasting without burning out. Expect honest opinions, practical takeaways, occasional rabbit trails, and a reminder that podcasting should be fun!</p>]]></description>
+  <generator>Buzzsprout (https://www.buzzsprout.com)</generator>
+  <itunes:keywords>podcasting, how to podcast, podcast strategies, podcast tutorial</itunes:keywords>
+  <itunes:owner>
+    <itunes:name>Buzzsprout</itunes:name>
+    <itunes:email>albanbrooke@gmail.com</itunes:email>
+  </itunes:owner>
+  <image>
+     <url>https://storage.buzzsprout.com/r8lrzwe62jw11ti3yzms9wnvy4jb?.jpg</url>
+     <title>Buzzcast</title>
+     <link>https://buzzcast.buzzsprout.com/</link>
+  </image>
+  <itunes:image href="https://storage.buzzsprout.com/r8lrzwe62jw11ti3yzms9wnvy4jb?.jpg" />
+  <itunes:category text="News">
+    <itunes:category text="Tech News" />
+  </itunes:category>
+  <itunes:category text="Technology" />
+  <itunes:category text="Business">
+    <itunes:category text="Marketing" />
+  </itunes:category>
+  <podcast:person role="host" href="https://twitter.com/albanbrooke" img="https://storage.buzzsprout.com/u74fhxi1dftpajwx0t4kfebsgw5e">Alban Brooke</podcast:person>
+  <podcast:person role="host" href="https://twitter.com/JordanPods" img="https://storage.buzzsprout.com/nogzlp48m9zqmg2szsh5e8g7khfy">Jordan Blair</podcast:person>
+  <podcast:person role="host" href="https://twitter.com/kfinn" img="https://storage.buzzsprout.com/78wda3dz42dmegt8m8g31hcpm671">Kevin Finn</podcast:person>
+  <item>
+    <itunes:title>Keeping The Indie Spirit Alive As Podcasting Grows</itunes:title>
+    <title>Keeping The Indie Spirit Alive As Podcasting Grows</title>
+    <itunes:summary><![CDATA[Send us Fan Mail We're back from Podcast Movement in New York with thoughts on its new format, the talks we loved, and why some of our favorite moments happened outside the conference. We talk about what independent podcasters need from these events and what we'd do differently if Buzzsprout were to host one. We also go behind the scenes of an industry effort to tackle bot traffic. With AI bots impersonating podcast apps and video files driving up hosting costs, we discuss how verifying apps ...]]></itunes:summary>
+    <description><![CDATA[<p><a target="_blank" href="https://www.buzzsprout.com/231452/fan_mail/new">Send us Fan Mail</a></p><p>We&apos;re back from Podcast Movement in New York with thoughts on its new format, the talks we loved, and why some of our favorite moments happened outside the conference. We talk about what independent podcasters need from these events and what we&apos;d do differently if Buzzsprout were to host one.</p><p>We also go behind the scenes of an industry effort to tackle bot traffic. With AI bots impersonating podcast apps and video files driving up hosting costs, we discuss how verifying apps could help protect real listeners, improve podcast stats, and keep hosting affordable.</p><p>Plus, Ira Glass&apos;s keynote gets us talking about what audio does especially well: helping us listen longer, judge less quickly, and connect with people we might otherwise dismiss.</p><p><a href='https://www.youtube.com/@podcastmovement'>Watch Podcast Movement sessions and keynotes </a>on YouTube (still updating as of publish date)</p><p><a href='https://www.youtube.com/watch?v=Znq3mwPFfuY'>Things That Podcasts Do Better</a>, Ira Glass</p><p><a href='https://youtu.be/umcoay1o-_A?si=3zBuirdGf_TWXftD'>What 42,000 Consumers Told Us About Podcasting</a>, Tom Webster</p><p><br/></p><p><b>Send us Fan Mail:</b> Has a podcast ever changed your mind about a person or an idea? </p><strong><a href='https://podmatch.com' class='no-underline' target='_blank'>PodMatch</a></strong><br>PodMatch Automatically Matches Ideal Podcast Guests and Hosts For Interviews<br><p><b>Contact Buzzcast</b></p><ul><li><a href='https://www.buzzsprout.com/twilio/text_messages/231452/open_sms'>Send us Fan Mail</a></li><li>Tweet us at <a href='https://twitter.com/BuzzcastPodcast'>@buzzcastpodcast</a>, <a href='https://twitter.com/albanbrooke'>@albanbrooke</a>, <a href='https://twitter.com/kfinn'>@kfinn</a>, and <a href='https://twitter.com/JordanPods'>@JordanPods</a></li></ul><p><b><em>Thanks for listening and Keep Podcasting!</em></b></p>]]></description>
+    <content:encoded><![CDATA[<p><a target="_blank" href="https://www.buzzsprout.com/231452/fan_mail/new">Send us Fan Mail</a></p><p>We&apos;re back from Podcast Movement in New York with thoughts on its new format, the talks we loved, and why some of our favorite moments happened outside the conference. We talk about what independent podcasters need from these events and what we&apos;d do differently if Buzzsprout were to host one.</p><p>We also go behind the scenes of an industry effort to tackle bot traffic. With AI bots impersonating podcast apps and video files driving up hosting costs, we discuss how verifying apps could help protect real listeners, improve podcast stats, and keep hosting affordable.</p><p>Plus, Ira Glass&apos;s keynote gets us talking about what audio does especially well: helping us listen longer, judge less quickly, and connect with people we might otherwise dismiss.</p><p><a href='https://www.youtube.com/@podcastmovement'>Watch Podcast Movement sessions and keynotes </a>on YouTube (still updating as of publish date)</p><p><a href='https://www.youtube.com/watch?v=Znq3mwPFfuY'>Things That Podcasts Do Better</a>, Ira Glass</p><p><a href='https://youtu.be/umcoay1o-_A?si=3zBuirdGf_TWXftD'>What 42,000 Consumers Told Us About Podcasting</a>, Tom Webster</p><p><br/></p><p><b>Send us Fan Mail:</b> Has a podcast ever changed your mind about a person or an idea? </p><strong><a href='https://podmatch.com' class='no-underline' target='_blank'>PodMatch</a></strong><br>PodMatch Automatically Matches Ideal Podcast Guests and Hosts For Interviews<br><p><b>Contact Buzzcast</b></p><ul><li><a href='https://www.buzzsprout.com/twilio/text_messages/231452/open_sms'>Send us Fan Mail</a></li><li>Tweet us at <a href='https://twitter.com/BuzzcastPodcast'>@buzzcastpodcast</a>, <a href='https://twitter.com/albanbrooke'>@albanbrooke</a>, <a href='https://twitter.com/kfinn'>@kfinn</a>, and <a href='https://twitter.com/JordanPods'>@JordanPods</a></li></ul><p><b><em>Thanks for listening and Keep Podcasting!</em></b></p>]]></content:encoded>
+    <enclosure url="https://op3.dev/e/https://dts.podtrac.com/redirect.mp3/www.buzzsprout.com/231452/episodes/19861008-keeping-the-indie-spirit-alive-as-podcasting-grows.mp3" length="45592857" type="audio/mpeg" />
+    <podcast:image href="https://storage.buzzsprout.com/e12nrgn3li5dptxyc2tcbyn3zkak" purpose="poster" aspect-ratio="16/9" width="1920" height="1080" />
+    <podcast:alternateEnclosure type="application/vnd.apple.mpegurl" length="0">
+      <podcast:source uri="https://www.buzzsprout.com/231452/episodes/19861008.m3u8" />
+    </podcast:alternateEnclosure>
+    <itunes:author>Buzzsprout</itunes:author>
+    <guid isPermaLink="false">Buzzsprout-19861008</guid>
+    <pubDate>Fri, 25 Sep 2026 08:00:00 -0400</pubDate>
+    <podcast:transcript url="https://www.buzzsprout.com/231452/19861008/transcript" type="text/html" />
+    <podcast:transcript url="https://www.buzzsprout.com/231452/19861008/transcript.json" type="application/json" />
+    <podcast:transcript url="https://www.buzzsprout.com/231452/19861008/transcript.srt" type="application/x-subrip" />
+    <podcast:transcript url="https://www.buzzsprout.com/231452/19861008/transcript.vtt" type="text/vtt" />
+    <podcast:chapters url="https://www.buzzsprout.com/231452/19861008/chapters.json" type="application/json" />
+    <psc:chapters>
+  <psc:chapter start="0:00" title="Beta Testers And Backup Rules" />
+  <psc:chapter start="3:25" title="Back From Podcast Movement NYC" />
+  <psc:chapter start="13:20" title="[Ad] PodMatch" />
+  <psc:chapter start="13:58" title="(Cont.) Back From Podcast Movement NYC" />
+  <psc:chapter start="16:19" title="Could Buzzsprout Host A Conference" />
+  <psc:chapter start="21:39" title="PSP Updates On AI And Video" />
+  <psc:chapter start="37:56" title="Ira Glass And Audio Intimacy" />
+  <psc:chapter start="50:57" title="Post Show: Travel Tips" />
+</psc:chapters>
+    <itunes:duration>3793</itunes:duration>
+    <itunes:keywords></itunes:keywords>
+    <itunes:episode>247</itunes:episode>
+    <itunes:episodeType>full</itunes:episodeType>
+    <itunes:explicit>false</itunes:explicit>
+  </item>
+  <item>
+    <itunes:title>We Built Our Own Reliable Remote Recording Software</itunes:title>
+    <title>We Built Our Own Reliable Remote Recording Software</title>
+    <itunes:summary><![CDATA[Send us Fan Mail We stop trusting browser-based remote recorders and explain why reliability matters more than features when you only get one shot at a great conversation.  Kevin shares the Mac-only (for now) native app we’ve been building at Buzzsprout and how we pair it with Zoom or Google Meet while it records clean, local files.  Send us a Fan Mail message if you want to test it out!   PodMatchPodMatch Automatically Matches Ideal Podcast Guests and Hosts For InterviewsContact Bu...]]></itunes:summary>
+    <description><![CDATA[<p><a target="_blank" href="https://www.buzzsprout.com/231452/fan_mail/new">Send us Fan Mail</a></p><p>We stop trusting browser-based remote recorders and explain why reliability matters more than features when you only get one shot at a great conversation.</p><p> Kevin shares the Mac-only (for now) native app we’ve been building at Buzzsprout and how we pair it with Zoom or Google Meet while it records clean, local files. </p><p>Send us a Fan Mail message if you want to test it out!</p><p><br/></p><strong><a href='https://podmatch.com' class='no-underline' target='_blank'>PodMatch</a></strong><br>PodMatch Automatically Matches Ideal Podcast Guests and Hosts For Interviews<br><p><b>Contact Buzzcast</b></p><ul><li><a href='https://www.buzzsprout.com/twilio/text_messages/231452/open_sms'>Send us Fan Mail</a></li><li>Tweet us at <a href='https://twitter.com/BuzzcastPodcast'>@buzzcastpodcast</a>, <a href='https://twitter.com/albanbrooke'>@albanbrooke</a>, <a href='https://twitter.com/kfinn'>@kfinn</a>, and <a href='https://twitter.com/JordanPods'>@JordanPods</a></li></ul><p><b><em>Thanks for listening and Keep Podcasting!</em></b></p>]]></description>
+    <content:encoded><![CDATA[<p><a target="_blank" href="https://www.buzzsprout.com/231452/fan_mail/new">Send us Fan Mail</a></p><p>We stop trusting browser-based remote recorders and explain why reliability matters more than features when you only get one shot at a great conversation.</p><p> Kevin shares the Mac-only (for now) native app we’ve been building at Buzzsprout and how we pair it with Zoom or Google Meet while it records clean, local files. </p><p>Send us a Fan Mail message if you want to test it out!</p><p><br/></p><strong><a href='https://podmatch.com' class='no-underline' target='_blank'>PodMatch</a></strong><br>PodMatch Automatically Matches Ideal Podcast Guests and Hosts For Interviews<br><p><b>Contact Buzzcast</b></p><ul><li><a href='https://www.buzzsprout.com/twilio/text_messages/231452/open_sms'>Send us Fan Mail</a></li><li>Tweet us at <a href='https://twitter.com/BuzzcastPodcast'>@buzzcastpodcast</a>, <a href='https://twitter.com/albanbrooke'>@albanbrooke</a>, <a href='https://twitter.com/kfinn'>@kfinn</a>, and <a href='https://twitter.com/JordanPods'>@JordanPods</a></li></ul><p><b><em>Thanks for listening and Keep Podcasting!</em></b></p>]]></content:encoded>
+    <enclosure url="https://op3.dev/e/https://dts.podtrac.com/redirect.mp3/www.buzzsprout.com/231452/episodes/19813264-we-built-our-own-reliable-remote-recording-software.mp3" length="17698267" type="audio/mpeg" />
+    <podcast:image href="https://storage.buzzsprout.com/mn5zakjhvb8d78zrsnert7h8vjht" purpose="poster" aspect-ratio="16/9" width="1920" height="1080" />
+    <podcast:alternateEnclosure type="application/vnd.apple.mpegurl" length="0">
+      <podcast:source uri="https://www.buzzsprout.com/231452/episodes/19813264.m3u8" />
+    </podcast:alternateEnclosure>
+    <itunes:author>Buzzsprout</itunes:author>
+    <guid isPermaLink="false">Buzzsprout-19813264</guid>
+    <pubDate>Fri, 18 Sep 2026 08:00:00 -0400</pubDate>
+    <podcast:transcript url="https://www.buzzsprout.com/231452/19813264/transcript" type="text/html" />
+    <podcast:transcript url="https://www.buzzsprout.com/231452/19813264/transcript.json" type="application/json" />
+    <podcast:transcript url="https://www.buzzsprout.com/231452/19813264/transcript.srt" type="application/x-subrip" />
+    <podcast:transcript url="https://www.buzzsprout.com/231452/19813264/transcript.vtt" type="text/vtt" />
+    <podcast:chapters url="https://www.buzzsprout.com/231452/19813264/chapters.json" type="application/json" />
+    <psc:chapters>
+  <psc:chapter start="0:00" title="Why We Built New Recording Software" />
+  <psc:chapter start="10:59" title="[Ad] PodMatch" />
+  <psc:chapter start="11:37" title="(Cont.) Why We Built New Recording Software" />
+  <psc:chapter start="15:12" title="Testing Invite And Backup Strategy" />
+  <psc:chapter start="19:59" title="Post Show: Is There A Podcaster On Board?" />
+</psc:chapters>
+    <itunes:duration>1468</itunes:duration>
+    <itunes:keywords></itunes:keywords>
+    <itunes:episode>246</itunes:episode>
+    <itunes:episodeType>full</itunes:episodeType>
+    <itunes:explicit>false</itunes:explicit>
+  </item>
+  <item>
+    <itunes:title>Turn Your Best Episodes Into A Conference Talk</itunes:title>
+    <title>Turn Your Best Episodes Into A Conference Talk</title>
+    <itunes:summary><![CDATA[Send us Fan Mail Your next conference talk is probably hiding in your podcast transcripts.  As we get ready for Podcast Movement in New York, we walk through how Jordan used our Buzzcast archives and ChatGPT to develop a session pitch that got accepted (even when she barely had time to apply). We share the prompts used to uncover the strongest topics, find stories long forgotten, and shape those ideas into a focused, 20-minute talk. We also try the process with three listeners’ podcasts ...]]></itunes:summary>
+    <description><![CDATA[<p><a target="_blank" href="https://www.buzzsprout.com/231452/fan_mail/new">Send us Fan Mail</a></p><p>Your next conference talk is probably hiding in your podcast transcripts. </p><p>As we get ready for Podcast Movement in New York, we walk through how Jordan used our Buzzcast archives and ChatGPT to develop a session pitch that got accepted (even when she barely had time to apply).</p><p>We share the prompts used to uncover the strongest topics, find stories long forgotten, and shape those ideas into a focused, 20-minute talk. We also try the process with three listeners’ podcasts to show how it can work beyond podcasting conferences. </p><p>Want help finding a talk idea in your own episodes? Send us Fan Mail with a link to your podcast, and we’ll help you brainstorm!</p><strong><a href='https://podmatch.com' class='no-underline' target='_blank'>PodMatch</a></strong><br>PodMatch Automatically Matches Ideal Podcast Guests and Hosts For Interviews<br><p><b>Contact Buzzcast</b></p><ul><li><a href='https://www.buzzsprout.com/twilio/text_messages/231452/open_sms'>Send us Fan Mail</a></li><li>Tweet us at <a href='https://twitter.com/BuzzcastPodcast'>@buzzcastpodcast</a>, <a href='https://twitter.com/albanbrooke'>@albanbrooke</a>, <a href='https://twitter.com/kfinn'>@kfinn</a>, and <a href='https://twitter.com/JordanPods'>@JordanPods</a></li></ul><p><b><em>Thanks for listening and Keep Podcasting!</em></b></p>]]></description>
+    <content:encoded><![CDATA[<p><a target="_blank" href="https://www.buzzsprout.com/231452/fan_mail/new">Send us Fan Mail</a></p><p>Your next conference talk is probably hiding in your podcast transcripts. </p><p>As we get ready for Podcast Movement in New York, we walk through how Jordan used our Buzzcast archives and ChatGPT to develop a session pitch that got accepted (even when she barely had time to apply).</p><p>We share the prompts used to uncover the strongest topics, find stories long forgotten, and shape those ideas into a focused, 20-minute talk. We also try the process with three listeners’ podcasts to show how it can work beyond podcasting conferences. </p><p>Want help finding a talk idea in your own episodes? Send us Fan Mail with a link to your podcast, and we’ll help you brainstorm!</p><strong><a href='https://podmatch.com' class='no-underline' target='_blank'>PodMatch</a></strong><br>PodMatch Automatically Matches Ideal Podcast Guests and Hosts For Interviews<br><p><b>Contact Buzzcast</b></p><ul><li><a href='https://www.buzzsprout.com/twilio/text_messages/231452/open_sms'>Send us Fan Mail</a></li><li>Tweet us at <a href='https://twitter.com/BuzzcastPodcast'>@buzzcastpodcast</a>, <a href='https://twitter.com/albanbrooke'>@albanbrooke</a>, <a href='https://twitter.com/kfinn'>@kfinn</a>, and <a href='https://twitter.com/JordanPods'>@JordanPods</a></li></ul><p><b><em>Thanks for listening and Keep Podcasting!</em></b></p>]]></content:encoded>
+    <enclosure url="https://op3.dev/e/https://dts.podtrac.com/redirect.mp3/www.buzzsprout.com/231452/episodes/19782308-turn-your-best-episodes-into-a-conference-talk.mp3" length="35969931" type="audio/mpeg" />
+    <podcast:image href="https://storage.buzzsprout.com/spjj8k2kfwe24i6zcdmtt2oibh83" purpose="poster" aspect-ratio="16/9" width="1920" height="1080" />
+    <podcast:alternateEnclosure type="application/vnd.apple.mpegurl" length="0">
+      <podcast:source uri="https://www.buzzsprout.com/231452/episodes/19782308.m3u8" />
+    </podcast:alternateEnclosure>
+    <itunes:author>Buzzsprout</itunes:author>
+    <guid isPermaLink="false">Buzzsprout-19782308</guid>
+    <pubDate>Fri, 11 Sep 2026 08:00:00 -0400</pubDate>
+    <podcast:transcript url="https://www.buzzsprout.com/231452/19782308/transcript" type="text/html" />
+    <podcast:transcript url="https://www.buzzsprout.com/231452/19782308/transcript.json" type="application/json" />
+    <podcast:transcript url="https://www.buzzsprout.com/231452/19782308/transcript.srt" type="application/x-subrip" />
+    <podcast:transcript url="https://www.buzzsprout.com/231452/19782308/transcript.vtt" type="text/vtt" />
+    <podcast:chapters url="https://www.buzzsprout.com/231452/19782308/chapters.json" type="application/json" />
+    <psc:chapters>
+  <psc:chapter start="0:00" title="New York Plans?" />
+  <psc:chapter start="1:00" title="Using AI to Develop a Conference Pitch" />
+  <psc:chapter start="3:25" title="Finding Your Strongest Ideas in Your Transcripts" />
+  <psc:chapter start="13:46" title="Defining Who Your Talk Is For" />
+  <psc:chapter start="15:58" title="[Ad] PodMatch" />
+  <psc:chapter start="16:36" title="(Cont.) Defining Who Your Talk Is For" />
+  <psc:chapter start="22:06" title="Choosing a Topic You’re Excited to Teach" />
+  <psc:chapter start="25:19" title="Writing A Session Pitch" />
+  <psc:chapter start="26:38" title="Finding Talk Ideas in Our Listeners’ Podcasts" />
+  <psc:chapter start="36:44" title="Fan Mail And Directory Submission Wins" />
+  <psc:chapter start="42:13" title="Post Show: Very Late Pickups" />
+</psc:chapters>
+    <itunes:duration>2991</itunes:duration>
+    <itunes:keywords></itunes:keywords>
+    <itunes:episode>245</itunes:episode>
+    <itunes:episodeType>full</itunes:episodeType>
+    <itunes:explicit>false</itunes:explicit>
+  </item>
+</channel>
+</rss>

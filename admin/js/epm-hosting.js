@@ -79,6 +79,11 @@
 			button.setAttribute( 'aria-busy', 'true' );
 		} else {
 			button.removeAttribute( 'aria-busy' );
+			// Disabling the focused button dropped focus to the page: put it
+			// back, unless it is hidden now or focus moved on meanwhile.
+			if ( ( ! document.activeElement || document.activeElement === document.body ) && button.offsetParent !== null ) {
+				button.focus();
+			}
 		}
 	}
 
@@ -90,6 +95,8 @@
 			if ( event.target.name === 'epm_hosting[mode]' ) {
 				$( '[data-external-only]', form ).hidden = event.target.value !== 'external';
 				$( '[data-self-only]', form ).hidden = event.target.value === 'external';
+				// Another host needs its feed address.
+				$( '#epm-hosting-feed', form ).required = event.target.value === 'external';
 			}
 			if ( event.target.name === 'epm_hosting[provider]' ) {
 				var provider = app.providers[ event.target.value ] || app.providers.other;
@@ -246,7 +253,14 @@
 
 		$( '[data-confirm-owner]', importForm ).hidden = ! result.locked;
 		$( '[data-preview]', importForm ).hidden = false;
-		announce( ( channel.title || '' ) + ': ' + result.episodes );
+		announce(
+			format(
+				/* translators: 1: podcast title, 2: number of episodes */
+				_n( '%1$s: %2$s episode found.', '%1$s: %2$s episodes found.', result.episodes, 'elementor-podcast-manager' ),
+				channel.title || result.feed_url,
+				result.episodes
+			)
+		);
 	}
 
 	function start( button ) {
@@ -259,6 +273,17 @@
 			apply_channel: importForm.querySelector( '[name="apply_channel"]' ).checked,
 			confirm_owner: importForm.querySelector( '[name="confirm_owner"]' ).checked,
 		};
+
+		// Copying the audio moves the show here: a site that mirrors its
+		// host stops syncing and redirecting when the import finishes.
+		if (
+			values.download_media &&
+			app.hosting &&
+			app.hosting.mode === 'external' &&
+			! window.confirm( __( 'Copying the audio moves your podcast to this website. When the import finishes, hosting switches to “This website”: episodes stop syncing from your host and this site publishes the feed. Continue?', 'elementor-podcast-manager' ) )
+		) {
+			return;
+		}
 
 		busy( button, true );
 		request( 'epm_import_start', {
@@ -275,6 +300,9 @@
 			.then( function ( job ) {
 				$( '[data-preview]', importForm ).hidden = true;
 				renderJob( job );
+				// The Import button is gone with the preview: focus the progress.
+				jobBox.setAttribute( 'tabindex', '-1' );
+				jobBox.focus();
 				loop();
 			} )
 			.catch( function ( error ) {
@@ -311,6 +339,8 @@
 			skipped: __( 'skipped', 'elementor-podcast-manager' ),
 			/* translators: import result label, e.g. "1 failed" */
 			failed: __( 'failed', 'elementor-podcast-manager' ),
+			/* translators: import result label, e.g. "2 audio not copied" */
+			media_failed: __( 'audio not copied', 'elementor-podcast-manager' ),
 		};
 		var counts = job.counts || {};
 		$( '[data-job-summary]', jobBox ).textContent = Object.keys( labels )
@@ -356,9 +386,62 @@
 		$( '[data-action="cancel"]', jobBox ).hidden = ! running;
 		$( '[data-job-episodes]', jobBox ).hidden = running;
 
+		var media = renderMediaFailed( job );
+
 		if ( job.status === 'done' ) {
-			announce( format( app.strings.progress, done, total ) );
+			announce( format( app.strings.progress, done, total ) + ( media ? ' ' + media : '' ) );
 		}
+	}
+
+	/**
+	 * After an import: the episodes whose audio stayed at the old host,
+	 * with links to fix them (the log only keeps the latest entries).
+	 *
+	 * @return {string} The callout's heading, '' when hidden.
+	 */
+	function renderMediaFailed( job ) {
+		var box = $( '[data-media-failed]', jobBox );
+		if ( ! box ) {
+			return '';
+		}
+		var count = ( job.counts && job.counts.media_failed ) || 0;
+		var episodes = job.media_failed || [];
+
+		box.hidden = ! ( job.status !== 'running' && count > 0 );
+		if ( box.hidden ) {
+			return '';
+		}
+
+		var title = format(
+			/* translators: %1$s: number of episodes */
+			_n( 'The audio of %1$s episode was not copied.', 'The audio of %1$s episodes was not copied.', count, 'elementor-podcast-manager' ),
+			count
+		);
+		$( '[data-media-failed-title]', box ).textContent = title;
+
+		var list = $( '[data-media-failed-list]', box );
+		list.textContent = '';
+		episodes.forEach( function ( episode ) {
+			var li = document.createElement( 'li' );
+			var link = document.createElement( episode.edit ? 'a' : 'span' );
+			link.textContent = episode.title;
+			if ( episode.edit ) {
+				link.href = episode.edit;
+			}
+			li.appendChild( link );
+			list.appendChild( li );
+		} );
+		if ( count > episodes.length ) {
+			var more = document.createElement( 'li' );
+			more.textContent = format(
+				/* translators: %1$s: number of episodes */
+				_n( 'and %1$s more', 'and %1$s more', count - episodes.length, 'elementor-podcast-manager' ),
+				count - episodes.length
+			);
+			list.appendChild( more );
+		}
+
+		return title;
 	}
 
 	function loop() {
@@ -450,7 +533,12 @@
 			case 'cancel':
 				busy( target, true );
 				request( 'epm_import_cancel', {} )
-					.then( renderJob )
+					.then( function ( job ) {
+						renderJob( job );
+						// The stop button is gone: keep focus in the import.
+						jobBox.setAttribute( 'tabindex', '-1' );
+						jobBox.focus();
+					} )
 					.catch( function ( error ) {
 						announce( error.message );
 					} )

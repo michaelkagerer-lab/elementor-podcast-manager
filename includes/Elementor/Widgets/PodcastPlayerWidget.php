@@ -136,6 +136,7 @@ final class PodcastPlayerWidget extends Widget_Base {
 		$this->add_toggle( 'show_download', __( 'Download Button', 'elementor-podcast-manager' ), false, [ 'description' => __( 'Not shown in the Minimal and Compact layouts.', 'elementor-podcast-manager' ) ] );
 		$this->add_toggle( 'show_chapters_link', __( 'Chapters Toggle', 'elementor-podcast-manager' ), false );
 		$this->add_toggle( 'show_platform_links', __( 'Platform Links', 'elementor-podcast-manager' ), false );
+		$this->add_toggle( 'show_share', __( 'Share Menu', 'elementor-podcast-manager' ), true, [ 'description' => __( 'Copy link, link at the current position and embed code. Not shown in the Minimal and Compact layouts.', 'elementor-podcast-manager' ) ] );
 
 		$this->add_toggle( 'sticky', __( 'Enable Sticky Player', 'elementor-podcast-manager' ), false );
 
@@ -454,7 +455,8 @@ final class PodcastPlayerWidget extends Widget_Base {
 			[
 				'label'     => __( 'Track Color', 'elementor-podcast-manager' ),
 				'type'      => Controls_Manager::COLOR,
-				'selectors' => [ '{{WRAPPER}} .epm-player__track' => 'background: {{VALUE}};' ],
+				// Sets the track token, so the speed pill outline follows too.
+				'selectors' => [ '{{WRAPPER}} .epm-player' => '--epm-track: {{VALUE}};' ],
 				'condition' => $this->custom_condition(),
 			]
 		);
@@ -516,6 +518,8 @@ final class PodcastPlayerWidget extends Widget_Base {
 			]
 		);
 
+		$this->add_button_shape_control( 'secondary_button_shape', '{{WRAPPER}} .epm-player' );
+
 		$this->add_control(
 			'secondary_color',
 			[
@@ -575,6 +579,7 @@ final class PodcastPlayerWidget extends Widget_Base {
 			'show_download'       => $this->toggle_on( $settings, 'show_download', false ),
 			'show_chapters_link'  => $this->toggle_on( $settings, 'show_chapters_link', false ),
 			'show_platform_links' => $this->toggle_on( $settings, 'show_platform_links', false ),
+			'show_share'          => $this->toggle_on( $settings, 'show_share', true ),
 			'sticky'              => $this->toggle_on( $settings, 'sticky', false ),
 		];
 

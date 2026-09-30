@@ -369,9 +369,13 @@ final class AdminPages {
 					return new \WP_Error( 'epm_setup_path', __( 'Choose how your podcast is hosted.', 'elementor-podcast-manager' ) );
 				}
 				self::update_setup_state( [ 'path' => $path ] );
-				$hosting         = Hosting::all();
-				$hosting['mode'] = 'external' === $path ? 'external' : 'self';
-				update_option( Hosting::OPTION, Hosting::sanitize( $hosting ) );
+				// Another host is only switched to at the next step, which
+				// has the host's feed; "host it here" has no such step.
+				if ( 'new' === $path ) {
+					$hosting         = Hosting::all();
+					$hosting['mode'] = 'self';
+					update_option( Hosting::OPTION, Hosting::sanitize( $hosting ) );
+				}
 				return [ 'path' => $path ];
 
 			case 'hosting':
@@ -381,7 +385,9 @@ final class AdminPages {
 						$hosting[ $flag ] = in_array( $data[ $flag ], [ '1', 1, true, 'true', 'on' ], true );
 					}
 				}
-				$hosting = Hosting::sanitize( $hosting );
+				// The chosen path decides: keep the host, or move away from it.
+				$hosting['mode'] = 'external' === self::setup_state()['path'] ? 'external' : 'self';
+				$hosting         = Hosting::sanitize( $hosting );
 				update_option( Hosting::OPTION, $hosting );
 				return [ 'hosting' => $hosting ];
 
@@ -568,8 +574,8 @@ final class AdminPages {
 	 * an audio type, and byte-range requests with 206 (Apple Podcasts and
 	 * Pandora require both for streaming and seeking).
 	 *
-	 * Requests go to this site's own addresses and the audio of its newest
-	 * episode, chosen by an administrator, so loopback requests are allowed.
+	 * Requests use wp_safe_remote_*: the audio URL may be set by any user who
+	 * can publish episodes.
 	 *
 	 * @return array<int, array{status: string, label: string, message: string}>
 	 */
@@ -590,9 +596,9 @@ final class AdminPages {
 
 		// --- Feed ---
 		$feed     = Hosting::public_feed_url();
-		$response = wp_remote_get( $feed, $args );
+		$response = wp_safe_remote_get( $feed, array_merge( $args, [ 'limit_response_size' => 65536 ] ) );
 		if ( is_wp_error( $response ) ) {
-			$add( 'error', __( 'Feed', 'elementor-podcast-manager' ), sprintf( /* translators: %s: error */ __( 'The feed could not be loaded: %s', 'elementor-podcast-manager' ), $response->get_error_message() ) );
+			$add( 'error', __( 'Feed', 'elementor-podcast-manager' ), sprintf( /* translators: %s: error message from the HTTP client */ __( 'The feed could not be loaded: %s', 'elementor-podcast-manager' ), $response->get_error_message() ) );
 		} else {
 			$code = (int) wp_remote_retrieve_response_code( $response );
 			$type = strtolower( (string) wp_remote_retrieve_header( $response, 'content-type' ) );
@@ -618,7 +624,7 @@ final class AdminPages {
 		}
 
 		$audio = (string) $data['audio_url'];
-		$head  = wp_remote_head( $audio, $args );
+		$head  = wp_safe_remote_head( $audio, $args );
 		if ( is_wp_error( $head ) ) {
 			$add( 'error', __( 'Audio (HEAD)', 'elementor-podcast-manager' ), sprintf( /* translators: %s: error */ __( 'The audio did not answer a HEAD request: %s', 'elementor-podcast-manager' ), $head->get_error_message() ) );
 		} else {
@@ -636,7 +642,7 @@ final class AdminPages {
 			}
 		}
 
-		$range = wp_remote_get( $audio, array_merge( $args, [ 'headers' => [ 'Range' => 'bytes=0-1' ], 'limit_response_size' => 1024 ] ) );
+		$range = wp_safe_remote_get( $audio, array_merge( $args, [ 'headers' => [ 'Range' => 'bytes=0-1' ], 'limit_response_size' => 1024 ] ) );
 		if ( is_wp_error( $range ) ) {
 			$add( 'error', __( 'Audio (byte ranges)', 'elementor-podcast-manager' ), sprintf( /* translators: %s: error */ __( 'The range request failed: %s', 'elementor-podcast-manager' ), $range->get_error_message() ) );
 		} elseif ( 206 === (int) wp_remote_retrieve_response_code( $range ) ) {

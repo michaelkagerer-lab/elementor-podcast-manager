@@ -23,55 +23,7 @@ use EPM\Feed;
 use EPM\PodcastSettings;
 use EPM\Readiness;
 
-final class EPM_Test_Runner {
-
-	/** @var int */
-	private $passed = 0;
-
-	/** @var string[] */
-	private $failures = [];
-
-	/** @var string */
-	private $current = '';
-
-	public function test( string $name, callable $fn ): void {
-		$this->current = $name;
-		$before        = count( $this->failures );
-		try {
-			$fn( $this );
-		} catch ( Throwable $e ) {
-			$this->failures[] = $name . ': exception ' . get_class( $e ) . ': ' . $e->getMessage() . ' @ ' . basename( $e->getFile() ) . ':' . $e->getLine();
-		}
-		$ok = count( $this->failures ) === $before;
-		WP_CLI::log( ( $ok ? '  ✓ ' : '  ✗ ' ) . $name );
-	}
-
-	public function assert( bool $condition, string $message = '' ): void {
-		if ( $condition ) {
-			++$this->passed;
-			return;
-		}
-		$this->failures[] = $this->current . ( '' !== $message ? ': ' . $message : '' );
-	}
-
-	public function same( $expected, $actual, string $message = '' ): void {
-		$this->assert(
-			$expected === $actual,
-			trim( $message . ' expected ' . var_export( $expected, true ) . ', got ' . var_export( $actual, true ) )
-		);
-	}
-
-	public function finish(): void {
-		WP_CLI::log( '' );
-		WP_CLI::log( sprintf( '%d assertions passed, %d failed.', $this->passed, count( $this->failures ) ) );
-		foreach ( $this->failures as $failure ) {
-			WP_CLI::log( '  FAIL ' . $failure );
-		}
-		if ( ! empty( $this->failures ) ) {
-			WP_CLI::halt( 1 );
-		}
-	}
-}
+require_once __DIR__ . '/lib.php';
 
 $fx = get_option( 'epm_test_fixtures' );
 if ( ! is_array( $fx ) || empty( $fx['ep1'] ) ) {
@@ -90,44 +42,6 @@ add_action(
 );
 
 $t = new EPM_Test_Runner();
-
-/**
- * Build the feed XML without cache.
- *
- * @return DOMDocument
- */
-function epm_test_feed(): DOMDocument {
-	Feed::flush_cache();
-	$document = epm()->feed->get_document();
-	$dom      = new DOMDocument();
-	$loaded   = $dom->loadXML( $document['xml'] );
-	if ( ! $loaded ) {
-		throw new RuntimeException( 'Feed is not well-formed XML.' );
-	}
-
-	return $dom;
-}
-
-function epm_test_xpath( DOMDocument $dom ): DOMXPath {
-	$xp = new DOMXPath( $dom );
-	$xp->registerNamespace( 'itunes', 'http://www.itunes.com/dtds/podcast-1.0.dtd' );
-	$xp->registerNamespace( 'podcast', 'https://podcastindex.org/namespace/1.0' );
-	$xp->registerNamespace( 'content', 'http://purl.org/rss/1.0/modules/content/' );
-	$xp->registerNamespace( 'atom', 'http://www.w3.org/2005/Atom' );
-
-	return $xp;
-}
-
-function epm_test_with_settings( array $changes, callable $fn ): void {
-	$original = get_option( 'epm_podcast_settings' );
-	update_option( 'epm_podcast_settings', array_merge( (array) $original, $changes ) );
-	try {
-		$fn();
-	} finally {
-		update_option( 'epm_podcast_settings', $original );
-		Feed::flush_cache();
-	}
-}
 
 WP_CLI::log( 'Routing & capabilities' );
 
@@ -390,6 +304,22 @@ $t->test(
 				$t->same( '1', $xp->query( '/rss/channel/item/itunes:episode' )->item( 0 )->textContent, 'oldest first' );
 			}
 		);
+		// A limit keeps the newest episodes of a serial show too (new
+		// episodes must reach the feed), still oldest first.
+		epm_test_with_settings(
+			[
+				'type'       => 'serial',
+				'feed_limit' => 2,
+			],
+			static function () use ( $t ) {
+				$xp     = epm_test_xpath( epm_test_feed() );
+				$titles = [];
+				foreach ( $xp->query( '/rss/channel/item/title' ) as $node ) {
+					$titles[] = $node->textContent;
+				}
+				$t->same( [ 'Episode Two', 'Episode Three (bonus)' ], $titles, 'serial with a limit: the newest two, oldest first' );
+			}
+		);
 	}
 );
 
@@ -574,7 +504,8 @@ if ( defined( 'ELEMENTOR_VERSION' ) ) {
 					return 0 === strpos( $name, 'epm-' );
 				}
 			);
-			$t->same( 11, count( $ours ), 'widget count' );
+			// 11 widgets + Episode Video (1.3.0).
+			$t->same( 12, count( $ours ), 'widget count' );
 
 			$GLOBALS['epm_test_doing_it_wrong'] = [];
 			foreach ( $ours as $name ) {

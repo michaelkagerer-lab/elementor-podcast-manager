@@ -1,0 +1,761 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:googleplay="http://www.google.com/schemas/play-podcasts/1.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <atom:link href="https://feeds.megaphone.fm/FSI1483080183" rel="self" type="application/rss+xml"/>
+    <title>Syntax - Tasty Web Development Treats</title>
+    <link>https://syntax.fm</link>
+    <language>en</language>
+    <copyright></copyright>
+    <description>Full Stack Developers Wes Bos and Scott Tolinski dive deep into web development topics, explaining how they work and talking about their own experiences. They cover from JavaScript frameworks like React, to the latest advancements in CSS to simplifying web tooling.</description>
+    <image>
+      <url>https://megaphone.imgix.net/podcasts/5197fe5a-42f7-11f0-affd-87d9985a1760/image/c86a54acd72683732c4773e25bf0ae14.png?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress</url>
+      <title>Syntax - Tasty Web Development Treats</title>
+      <link>https://syntax.fm</link>
+    </image>
+    <itunes:explicit>no</itunes:explicit>
+    <itunes:type>episodic</itunes:type>
+    <itunes:subtitle/>
+    <itunes:author>Wes Bos &amp; Scott Tolinski - Full Stack JavaScript Web Developers</itunes:author>
+    <itunes:summary>Full Stack Developers Wes Bos and Scott Tolinski dive deep into web development topics, explaining how they work and talking about their own experiences. They cover from JavaScript frameworks like React, to the latest advancements in CSS to simplifying web tooling.</itunes:summary>
+    <content:encoded>
+      <![CDATA[Full Stack Developers Wes Bos and Scott Tolinski dive deep into web development topics, explaining how they work and talking about their own experiences. They cover from JavaScript frameworks like React, to the latest advancements in CSS to simplifying web tooling.]]>
+    </content:encoded>
+    <itunes:owner>
+      <itunes:name>Wes Bos</itunes:name>
+      <itunes:email>wes@wesbos.com</itunes:email>
+    </itunes:owner>
+    <itunes:image href="https://megaphone.imgix.net/podcasts/5197fe5a-42f7-11f0-affd-87d9985a1760/image/c86a54acd72683732c4773e25bf0ae14.png?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress"/>
+    <itunes:category text="Technology">
+    </itunes:category>
+    <itunes:category text="News">
+      <itunes:category text="Tech News"/>
+    </itunes:category>
+    <item>
+      <title>1042: Is the Jev Hype Overblown?</title>
+      <link>https://syntax.fm/1042</link>
+      <description>Is Jev actually a leap forward for classification or just hype and fake demos? We dig in, plus Claude Code’s new AGENTS.md support, TinyCast (the free, open-source Raycast alternative), an iPhone Fold simulator in Xcode, and a stack of dev tools you’ll want to try
+
+Show Notes
+
+
+  00:00 Welcome to Syntax!
+
+  01:17 The iPhone Fold Simulator and Foldable Web APIs
+
+  Features behind a flag
+
+  Syntax Meetup in San Francisco
+
+
+
+
+  07:03 Claude Code Finally Supports agents.md
+  Changelog
+
+
+
+
+  11:42 Using Your Claude Subscription Inside PI
+
+  13:07 Raycast Pricing Changes and the Rise of Tinycast
+
+  18:24 Our Most Used Raycast Features
+
+  21:22 Browser Hopping: Back on Helium After Ditching Dia
+
+  22:12 1Password’s Redesign and Reliability Problems
+
+  23:11 Jev Explained: A Model That Only Answers Questions
+
+  31:59 CJ’s Jev Chat Bot Demo With MCP Tools
+
+  36:09 The Kevs in the Room: Open Source Jev Alternatives
+
+  Cloudflare’s Kev
+
+  Jared Palmer’s Kev
+
+
+
+
+  45:39 What We’ve Actually Built With Jev So Far
+
+  Jev Benchmarks
+
+
+
+
+  51:59 Brought to you by Sentry.io
+
+  52:55 GPUI Kit: Building Native Rust Desktop Apps
+
+  58:07 Antfu’s DevFrame: A Framework for Building Dev Tools
+
+  59:45 Where Is the Line on Using AI in Video Editing?
+
+  Runwayml Upscaling
+
+
+
+
+  01:06:00 AI Upscaled Security Photos and Internet Detectives
+
+  01:08:07 Qwen Image 2.1 and Real Transparent Backgrounds
+
+  01:10:18 AI Generated Posters Don’t Have to Be Horrible
+
+  01:13:28 Orca: A GUI for Wrangling Your Fleet of Agents
+
+  01:15:37 Grok 4.7 First Impressions and Its Pricing
+
+  01:18:58 Waiting on Google and Microsoft’s Big Models
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</description>
+      <pubDate>Mon, 28 Sep 2026 11:00:00 -0000</pubDate>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>Wes Bos &amp; Scott Tolinski - Full Stack JavaScript Web Developers</itunes:author>
+      <itunes:image href="https://megaphone.imgix.net/podcasts/5daa2860-b6b1-11f1-8ef7-bb315dd5dbd1/image/f367ab18d3f0a356ff7834b9fc01875b.png?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress"/>
+      <itunes:subtitle></itunes:subtitle>
+      <itunes:summary>Is Jev actually a leap forward for classification or just hype and fake demos? We dig in, plus Claude Code’s new AGENTS.md support, TinyCast (the free, open-source Raycast alternative), an iPhone Fold simulator in Xcode, and a stack of dev tools you’ll want to try
+
+Show Notes
+
+
+  00:00 Welcome to Syntax!
+
+  01:17 The iPhone Fold Simulator and Foldable Web APIs
+
+  Features behind a flag
+
+  Syntax Meetup in San Francisco
+
+
+
+
+  07:03 Claude Code Finally Supports agents.md
+  Changelog
+
+
+
+
+  11:42 Using Your Claude Subscription Inside PI
+
+  13:07 Raycast Pricing Changes and the Rise of Tinycast
+
+  18:24 Our Most Used Raycast Features
+
+  21:22 Browser Hopping: Back on Helium After Ditching Dia
+
+  22:12 1Password’s Redesign and Reliability Problems
+
+  23:11 Jev Explained: A Model That Only Answers Questions
+
+  31:59 CJ’s Jev Chat Bot Demo With MCP Tools
+
+  36:09 The Kevs in the Room: Open Source Jev Alternatives
+
+  Cloudflare’s Kev
+
+  Jared Palmer’s Kev
+
+
+
+
+  45:39 What We’ve Actually Built With Jev So Far
+
+  Jev Benchmarks
+
+
+
+
+  51:59 Brought to you by Sentry.io
+
+  52:55 GPUI Kit: Building Native Rust Desktop Apps
+
+  58:07 Antfu’s DevFrame: A Framework for Building Dev Tools
+
+  59:45 Where Is the Line on Using AI in Video Editing?
+
+  Runwayml Upscaling
+
+
+
+
+  01:06:00 AI Upscaled Security Photos and Internet Detectives
+
+  01:08:07 Qwen Image 2.1 and Real Transparent Backgrounds
+
+  01:10:18 AI Generated Posters Don’t Have to Be Horrible
+
+  01:13:28 Orca: A GUI for Wrangling Your Fleet of Agents
+
+  01:15:37 Grok 4.7 First Impressions and Its Pricing
+
+  01:18:58 Waiting on Google and Microsoft’s Big Models
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</itunes:summary>
+      <content:encoded>
+        <![CDATA[<p>Is Jev actually a leap forward for classification or just hype and fake demos? We dig in, plus Claude Code’s new AGENTS.md support, TinyCast (the free, open-source Raycast alternative), an iPhone Fold simulator in Xcode, and a stack of dev tools you’ll want to try</p>
+<p>Show Notes</p>
+<ul>
+  <li><a href="#t=00:00">00:00</a> Welcome to Syntax!</li>
+  <li><a href="#t=01:17">01:17</a> The iPhone Fold Simulator and Foldable Web APIs
+<ul>
+  <li><a href="https://bsky.app/profile/bram.us/post/3mvx3tcoa3c2c">Features behind a flag</a></li>
+  <li><a href="https://syntax.fm/meetup">Syntax Meetup in San Francisco</a></li>
+</ul>
+</li>
+  <li><a href="#t=07:03">07:03</a> Claude Code Finally Supports <a href="https://x.com/trq212/status/2101009392611278961">agents.md</a><ul>
+  <li><a href="https://code.claude.com/docs/en/changelog">Changelog</a></li>
+</ul>
+</li>
+  <li><a href="#t=11:42">11:42</a> Using Your Claude Subscription Inside PI</li>
+  <li><a href="#t=13:07">13:07</a> Raycast Pricing Changes and the Rise of <a href="https://tinycast.dev/">Tinycast</a></li>
+  <li><a href="#t=18:24">18:24</a> Our Most Used Raycast Features</li>
+  <li><a href="#t=21:22">21:22</a> Browser Hopping: Back on Helium After Ditching Dia</li>
+  <li><a href="#t=22:12">22:12</a> 1Password’s Redesign and Reliability Problems</li>
+  <li><a href="#t=23:11">23:11</a> <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">Jev Explained: A Model That Only Answers Questions</a></li>
+  <li><a href="#t=31:59">31:59</a> CJ’s Jev Chat Bot Demo With MCP Tools</li>
+  <li><a href="#t=36:09">36:09</a> The Kevs in the Room: Open Source Jev Alternatives
+<ul>
+  <li><a href="https://x.com/michellechen/status/2101091012559151480">Cloudflare’s Kev</a></li>
+  <li><a href="https://github.com/jaredpalmer/kev/tree/main">Jared Palmer’s Kev</a></li>
+</ul>
+</li>
+  <li><a href="#t=45:39">45:39</a> What We’ve Actually Built With Jev So Far
+<ul>
+  <li><a href="https://benchmarkheaven.com/jev-models">Jev Benchmarks</a></li>
+</ul>
+</li>
+  <li><a href="#t=51:59">51:59</a> Brought to you by <a href="https://sentry.io/syntax">Sentry.io</a></li>
+  <li><a href="#t=52:55">52:55</a> <a href="https://gpui-kit.com/">GPUI Kit</a>: Building Native Rust Desktop Apps</li>
+  <li><a href="#t=58:07">58:07</a> <a href="https://devfra.me/posts/pluggable-extensible-playful-devtools">Antfu’s DevFrame: A Framework for Building Dev Tools</a></li>
+  <li><a href="#t=59:45">59:45</a> Where Is the Line on Using AI in Video Editing?
+<ul>
+  <li><a href="https://x.com/runwayml/status/2100620377005203564">Runwayml Upscaling</a></li>
+</ul>
+</li>
+  <li><a href="#t=01:06:00">01:06:00</a> AI Upscaled Security Photos and Internet Detectives</li>
+  <li><a href="#t=01:08:07">01:08:07</a> <a href="https://qwen.ai/blog?id=qwen-image-2.1">Qwen Image 2.1</a> and Real Transparent Backgrounds</li>
+  <li><a href="#t=01:10:18">01:10:18</a> <a href="https://john.hartnup.uk/2026/06/07/ai-event-posters.html">AI Generated Posters Don’t Have to Be Horrible</a></li>
+  <li><a href="#t=01:13:28">01:13:28</a> <a href="https://www.onorca.dev/">Orca</a>: A GUI for Wrangling Your Fleet of Agents</li>
+  <li><a href="#t=01:15:37">01:15:37</a> Grok 4.7 First Impressions and Its Pricing</li>
+  <li><a href="#t=01:18:58">01:18:58</a> Waiting on Google and Microsoft’s Big Models</li>
+</ul>
+<p>Hit us up on Socials!</p>
+<p>Syntax: <a href="https://twitter.com/syntaxfm">X</a> <a href="https://www.instagram.com/syntax_fm/">Instagram</a> <a href="https://www.tiktok.com/@syntaxfm">Tiktok</a> <a href="https://www.linkedin.com/company/96077407/admin/feed/posts/">LinkedIn</a> <a href="https://www.threads.net/@syntax_fm">Threads</a></p>
+<p>Wes: <a href="https://twitter.com/wesbos">X</a> <a href="https://www.instagram.com/wesbos/">Instagram</a> <a href="https://www.tiktok.com/@wesbos">Tiktok</a> <a href="https://www.linkedin.com/in/wesbos/">LinkedIn</a> <a href="https://www.threads.net/@wesbos">Threads</a></p>
+<p>Scott: <a href="https://twitter.com/stolinski">X</a> <a href="https://www.instagram.com/stolinski/">Instagram</a> <a href="https://www.tiktok.com/@stolinski">Tiktok</a> <a href="https://www.linkedin.com/in/stolinski/">LinkedIn</a> <a href="https://www.threads.net/@stolinski">Threads</a></p>
+<p>Randy: <a href="https://twitter.com/randyrektor">X</a> <a href="https://www.instagram.com/randyrektor/">Instagram</a> <a href="https://www.youtube.com/@randyrektor">YouTube</a> <a href="https://www.threads.net/@randyrektor">Threads</a></p>]]>
+      </content:encoded>
+      <itunes:duration>4923</itunes:duration>
+      <guid isPermaLink="false"><![CDATA[5daa2860-b6b1-11f1-8ef7-bb315dd5dbd1]]></guid>
+      <enclosure url="https://traffic.megaphone.fm/FSI8312173039.mp3" length="0" type="audio/mpeg"/>
+    </item>
+    <item>
+      <title>1041: What are normies using AI for?</title>
+      <link>https://syntax.fm/1041</link>
+      <description>Scott and Wes talk about how non-developers are actually using AI today. They also cover the stuff they don’t think holds up, like AI-staged listings and automated marketing.
+
+Show Notes
+
+
+00:00 Intro
+
+00:38 Welcome to Syntax!
+
+Wes’ post about using AI
+
+
+
+
+01:50 Finding Parts With AI: Van Buckles and Weird Bolts
+
+03:59 Brought to you by Sentry!
+
+04:37 Fixing Printers, Drivers, and Annoying Home Network Stuff
+
+Skylight Calendar
+
+
+
+
+05:32 Rescuing E-Waste: Flashing a Broken Skylight Calendar
+
+08:42 Red Tape, Permits, and Filling Out Awful PDF Forms
+
+09:57 Self-Hosting Made Easy: Updating Your NAS and Docker Containers
+
+11:18 Fighting Home Assistant Rot With Agents
+
+13:20 Inbox and Calendar Management for a Family of Six
+
+18:05 AI in Real Estate and Property Staging
+
+Real Estate Canada subreddit
+
+
+
+
+21:10 Using Agents for Video Editing and Multicam Automation
+
+23:53 GFX.computer: Building Better Infographics
+
+25:59 Things That Won’t Hold Up: Generated Text and Automated Marketing
+
+30:27 Home Lab Management Over Tailscale and SSH
+
+32:46 3D Printing Parts With Nurb: Stands, Cases, and Airflow
+
+Nurb
+
+
+
+
+34:51 MCP Servers for Software You Only Use Occasionally
+
+36:58 Travel Planning: Great at Logistics, Terrible at Taste
+
+39:31 Proposals and Job Applications: Everybody Sounds the Same
+
+42:14 Sick Picks + Shameless Plugs
+
+
+Sick Picks
+
+
+Scott: Nomadix Backpack
+
+Wes: Silicone chair socks
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</description>
+      <pubDate>Wed, 23 Sep 2026 11:00:00 -0000</pubDate>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>Wes Bos &amp; Scott Tolinski - Full Stack JavaScript Web Developers</itunes:author>
+      <itunes:image href="https://megaphone.imgix.net/podcasts/178b5d44-b5c7-11f1-8539-bf6dbd80c834/image/23b7ad239767cff7a42ec0dd3a7407da.png?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress"/>
+      <itunes:subtitle></itunes:subtitle>
+      <itunes:summary>Scott and Wes talk about how non-developers are actually using AI today. They also cover the stuff they don’t think holds up, like AI-staged listings and automated marketing.
+
+Show Notes
+
+
+00:00 Intro
+
+00:38 Welcome to Syntax!
+
+Wes’ post about using AI
+
+
+
+
+01:50 Finding Parts With AI: Van Buckles and Weird Bolts
+
+03:59 Brought to you by Sentry!
+
+04:37 Fixing Printers, Drivers, and Annoying Home Network Stuff
+
+Skylight Calendar
+
+
+
+
+05:32 Rescuing E-Waste: Flashing a Broken Skylight Calendar
+
+08:42 Red Tape, Permits, and Filling Out Awful PDF Forms
+
+09:57 Self-Hosting Made Easy: Updating Your NAS and Docker Containers
+
+11:18 Fighting Home Assistant Rot With Agents
+
+13:20 Inbox and Calendar Management for a Family of Six
+
+18:05 AI in Real Estate and Property Staging
+
+Real Estate Canada subreddit
+
+
+
+
+21:10 Using Agents for Video Editing and Multicam Automation
+
+23:53 GFX.computer: Building Better Infographics
+
+25:59 Things That Won’t Hold Up: Generated Text and Automated Marketing
+
+30:27 Home Lab Management Over Tailscale and SSH
+
+32:46 3D Printing Parts With Nurb: Stands, Cases, and Airflow
+
+Nurb
+
+
+
+
+34:51 MCP Servers for Software You Only Use Occasionally
+
+36:58 Travel Planning: Great at Logistics, Terrible at Taste
+
+39:31 Proposals and Job Applications: Everybody Sounds the Same
+
+42:14 Sick Picks + Shameless Plugs
+
+
+Sick Picks
+
+
+Scott: Nomadix Backpack
+
+Wes: Silicone chair socks
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</itunes:summary>
+      <content:encoded>
+        <![CDATA[<p class="has-line-data">Scott and Wes talk about how non-developers are actually using AI today. They also cover the stuff they don’t think holds up, like AI-staged listings and automated marketing.</p>
+<h3 class="code-line"><a></a>Show Notes</h3>
+<ul>
+<li class="has-line-data"><strong><a href="#t=00:00">00:00</a></strong> Intro</li>
+<li class="has-line-data"><strong><a href="#t=00:38">00:38</a></strong> Welcome to Syntax!
+<ul>
+<li class="has-line-data"><a href="https://x.com/wesbos/status/2099577693108847083">Wes’ post about using AI</a></li>
+</ul>
+</li>
+<li class="has-line-data"><strong><a href="#t=01:50">01:50</a></strong> Finding Parts With AI: Van Buckles and Weird Bolts</li>
+<li class="has-line-data"><strong><a href="#t=03:59">03:59</a></strong> <a href="https://sentry.io/syntax/">Brought to you by Sentry!</a></li>
+<li class="has-line-data"><strong><a href="#t=04:37">04:37</a></strong> Fixing Printers, Drivers, and Annoying Home Network Stuff
+<ul>
+<li class="has-line-data"><a href="https://myskylight.com/calendar">Skylight Calendar</a></li>
+</ul>
+</li>
+<li class="has-line-data"><strong><a href="#t=05:32">05:32</a></strong> Rescuing E-Waste: Flashing a Broken Skylight Calendar</li>
+<li class="has-line-data"><strong><a href="#t=08:42">08:42</a></strong> Red Tape, Permits, and Filling Out Awful PDF Forms</li>
+<li class="has-line-data"><strong><a href="#t=09:57">09:57</a></strong> Self-Hosting Made Easy: Updating Your NAS and Docker Containers</li>
+<li class="has-line-data"><strong><a href="#t=11:18">11:18</a></strong> Fighting Home Assistant Rot With Agents</li>
+<li class="has-line-data"><strong><a href="#t=13:20">13:20</a></strong> Inbox and Calendar Management for a Family of Six</li>
+<li class="has-line-data"><strong><a href="#t=18:05">18:05</a></strong> AI in Real Estate and Property Staging
+<ul>
+<li class="has-line-data"><a href="https://www.reddit.com/r/RealEstateCanada/comments/1wd4qt6/ai_staging_is_going_too_far/">Real Estate Canada subreddit</a></li>
+</ul>
+</li>
+<li class="has-line-data"><strong><a href="#t=21:10">21:10</a></strong> Using Agents for Video Editing and Multicam Automation</li>
+<li class="has-line-data"><strong><a href="#t=23:53">23:53</a></strong> GFX.computer: Building Better Infographics</li>
+<li class="has-line-data"><strong><a href="#t=25:59">25:59</a></strong> Things That Won’t Hold Up: Generated Text and Automated Marketing</li>
+<li class="has-line-data"><strong><a href="#t=30:27">30:27</a></strong> Home Lab Management Over Tailscale and SSH</li>
+<li class="has-line-data"><strong><a href="#t=32:46">32:46</a></strong> 3D Printing Parts With Nurb: Stands, Cases, and Airflow
+<ul>
+<li class="has-line-data"><a href="https://nurb.dev/">Nurb</a></li>
+</ul>
+</li>
+<li class="has-line-data"><strong><a href="#t=34:51">34:51</a></strong> MCP Servers for Software You Only Use Occasionally</li>
+<li class="has-line-data"><strong><a href="#t=36:58">36:58</a></strong> Travel Planning: Great at Logistics, Terrible at Taste</li>
+<li class="has-line-data"><strong><a href="#t=39:31">39:31</a></strong> Proposals and Job Applications: Everybody Sounds the Same</li>
+<li class="has-line-data"><strong><a href="#t=42:14">42:14</a></strong> Sick Picks + Shameless Plugs</li>
+</ul>
+<h3 class="code-line"><a></a>Sick Picks</h3>
+<ul>
+<li class="has-line-data">Scott: <a href="https://www.nomadix.co/products/25l-daytripper-backpack-driftwood-off-white?variant=49426904711320">Nomadix Backpack</a></li>
+<li class="has-line-data">Wes: <a href="https://www.amazon.ca/dp/B09YR8NQC3?th=1&amp;linkCode=sl2&amp;tag=isi777-20&amp;linkId=f5115192b356be2d07fc46358ccc984c&amp;ref_=as_li_ss_tl&amp;ascsubtag=srctok-43c2f44ebafa37a3&amp;btn_type=ss&amp;btn_ref=srctok-43c2f44ebafa37a3">Silicone chair socks</a></li>
+</ul>
+<h3 class="code-line"><a></a>Hit us up on Socials!</h3>
+<p class="has-line-data">Syntax: <a href="https://twitter.com/syntaxfm">X</a> <a href="https://www.instagram.com/syntax_fm/">Instagram</a> <a href="https://www.tiktok.com/@syntaxfm">Tiktok</a> <a href="https://www.linkedin.com/company/96077407/admin/feed/posts/">LinkedIn</a> <a href="https://www.threads.net/@syntax_fm">Threads</a></p>
+<p class="has-line-data">Wes: <a href="https://twitter.com/wesbos">X</a> <a href="https://www.instagram.com/wesbos/">Instagram</a> <a href="https://www.tiktok.com/@wesbos">Tiktok</a> <a href="https://www.linkedin.com/in/wesbos/">LinkedIn</a> <a href="https://www.threads.net/@wesbos">Threads</a></p>
+<p class="has-line-data">Scott: <a href="https://twitter.com/stolinski">X</a> <a href="https://www.instagram.com/stolinski/">Instagram</a> <a href="https://www.tiktok.com/@stolinski">Tiktok</a> <a href="https://www.linkedin.com/in/stolinski/">LinkedIn</a> <a href="https://www.threads.net/@stolinski">Threads</a></p>
+<p class="has-line-data">Randy: <a href="https://twitter.com/randyrektor">X</a> <a href="https://www.instagram.com/randyrektor/">Instagram</a> <a href="https://www.youtube.com/@randyrektor">YouTube</a> <a href="https://www.threads.net/@randyrektor">Threads</a></p>]]>
+      </content:encoded>
+      <itunes:duration>2841</itunes:duration>
+      <guid isPermaLink="false"><![CDATA[178b5d44-b5c7-11f1-8539-bf6dbd80c834]]></guid>
+      <enclosure url="https://traffic.megaphone.fm/FSI6628878575.mp3" length="0" type="audio/mpeg"/>
+    </item>
+    <item>
+      <title>1040: Developing for the iPhone Duo </title>
+      <link>https://syntax.fm/1040</link>
+      <description>Scott, Wes, and CJ break down developing for the iPhone Duo with the Device Posture and Viewport Segments APIs, plus the React 19.3 release and Pi’s new Radius platform. Also on deck: Tailwind joining Shopify, Shopify going back to native, Homebrew 7, Aeropeek, and Meta’s Muse Agent.
+
+Show Notes
+
+
+00:00 Welcome to Syntax!
+
+01:05 React 19.3
+
+05:30 Pi announces Radius
+
+15:26 iPhone Duo Initial Reactions
+
+iPhone Duo for developers
+
+
+
+
+22:35 Developing for the iPhone Duo
+
+Viewport Segments API
+
+Device Posture API
+
+WebKit Standards Positions
+
+Jen Simmons’ post
+
+
+
+
+32:16 Syntax Meetup in SF
+
+32:52 Brought to you by Sentry!
+
+33:10 Tailwind Labs is joining Shopify
+
+35:36 Native is the Future of Mobile at Shopify
+
+40:23 Herdr remote agents
+
+46:13 Homebrew 7 Released
+
+50:55 Meta Muse AI Agent
+
+01:00:19 Scott’s Switzerland Trip
+
+ZurichJS Conference
+
+
+
+
+01:07:25 Mic FX from Teenage Engineering
+
+01:10:46 Three.js conference Badge
+
+More amazing badges
+
+
+
+
+01:13:29 Don’t let anyone take away your big box of cables
+
+01:16:22 Aerospace Tiling Manager
+
+AeroPeek
+
+
+
+
+01:24:26 Scott’s new backpack
+
+01:26:52 Claude, change this button to blue
+
+Hacker News post
+
+01:31:23 Knap markdown template language
+
+Comark plugin
+
+
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</description>
+      <pubDate>Mon, 21 Sep 2026 11:00:00 -0000</pubDate>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>Wes Bos &amp; Scott Tolinski - Full Stack JavaScript Web Developers</itunes:author>
+      <itunes:image href="https://megaphone.imgix.net/podcasts/e6132d46-b1d4-11f1-8a39-4b1147cd065c/image/1ae08d605b5cccb2e984139d6a7b2cf6.png?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress"/>
+      <itunes:subtitle></itunes:subtitle>
+      <itunes:summary>Scott, Wes, and CJ break down developing for the iPhone Duo with the Device Posture and Viewport Segments APIs, plus the React 19.3 release and Pi’s new Radius platform. Also on deck: Tailwind joining Shopify, Shopify going back to native, Homebrew 7, Aeropeek, and Meta’s Muse Agent.
+
+Show Notes
+
+
+00:00 Welcome to Syntax!
+
+01:05 React 19.3
+
+05:30 Pi announces Radius
+
+15:26 iPhone Duo Initial Reactions
+
+iPhone Duo for developers
+
+
+
+
+22:35 Developing for the iPhone Duo
+
+Viewport Segments API
+
+Device Posture API
+
+WebKit Standards Positions
+
+Jen Simmons’ post
+
+
+
+
+32:16 Syntax Meetup in SF
+
+32:52 Brought to you by Sentry!
+
+33:10 Tailwind Labs is joining Shopify
+
+35:36 Native is the Future of Mobile at Shopify
+
+40:23 Herdr remote agents
+
+46:13 Homebrew 7 Released
+
+50:55 Meta Muse AI Agent
+
+01:00:19 Scott’s Switzerland Trip
+
+ZurichJS Conference
+
+
+
+
+01:07:25 Mic FX from Teenage Engineering
+
+01:10:46 Three.js conference Badge
+
+More amazing badges
+
+
+
+
+01:13:29 Don’t let anyone take away your big box of cables
+
+01:16:22 Aerospace Tiling Manager
+
+AeroPeek
+
+
+
+
+01:24:26 Scott’s new backpack
+
+01:26:52 Claude, change this button to blue
+
+Hacker News post
+
+01:31:23 Knap markdown template language
+
+Comark plugin
+
+
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</itunes:summary>
+      <content:encoded>
+        <![CDATA[<p class="has-line-data">Scott, Wes, and CJ break down developing for the iPhone Duo with the Device Posture and Viewport Segments APIs, plus the React 19.3 release and Pi’s new Radius platform. Also on deck: Tailwind joining Shopify, Shopify going back to native, Homebrew 7, Aeropeek, and Meta’s Muse Agent.</p>
+<h3 class="code-line"><a></a>Show Notes</h3>
+<ul>
+<li class="has-line-data"><strong><a href="#t=00:00">00:00</a></strong> Welcome to Syntax!</li>
+<li class="has-line-data"><strong><a href="#t=01:05">01:05</a></strong> <a href="https://react.dev/blog/2026/09/09/react-19-3">React 19.3</a></li>
+<li class="has-line-data"><strong><a href="#t=05:30">05:30</a></strong> Pi announces <a href="https://radius.earendil.com/docs">Radius</a></li>
+<li class="has-line-data"><strong><a href="#t=15:26">15:26</a></strong> iPhone Duo Initial Reactions
+<ul>
+<li class="has-line-data"><a href="https://developer.apple.com/iphone-duo/">iPhone Duo for developers</a></li>
+</ul>
+</li>
+<li class="has-line-data"><strong><a href="#t=22:35">22:35</a></strong> Developing for the iPhone Duo
+<ul>
+<li class="has-line-data"><a href="https://developer.mozilla.org/en-US/docs/Web/API/Viewport_segments_API/Using">Viewport Segments API</a></li>
+<li class="has-line-data"><a href="https://developer.mozilla.org/en-US/docs/Web/API/Device_Posture_API">Device Posture API</a></li>
+<li class="has-line-data"><a href="https://webkit.org/standards-positions/">WebKit Standards Positions</a></li>
+<li class="has-line-data"><a href="https://bsky.app/profile/jensimmons.bsky.social/post/3mv46vdll5c2m">Jen Simmons’ post</a></li>
+</ul>
+</li>
+<li class="has-line-data"><strong><a href="#t=32:16">32:16</a></strong> <a href="https://luma.com/5ng6bniy">Syntax Meetup in SF</a></li>
+<li class="has-line-data"><strong><a href="#t=32:52">32:52</a></strong> <a href="https://sentry.io/syntax/">Brought to you by Sentry!</a></li>
+<li class="has-line-data"><strong><a href="#t=33:10">33:10</a></strong> <a href="https://tailwindcss.com/blog/tailwind-is-joining-shopify">Tailwind Labs is joining Shopify</a></li>
+<li class="has-line-data"><strong><a href="#t=35:36">35:36</a></strong> <a href="https://shopify.engineering/back-to-native">Native is the Future of Mobile at Shopify</a></li>
+<li class="has-line-data"><strong><a href="#t=40:23">40:23</a></strong> <a href="https://herdr.dev/docs/connecting-machines/">Herdr remote agents</a></li>
+<li class="has-line-data"><strong><a href="#t=46:13">46:13</a></strong> <a href="https://brew.sh/2026/09/13/homebrew-7.0.0">Homebrew 7 Released</a></li>
+<li class="has-line-data"><strong><a href="#t=50:55">50:55</a></strong> <a href="https://ai.meta.com/muse/">Meta Muse AI Agent</a></li>
+<li class="has-line-data"><strong><a href="#t=01:00:19">01:00:19</a></strong> Scott’s Switzerland Trip
+<ul>
+<li class="has-line-data"><a href="https://conf.zurichjs.com/">ZurichJS Conference</a></li>
+</ul>
+</li>
+<li class="has-line-data"><strong><a href="#t=01:07:25">01:07:25</a></strong> <a href="https://teenage.engineering/store/ep-2350?srsltid=AU7gw4Wi-UUdi-19GFMsKbaQm4QIrE130zSpLy-hRw_N6duDuxlOjFVy">Mic FX from Teenage Engineering</a></li>
+<li class="has-line-data"><strong><a href="#t=01:10:46">01:10:46</a></strong> <a href="https://x.com/cassiecodes/status/2097958455092904218">Three.js conference Badge</a>
+<ul>
+<li class="has-line-data"><a href="https://x.com/rbriaux/status/2097588315549511810">More amazing badges</a></li>
+</ul>
+</li>
+<li class="has-line-data"><strong><a href="#t=01:13:29">01:13:29</a></strong> <a href="https://blog.jim-nielsen.com/2026/hands-off-my-cables/">Don’t let anyone take away your big box of cables</a></li>
+<li class="has-line-data"><strong><a href="#t=01:16:22">01:16:22</a></strong> <a href="https://github.com/nikitabobko/AeroSpace">Aerospace Tiling Manager</a>
+<ul>
+<li class="has-line-data"><a href="https://github.com/stolinski/aeropeek">AeroPeek</a></li>
+</ul>
+</li>
+<li class="has-line-data"><strong><a href="#t=01:24:26">01:24:26</a></strong> <a href="https://www.nomadix.co/collections/bags/products/25l-daytripper-backpack-driftwood-off-white?variant=49426904711320">Scott’s new backpack</a></li>
+<li class="has-line-data"><strong><a href="#t=01:26:52">01:26:52</a></strong> <a href="https://opusfived.dev/">Claude, change this button to blue</a></li>
+<li class="has-line-data"><a href="https://news.ycombinator.com/item?id=49623754">Hacker News post</a></li>
+<li class="has-line-data"><strong><a href="#t=01:31:23">01:31:23</a></strong> <a href="https://knap.md/">Knap markdown template language</a>
+<ul>
+<li class="has-line-data"><a href="https://comark-knap.vercel.app/">Comark plugin</a></li>
+</ul>
+</li>
+</ul>
+<h3 class="code-line"><a></a>Hit us up on Socials!</h3>
+<p class="has-line-data">Syntax: <a href="https://twitter.com/syntaxfm">X</a> <a href="https://www.instagram.com/syntax_fm/">Instagram</a> <a href="https://www.tiktok.com/@syntaxfm">Tiktok</a> <a href="https://www.linkedin.com/company/96077407/admin/feed/posts/">LinkedIn</a> <a href="https://www.threads.net/@syntax_fm">Threads</a></p>
+<p class="has-line-data">Wes: <a href="https://twitter.com/wesbos">X</a> <a href="https://www.instagram.com/wesbos/">Instagram</a> <a href="https://www.tiktok.com/@wesbos">Tiktok</a> <a href="https://www.linkedin.com/in/wesbos/">LinkedIn</a> <a href="https://www.threads.net/@wesbos">Threads</a></p>
+<p class="has-line-data">Scott: <a href="https://twitter.com/stolinski">X</a> <a href="https://www.instagram.com/stolinski/">Instagram</a> <a href="https://www.tiktok.com/@stolinski">Tiktok</a> <a href="https://www.linkedin.com/in/stolinski/">LinkedIn</a> <a href="https://www.threads.net/@stolinski">Threads</a></p>
+<p class="has-line-data">Randy: <a href="https://twitter.com/randyrektor">X</a> <a href="https://www.instagram.com/randyrektor/">Instagram</a> <a href="https://www.youtube.com/@randyrektor">YouTube</a> <a href="https://www.threads.net/@randyrektor">Threads</a></p>]]>
+      </content:encoded>
+      <itunes:duration>5612</itunes:duration>
+      <guid isPermaLink="false"><![CDATA[e6132d46-b1d4-11f1-8a39-4b1147cd065c]]></guid>
+      <enclosure url="https://traffic.megaphone.fm/FSI3562075802.mp3" length="0" type="audio/mpeg"/>
+    </item>
+  </channel>
+</rss>

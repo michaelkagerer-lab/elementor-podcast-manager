@@ -173,8 +173,8 @@ final class PodcastSettings {
 		$out['funding_label'] = sanitize_text_field( $input['funding_label'] ?? '' );
 		$out['auto_embed']    = ! empty( $input['auto_embed'] );
 
-		$out['social_links']   = $this->sanitize_links( $input['social_links'] ?? [] );
-		$out['platform_links'] = $this->sanitize_links( $input['platform_links'] ?? [] );
+		$out['social_links']   = $this->sanitize_links( $input['social_links'] ?? [], __( 'Social links', 'elementor-podcast-manager' ) );
+		$out['platform_links'] = $this->sanitize_links( $input['platform_links'] ?? [], __( 'Platform links', 'elementor-podcast-manager' ) );
 
 		return $out;
 	}
@@ -182,31 +182,88 @@ final class PodcastSettings {
 	/**
 	 * Sanitize a list of label/url links.
 	 *
-	 * @param mixed $links Raw input.
+	 * Rows with text but no usable http(s) address, and rows beyond the
+	 * limit of 20, are not saved; the Settings screen says so instead of
+	 * dropping them silently.
+	 *
+	 * @param mixed  $links Raw input.
+	 * @param string $group Name of the list, for the notice ('' for none).
 	 * @return array<int, array{label: string, url: string, service: string}>
 	 */
-	private function sanitize_links( $links ): array {
+	private function sanitize_links( $links, string $group = '' ): array {
 		if ( ! is_array( $links ) ) {
 			return [];
 		}
 
-		$clean = [];
+		$clean   = [];
+		$dropped = 0;
 		foreach ( $links as $link ) {
 			if ( ! is_array( $link ) ) {
 				continue;
 			}
-			$url = esc_url_raw( $link['url'] ?? '' );
+			$raw_url = trim( (string) ( $link['url'] ?? '' ) );
+			$label   = sanitize_text_field( $link['label'] ?? '' );
+			$url     = '' !== $raw_url ? esc_url_raw( $raw_url ) : '';
 			if ( '' === $url ) {
+				if ( '' !== $raw_url || '' !== $label ) {
+					++$dropped;
+				}
 				continue;
 			}
 			$clean[] = [
-				'label'   => sanitize_text_field( $link['label'] ?? '' ),
+				'label'   => $label,
 				'url'     => $url,
 				'service' => sanitize_key( $link['service'] ?? 'custom' ),
 			];
 		}
 
+		$extra = max( 0, count( $clean ) - 20 );
+
+		if ( '' !== $group && ( $dropped > 0 || $extra > 0 ) ) {
+			$messages = [];
+			if ( $dropped > 0 ) {
+				$messages[] = sprintf(
+					/* translators: 1: list name, e.g. "Platform links", 2: number of links */
+					_n( '%1$s: %2$d link was not saved. Each link needs a web address that starts with https://.', '%1$s: %2$d links were not saved. Each link needs a web address that starts with https://.', $dropped, 'elementor-podcast-manager' ),
+					$group,
+					$dropped
+				);
+			}
+			if ( $extra > 0 ) {
+				$messages[] = sprintf(
+					/* translators: 1: list name, 2: number of links that were cut */
+					_n( '%1$s: only the first 20 links are kept, so %2$d link was removed.', '%1$s: only the first 20 links are kept, so %2$d links were removed.', $extra, 'elementor-podcast-manager' ),
+					$group,
+					$extra
+				);
+			}
+			self::report( 'epm-links-' . sanitize_key( $group ), implode( ' ', $messages ) );
+		}
+
 		return array_slice( $clean, 0, 20 );
+	}
+
+	/**
+	 * Show a warning on the Settings screen after saving (once per code).
+	 *
+	 * @param string $code    Error code.
+	 * @param string $message Message.
+	 * @return void
+	 */
+	private static function report( string $code, string $message ): void {
+		// Outside the Settings screen (setup assistant, cron) there is no
+		// place to show it.
+		if ( ! function_exists( 'add_settings_error' ) || ! function_exists( 'get_settings_errors' ) ) {
+			return;
+		}
+
+		foreach ( get_settings_errors( self::OPTION ) as $existing ) {
+			if ( ( $existing['code'] ?? '' ) === $code ) {
+				return;
+			}
+		}
+
+		add_settings_error( self::OPTION, $code, $message, 'warning' );
 	}
 
 	/**

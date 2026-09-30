@@ -4,8 +4,9 @@
  * DESIGN TOKEN PRECEDENCE (highest wins):
  *
  *  1. Theme / Elementor Site Settings — anything this stylesheet does not
- *     set keeps inheriting (typography in particular is never set here,
- *     so theme and Elementor Global Fonts always apply).
+ *     set keeps inheriting. Typography families stay with the theme and
+ *     Elementor Global Fonts unless Podcast → Design picks a font
+ *     (--epm-font; the body then carries .epm-custom-font).
  *  2. Global Podcast Styles — the :root tokens printed by
  *     DesignSettings::output_tokens() as <style id="epm-design-tokens">.
  *  3. Presets — applied INTO Global Podcast Styles when a preset is
@@ -24,6 +25,23 @@
  * widget-level overrides of --epm-y. Consume tokens as
  * var(--epm-x, <literal fallback>) and never write self-referential
  * declarations (--epm-x: var(--epm-x, ...)).
+ *
+ * Derived tokens are therefore NOT declared below: --epm-track (unplayed
+ * timeline) falls back to --epm-text-muted where it is consumed, and
+ * --epm-font falls back to inheriting the theme font. Tokens that only
+ * exist when something sets them have no value here either: the widget
+ * backgrounds (--epm-hero-background, --epm-latest-background and their
+ * paddings) and the section surface of dark designs
+ * (--epm-section-background, --epm-section-padding, printed by
+ * DesignSettings::dark_vars()).
+ *
+ * MOTION: every movement is opt-in inside
+ * @media (prefers-reduced-motion: no-preference) and only animates
+ * transform-family properties and opacity (color properties for hover
+ * and state). Reduced motion gets opacity-only fades of 150ms or less.
+ * Plugin buttons reset the theme's transition so timing and the focus
+ * ring never depend on the theme (Hello Elementor ships
+ * "button { transition: all .3s }").
  */
 
 :where(:root) {
@@ -43,11 +61,16 @@
 	--epm-progress-height: 4px;
 	--epm-subscribe-gap: 12px;
 	--epm-subscribe-icon-size: 18px;
-	--epm-hero-background: transparent;
-	--epm-latest-background: transparent;
 	--epm-secondary-icon-size: 20px;
 	--epm-guest-image-size: 72px;
 	--epm-card-artwork-radius: 0;
+	--epm-button-radius: 8px;
+	--epm-shadow: none;
+	--epm-image-outline: oklch(0 0 0 / 0.1);
+	--epm-danger: #b91c1c;
+	--epm-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+	--epm-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+	--epm-ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* ---------- Base (scoped, no token resets) ---------- */
@@ -72,15 +95,110 @@
 	box-sizing: inherit;
 }
 
-/* Visible focus for keyboard users. */
-.epm-player button:focus-visible,
-.epm-player [role="slider"]:focus-visible,
-.epm-episode-card button:focus-visible,
-.epm-episode-row button:focus-visible,
-.epm-chapters button:focus-visible,
-.epm-sticky button:focus-visible {
+/*
+ * Podcast font (Podcast → Design → Font). Without a choice --epm-font is
+ * not set and every component simply inherits the theme font.
+ */
+.epm-player,
+.epm-episode-list,
+.epm-episode-list__empty,
+.epm-podcast-hero,
+.epm-chapters,
+.epm-transcript,
+.epm-show-notes,
+.epm-subscribe,
+.epm-guest,
+.epm-sticky,
+.epm-latest,
+.epm-episode-header,
+.epm-pagination {
+	font-family: var(--epm-font, inherit);
+}
+
+/*
+ * With a chosen font, headings and buttons inside the components follow
+ * it too (themes style those elements directly). (0,1,2): beats theme and
+ * Elementor Kit element rules, loses to Elementor widget typography
+ * controls ({{WRAPPER}} …, 0,2,0 and up).
+ */
+body.epm-custom-font :where(.epm-player, .epm-episode-list, .epm-podcast-hero, .epm-chapters, .epm-transcript, .epm-show-notes, .epm-subscribe, .epm-guest, .epm-sticky, .epm-latest, .epm-episode-header, .epm-pagination) :is(h1, h2, h3, h4, h5, h6, button, summary) {
+	font-family: inherit;
+}
+
+/*
+ * Visible focus for keyboard users. Never transitioned. :not(#epm) keeps
+ * theme focus styles out (Hello Elementor's
+ * "[tabindex]:not([tabindex='-1']):focus-visible" is 0,3,0 and adds a
+ * white halo that hides on light surfaces).
+ */
+:is(.epm-player, .epm-episode-card, .epm-episode-row, .epm-chapters, .epm-transcript, .epm-sticky) :is(button, summary, a, input, [role="slider"], [role="menuitem"]):not(#epm):focus-visible {
 	outline: 2px solid var(--epm-accent, #1d4ed8);
 	outline-offset: 2px;
+	box-shadow: none;
+}
+
+/* Visually hidden, still announced. */
+.epm-sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+/*
+ * Images get a 1px inner edge so pale artwork keeps its shape on light
+ * surfaces. Dark designs switch the token to the white variant.
+ */
+.epm-artwork,
+.epm-podcast-hero__artwork img,
+.epm-guest__image,
+.epm-sticky__artwork img {
+	outline: 1px solid var(--epm-image-outline, oklch(0 0 0 / 0.1));
+	outline-offset: -1px;
+}
+
+/* Titles wrap evenly; descriptions avoid a lone last word. */
+.epm-player__title,
+.epm-guest__heading,
+.epm-episode-row__title,
+.epm-episode-card__title,
+.epm-podcast-hero__title,
+.epm-episode-header__title,
+.epm-latest__title,
+.epm-chapters__heading,
+.epm-show-notes__heading,
+.epm-transcript__heading {
+	text-wrap: balance;
+}
+
+.epm-player__description,
+.epm-episode-row__excerpt,
+.epm-episode-card__excerpt,
+.epm-podcast-hero__description,
+.epm-episode-header__description,
+.epm-latest__description {
+	text-wrap: pretty;
+}
+
+/*
+ * A long single word (German compounds, URLs as titles) breaks instead of
+ * pushing the page wider than a phone screen.
+ */
+.epm-player__title,
+.epm-episode-row__title,
+.epm-episode-card__title,
+.epm-podcast-hero__title,
+.epm-episode-header__title,
+.epm-latest__title,
+.epm-guest__name,
+.epm-chapters__title {
+	overflow-wrap: anywhere;
+	hyphens: auto;
 }
 
 /* ---------- Player (one engine, five layouts) ---------- */
@@ -93,6 +211,7 @@
 	color: var(--epm-text, #111827);
 	border: 1px solid var(--epm-border, #e5e7eb);
 	border-radius: var(--epm-radius, 12px);
+	box-shadow: var(--epm-shadow, none);
 	padding: var(--epm-gap, 24px);
 }
 
@@ -152,10 +271,31 @@
 	opacity: 0.6;
 }
 
+/*
+ * Transport (play, back, forward) and timeline are two groups. Media
+ * transport keeps its left-to-right convention in right-to-left pages (as
+ * the play and skip glyphs do): time runs left to right, and the timeline's
+ * fill, handle and pointer math share that one direction.
+ */
 .epm-player__controls {
 	display: flex;
 	align-items: center;
 	gap: calc(var(--epm-gap, 24px) / 2);
+	direction: ltr;
+}
+
+.epm-sticky__timeline,
+.epm-sticky__time,
+[data-epm-speed-value] {
+	direction: ltr;
+	unicode-bidi: isolate;
+}
+
+.epm-player__transport {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	flex: 0 0 auto;
 }
 
 /*
@@ -196,24 +336,39 @@
 	height: 22px;
 }
 
-.epm-player__icon-pause {
-	display: none;
+/*
+ * PLAY/PAUSE ICON SWAP
+ *
+ * Every play toggle holds both glyphs in one grid cell (.epm-icon-swap).
+ * The state comes from the button's own .is-playing class, which the
+ * player engine sets on the full player, sticky bar and card/row buttons.
+ */
+.epm-icon-swap {
+	display: inline-grid;
+	place-items: center;
+	flex: none;
 }
 
-.epm-player.is-playing .epm-player__icon-pause,
-.epm-player__play.is-playing .epm-player__icon-pause {
-	display: block;
+.epm-icon-swap > span {
+	grid-area: 1 / 1;
+	display: flex;
 }
 
-.epm-player.is-playing .epm-player__icon-play,
-.epm-player__play.is-playing .epm-player__icon-play {
-	display: none;
+.epm-icon-swap > .epm-player__icon-pause,
+.is-playing > .epm-icon-swap > .epm-player__icon-play {
+	opacity: 0;
 }
 
-.epm-player__play:not(#epm):hover {
-	background: var(--epm-play-background-hover, var(--epm-play-background, var(--epm-accent, #1d4ed8)));
-	color: var(--epm-play-color-hover, var(--epm-play-color, var(--epm-on-accent, #ffffff)));
-	filter: brightness(1.08);
+.is-playing > .epm-icon-swap > .epm-player__icon-pause {
+	opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.epm-player__play:not(#epm):hover {
+		background: var(--epm-play-background-hover, var(--epm-play-background, var(--epm-accent, #1d4ed8)));
+		color: var(--epm-play-color-hover, var(--epm-play-color, var(--epm-on-accent, #ffffff)));
+		filter: brightness(1.08);
+	}
 }
 
 .epm-player__skip:not(#epm) {
@@ -241,8 +396,10 @@
 	height: 20px;
 }
 
-.epm-player__skip:not(#epm):hover {
-	color: var(--epm-secondary-hover, var(--epm-text, #111827));
+@media (hover: hover) and (pointer: fine) {
+	.epm-player__skip:not(#epm):hover {
+		color: var(--epm-secondary-hover, var(--epm-text, #111827));
+	}
 }
 
 .epm-player__timeline-wrap {
@@ -260,6 +417,11 @@
 	touch-action: none;
 }
 
+/*
+ * The unplayed track is the only cue for length and position, so it uses
+ * its own token (--epm-track, 3:1 against background and surface) instead
+ * of the decorative border color. Unset, it follows the muted text color.
+ */
 .epm-player__track {
 	position: absolute;
 	left: 0;
@@ -267,7 +429,7 @@
 	top: 50%;
 	transform: translateY(-50%);
 	height: var(--epm-progress-height, 4px);
-	background: var(--epm-border, #e5e7eb);
+	background: var(--epm-track, var(--epm-text-muted, #6b7280));
 	border-radius: 999px;
 	overflow: hidden;
 }
@@ -312,14 +474,15 @@
 
 .epm-player__speed:not(#epm) {
 	background: none;
-	border: 1px solid var(--epm-border, #e5e7eb);
-	border-radius: 999px;
+	border: 1px solid var(--epm-track, var(--epm-text-muted, #6b7280));
+	border-radius: var(--epm-button-radius, 8px);
 	box-shadow: none;
 	margin: 0;
 	color: var(--epm-secondary-color, var(--epm-text-muted, #6b7280));
-	font-size: 12px;
+	font-size: 13px;
 	font-weight: inherit;
 	line-height: 1.2;
+	min-width: 44px;
 	min-height: 32px;
 	padding: 4px 10px;
 	cursor: pointer;
@@ -328,9 +491,11 @@
 	letter-spacing: normal;
 }
 
-.epm-player__speed:not(#epm):hover {
-	color: var(--epm-secondary-hover, var(--epm-text, #111827));
-	border-color: var(--epm-text-muted, #6b7280);
+@media (hover: hover) and (pointer: fine) {
+	.epm-player__speed:not(#epm):hover {
+		color: var(--epm-secondary-hover, var(--epm-text, #111827));
+		border-color: var(--epm-text, #111827);
+	}
 }
 
 .epm-player__volume {
@@ -343,20 +508,24 @@
 	accent-color: var(--epm-accent, #1d4ed8);
 }
 
-.epm-player__download {
+/* (0,2,0): Elementor Kit link colors (.elementor-kit-N a, 0,1,1) stay out. */
+.epm-player .epm-player__download {
 	color: var(--epm-secondary-color, var(--epm-text-muted, #6b7280));
 	display: inline-flex;
 	padding: 6px;
 }
 
-.epm-player__download:hover {
-	color: var(--epm-secondary-hover, var(--epm-text, #111827));
+@media (hover: hover) and (pointer: fine) {
+	.epm-player .epm-player__download:hover {
+		color: var(--epm-secondary-hover, var(--epm-text, #111827));
+	}
 }
 
 .epm-player__description {
 	font-size: var(--epm-meta-size, 14px);
 	color: var(--epm-text-muted, #6b7280);
 	margin: 0;
+	max-width: 65ch;
 }
 
 .epm-player__chapters {
@@ -457,6 +626,55 @@
 	flex-wrap: wrap;
 }
 
+/* ---------- Player error state ---------- */
+
+/* Inline error with retry. role="alert": it appears at full strength. */
+.epm-player__error {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+	background: var(--epm-surface, #f9fafb);
+	border: 1px solid var(--epm-border, #e5e7eb);
+	border-inline-start: 3px solid var(--epm-danger, #b91c1c);
+	border-radius: 8px;
+	padding: 10px 14px;
+	font-size: var(--epm-meta-size, 14px);
+	color: var(--epm-text, #111827);
+}
+
+.epm-player__error[hidden] {
+	display: none;
+}
+
+.epm-player__error-msg {
+	flex: 1 1 auto;
+	min-width: 200px;
+}
+
+.epm-player__error-retry:not(#epm) {
+	flex: 0 0 auto;
+	box-shadow: none;
+	margin: 0;
+	line-height: 1.2;
+	text-transform: none;
+	min-height: 44px;
+	padding: 8px 18px;
+	border-radius: var(--epm-button-radius, 8px);
+	border: 1px solid var(--epm-accent, #1d4ed8);
+	background: var(--epm-accent, #1d4ed8);
+	color: var(--epm-on-accent, #ffffff);
+	font: inherit;
+	cursor: pointer;
+}
+
+/* Init-failure fallback: reveal the native audio element. */
+.epm-player--fallback audio {
+	display: block;
+	width: 100%;
+	margin-top: 12px;
+}
+
 /* ---------- Episode list ---------- */
 
 .epm-episode-list {
@@ -464,12 +682,8 @@
 	flex-direction: column;
 }
 
-.epm-episode-list--cards .epm-episode-card,
 .epm-episode-list--grid {
 	display: grid;
-}
-
-.epm-episode-list--grid {
 	grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
 	gap: var(--epm-gap, 24px);
 }
@@ -484,24 +698,42 @@
 	border-bottom: 1px solid var(--epm-border, #e5e7eb);
 }
 
-/* Row */
+/*
+ * Row: content | aside. Numbered layouts reserve the number column on
+ * every row, so all titles share one edge, and the aside is right-aligned,
+ * so every play button shares the other. Number, first text line, date and
+ * Play label share one baseline.
+ */
 .epm-episode-row {
-	display: flex;
-	gap: var(--epm-gap, 24px);
-	align-items: flex-start;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	column-gap: var(--epm-gap, 24px);
+	row-gap: 12px;
+	align-items: first baseline;
 	padding: calc(var(--epm-gap, 24px) * 0.9) 0;
 	color: var(--epm-text, #111827);
 }
 
+.epm-episode-list--numbered .epm-episode-row {
+	grid-template-columns: calc(var(--epm-title-size, 22px) * 2.4) minmax(0, 1fr) auto;
+}
+
+.epm-episode-list--numbered .epm-episode-row__content {
+	grid-column: 2;
+}
+
+.epm-episode-list--numbered .epm-episode-row__aside {
+	grid-column: 3;
+}
+
 .epm-episode-row__number {
 	font-size: calc(var(--epm-title-size, 22px) * 1.1);
+	line-height: 1.1;
 	color: var(--epm-text-muted, #6b7280);
-	min-width: 2.2em;
 	font-variant-numeric: tabular-nums;
 }
 
 .epm-episode-row__content {
-	flex: 1 1 auto;
 	min-width: 0;
 }
 
@@ -511,46 +743,62 @@
 	color: var(--epm-text-muted, #6b7280);
 }
 
-.epm-episode-row__title {
+/*
+ * Titles and title links are (0,2,0)/(0,2,1): Elementor Kit heading and
+ * link rules (.elementor-kit-N h3 / a, 0,1,1) must not resize or recolor
+ * them. Widget typography controls ({{WRAPPER}} …, 0,4,0) still win.
+ */
+.epm-episode-row .epm-episode-row__title {
 	margin: 0 0 6px;
 	font-size: var(--epm-title-size, 22px);
 	line-height: 1.25;
+	color: var(--epm-text, #111827);
 }
 
-.epm-episode-row__title a {
+.epm-episode-row .epm-episode-row__title:last-child {
+	margin-block-end: 0;
+}
+
+.epm-episode-row .epm-episode-row__title a {
 	color: inherit;
 	text-decoration: none;
 }
 
-.epm-episode-row__title a:hover {
-	color: var(--epm-accent, #1d4ed8);
+@media (hover: hover) and (pointer: fine) {
+	.epm-episode-row .epm-episode-row__title a:hover {
+		color: var(--epm-accent, #1d4ed8);
+	}
 }
 
 .epm-episode-row__excerpt {
 	margin: 0;
 	color: var(--epm-text-muted, #6b7280);
 	font-size: var(--epm-meta-size, 14px);
+	max-width: 65ch;
 }
 
 .epm-episode-row__aside {
-	flex: 0 0 auto;
 	display: flex;
-	flex-direction: column;
-	align-items: flex-end;
-	gap: 8px;
-	text-align: right;
+	align-items: center;
+	align-self: auto;
+	gap: 16px;
+	text-align: end;
+}
+
+.epm-episode-row__aside .epm-meta {
+	white-space: nowrap;
 }
 
 .epm-episode-row__play:not(#epm),
 .epm-episode-card__play:not(#epm) {
 	display: inline-flex;
 	align-items: center;
-	align-self: flex-start;
+	align-self: auto;
 	gap: 8px;
 	width: auto;
 	background: none;
 	border: 1px solid var(--epm-border, #e5e7eb);
-	border-radius: 999px;
+	border-radius: var(--epm-button-radius, 8px);
 	box-shadow: none;
 	margin: 0;
 	color: var(--epm-text, #111827);
@@ -564,18 +812,60 @@
 	letter-spacing: normal;
 }
 
+.epm-episode-card__play:not(#epm) {
+	align-self: flex-start;
+}
+
 .epm-episode-row__play svg,
 .epm-episode-card__play svg {
 	width: 14px;
 	height: 14px;
 }
 
-.epm-episode-row__play:not(#epm):hover,
-.epm-episode-card__play:not(#epm):hover,
+/*
+ * "Play", "Pause" and "Retry" share one cell, so the button is as wide as
+ * the longest word in every state and nothing next to it moves.
+ */
+.epm-list-play__label {
+	display: inline-grid;
+}
+
+.epm-list-play__label > span {
+	grid-area: 1 / 1;
+	white-space: nowrap;
+}
+
+.epm-list-play__text--pause,
+.epm-list-play__text--retry,
+.is-playing > .epm-list-play__label > .epm-list-play__text--play,
+.has-error > .epm-list-play__label > .epm-list-play__text--play {
+	visibility: hidden;
+}
+
+.is-playing:not(.has-error) > .epm-list-play__label > .epm-list-play__text--pause,
+.has-error > .epm-list-play__label > .epm-list-play__text--retry {
+	visibility: visible;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.epm-episode-row__play:not(#epm):hover,
+	.epm-episode-card__play:not(#epm):hover {
+		border-color: var(--epm-accent, #1d4ed8);
+		color: var(--epm-accent, #1d4ed8);
+	}
+}
+
 .epm-episode-row__play.is-playing:not(#epm),
 .epm-episode-card__play.is-playing:not(#epm) {
 	border-color: var(--epm-accent, #1d4ed8);
 	color: var(--epm-accent, #1d4ed8);
+}
+
+/* Audio failed to load: the label reads "Retry". */
+.epm-episode-row__play.has-error:not(#epm),
+.epm-episode-card__play.has-error:not(#epm) {
+	border-color: var(--epm-danger, #b91c1c);
+	color: var(--epm-text, #111827);
 }
 
 /* Card */
@@ -583,10 +873,15 @@
 	background: var(--epm-surface, #f9fafb);
 	border: 1px solid var(--epm-border, #e5e7eb);
 	border-radius: var(--epm-radius, 12px);
+	box-shadow: var(--epm-shadow, none);
 	overflow: hidden;
 	color: var(--epm-text, #111827);
 	display: flex;
 	flex-direction: column;
+}
+
+.epm-episode-card__artwork a {
+	display: block;
 }
 
 .epm-episode-card__artwork-img {
@@ -600,6 +895,33 @@
 	flex-direction: column;
 	gap: 8px;
 	flex: 1 1 auto;
+	min-width: 0;
+}
+
+/*
+ * Cards layout: square artwork beside the text, so one episode no longer
+ * takes a full screen of artwork. When the text column would drop below
+ * 60% of the card (under ~600px), the artwork wraps above it and spans the
+ * card. No media or container query: it follows the card's own width.
+ */
+.epm-episode-list--cards .epm-episode-card {
+	flex-direction: row;
+	flex-wrap: wrap;
+}
+
+.epm-episode-list--cards .epm-episode-card__artwork {
+	flex: 1 1 240px;
+}
+
+.epm-episode-list--cards .epm-episode-card__body {
+	flex: 999 1 0;
+	min-inline-size: 60%;
+}
+
+/* Stacked on narrow cards: a band no taller than the side-by-side square. */
+.epm-episode-list--cards .epm-episode-card__artwork-img {
+	aspect-ratio: 1 / 1;
+	max-block-size: 240px;
 }
 
 .epm-episode-card__label {
@@ -616,25 +938,35 @@
 	color: var(--epm-text-muted, #6b7280);
 }
 
-.epm-episode-card__title {
+/* (0,2,0): see the row title. */
+.epm-episode-card .epm-episode-card__title {
 	margin: 0;
 	font-size: var(--epm-title-size, 22px);
 	line-height: 1.25;
+	color: var(--epm-text, #111827);
 }
 
-.epm-episode-card__title a {
+/* Grid cells are narrow: large display sizes (editorial designs) are capped. */
+:where(.epm-episode-list--grid) .epm-episode-card .epm-episode-card__title {
+	font-size: clamp(16px, calc(var(--epm-title-size, 22px) * 0.8), 22px);
+}
+
+.epm-episode-card .epm-episode-card__title a {
 	color: inherit;
 	text-decoration: none;
 }
 
-.epm-episode-card__title a:hover {
-	color: var(--epm-accent, #1d4ed8);
+@media (hover: hover) and (pointer: fine) {
+	.epm-episode-card .epm-episode-card__title a:hover {
+		color: var(--epm-accent, #1d4ed8);
+	}
 }
 
 .epm-episode-card__excerpt {
 	margin: 0;
 	color: var(--epm-text-muted, #6b7280);
 	font-size: var(--epm-meta-size, 14px);
+	max-width: 65ch;
 }
 
 /* Minimal list: no cards, no numbers, tight rows.
@@ -653,14 +985,36 @@
 	padding: calc(var(--epm-gap, 24px) * 1.25) 0;
 }
 
+/* Empty state: what this is, and where to go next. */
+.epm-episode-list__empty {
+	color: var(--epm-text-muted, #6b7280);
+	font-size: var(--epm-meta-size, 14px);
+	text-wrap: pretty;
+}
+
+/* Underlined: color alone does not mark a link inside muted text. */
+.epm-episode-list__empty .epm-episode-list__empty-link {
+	color: var(--epm-accent, #1d4ed8);
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 0.18em;
+}
+
 /* ---------- Hero ---------- */
 
+/*
+ * Transparent with no padding unless the widget's Background control sets
+ * --epm-hero-background (with --epm-hero-padding), or a dark design gives
+ * sections a surface (--epm-section-background/-padding).
+ */
 .epm-podcast-hero {
 	display: flex;
 	gap: calc(var(--epm-gap, 24px) * 1.5);
 	align-items: center;
 	color: var(--epm-text, #111827);
-	background: var(--epm-hero-background, transparent);
+	background: var(--epm-hero-background, var(--epm-section-background, transparent));
+	padding: var(--epm-hero-padding, var(--epm-section-padding, 0));
+	border-radius: var(--epm-radius, 12px);
 }
 
 .epm-podcast-hero--centered {
@@ -690,10 +1044,12 @@
 	min-width: 0;
 }
 
-.epm-podcast-hero__title {
+/* (0,2,0): see the row title. */
+.epm-podcast-hero .epm-podcast-hero__title {
 	margin: 0 0 12px;
 	font-size: calc(var(--epm-title-size, 22px) * 1.8);
 	line-height: 1.1;
+	color: var(--epm-text, #111827);
 }
 
 .epm-podcast-hero__description {
@@ -710,8 +1066,11 @@
 
 /* ---------- Latest episode wrapper ---------- */
 
+/* Painted only when the widget's Background control sets the token. */
 .epm-latest {
 	background: var(--epm-latest-background, transparent);
+	padding: var(--epm-latest-padding, 0);
+	border-radius: var(--epm-radius, 12px);
 }
 
 /* ---------- Guest ---------- */
@@ -720,6 +1079,14 @@
 	display: flex;
 	gap: 16px;
 	align-items: flex-start;
+	color: var(--epm-text, #111827);
+}
+
+.epm-guest__info {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
 }
 
 .epm-guest__image {
@@ -732,10 +1099,15 @@
 
 .epm-guest__name {
 	margin: 0;
+	font-size: calc(var(--epm-title-size, 22px) * 0.82);
 	font-weight: 600;
+	line-height: 1.3;
 	color: var(--epm-text, #111827);
+	text-wrap: balance;
 }
 
+/* Role and company share one line. */
+.epm-guest__details,
 .epm-guest__role,
 .epm-guest__company {
 	margin: 0;
@@ -744,17 +1116,40 @@
 }
 
 .epm-guest__bio {
+	margin-top: 8px;
 	font-size: var(--epm-meta-size, 14px);
+	line-height: 1.6;
 	color: var(--epm-text-muted, #6b7280);
+	max-width: 65ch;
+	text-wrap: pretty;
 }
 
-/* ---------- Chapters ---------- */
+.epm-guest__bio > :first-child {
+	margin-top: 0;
+}
 
-.epm-chapters__heading {
+.epm-guest__bio > :last-child {
+	margin-bottom: 0;
+}
+
+/* ---------- Section headings (show notes, chapters, transcript) ---------- */
+
+/*
+ * (0,2,0) so the podcast type scale also wins over Elementor Kit heading
+ * sizes (.elementor-kit-N h2, 0,1,1); widget typography controls
+ * ({{WRAPPER}} …, 0,3,0) still override it.
+ */
+.epm-chapters .epm-chapters__heading,
+.epm-show-notes .epm-show-notes__heading,
+.epm-transcript .epm-transcript__heading,
+.epm-guest-block .epm-guest__heading {
 	font-size: var(--epm-title-size, 22px);
+	line-height: 1.25;
 	margin: 0 0 12px;
 	color: var(--epm-text, #111827);
 }
+
+/* ---------- Chapters ---------- */
 
 .epm-chapters__list {
 	list-style: none;
@@ -762,54 +1157,86 @@
 	padding: 0;
 }
 
+/*
+ * The inline start padding is always reserved for the 3px active marker,
+ * so the row never shifts when a chapter starts.
+ */
 .epm-chapters__item {
+	position: relative;
 	display: flex;
 	gap: 12px;
 	align-items: baseline;
-	padding: 8px 0;
+	padding-block: 0;
+	padding-inline-start: 13px;
 	border-bottom: 1px solid var(--epm-border, #e5e7eb);
 }
 
-.epm-chapters__time:not(#epm) {
-	background: none;
+.epm-chapters__item::before {
+	content: "";
+	position: absolute;
+	inset-block: 0;
+	inset-inline-start: 0;
+	width: 3px;
+	background: var(--epm-accent, #1d4ed8);
+	opacity: 0;
+}
+
+.epm-chapters__item.is-active::before {
+	opacity: 1;
+}
+
+/* The whole row (time + title) seeks. */
+.epm-chapters__seek:not(#epm) {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	gap: 12px;
+	align-items: baseline;
+	min-height: 44px;
+	padding: 10px 0;
+	margin: 0;
 	border: 0;
 	border-radius: 0;
+	background: none;
 	box-shadow: none;
-	margin: 0;
-	color: var(--epm-accent, #1d4ed8);
-	font-variant-numeric: tabular-nums;
-	font-weight: inherit;
-	line-height: inherit;
-	min-height: 0;
-	cursor: pointer;
-	padding: 0;
-	font-size: var(--epm-meta-size, 14px);
+	color: inherit;
+	font: inherit;
+	line-height: 1.5;
+	text-align: start;
 	text-decoration: none;
 	text-transform: none;
 	letter-spacing: normal;
+	cursor: pointer;
 }
 
-.epm-chapters__time:not(#epm):hover,
-.epm-chapters__time:not(#epm):focus-visible {
-	text-decoration: underline;
+.epm-chapters__time {
+	flex: none;
+	color: var(--epm-accent, #1d4ed8);
+	font-size: var(--epm-meta-size, 14px);
+	font-variant-numeric: tabular-nums;
 }
 
 .epm-chapters__title {
 	color: var(--epm-text, #111827);
+	text-wrap: pretty;
 }
 
-/* Chapter currently playing. */
-.epm-chapters__item.is-active {
-	box-shadow: inset 3px 0 0 var(--epm-accent, #1d4ed8);
-	padding-left: 10px;
+@media (hover: hover) and (pointer: fine) {
+	.epm-chapters__seek:not(#epm):hover .epm-chapters__title {
+		text-decoration: underline;
+	}
 }
 
 .epm-chapters__item.is-active .epm-chapters__title {
 	font-weight: 600;
 }
 
-.epm-chapters__link {
-	margin-left: auto;
+/* (0,2,0): Elementor Kit link colors (.elementor-kit-N a, 0,1,1) stay out. */
+.epm-chapters .epm-chapters__link {
+	margin-inline-start: auto;
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
 	font-size: var(--epm-meta-size, 14px);
 	color: var(--epm-text-muted, #6b7280);
 }
@@ -820,32 +1247,61 @@
 	color: var(--epm-text, #111827);
 }
 
-.epm-show-notes__heading {
-	font-size: var(--epm-title-size, 22px);
-	margin: 0 0 12px;
-	color: var(--epm-text, #111827);
-}
-
 .epm-show-notes__content {
 	color: var(--epm-text, #111827);
 	line-height: 1.7;
+	max-width: 65ch;
+}
+
+/*
+ * Links in long-form content follow the podcast design: theme link colors
+ * are often unreadable on dark podcast surfaces. (0,2,1) beats theme and
+ * Elementor Kit link rules (0,1,1); the underline stays as the non-color cue.
+ */
+.epm-show-notes .epm-show-notes__content a,
+.epm-transcript .epm-transcript__content a,
+.epm-guest .epm-guest__bio a,
+.epm-player .epm-player__description a {
+	color: var(--epm-accent, #1d4ed8);
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 0.18em;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.epm-show-notes .epm-show-notes__content a:hover,
+	.epm-transcript .epm-transcript__content a:hover,
+	.epm-guest .epm-guest__bio a:hover {
+		text-decoration-thickness: 2px;
+	}
+}
+
+/* Headings inside the notes stay below the section heading. */
+.epm-show-notes__content :is(h1, h2, h3, h4, h5, h6) {
+	font-size: calc(var(--epm-title-size, 22px) * 0.82);
+	line-height: 1.25;
 }
 
 /* ---------- Transcript ---------- */
 
-.epm-transcript__heading {
-	font-size: var(--epm-title-size, 22px);
-	margin: 0 0 12px;
-	color: var(--epm-text, #111827);
-}
-
 .epm-transcript__content {
 	color: var(--epm-text, #111827);
 	line-height: 1.7;
+	max-width: 65ch;
 }
 
 .epm-transcript--collapsible summary {
 	cursor: pointer;
+}
+
+.epm-transcript--collapsible[open] > .epm-transcript__summary {
+	margin-block-end: 12px;
+}
+
+/* The heading sits next to the disclosure marker. */
+.epm-transcript .epm-transcript__summary > .epm-transcript__heading {
+	display: inline;
+	margin: 0;
 }
 
 /* ---------- Subscribe links ---------- */
@@ -859,21 +1315,25 @@
 	gap: var(--epm-subscribe-gap, 12px);
 }
 
-.epm-subscribe__link {
+/* (0,2,0): theme link rules such as ".page-content a" (0,1,1) must not underline the pills. */
+.epm-subscribe .epm-subscribe__link {
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
+	min-height: 44px;
 	color: var(--epm-text-muted, #6b7280);
 	text-decoration: none;
 	border: 1px solid var(--epm-border, #e5e7eb);
-	border-radius: 999px;
+	border-radius: var(--epm-button-radius, 8px);
 	padding: 8px 16px;
 	font-size: var(--epm-meta-size, 14px);
 }
 
-.epm-subscribe__link:hover {
-	color: var(--epm-subscribe-hover, var(--epm-text, #111827));
-	border-color: currentColor;
+@media (hover: hover) and (pointer: fine) {
+	.epm-subscribe .epm-subscribe__link:hover {
+		color: var(--epm-subscribe-hover, var(--epm-text, #111827));
+		border-color: currentColor;
+	}
 }
 
 .epm-subscribe__icon svg {
@@ -884,11 +1344,23 @@
 
 /* ---------- Sticky player ---------- */
 
+/*
+ * While the bar is open, the page reserves its height (measured by the
+ * player engine into --epm-sticky-height), and focus scrolling keeps
+ * tabbed-to elements above it.
+ */
+html:has(.epm-sticky:not([hidden])) {
+	scroll-padding-block-end: calc(var(--epm-sticky-height, 64px) + 16px);
+}
+
+body:has(.epm-sticky:not([hidden])) {
+	padding-block-end: var(--epm-sticky-height, 64px);
+}
+
 .epm-sticky {
 	position: fixed;
-	left: 0;
-	right: 0;
-	bottom: 0;
+	inset-inline: 0;
+	inset-block-end: 0;
 	z-index: 9990;
 	display: flex;
 	align-items: center;
@@ -896,10 +1368,24 @@
 	background: var(--epm-surface, #f9fafb);
 	color: var(--epm-text, #111827);
 	border-top: 1px solid var(--epm-border, #e5e7eb);
-	padding: 10px 20px;
+	box-shadow: var(--epm-shadow, none);
+	padding: 10px 20px calc(10px + env(safe-area-inset-bottom, 0px));
 }
 
 .epm-sticky[hidden] {
+	display: none;
+}
+
+/* While it slides out, the closed bar no longer takes clicks. */
+.epm-sticky[hidden] * {
+	pointer-events: none;
+}
+
+.epm-sticky__artwork {
+	flex: 0 0 44px;
+}
+
+.epm-sticky__artwork:empty {
 	display: none;
 }
 
@@ -914,20 +1400,42 @@
 .epm-sticky__info {
 	flex: 1 1 auto;
 	min-width: 0;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	grid-template-areas:
+		"title time"
+		"timeline timeline";
+	column-gap: 12px;
+	align-items: baseline;
 }
 
 .epm-sticky__title {
-	margin: 0 0 4px;
+	grid-area: title;
+	margin: 0;
 	font-size: 14px;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
 }
 
+.epm-sticky.has-error .epm-sticky__title {
+	color: var(--epm-danger, #b91c1c);
+}
+
+.epm-sticky__time {
+	grid-area: time;
+	font-size: 12px;
+	color: var(--epm-text-muted, #6b7280);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
 .epm-sticky__timeline {
-	height: 16px;
+	grid-area: timeline;
+	height: 24px;
 	position: relative;
 	cursor: pointer;
+	touch-action: none;
 }
 
 .epm-sticky__track {
@@ -936,8 +1444,8 @@
 	right: 0;
 	top: 50%;
 	transform: translateY(-50%);
-	height: 3px;
-	background: var(--epm-border, #e5e7eb);
+	height: 4px;
+	background: var(--epm-track, var(--epm-text-muted, #6b7280));
 	border-radius: 999px;
 	overflow: hidden;
 }
@@ -948,8 +1456,21 @@
 	background: var(--epm-accent, #1d4ed8);
 }
 
+.epm-sticky__handle {
+	position: absolute;
+	top: 50%;
+	left: 0;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	background: var(--epm-accent, #1d4ed8);
+	transform: translate(-50%, -50%);
+	pointer-events: none;
+}
+
 .epm-sticky__controls {
 	display: flex;
+	flex: none;
 	align-items: center;
 	gap: 12px;
 }
@@ -981,11 +1502,37 @@
 	height: 22px;
 }
 
-.epm-sticky__time {
-	font-size: 12px;
-	color: var(--epm-text-muted, #6b7280);
-	font-variant-numeric: tabular-nums;
-	white-space: nowrap;
+.epm-sticky__controls .epm-sticky__close svg {
+	width: 18px;
+	height: 18px;
+}
+
+/*
+ * Phones: the timeline spans the bar's top edge, so the title keeps the
+ * width and the seek track keeps the full screen width.
+ */
+@media (max-width: 480px) {
+	.epm-sticky {
+		gap: 12px;
+		padding-inline: 12px;
+	}
+
+	.epm-sticky__info {
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-areas:
+			"title"
+			"time";
+	}
+
+	.epm-sticky__timeline {
+		position: absolute;
+		inset-inline: 0;
+		inset-block-start: -12px;
+	}
+
+	.epm-sticky__controls {
+		gap: 4px;
+	}
 }
 
 /* ---------- Episode header ---------- */
@@ -1016,16 +1563,18 @@
 	color: var(--epm-text-muted, #6b7280);
 }
 
-.epm-episode-header__title {
+/* (0,2,0): see the row title. */
+.epm-episode-header .epm-episode-header__title {
 	margin: 0 0 12px;
 	font-size: calc(var(--epm-title-size, 22px) * 1.6);
 	line-height: 1.15;
+	color: var(--epm-text, #111827);
 }
 
 .epm-episode-header__description {
 	color: var(--epm-text-muted, #6b7280);
 	margin-top: 12px;
-	max-width: 70ch;
+	max-width: 65ch;
 }
 
 /* ---------- Latest episode header (no player) ---------- */
@@ -1056,16 +1605,19 @@
 	min-width: 0;
 }
 
-.epm-latest__title {
+/* (0,2,0): see the row title. */
+.epm-latest .epm-latest__title {
 	margin: 0 0 8px;
 	font-size: var(--epm-title-size, 22px);
 	line-height: 1.25;
+	color: var(--epm-text, #111827);
 }
 
 .epm-latest__description {
 	color: var(--epm-text-muted, #6b7280);
 	font-size: var(--epm-meta-size, 14px);
 	margin: 8px 0 0;
+	max-width: 65ch;
 }
 
 .epm-podcast-hero__host {
@@ -1076,21 +1628,53 @@
 	margin: 0 0 12px;
 }
 
-.epm-podcast-hero__cta,
-.epm-latest__cta {
-	display: inline-block;
+/*
+ * Calls to action. .epm-cta (the latest-episode button, placed anywhere by
+ * shortcode) carries :not(#epm): it sits in theme content, where link rules
+ * set size, color and underline.
+ */
+.epm-cta:not(#epm),
+.epm-podcast-hero .epm-podcast-hero__cta,
+.epm-latest .epm-latest__cta {
+	box-sizing: border-box;
+	gap: 8px;
+	text-align: center;
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
 	background: var(--epm-accent, #1d4ed8);
 	color: var(--epm-on-accent, #ffffff);
-	border-radius: 999px;
+	border-radius: var(--epm-button-radius, 8px);
 	padding: 12px 28px;
 	text-decoration: none;
 	font-weight: 600;
 }
 
-.epm-podcast-hero__cta:hover,
-.epm-latest__cta:hover {
-	filter: brightness(1.08);
-	color: var(--epm-on-accent, #ffffff);
+/* Theme content sets link size, family and case; the button owns them. */
+.epm-cta:not(#epm) {
+	font-family: var(--epm-font, inherit);
+	font-size: 16px;
+	line-height: 1.25;
+	letter-spacing: normal;
+	text-transform: none;
+	text-wrap: balance;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.epm-cta:not(#epm):hover,
+	.epm-podcast-hero .epm-podcast-hero__cta:hover,
+	.epm-latest .epm-latest__cta:hover {
+		filter: brightness(1.08);
+		color: var(--epm-on-accent, #ffffff);
+	}
+}
+
+.epm-cta:not(#epm):focus-visible,
+.epm-podcast-hero .epm-podcast-hero__cta:focus-visible,
+.epm-latest .epm-latest__cta:focus-visible {
+	outline: 2px solid var(--epm-accent, #1d4ed8);
+	outline-offset: 3px;
+	box-shadow: none;
 }
 
 .epm-latest__cta-wrap {
@@ -1117,17 +1701,26 @@
 	color: var(--epm-text-muted, #6b7280);
 	text-decoration: none;
 	font-size: var(--epm-meta-size, 14px);
+	font-variant-numeric: tabular-nums;
 }
 
-.epm-pagination a:hover {
-	color: var(--epm-text, #111827);
-	border-color: var(--epm-text-muted, #6b7280);
+@media (hover: hover) and (pointer: fine) {
+	.epm-pagination a:hover {
+		color: var(--epm-text, #111827);
+		border-color: var(--epm-text-muted, #6b7280);
+	}
 }
 
 .epm-pagination .current {
 	background: var(--epm-accent, #1d4ed8);
 	border-color: var(--epm-accent, #1d4ed8);
 	color: var(--epm-on-accent, #ffffff);
+}
+
+/* "…" is not a page: no chip around it. */
+.epm-pagination .dots {
+	border-color: transparent;
+	padding-inline: 4px;
 }
 
 /* ---------- Responsive ---------- */
@@ -1138,10 +1731,15 @@
 		flex-direction: column;
 	}
 
-	.epm-player--artwork .epm-player__artwork,
-	.epm-player--full .epm-player__artwork {
+	.epm-player--artwork .epm-player__artwork {
 		width: 100%;
 		max-width: 320px;
+	}
+
+	/* Full shows everything else too: the artwork must not push the
+	   controls below the first screen. */
+	.epm-player--full .epm-player__artwork {
+		width: min(200px, 60%);
 	}
 
 	/*
@@ -1153,15 +1751,22 @@
 		width: 100%;
 	}
 
-	.epm-episode-row {
+	/* Meta and play move under the text, aligned with the title. */
+	.epm-episode-row__aside {
+		grid-column: 1 / -1;
+		align-self: start;
 		flex-wrap: wrap;
+		column-gap: 16px;
+		row-gap: 8px;
+		text-align: start;
 	}
 
-	.epm-episode-row__aside {
-		flex-direction: row;
-		align-items: center;
-		width: 100%;
-		text-align: left;
+	.epm-episode-row__aside .epm-meta {
+		white-space: normal;
+	}
+
+	.epm-episode-list--numbered .epm-episode-row__aside {
+		grid-column: 2 / -1;
 	}
 
 	.epm-podcast-hero {
@@ -1204,79 +1809,540 @@
 	}
 }
 
-@media (prefers-reduced-motion: reduce) {
-	.epm-player *,
-	.epm-sticky * {
-		transition: none;
+/* ---------- Title link (embed card) ---------- */
+
+.epm-player .epm-player__title-link {
+	color: inherit;
+	text-decoration: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.epm-player .epm-player__title-link:hover {
+		text-decoration: underline;
+		text-decoration-thickness: 1px;
+		text-underline-offset: 0.18em;
 	}
 }
 
-/* ------------------------------------------------------------------ */
-/* Player engine v2 additions: a11y, error states, touch targets.      */
-/* Flat specificity; no !important.                                    */
-/* ------------------------------------------------------------------ */
-
-/* Visually hidden (screen-reader live region). */
-.epm-sr-only {
-	position: absolute;
-	width: 1px;
-	height: 1px;
-	padding: 0;
-	margin: -1px;
-	overflow: hidden;
-	clip: rect(0, 0, 0, 0);
-	white-space: nowrap;
-	border: 0;
-}
-
-/* Inline error state with retry. */
-.epm-player__error {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	flex-wrap: wrap;
-	background: var(--epm-surface, #f9fafb);
-	border: 1px solid var(--epm-border, #e5e7eb);
-	border-left: 3px solid #b91c1c;
-	border-radius: 8px;
-	padding: 10px 14px;
-	font-size: var(--epm-meta-size, 14px);
-	color: var(--epm-text, #111827);
-}
-
-.epm-player__error[hidden] {
-	display: none;
-}
-
-.epm-player__error-msg {
-	flex: 1 1 auto;
-	min-width: 200px;
-}
-
-.epm-player__error-retry:not(#epm) {
-	flex: 0 0 auto;
+.epm-player .epm-player__title-link:focus-visible,
+.epm-video .epm-video__link:focus-visible {
+	outline: 2px solid var(--epm-accent, #1d4ed8);
+	outline-offset: 2px;
+	border-radius: 2px;
 	box-shadow: none;
+}
+
+.epm-topics .epm-topic:focus-visible {
+	outline: 2px solid var(--epm-accent, #1d4ed8);
+	outline-offset: 2px;
+}
+
+/* ---------- Share menu ---------- */
+
+/*
+ * A menu button at the trailing end of the secondary row. The menu hangs
+ * below it, aligned to its trailing edge (above it when the viewport has
+ * no room below). Radii are concentric: 12px menu = 6px items + 6px inset.
+ */
+.epm-player__secondary {
+	flex-wrap: wrap;
+	row-gap: 8px;
+}
+
+.epm-share {
+	position: relative;
+	margin-inline-start: auto;
+	font-size: 13px;
+}
+
+.epm-share__toggle:not(#epm) {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 32px;
 	margin: 0;
+	padding-block: 4px;
+	padding-inline: 10px 12px;
+	border: 1px solid var(--epm-track, var(--epm-text-muted, #6b7280));
+	border-radius: var(--epm-button-radius, 8px);
+	background: none;
+	box-shadow: none;
+	color: var(--epm-secondary-color, var(--epm-text-muted, #6b7280));
+	font: inherit;
+	font-size: 13px;
 	line-height: 1.2;
 	text-transform: none;
-	min-height: 44px;
-	padding: 8px 18px;
-	border-radius: 999px;
-	border: 1px solid var(--epm-accent, #1d4ed8);
-	background: var(--epm-accent, #1d4ed8);
-	color: var(--epm-on-accent, #ffffff);
-	font: inherit;
+	letter-spacing: normal;
 	cursor: pointer;
 }
 
-/* Init-failure fallback: reveal the native audio element. */
-.epm-player--fallback audio {
-	display: block;
-	width: 100%;
-	margin-top: 12px;
+@media (hover: hover) and (pointer: fine) {
+	.epm-share__toggle:not(#epm):hover {
+		color: var(--epm-secondary-hover, var(--epm-text, #111827));
+		border-color: var(--epm-text, #111827);
+	}
 }
 
-/* Minimum 44px touch targets are part of the button rules above. */
+.epm-share__toggle[aria-expanded="true"]:not(#epm),
+.epm-share__toggle.is-copied:not(#epm) {
+	color: var(--epm-text, #111827);
+	border-color: var(--epm-text, #111827);
+}
+
+
+.epm-share__toggle svg {
+	width: 16px;
+	height: 16px;
+	display: block;
+}
+
+.epm-share__icon-done {
+	color: var(--epm-accent, #1d4ed8);
+}
+
+/* Share ↔ check, and "Share" ↔ "Copied" in one cell (no width change). */
+.epm-share__icon-done,
+.is-copied > .epm-icon-swap > .epm-share__icon-idle,
+.epm-share__label-done,
+.is-copied > .epm-share__label > .epm-share__label-idle {
+	opacity: 0;
+}
+
+.is-copied > .epm-icon-swap > .epm-share__icon-done,
+.is-copied > .epm-share__label > .epm-share__label-done {
+	opacity: 1;
+}
+
+.epm-share__label {
+	display: inline-grid;
+}
+
+.epm-share__label > span {
+	grid-area: 1 / 1;
+	white-space: nowrap;
+}
+
+.epm-share__menu,
+.epm-share__manual {
+	position: absolute;
+	z-index: 30;
+	inset-block-start: calc(100% + 6px);
+	inset-inline-end: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-inline-size: 232px;
+	max-inline-size: min(320px, calc(100vw - 32px));
+	padding: 6px;
+	border-radius: 12px;
+	background: var(--epm-background, #ffffff);
+	color: var(--epm-text, #111827);
+	box-shadow:
+		0 0 0 1px var(--epm-border, #e5e7eb),
+		0 2px 6px -1px rgb(0 0 0 / 0.08),
+		0 14px 32px -6px rgb(0 0 0 / 0.2);
+}
+
+.epm-share--up .epm-share__menu,
+.epm-share--up .epm-share__manual {
+	inset-block-start: auto;
+	inset-block-end: calc(100% + 6px);
+}
+
+.epm-share__menu[hidden],
+.epm-share__manual[hidden] {
+	display: none;
+}
+
+.epm-share__item:not(#epm) {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	min-height: 40px;
+	margin: 0;
+	padding: 8px 10px;
+	border: 0;
+	border-radius: 6px;
+	background: none;
+	box-shadow: none;
+	color: var(--epm-text, #111827);
+	font: inherit;
+	font-size: 14px;
+	line-height: 1.3;
+	text-align: start;
+	text-transform: none;
+	letter-spacing: normal;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.epm-share__item[hidden]:not(#epm) {
+	display: none;
+}
+
+.epm-share__item svg {
+	flex: none;
+	width: 18px;
+	height: 18px;
+	color: var(--epm-text-muted, #6b7280);
+}
+
+.epm-share__item-label {
+	font-variant-numeric: tabular-nums;
+}
+
+/* Pointer and keyboard land on the same highlight. */
+.epm-share__item:not(#epm):focus {
+	background: var(--epm-surface, #f9fafb);
+	background: color-mix(in srgb, var(--epm-text, #111827) 8%, transparent);
+}
+
+/* Inside the menu the ring hugs the item. */
+.epm-share .epm-share__item:not(#epm):focus-visible {
+	outline-offset: -2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.epm-share__item:not(#epm):hover {
+		background: var(--epm-surface, #f9fafb);
+		background: color-mix(in srgb, var(--epm-text, #111827) 8%, transparent);
+	}
+}
+
+.epm-share__manual {
+	gap: 8px;
+	min-inline-size: 280px;
+	padding: 12px;
+}
+
+.epm-share__manual-label {
+	font-size: 13px;
+	line-height: 1.4;
+	color: var(--epm-text-muted, #6b7280);
+	text-wrap: pretty;
+}
+
+.epm-share__manual-field {
+	box-sizing: border-box;
+	width: 100%;
+	margin: 0;
+	padding: 8px 10px;
+	border: 1px solid var(--epm-track, var(--epm-text-muted, #6b7280));
+	border-radius: 6px;
+	background: var(--epm-surface, #f9fafb);
+	color: var(--epm-text, #111827);
+	font: 14px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	overflow-wrap: anywhere;
+	resize: none;
+	/* Themes animate every field property ("textarea { transition: all }"). */
+	transition: none;
+}
+
+.epm-share__manual-field:focus-visible {
+	outline: 2px solid var(--epm-accent, #1d4ed8);
+	outline-offset: 1px;
+}
+
+/* Touch: 44px targets where the row has room. */
+@media (pointer: coarse) {
+	.epm-share__toggle:not(#epm),
+	.epm-player__speed:not(#epm) {
+		min-height: 44px;
+	}
+
+	.epm-share__item:not(#epm) {
+		min-height: 44px;
+	}
+
+	/* iOS zooms into fields under 16px. */
+	.epm-share__manual-field {
+		font-size: 16px;
+	}
+}
+
+/* ---------- Video (click-to-load facade) ---------- */
+
+.epm-video {
+	margin: 0;
+	color: var(--epm-text, #111827);
+}
+
+.epm-video__frame {
+	position: relative;
+	aspect-ratio: 16 / 9;
+	overflow: hidden;
+	border-radius: var(--epm-radius, 12px);
+	background: #0b0b0c;
+	box-shadow: var(--epm-shadow, none);
+	isolation: isolate;
+}
+
+.epm-video__facade:not(#epm) {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	color: inherit;
+	cursor: pointer;
+}
+
+/* Square artwork, uncropped, over a soft fill of itself. */
+.epm-video__backdrop {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	filter: blur(32px) saturate(1.1);
+	transform: scale(1.2);
+	opacity: 0.5;
+}
+
+.epm-video__poster {
+	position: relative;
+	display: block;
+	width: auto;
+	height: 100%;
+	max-width: 100%;
+	object-fit: contain;
+	outline: 1px solid oklch(1 0 0 / 0.1);
+	outline-offset: -1px;
+}
+
+.epm-video__button {
+	position: absolute;
+	inset: 0;
+	margin: auto;
+	width: 72px;
+	height: 72px;
+	display: grid;
+	place-items: center;
+	border-radius: 50%;
+	/* Neutral glass: readable on any artwork, including accent-colored. */
+	background: rgb(0 0 0 / 0.64);
+	color: #ffffff;
+	box-shadow: 0 0 0 1px rgb(255 255 255 / 0.28), 0 10px 28px rgb(0 0 0 / 0.35);
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.epm-video__facade:hover .epm-video__button {
+		background: var(--epm-accent, #1d4ed8);
+		color: var(--epm-on-accent, #ffffff);
+	}
+}
+
+/* The play triangle's visual center sits right of its box center. */
+.epm-video__button svg {
+	width: 30px;
+	height: 30px;
+	translate: 2px 0;
+}
+
+/*
+ * The facade fills the frame, so its ring goes around the play button:
+ * white with a dark band behind it, visible on pale and dark artwork.
+ */
+.epm-video__facade:not(#epm):focus-visible {
+	outline: none;
+	box-shadow: none;
+}
+
+.epm-video__facade:focus-visible .epm-video__button {
+	outline: 3px solid #ffffff;
+	outline-offset: 2px;
+	box-shadow: 0 0 0 7px #0b0b0c, 0 10px 28px rgb(0 0 0 / 0.35);
+}
+
+.epm-video__media {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	border: 0;
+	background: #000000;
+}
+
+.epm-video__note {
+	margin: 8px 0 0;
+	font-style: normal;
+	font-size: var(--epm-meta-size, 14px);
+	color: var(--epm-text-muted, #6b7280);
+	text-wrap: pretty;
+}
+
+.epm-video.is-loaded .epm-video__note {
+	display: none;
+}
+
+.epm-video--link .epm-video__link {
+	color: var(--epm-accent, #1d4ed8);
+}
+
+/* ---------- Topics ---------- */
+
+.epm-topics {
+	list-style: none;
+	margin: 8px 0 0;
+	padding: 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+/* (0,2,0): theme link rules (0,1,1) must not restyle the chips. */
+.epm-topics .epm-topic {
+	display: inline-flex;
+	align-items: center;
+	min-height: 26px;
+	padding: 2px 10px;
+	border-radius: 999px;
+	box-shadow: inset 0 0 0 1px var(--epm-border, #e5e7eb);
+	color: var(--epm-text-muted, #6b7280);
+	font-size: 12px;
+	line-height: 1.3;
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.epm-topics a.epm-topic:hover {
+		color: var(--epm-text, #111827);
+		box-shadow: inset 0 0 0 1px var(--epm-text-muted, #6b7280);
+	}
+}
+
+/* ---------- Section surface (dark designs) ---------- */
+
+/*
+ * These sections paint no surface of their own and only set text colors.
+ * A dark design on a light theme page would put light text on a light
+ * page, so dark designs (DesignSettings::dark_vars()) give them the design
+ * background and inner padding. Without those tokens nothing changes:
+ * transparent, no padding. Inside a player or hero the container already
+ * is the surface. After .epm-subscribe and .epm-topics, which reset
+ * padding at the same specificity (0,1,0). The hero reads the same tokens
+ * in its own rule. The Episode Metadata widget's line and the video (for
+ * its note under the frame) are covered too.
+ */
+:where(.epm-show-notes, .epm-chapters, .epm-transcript, .epm-guest-block, .epm-guest:not(.epm-guest-block > .epm-guest), .epm-episode-header, .epm-latest__header, .epm-subscribe, .epm-episode-list--list, .epm-episode-list--editorial-rows, .epm-episode-list--minimal, .epm-episode-list__empty, .epm-pagination, .epm-episode-page > .epm-topics, .epm-meta--standalone, .epm-video):not(.epm-player *, .epm-podcast-hero *) {
+	background-color: var(--epm-section-background, transparent);
+	padding: var(--epm-section-padding, 0);
+	border-radius: var(--epm-radius, 12px);
+}
+
+/* The video frame keeps its radius inside the padding: concentric corners. */
+.epm-video:not(.epm-player *, .epm-podcast-hero *) {
+	border-radius: calc(var(--epm-radius, 12px) + var(--epm-section-padding, 0px));
+}
+
+/* ---------- Embed card (/podcast/{slug}/embed/) ---------- */
+
+.epm-embed-page {
+	margin: 0;
+	padding: 0;
+	background: transparent;
+	/* No theme in the frame: a system stack unless the design sets a font. */
+	font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+	font-size: 16px;
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+}
+
+.epm-embed {
+	display: block;
+}
+
+/*
+ * Fills the frame (WordPress embeds are at least 200px tall) and keeps one
+ * row of controls at every width, so a copied <iframe> never clips it.
+ */
+.epm-player.epm-player--embed {
+	--epm-artwork-size: 152px;
+	min-height: 100vh;
+	gap: 20px;
+	padding: 16px;
+	align-items: center;
+}
+
+.epm-player--embed .epm-player__main {
+	gap: 10px;
+}
+
+.epm-player--embed .epm-player__label {
+	font-size: 12px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.epm-player--embed .epm-player__title {
+	font-size: clamp(16px, calc(var(--epm-title-size, 22px) * 0.85), 20px);
+	line-height: 1.25;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+/*
+ * A linked title clamps on the link itself: an element's own focus ring is
+ * not clipped by its own overflow, so the whole ring shows.
+ */
+.epm-player--embed .epm-player__title:has(> .epm-player__title-link) {
+	display: block;
+	overflow: visible;
+}
+
+.epm-player--embed .epm-player__title-link {
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	width: fit-content;
+}
+
+.epm-player--embed .epm-player__controls {
+	flex-wrap: nowrap;
+}
+
+@container epm-player-main (max-width: 440px) {
+	.epm-player--embed .epm-player__controls {
+		flex-wrap: nowrap;
+	}
+
+	.epm-player--embed .epm-player__timeline-wrap {
+		order: 0;
+		flex: 1 1 auto;
+	}
+}
+
+@media (max-width: 520px) {
+	.epm-player.epm-player--embed {
+		--epm-artwork-size: 96px;
+		gap: 14px;
+		padding: 12px;
+	}
+
+	.epm-player--embed .epm-player__skip:not(#epm),
+	.epm-player--embed .epm-meta {
+		display: none;
+	}
+}
+
+@media (max-width: 340px) {
+	.epm-player--embed .epm-player__artwork {
+		display: none;
+	}
+}
 
 /* ---------- Automatic episode page ---------- */
 
@@ -1288,13 +2354,6 @@
 	margin-bottom: var(--epm-gap, 24px);
 }
 
-/* ---------- Empty states ---------- */
-
-.epm-episode-list__empty {
-	color: var(--epm-text-muted, #6b7280);
-	font-size: var(--epm-meta-size, 14px);
-}
-
 /* Elementor editor only: explains widgets that currently render nothing. */
 .epm-editor-placeholder {
 	padding: 16px;
@@ -1303,4 +2362,167 @@
 	color: var(--epm-text-muted, #6b7280);
 	font-size: 13px;
 	text-align: center;
+}
+
+/* ------------------------------------------------------------------ */
+/* Motion. Everything below is state feedback; nothing plays on load. */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Own the timing of every plugin control: no theme transition leaks in
+ * (and never onto the focus outline).
+ */
+:is(.epm-player__play, .epm-player__skip, .epm-player__speed, .epm-player__error-retry, .epm-episode-row__play, .epm-episode-card__play, .epm-sticky__controls button, .epm-chapters__seek, .epm-subscribe__link, .epm-podcast-hero__cta, .epm-latest__cta, .epm-cta, .epm-share__toggle, .epm-share__item, .epm-video__facade):not(#epm) {
+	transition: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	/* Color states fade; presses scale. Outline is deliberately absent. */
+	:is(.epm-player__play, .epm-player__skip, .epm-player__speed, .epm-player__error-retry, .epm-episode-row__play, .epm-episode-card__play, .epm-sticky__controls button, .epm-chapters__seek, .epm-subscribe__link, .epm-podcast-hero__cta, .epm-latest__cta, .epm-cta, .epm-share__toggle, .epm-share__item, .epm-video__facade):not(#epm) {
+		transition-property: color, background-color, border-color, scale;
+		transition-duration: 150ms;
+		transition-timing-function: var(--epm-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+	}
+
+	/* Press feedback on the play controls and the share button. */
+	:is(.epm-player__play, .epm-sticky__play, .epm-episode-row__play, .epm-episode-card__play, .epm-player__error-retry, .epm-share__toggle):not(#epm):active {
+		scale: 0.96;
+	}
+
+	/* Play ↔ pause: the leaving glyph shrinks and blurs out as the other arrives. */
+	.epm-icon-swap > span {
+		transition-property: opacity, scale, filter;
+		transition-duration: 300ms;
+		transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+	}
+
+	.epm-icon-swap > .epm-player__icon-pause,
+	.is-playing > .epm-icon-swap > .epm-player__icon-play {
+		scale: 0.25;
+		filter: blur(4px);
+	}
+
+	.is-playing > .epm-icon-swap > .epm-player__icon-pause {
+		scale: 1;
+		filter: blur(0);
+	}
+
+	/* Copied: the share glyph gives way to a check, the label to "Copied". */
+	.epm-share__icon-done,
+	.is-copied > .epm-icon-swap > .epm-share__icon-idle {
+		scale: 0.25;
+		filter: blur(4px);
+	}
+
+	.is-copied > .epm-icon-swap > .epm-share__icon-done {
+		scale: 1;
+		filter: blur(0);
+	}
+
+	.epm-share__label > span {
+		transition-property: opacity, translate;
+		transition-duration: 150ms;
+		transition-timing-function: var(--epm-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+	}
+
+	.epm-share__label-done {
+		translate: 0 4px;
+	}
+
+	.is-copied > .epm-share__label > .epm-share__label-idle {
+		translate: 0 -4px;
+	}
+
+	.is-copied > .epm-share__label > .epm-share__label-done {
+		translate: 0 0;
+	}
+
+	/* The video's play button answers the pointer; the frame stays put. */
+	.epm-video__button {
+		transition-property: scale, background-color, color;
+		transition-duration: 150ms;
+		transition-timing-function: var(--epm-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+	}
+
+	@media (hover: hover) and (pointer: fine) {
+		.epm-video__facade:hover .epm-video__button {
+			scale: 1.04;
+		}
+	}
+
+	.epm-video__facade:active .epm-video__button {
+		scale: 0.96;
+	}
+
+	/* Sticky bar: enters from and returns to the bottom edge it docks to. */
+	.epm-sticky {
+		transition-property: translate, display;
+		transition-duration: 300ms;
+		transition-timing-function: var(--epm-ease-drawer, cubic-bezier(0.32, 0.72, 0, 1));
+		transition-behavior: allow-discrete;
+	}
+
+	.epm-sticky[hidden] {
+		translate: 0 100%;
+		transition-duration: 200ms;
+		transition-timing-function: var(--epm-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+	}
+
+	/* The shell is [hidden] at page load, so this never runs on render. */
+	@starting-style {
+		.epm-sticky:not([hidden]) {
+			translate: 0 100%;
+		}
+	}
+
+	/* Active chapter marker grows in place; the row itself never moves. */
+	.epm-chapters__item::before {
+		scale: 1 0;
+		transition-property: scale, opacity;
+		transition-duration: 200ms;
+		transition-timing-function: var(--epm-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+	}
+
+	.epm-chapters__item.is-active::before {
+		scale: 1 1;
+	}
+}
+
+/* Reduced motion: no movement, only short opacity and color fades. */
+@media (prefers-reduced-motion: reduce) {
+	:is(.epm-player__play, .epm-player__skip, .epm-player__speed, .epm-player__error-retry, .epm-episode-row__play, .epm-episode-card__play, .epm-sticky__controls button, .epm-chapters__seek, .epm-subscribe__link, .epm-podcast-hero__cta, .epm-latest__cta, .epm-cta, .epm-share__toggle, .epm-share__item, .epm-video__facade):not(#epm) {
+		transition-property: color, background-color, border-color, opacity;
+		transition-duration: 100ms;
+		transition-timing-function: ease-out;
+	}
+
+	:is(.epm-player__play, .epm-sticky__play, .epm-episode-row__play, .epm-episode-card__play, .epm-player__error-retry):not(#epm):active {
+		opacity: 0.8;
+	}
+
+	.epm-icon-swap > span,
+	.epm-share__label > span {
+		transition: opacity 100ms ease-out;
+	}
+
+	.epm-sticky {
+		transition-property: opacity, display;
+		transition-duration: 150ms;
+		transition-timing-function: ease-out;
+		transition-behavior: allow-discrete;
+	}
+
+	.epm-sticky[hidden] {
+		opacity: 0;
+	}
+
+	@starting-style {
+		.epm-sticky:not([hidden]) {
+			opacity: 0;
+		}
+	}
+
+	.epm-chapters__item::before {
+		transition: opacity 150ms ease-out;
+	}
 }

@@ -1,0 +1,964 @@
+/**
+ * Elementor Podcast Manager — Design screen.
+ *
+ * Builds on the shared app components (epm-app.css). The live preview
+ * renders the real frontend components (epm-frontend.css) inside
+ * .epm-design-preview__canvas, whose inline --epm-* variables
+ * admin/js/epm-design.js updates as fields change.
+ *
+ * Motion: only the confirmation dialog animates (opens rarely). Field
+ * changes, tile selection and the preview update instantly: they happen
+ * dozens of times per session.
+ */
+
+.epm-app.epm-design {
+	max-width: 1480px;
+	container: epm-design / inline-size;
+}
+
+.epm-design .wp-heading-inline {
+	margin-block-end: 0;
+}
+
+.epm-design__lede {
+	max-inline-size: 65ch;
+	margin: 4px 0 20px;
+	color: var(--epm-app-muted);
+	font-size: 14px;
+	line-height: 1.55;
+	text-wrap: pretty;
+}
+
+/* ---------- Layout: form column + sticky preview ---------- */
+
+.epm-design__layout {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 24px;
+}
+
+/* One column: the preview follows the presets, so the first thing a
+   selected preset changes is right below it. */
+.epm-design__main {
+	display: contents;
+}
+
+.epm-design__presets {
+	order: 1;
+}
+
+.epm-design__preview {
+	order: 2;
+	min-inline-size: 0;
+}
+
+.epm-design__form {
+	order: 3;
+}
+
+.epm-design-summary {
+	order: 4;
+}
+
+.epm-design__io {
+	order: 5;
+}
+
+@container epm-design (min-width: 1000px) {
+	.epm-design__layout {
+		grid-template-columns: minmax(0, 1fr) minmax(400px, 44%);
+		align-items: start;
+	}
+
+	.epm-design__main {
+		display: grid;
+		gap: 24px;
+		min-inline-size: 0;
+	}
+
+	.epm-design__preview {
+		position: sticky;
+		top: calc(var(--wp-admin--admin-bar--height, 32px) + 16px);
+	}
+
+	.epm-design-preview__viewport {
+		max-block-size: calc(100vh - var(--wp-admin--admin-bar--height, 32px) - 190px);
+	}
+}
+
+.epm-design .epm-card {
+	margin: 0;
+}
+
+.epm-design .epm-card + .epm-card,
+.epm-design .epm-card + .epm-section {
+	margin-block-start: 0;
+}
+
+.epm-design__form {
+	display: grid;
+	gap: 24px;
+	min-inline-size: 0;
+}
+
+/* ---------- Preset gallery ---------- */
+
+.epm-presets {
+	min-inline-size: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.epm-presets__legend {
+	padding: 0;
+}
+
+.epm-presets__grid {
+	display: grid;
+	gap: 12px;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
+}
+
+/* Outer radius 12 = swatch radius 4 + padding 8. */
+.epm-preset {
+	position: relative;
+	display: grid;
+	align-content: start;
+	gap: 8px;
+	padding: 8px 8px 12px;
+	border-radius: 12px;
+	background: var(--epm-app-surface);
+	box-shadow: 0 0 0 1px var(--epm-app-line);
+	cursor: pointer;
+}
+
+.epm-preset:has(.epm-preset__input:checked) {
+	background: var(--epm-app-accent-soft);
+	box-shadow: 0 0 0 2px var(--epm-app-accent);
+}
+
+.epm-preset:has(.epm-preset__input:focus-visible) {
+	outline: 2px solid var(--epm-app-accent);
+	outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.epm-preset:hover:not(:has(.epm-preset__input:checked)) {
+		box-shadow: 0 0 0 1px var(--epm-app-line-strong), 0 2px 8px rgb(0 0 0 / 0.06);
+	}
+}
+
+/* Mini swatch: the preset's own background, surface, text, muted, track,
+   accent, radii, button shape, shadow and font (inline --epm-* vars). */
+.epm-preset__swatch {
+	display: grid;
+	align-content: center;
+	gap: 8px;
+	aspect-ratio: 16 / 10;
+	padding: 10px;
+	overflow: hidden;
+	border-radius: 4px;
+	background: var(--epm-background, #fff);
+	box-shadow: inset 0 0 0 1px oklch(0 0 0 / 0.08);
+	font-family: var(--epm-font, inherit);
+}
+
+.epm-preset__surface {
+	display: grid;
+	grid-template-columns: 30px minmax(0, 1fr);
+	align-items: center;
+	gap: 8px;
+	padding: 8px;
+	border-radius: min(var(--epm-radius, 12px), 10px);
+	background: var(--epm-surface, #f9fafb);
+	box-shadow: var(--epm-shadow, none), 0 0 0 1px var(--epm-border, #e5e7eb);
+}
+
+.epm-preset__art {
+	inline-size: 30px;
+	aspect-ratio: 1;
+	border-radius: min(var(--epm-artwork-radius, 8px), 8px);
+	background: linear-gradient(135deg, var(--epm-accent, #1d4ed8), var(--epm-text, #111827));
+}
+
+.epm-preset__lines {
+	display: grid;
+	gap: 5px;
+	min-inline-size: 0;
+}
+
+.epm-preset__title {
+	color: var(--epm-text, #111827);
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1;
+}
+
+.epm-preset__muted {
+	inline-size: 70%;
+	block-size: 4px;
+	border-radius: 2px;
+	background: var(--epm-text-muted, #6b7280);
+}
+
+.epm-preset__track {
+	position: relative;
+	block-size: 3px;
+	overflow: hidden;
+	border-radius: 2px;
+	background: var(--epm-track, var(--epm-text-muted, #6b7280));
+}
+
+.epm-preset__track > span {
+	position: absolute;
+	inset-block: 0;
+	inset-inline-start: 0;
+	inline-size: 45%;
+	background: var(--epm-accent, #1d4ed8);
+}
+
+.epm-preset__button {
+	display: grid;
+	place-items: center;
+	justify-self: start;
+	inline-size: 56px;
+	block-size: 16px;
+	border-radius: min(var(--epm-button-radius, 8px), 8px);
+	background: var(--epm-accent, #1d4ed8);
+}
+
+/* The label line in the button: text-on-accent color. */
+.epm-preset__button::before {
+	content: "";
+	inline-size: 24px;
+	block-size: 3px;
+	border-radius: 2px;
+	background: var(--epm-on-accent, #fff);
+}
+
+.epm-preset__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px 8px;
+	padding-inline: 4px;
+}
+
+.epm-preset__input {
+	margin: 0;
+}
+
+.epm-preset__name {
+	font-weight: 600;
+	line-height: 1.3;
+}
+
+.epm-preset__badge {
+	padding: 1px 8px;
+	border-radius: 999px;
+	background: var(--epm-app-ok-soft);
+	color: var(--epm-app-ok);
+	font-size: 11px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+/* Shown in full: tiles in a grid row stretch to the same height. */
+.epm-preset__desc {
+	padding-inline: 4px;
+	color: var(--epm-app-muted);
+	font-size: 12px;
+	line-height: 1.45;
+	text-wrap: pretty;
+}
+
+.epm-presets__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 16px;
+	margin-block-start: 16px;
+}
+
+.epm-presets__note {
+	margin: 0;
+	color: var(--epm-app-muted);
+}
+
+/* ---------- Fields ---------- */
+
+.epm-design__fields {
+	display: grid;
+	gap: 20px 24px;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+}
+
+.epm-design-field {
+	min-inline-size: 0;
+	margin: 0;
+}
+
+.epm-design-field__label {
+	display: block;
+	margin-block-end: 6px;
+	padding: 0;
+	font-weight: 600;
+	line-height: 1.4;
+}
+
+.epm-design-field .description {
+	max-inline-size: 65ch;
+	margin: 6px 0 0;
+	text-wrap: pretty;
+}
+
+.epm-design-field select {
+	inline-size: 100%;
+	max-inline-size: 320px;
+}
+
+/* Color: swatch picker + hex field. */
+.epm-color__control {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.epm-color__picker {
+	inline-size: 44px;
+	block-size: 36px;
+	padding: 3px;
+	border: 1px solid var(--epm-app-line-strong);
+	border-radius: 6px;
+	background: #fff;
+	cursor: pointer;
+}
+
+.epm-color__picker::-webkit-color-swatch-wrapper {
+	padding: 0;
+}
+
+.epm-color__picker::-webkit-color-swatch {
+	border: 0;
+	border-radius: 3px;
+	box-shadow: inset 0 0 0 1px oklch(0 0 0 / 0.1);
+}
+
+.epm-color__picker:disabled {
+	cursor: not-allowed;
+	opacity: 0.5;
+}
+
+.epm-color__picker:focus-visible {
+	outline: 2px solid var(--epm-app-accent);
+	outline-offset: 2px;
+}
+
+/* Beats .epm-app input[type="text"] (full width): swatch and hex share a line. */
+.epm-app .epm-color__control .epm-color__hex {
+	flex: 0 0 auto;
+	inline-size: 11ch;
+	font-variant-numeric: tabular-nums;
+}
+
+.epm-color__hex[readonly] {
+	background: var(--epm-app-canvas);
+	color: var(--epm-app-subtle);
+}
+
+.epm-color__auto {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-block-size: 24px;
+}
+
+.epm-color__auto input {
+	margin: 0;
+}
+
+/* Pixel fields. */
+.epm-unit {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.epm-unit input {
+	inline-size: 88px;
+	font-variant-numeric: tabular-nums;
+}
+
+.epm-unit__suffix {
+	color: var(--epm-app-muted);
+}
+
+/* Choice chips (button shape, shadow, font): radio groups. */
+.epm-chips {
+	grid-column: 1 / -1;
+	padding: 0;
+	border: 0;
+}
+
+.epm-chips__row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.epm-chip {
+	position: relative;
+	display: inline-grid;
+	justify-items: center;
+	align-content: center;
+	gap: 8px;
+	min-inline-size: 92px;
+	min-block-size: 44px;
+	padding: 12px 12px 8px;
+	border-radius: 8px;
+	background: var(--epm-app-surface);
+	box-shadow: 0 0 0 1px var(--epm-app-line-strong);
+	cursor: pointer;
+}
+
+.epm-chip input {
+	position: absolute;
+	inset: 0;
+	inline-size: 100%;
+	block-size: 100%;
+	margin: 0;
+	opacity: 0;
+	cursor: pointer;
+}
+
+.epm-chip:has(input:checked) {
+	background: var(--epm-app-accent-soft);
+	box-shadow: 0 0 0 2px var(--epm-app-accent);
+}
+
+.epm-chip:has(input:checked) .epm-chip__label {
+	font-weight: 600;
+}
+
+.epm-chip:has(input:focus-visible) {
+	outline: 2px solid var(--epm-app-accent);
+	outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.epm-chip:hover:not(:has(input:checked)) {
+		box-shadow: 0 0 0 1px var(--epm-app-text);
+	}
+}
+
+.epm-chip__label {
+	line-height: 1.3;
+	white-space: nowrap;
+}
+
+.epm-chip__sample {
+	display: grid;
+	place-items: center;
+}
+
+.epm-chips--button_shape .epm-chip__sample {
+	inline-size: 56px;
+	block-size: 22px;
+	border-radius: var(--epm-sample-radius, 8px);
+	background: var(--epm-app-text);
+}
+
+.epm-chips--shadow .epm-chip__sample {
+	inline-size: 52px;
+	block-size: 30px;
+	border-radius: 6px;
+	background: #fff;
+	box-shadow: var(--epm-sample-shadow, none), 0 0 0 1px var(--epm-app-line);
+}
+
+.epm-chips--shadow .epm-chip {
+	background: var(--epm-app-canvas);
+}
+
+.epm-chips--font_family .epm-chip__sample {
+	min-block-size: 26px;
+	font-family: var(--epm-sample-font, inherit);
+	font-size: 22px;
+	line-height: 1;
+}
+
+/* Contrast check. */
+.epm-contrast-check {
+	margin-block-start: 24px;
+	padding-block-start: 16px;
+	border-block-start: 1px solid var(--epm-app-line);
+}
+
+.epm-design__subheading {
+	margin: 0 0 4px;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.epm-contrast-check > .description {
+	max-inline-size: 65ch;
+	margin: 0 0 8px;
+	text-wrap: pretty;
+}
+
+.epm-contrast-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.epm-contrast-item {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 12px;
+	margin: 0;
+	padding: 8px 0;
+}
+
+.epm-contrast-item + .epm-contrast-item {
+	border-block-start: 1px solid var(--epm-app-line);
+}
+
+.epm-contrast-item__sample {
+	display: grid;
+	place-items: center;
+	inline-size: 44px;
+	block-size: 28px;
+	border-radius: 4px;
+	box-shadow: inset 0 0 0 1px oklch(0 0 0 / 0.1);
+	font-weight: 600;
+}
+
+.epm-contrast-item__label {
+	flex: 1 1 160px;
+	min-inline-size: 0;
+}
+
+.epm-contrast-item__ratio {
+	min-inline-size: 5ch;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	text-align: end;
+}
+
+.epm-contrast-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 10px 2px 6px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.6;
+	white-space: nowrap;
+}
+
+.epm-contrast-badge__icon::before {
+	display: block;
+	font: normal 16px/1 dashicons;
+}
+
+.epm-contrast-item.is-pass .epm-contrast-badge {
+	background: var(--epm-app-ok-soft);
+	color: var(--epm-app-ok);
+}
+
+.epm-contrast-item.is-pass .epm-contrast-badge__icon::before {
+	content: "\f147" / "";
+}
+
+.epm-contrast-item.is-fail .epm-contrast-badge {
+	background: var(--epm-app-error-soft);
+	color: var(--epm-app-error);
+}
+
+.epm-contrast-item.is-fail .epm-contrast-badge__icon::before {
+	content: "\f534" / "";
+}
+
+/* Save bar: stays in reach while the form scrolls. */
+.epm-design__savebar {
+	position: sticky;
+	bottom: 0;
+	z-index: 5;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px 12px;
+	padding: 12px 16px;
+	border-radius: var(--epm-app-radius);
+	background: var(--epm-app-surface);
+	box-shadow: 0 0 0 1px var(--epm-app-line), 0 -4px 16px rgb(0 0 0 / 0.06);
+}
+
+/* Keyboard focus scrolls fields clear of the sticky save bar. */
+html:has(.epm-design__savebar) {
+	scroll-padding-block-end: 96px;
+}
+
+@media (max-width: 782px) {
+	html:has(.epm-design__savebar) {
+		scroll-padding-block-end: 112px;
+	}
+}
+
+.epm-design__dirty {
+	margin: 0 auto 0 0;
+	color: var(--epm-app-warn);
+	font-weight: 600;
+}
+
+.epm-design__savebar .button {
+	margin: 0;
+}
+
+/* Summary of changes and behavior defaults. */
+.epm-design-summary > summary {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 4px 16px;
+	min-block-size: 44px;
+	font-size: 14px;
+	cursor: pointer;
+	list-style: none;
+}
+
+.epm-design-summary > summary::-webkit-details-marker {
+	display: none;
+}
+
+.epm-design-summary__title::before {
+	content: "";
+	display: inline-block;
+	inline-size: 7px;
+	block-size: 7px;
+	margin-inline-end: 10px;
+	border-block-end: 2px solid currentColor;
+	border-inline-end: 2px solid currentColor;
+	transform: translateY(-2px) rotate(-45deg);
+}
+
+[dir="rtl"] .epm-design-summary__title::before {
+	transform: translateY(-2px) rotate(135deg);
+}
+
+.epm-design-summary[open] .epm-design-summary__title::before {
+	transform: translateY(-3px) rotate(45deg);
+}
+
+.epm-design-summary > summary:focus-visible {
+	outline: 2px solid var(--epm-app-accent);
+	outline-offset: 4px;
+	border-radius: 2px;
+}
+
+.epm-design-summary__count {
+	color: var(--epm-app-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.epm-design-summary__body h3 {
+	margin: 20px 0 6px;
+	font-size: 14px;
+}
+
+.epm-design-summary__body h4 {
+	margin: 16px 0 6px;
+	font-size: 13px;
+	color: var(--epm-app-muted);
+}
+
+.epm-design-changes {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.epm-design-changes li {
+	margin: 0;
+	padding: 2px 10px;
+	border-radius: 999px;
+	background: var(--epm-app-warn-soft);
+	color: var(--epm-app-warn);
+	font-weight: 600;
+}
+
+.epm-design-flags {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+	gap: 0 24px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.epm-design-flags li {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin: 0;
+	padding: 6px 0;
+	border-block-end: 1px solid var(--epm-app-line);
+}
+
+/* Export / import. */
+.epm-design__io-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+	gap: 24px 32px;
+}
+
+.epm-design__io-grid h3 {
+	margin: 0 0 4px;
+	font-size: 14px;
+}
+
+.epm-design__io-grid .description {
+	margin: 0 0 12px;
+	max-inline-size: 60ch;
+}
+
+.epm-design__io-grid label {
+	display: block;
+	margin-block-end: 4px;
+	font-weight: 600;
+}
+
+.epm-design__io-grid input[type="file"] {
+	max-inline-size: 100%;
+	margin-block-end: 6px;
+}
+
+/* ---------- Confirmation dialog ---------- */
+
+.epm-dialog {
+	inline-size: min(480px, calc(100vw - 32px));
+	padding: 24px;
+	border: 0;
+	border-radius: 12px;
+	background: var(--epm-app-surface);
+	color: var(--epm-app-text);
+	box-shadow: 0 0 0 1px rgb(0 0 0 / 0.06), 0 16px 48px rgb(0 0 0 / 0.24);
+	overscroll-behavior: contain;
+}
+
+.epm-dialog::backdrop {
+	background: rgb(0 0 0 / 0.45);
+}
+
+.epm-dialog__title {
+	margin: 0 0 8px;
+	font-size: 18px;
+	line-height: 1.3;
+	text-wrap: balance;
+}
+
+.epm-dialog__text {
+	margin: 0 0 8px;
+	line-height: 1.55;
+	text-wrap: pretty;
+}
+
+.epm-dialog__warn {
+	color: var(--epm-app-warn);
+	font-weight: 600;
+}
+
+.epm-dialog__actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 12px;
+	margin-block-start: 20px;
+}
+
+/* ---------- Live preview ---------- */
+
+/* The panel (radius 12) and the viewport inside it (radius 8) sit 16px
+   apart, so they are separate surfaces rather than concentric ones. */
+.epm-design-preview {
+	display: grid;
+	gap: 12px;
+	padding: 16px;
+	border-radius: 12px;
+	background: var(--epm-app-surface);
+	box-shadow: var(--epm-app-shadow), 0 0 0 1px var(--epm-app-line);
+}
+
+.epm-design-preview__bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px 12px;
+}
+
+.epm-design-preview__title {
+	margin: 0;
+	font-size: 16px;
+	font-weight: 600;
+}
+
+.epm-design-preview__status {
+	margin: -8px 0 0;
+	color: var(--epm-app-muted);
+}
+
+.epm-design-preview__preset {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px 12px;
+	padding: 8px 12px;
+	border-radius: 8px;
+	background: var(--epm-app-accent-soft);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--epm-app-accent) 30%, transparent);
+}
+
+.epm-design-preview__preset p {
+	margin: 0;
+	text-wrap: pretty;
+}
+
+.epm-design-preview__viewport {
+	overflow: auto;
+	border-radius: 8px;
+	background: repeating-conic-gradient(var(--epm-app-canvas) 0% 25%, #fff 0% 50%) 0 0 / 16px 16px;
+	box-shadow: inset 0 0 0 1px var(--epm-app-line);
+	overscroll-behavior: contain;
+}
+
+.epm-design-preview__canvas {
+	display: grid;
+	gap: 12px;
+	margin-inline: auto;
+	padding: 20px;
+	background: var(--epm-background, #fff);
+	color: var(--epm-text, #111827);
+	/* Stands in for the theme's body font when the design inherits it. */
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	font-size: 16px;
+	line-height: 1.5;
+}
+
+.epm-design-preview__label {
+	margin: 12px 0 0;
+	color: var(--epm-text-muted, #6b7280);
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.epm-design-preview__label:first-child {
+	margin-block-start: 0;
+}
+
+/* WordPress admin element styles (p, h3, a …) must not leak into the
+   frontend components: these resets have element specificity (0,0,1), so
+   they beat the admin rules by load order and lose to every class-based
+   frontend rule, exactly as a theme's base styles would. */
+:where(.epm-design-preview__canvas) :is(h1, h2, h3, h4, p, ul, ol, li, figure) {
+	margin: 0;
+	padding: 0;
+	color: inherit;
+	font-size: inherit;
+	font-weight: inherit;
+	line-height: inherit;
+}
+
+:where(.epm-design-preview__canvas) :is(h1, h2, h3, h4) {
+	font-weight: 600;
+}
+
+:where(.epm-design-preview__canvas) :is(ul, ol) {
+	list-style: none;
+}
+
+:where(.epm-design-preview__canvas) a {
+	color: inherit;
+}
+
+:where(.epm-design-preview__canvas) button {
+	font-family: inherit;
+}
+
+/* Same effect as body.epm-custom-font on the site. */
+.epm-design-preview__canvas.has-custom-font :where(.epm-player, .epm-episode-list, .epm-subscribe) :is(h1, h2, h3, h4, h5, h6, button, summary) {
+	font-family: inherit;
+}
+
+.epm-design-preview__foot {
+	margin: 0;
+	color: var(--epm-app-muted);
+	font-size: 12px;
+	text-wrap: pretty;
+}
+
+@media (max-width: 600px) {
+	.epm-design__savebar {
+		justify-content: stretch;
+	}
+
+	.epm-design__savebar .button-primary {
+		flex: 1 1 auto;
+	}
+
+	.epm-chip {
+		min-inline-size: 84px;
+	}
+}
+
+/* ---------- Motion (opt-in) ---------- */
+
+@media (prefers-reduced-motion: no-preference) {
+	.epm-dialog[open] {
+		transition: opacity 200ms var(--epm-ease-out), transform 200ms var(--epm-ease-out);
+	}
+
+	@starting-style {
+		.epm-dialog[open] {
+			opacity: 0;
+			transform: scale(0.96);
+		}
+	}
+
+	.epm-design-summary__title::before {
+		transition: transform 150ms var(--epm-ease-out);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.epm-dialog[open] {
+		transition: opacity 150ms ease-out;
+	}
+
+	@starting-style {
+		.epm-dialog[open] {
+			opacity: 0;
+		}
+	}
+}
+
+@media (forced-colors: active) {
+	.epm-preset:has(.epm-preset__input:checked),
+	.epm-chip:has(input:checked) {
+		outline: 2px solid Highlight;
+	}
+}

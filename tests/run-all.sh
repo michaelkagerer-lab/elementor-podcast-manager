@@ -3,6 +3,16 @@
 # Provision a disposable WordPress + Elementor site and run every suite:
 # lint, integration (WP-CLI), HTTP and browser (Playwright) tests.
 #
+# Suites are discovered, so a new file is picked up without editing this
+# script:
+#   integration  tests/integration/*.php  (run.php first; lib.php is shared code)
+#   browser      tests/e2e/*.mjs          (run.mjs first; lib.mjs, helpers.mjs
+#                                          and _*.mjs are shared code)
+#
+# The fixtures are seeded again before every suite, so each one starts from
+# the same site. Every suite runs even when an earlier one failed; the exit
+# code is non-zero when any suite failed or the plugin raised a PHP notice.
+#
 # Usage: tests/run-all.sh            (all suites)
 #        SKIP_E2E=1 tests/run-all.sh (no browser)
 #
@@ -12,32 +22,82 @@ export WP_DIR="${WP_DIR:-/tmp/epm-wp}"
 export WP_PORT="${WP_PORT:-8889}"
 export WP_URL="http://localhost:$WP_PORT"
 export WP_CLI="$WP_DIR/wp"
+DEBUG_LOG="$WP_DIR/site/wp-content/debug.log"
+
+FAILED=()
+
+# Seed the fixtures (deletes every episode on the test site).
+seed() {
+	EPM_ALLOW_TEST_SEED=1 "$WP_CLI" eval-file "$ROOT/tests/fixtures/seed.php" > /dev/null
+}
+
+# Suite files in a directory: the main suite first, then the rest in
+# alphabetical order, without the shared helper files.
+suites() {
+	local dir="$1" ext="$2" first="$3" file name
+	shift 3
+	[ -f "$dir/$first" ] && echo "$dir/$first"
+	for file in "$dir"/*."$ext"; do
+		[ -f "$file" ] || continue
+		name="$(basename "$file")"
+		case "$name" in
+			"$first" | _*) continue ;;
+		esac
+		local helper skip=""
+		for helper in "$@"; do
+			[ "$name" = "$helper" ] && skip=1
+		done
+		[ -z "$skip" ] && echo "$file"
+	done
+	return 0
+}
 
 "$ROOT/tests/bin/lint.sh"
+
+# Only this run's notices count.
+[ -f "$DEBUG_LOG" ] && : > "$DEBUG_LOG"
 "$ROOT/tests/bin/setup-wp.sh"
 
-echo; echo "== Fixtures"
-EPM_ALLOW_TEST_SEED=1 "$WP_CLI" eval-file "$ROOT/tests/fixtures/seed.php"
-
 echo; echo "== Integration tests"
-"$WP_CLI" eval-file "$ROOT/tests/integration/run.php"
+while IFS= read -r suite; do
+	echo; echo "-- integration/$(basename "$suite")"
+	seed
+	"$WP_CLI" eval-file "$suite" || FAILED+=("integration/$(basename "$suite")")
+done < <(suites "$ROOT/tests/integration" php run.php lib.php)
 
 echo; echo "== HTTP tests"
-"$ROOT/tests/http/run.sh"
+seed
+"$ROOT/tests/http/run.sh" || FAILED+=("http/run.sh")
 
 if [ -z "${SKIP_E2E:-}" ]; then
 	echo; echo "== Browser tests"
 	cd "$ROOT/tests/e2e"
 	[ -d node_modules/playwright ] || npm install --no-audit --no-fund
-	node run.mjs
+	while IFS= read -r suite; do
+		echo; echo "-- e2e/$(basename "$suite")"
+		seed
+		node "$suite" || FAILED+=("e2e/$(basename "$suite")")
+	done < <(suites "$ROOT/tests/e2e" mjs run.mjs lib.mjs helpers.mjs)
+	cd "$ROOT"
 fi
+
+# Leave the site seeded for manual checks.
+seed
 
 echo; echo "== PHP notices from the plugin"
 # Only notices raised in the plugin's own files (not WordPress, Elementor
 # or WP-CLI), or _doing_it_wrong calls naming the plugin.
-if grep -E "PHP (Warning|Notice|Fatal error|Deprecated)" "$WP_DIR/site/wp-content/debug.log" 2>/dev/null \
+if grep -E "PHP (Warning|Notice|Fatal error|Deprecated)" "$DEBUG_LOG" 2>/dev/null \
 	| grep -F -e "$ROOT/" -e "plugins/elementor-podcast-manager/" -e "epm_" -e "EPM\\"; then
 	echo "The plugin produced PHP notices (see above)."
+	FAILED+=("PHP notices")
+else
+	echo "None."
+fi
+
+echo
+if [ "${#FAILED[@]}" -gt 0 ]; then
+	echo "Failed: ${FAILED[*]}"
 	exit 1
 fi
-echo "None."
+echo "All suites passed."

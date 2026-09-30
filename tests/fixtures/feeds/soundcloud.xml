@@ -1,0 +1,103 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:atom="http://www.w3.org/2005/Atom">
+      <channel>
+        <atom:link href="https://feeds.soundcloud.com/users/soundcloud:users:441977205/sounds.rss" rel="self" type="application/rss+xml"/>
+        <atom:link href="https://feeds.soundcloud.com/users/soundcloud:users:441977205/sounds.rss?before=1139462599" rel="next" type="application/rss+xml"/>
+        <title>The Anchor Church</title>
+        <link>https://soundcloud.com/theanchorchurch</link>
+        <pubDate>Tue, 22 Sep 2026 01:44:27 +0000</pubDate>
+        <lastBuildDate>Tue, 22 Sep 2026 01:44:27 +0000</lastBuildDate>
+        <ttl>60</ttl>
+        <language>en</language>
+        <copyright>All rights reserved</copyright>
+        <webMaster>feeds@soundcloud.com (SoundCloud Feeds)</webMaster>
+        <description>Podcast by The Anchor Church</description>
+        <itunes:subtitle>Podcast by The Anchor Church</itunes:subtitle>
+        <itunes:owner>
+          <itunes:name>The Anchor Church: Zanesville</itunes:name>
+          <itunes:email>media@theanchorchurch.net</itunes:email>
+        </itunes:owner>
+        <itunes:author>The Anchor Church</itunes:author>
+        <itunes:explicit>no</itunes:explicit>
+        <itunes:image href="https://i1.sndcdn.com/avatars-CUvpndRjwPD7PVhQ-dRWtGw-original.jpg"/>
+        <image>
+          <url>https://i1.sndcdn.com/avatars-CUvpndRjwPD7PVhQ-dRWtGw-original.jpg</url>
+          <title>The Anchor Church: Zanesville</title>
+          <link>https://soundcloud.com/theanchorchurch</link>
+        </image>
+        <itunes:category text="Religion &amp; Spirituality"/>
+        <item>
+      <guid isPermaLink="false">tag:soundcloud,2010:tracks/2405137239</guid>
+      <title>The Sure Mercies of David | Rev. Raymond Woodward</title>
+      <pubDate>Tue, 22 Sep 2026 01:44:27 +0000</pubDate>
+      <link>https://soundcloud.com/theanchorchurch/the-sure-mercies-of-david-rev</link>
+      <itunes:duration>00:56:59</itunes:duration>
+      <itunes:author>The Anchor Church</itunes:author>
+      <itunes:explicit>no</itunes:explicit>
+      <itunes:summary>September 21, 2026
+
+http://theanchor.church
+https://www.instagram.com/theanchorchurch/
+https://www.facebook.com/TheAnchorChurch</itunes:summary>
+      <itunes:subtitle>September 21, 2026
+
+http://theanchor.church
+https…</itunes:subtitle>
+      <description>September 21, 2026
+
+http://theanchor.church
+https://www.instagram.com/theanchorchurch/
+https://www.facebook.com/TheAnchorChurch</description>
+      <enclosure type="audio/mpeg" url="https://feeds.soundcloud.com/stream/2405137239-theanchorchurch-the-sure-mercies-of-david-rev.mp3" length="136305247"/>
+      <itunes:image href="https://i1.sndcdn.com/avatars-CUvpndRjwPD7PVhQ-dRWtGw-original.jpg"/>
+    </item><item>
+      <guid isPermaLink="false">tag:soundcloud,2010:tracks/2405136237</guid>
+      <title>The Second Time | Rev. Raymond Woodward</title>
+      <pubDate>Tue, 22 Sep 2026 01:40:43 +0000</pubDate>
+      <link>https://soundcloud.com/theanchorchurch/the-second-time-rev-raymond</link>
+      <itunes:duration>00:41:55</itunes:duration>
+      <itunes:author>The Anchor Church</itunes:author>
+      <itunes:explicit>no</itunes:explicit>
+      <itunes:summary>September 21, 2026
+
+http://theanchor.church
+https://www.instagram.com/theanchorchurch/
+https://www.facebook.com/TheAnchorChurch</itunes:summary>
+      <itunes:subtitle>September 21, 2026
+
+http://theanchor.church
+https…</itunes:subtitle>
+      <description>September 21, 2026
+
+http://theanchor.church
+https://www.instagram.com/theanchorchurch/
+https://www.facebook.com/TheAnchorChurch</description>
+      <enclosure type="audio/mpeg" url="https://feeds.soundcloud.com/stream/2405136237-theanchorchurch-the-second-time-rev-raymond.mp3" length="100273216"/>
+      <itunes:image href="https://i1.sndcdn.com/avatars-CUvpndRjwPD7PVhQ-dRWtGw-original.jpg"/>
+    </item><item>
+      <guid isPermaLink="false">tag:soundcloud,2010:tracks/2405135862</guid>
+      <title>First Word | The First Church | Praise | Pastor Aaron Bounds</title>
+      <pubDate>Tue, 22 Sep 2026 01:38:49 +0000</pubDate>
+      <link>https://soundcloud.com/theanchorchurch/first-word-the-first-church-2</link>
+      <itunes:duration>00:45:51</itunes:duration>
+      <itunes:author>The Anchor Church</itunes:author>
+      <itunes:explicit>no</itunes:explicit>
+      <itunes:summary>September 21, 2026
+
+http://theanchor.church
+https://www.instagram.com/theanchorchurch/
+https://www.facebook.com/TheAnchorChurch</itunes:summary>
+      <itunes:subtitle>September 21, 2026
+
+http://theanchor.church
+https…</itunes:subtitle>
+      <description>September 21, 2026
+
+http://theanchor.church
+https://www.instagram.com/theanchorchurch/
+https://www.facebook.com/TheAnchorChurch</description>
+      <enclosure type="audio/mpeg" url="https://feeds.soundcloud.com/stream/2405135862-theanchorchurch-first-word-the-first-church-2.mp3" length="109691508"/>
+      <itunes:image href="https://i1.sndcdn.com/avatars-CUvpndRjwPD7PVhQ-dRWtGw-original.jpg"/>
+    </item>
+      </channel>
+    </rss>

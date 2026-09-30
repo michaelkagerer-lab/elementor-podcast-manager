@@ -63,6 +63,7 @@ final class AudioMetadata {
 		$map = [
 			'mp3'  => 'audio/mpeg',
 			'm4a'  => 'audio/x-m4a',
+			'm4b'  => 'audio/x-m4a',
 			'aac'  => 'audio/aac',
 			'mp4'  => 'video/mp4',
 			'm4v'  => 'video/x-m4v',
@@ -110,6 +111,31 @@ final class AudioMetadata {
 	}
 
 	/**
+	 * MIME type of an audio attachment as podcast apps expect it.
+	 *
+	 * WordPress files .m4a and .m4b uploads as audio/mpeg (one entry in
+	 * its type list covers mp3|m4a|m4b); those are MPEG-4 audio.
+	 *
+	 * @param int $attachment_id Attachment ID.
+	 * @return string
+	 */
+	public static function attachment_mime( int $attachment_id ): string {
+		$mime = (string) get_post_mime_type( $attachment_id );
+
+		if ( 'audio/mpeg' === $mime ) {
+			$file = (string) get_attached_file( $attachment_id );
+			if ( '' === $file ) {
+				$file = (string) wp_parse_url( (string) wp_get_attachment_url( $attachment_id ), PHP_URL_PATH );
+			}
+			if ( in_array( strtolower( pathinfo( $file, PATHINFO_EXTENSION ) ), [ 'm4a', 'm4b' ], true ) ) {
+				$mime = 'audio/x-m4a';
+			}
+		}
+
+		return $mime;
+	}
+
+	/**
 	 * Whether a MIME type is suitable for podcast distribution.
 	 *
 	 * @param string $mime MIME type.
@@ -147,7 +173,7 @@ final class AudioMetadata {
 	 */
 	public static function describe( int $attachment_id ): array {
 		$url  = wp_get_attachment_url( $attachment_id );
-		$mime = (string) get_post_mime_type( $attachment_id );
+		$mime = self::attachment_mime( $attachment_id );
 		$meta = wp_get_attachment_metadata( $attachment_id );
 
 		$duration = '';

@@ -2,7 +2,7 @@
 /**
  * Elementor widget: Episode List (Layer 3).
  *
- * Configurable query (number, order, season, pagination) rendered through
+ * Configurable query (number, order, season, topic, pagination) rendered through
  * \EPM\Renderer::episode_list() — the same row/card primitives used
  * everywhere else. Numbered pagination uses WP_Query + paginate_links().
  *
@@ -150,6 +150,22 @@ final class EpisodeListWidget extends Widget_Base {
 			]
 		);
 
+		// Topics (taxonomy registered with the episode post type).
+		if ( taxonomy_exists( \EPM\Renderer::TOPIC_TAXONOMY ) ) {
+			$this->add_control(
+				'topics',
+				[
+					'label'       => __( 'Topic', 'elementor-podcast-manager' ),
+					'description' => __( 'Shows episodes with any of the chosen topics. Leave empty for all topics.', 'elementor-podcast-manager' ),
+					'type'        => Controls_Manager::SELECT2,
+					'multiple'    => true,
+					'label_block' => true,
+					'default'     => [],
+					'options'     => $this->topic_options(),
+				]
+			);
+		}
+
 		$this->add_control(
 			'pagination',
 			[
@@ -203,6 +219,9 @@ final class EpisodeListWidget extends Widget_Base {
 		$this->add_toggle( 'show_date', __( 'Date', 'elementor-podcast-manager' ), true );
 		$this->add_toggle( 'show_duration', __( 'Duration', 'elementor-podcast-manager' ), true );
 		$this->add_toggle( 'show_play_button', __( 'Play Button', 'elementor-podcast-manager' ), true );
+		if ( taxonomy_exists( \EPM\Renderer::TOPIC_TAXONOMY ) ) {
+			$this->add_toggle( 'show_topics', __( 'Topics', 'elementor-podcast-manager' ), false );
+		}
 
 		$this->add_control(
 			'excerpt_length',
@@ -269,6 +288,8 @@ final class EpisodeListWidget extends Widget_Base {
 			]
 		);
 
+		$this->add_button_shape_control( 'list_button_shape', '{{WRAPPER}} .epm-episode-list' );
+
 		$this->end_controls_section();
 
 		$this->start_controls_section(
@@ -315,6 +336,33 @@ final class EpisodeListWidget extends Widget_Base {
 	}
 
 	/**
+	 * Topic choices for the Topic control (slug => name).
+	 *
+	 * @return array<string, string>
+	 */
+	private function topic_options(): array {
+		$terms = get_terms(
+			[
+				'taxonomy'   => \EPM\Renderer::TOPIC_TAXONOMY,
+				'hide_empty' => false,
+				'number'     => 200,
+				'orderby'    => 'name',
+			]
+		);
+
+		if ( ! is_array( $terms ) ) {
+			return [];
+		}
+
+		$options = [];
+		foreach ( $terms as $term ) {
+			$options[ $term->slug ] = $term->name;
+		}
+
+		return $options;
+	}
+
+	/**
 	 * Render the widget.
 	 *
 	 * @return void
@@ -335,6 +383,9 @@ final class EpisodeListWidget extends Widget_Base {
 			$query_args['season'] = $season;
 		}
 
+		$topic_args = \EPM\Renderer::topic_query_args( \EPM\Renderer::topic_slugs( $settings['topics'] ?? [] ) );
+		$query_args = array_merge( $query_args, $topic_args );
+
 		$args = [
 			'layout'            => sanitize_key( $settings['layout'] ?? '' ),
 			'show_artwork'      => $this->toggle_on( $settings, 'show_artwork', true ),
@@ -345,7 +396,10 @@ final class EpisodeListWidget extends Widget_Base {
 			'show_date'         => $this->toggle_on( $settings, 'show_date', true ),
 			'show_duration'     => $this->toggle_on( $settings, 'show_duration', true ),
 			'show_play_button'  => $this->toggle_on( $settings, 'show_play_button', true ),
+			'show_topics'       => $this->toggle_on( $settings, 'show_topics', false ),
 			'excerpt_length'    => max( 0, (int) ( $settings['excerpt_length'] ?? 20 ) ),
+			// Empty season/topic → "No episodes in this selection" + link to all.
+			'filtered'          => $season > 0 || ! empty( $topic_args ),
 		];
 
 		if ( 'numbered' === ( $settings['pagination'] ?? 'none' ) ) {

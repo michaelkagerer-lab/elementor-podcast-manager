@@ -29,7 +29,7 @@ $epm_when = static function ( int $timestamp ): string {
 	return $timestamp > time()
 		/* translators: %s: human time difference, e.g. "20 mins" */
 		? sprintf( __( 'in %s', 'elementor-podcast-manager' ), human_time_diff( $timestamp ) )
-		/* translators: %s: human time difference, e.g. "20 mins" */
+		/* translators: %s: human time difference, e.g. "5 mins" */
 		: sprintf( __( '%s ago', 'elementor-podcast-manager' ), human_time_diff( $timestamp ) );
 };
 ?>
@@ -81,7 +81,7 @@ $epm_when = static function ( int $timestamp ): string {
 							</div>
 							<div class="epm-field">
 								<label class="epm-field__label" for="epm-hosting-feed"><?php esc_html_e( 'Host’s RSS feed address', 'elementor-podcast-manager' ); ?></label>
-								<input type="url" id="epm-hosting-feed" name="epm_hosting[feed_url]" value="<?php echo esc_attr( (string) $epm_hosting['feed_url'] ); ?>" inputmode="url" spellcheck="false" placeholder="https://" aria-describedby="epm-hosting-feed-help" />
+								<input type="url" id="epm-hosting-feed" name="epm_hosting[feed_url]" value="<?php echo esc_attr( (string) $epm_hosting['feed_url'] ); ?>" inputmode="url" spellcheck="false" placeholder="https://" aria-describedby="epm-hosting-feed-help" <?php echo $epm_external ? 'required' : ''; ?> />
 							</div>
 						</div>
 						<p class="epm-field__help" id="epm-hosting-feed-help" data-provider-help><?php echo esc_html( null !== $epm_provider ? (string) $epm_provider['feed_help'] : (string) \EPM\Providers::get( 'other' )['feed_help'] ); ?></p>
@@ -90,12 +90,14 @@ $epm_when = static function ( int $timestamp ): string {
 							<legend class="epm-field__label"><?php esc_html_e( 'Keeping in sync', 'elementor-podcast-manager' ); ?></legend>
 							<label class="epm-check">
 								<input type="checkbox" name="epm_hosting[sync]" value="1" <?php checked( ! empty( $epm_hosting['sync'] ) ); ?> />
-								<?php esc_html_e( 'Check the host’s feed for new and changed episodes', 'elementor-podcast-manager' ); ?>
-								<select name="epm_hosting[interval]" aria-label="<?php esc_attr_e( 'How often', 'elementor-podcast-manager' ); ?>">
-									<option value="hourly" <?php selected( $epm_hosting['interval'], 'hourly' ); ?>><?php esc_html_e( 'every hour', 'elementor-podcast-manager' ); ?></option>
-									<option value="twicedaily" <?php selected( $epm_hosting['interval'], 'twicedaily' ); ?>><?php esc_html_e( 'twice a day', 'elementor-podcast-manager' ); ?></option>
-									<option value="daily" <?php selected( $epm_hosting['interval'], 'daily' ); ?>><?php esc_html_e( 'once a day', 'elementor-podcast-manager' ); ?></option>
-								</select>
+								<span>
+									<?php esc_html_e( 'Check the host’s feed for new and changed episodes', 'elementor-podcast-manager' ); ?>
+									<select name="epm_hosting[interval]" aria-label="<?php esc_attr_e( 'How often', 'elementor-podcast-manager' ); ?>">
+										<option value="hourly" <?php selected( $epm_hosting['interval'], 'hourly' ); ?>><?php esc_html_e( 'every hour', 'elementor-podcast-manager' ); ?></option>
+										<option value="twicedaily" <?php selected( $epm_hosting['interval'], 'twicedaily' ); ?>><?php esc_html_e( 'twice a day', 'elementor-podcast-manager' ); ?></option>
+										<option value="daily" <?php selected( $epm_hosting['interval'], 'daily' ); ?>><?php esc_html_e( 'once a day', 'elementor-podcast-manager' ); ?></option>
+									</select>
+								</span>
 							</label>
 							<label class="epm-check">
 								<input type="checkbox" name="epm_hosting[new_status]" value="draft" <?php checked( 'draft', $epm_hosting['new_status'] ); ?> />
@@ -174,7 +176,9 @@ $epm_when = static function ( int $timestamp ): string {
 					</dl>
 					<div class="epm-card__footer">
 						<button type="button" class="button" data-action="sync-now"><?php esc_html_e( 'Sync now', 'elementor-podcast-manager' ); ?></button>
-						<a class="epm-button-link" href="<?php echo esc_url( (string) $epm_hosting['feed_url'] ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Open the host’s feed', 'elementor-podcast-manager' ); ?></a>
+						<?php if ( '' !== (string) $epm_hosting['feed_url'] ) : ?>
+							<a class="epm-button-link" href="<?php echo esc_url( (string) $epm_hosting['feed_url'] ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Open the host’s feed', 'elementor-podcast-manager' ); ?></a>
+						<?php endif; ?>
 					</div>
 				</section>
 			<?php endif; ?>
@@ -239,6 +243,10 @@ $epm_when = static function ( int $timestamp ): string {
 						</div>
 					</div>
 					<div class="epm-callout epm-callout--error" data-job-error hidden><p></p></div>
+					<div class="epm-callout epm-callout--warn" data-media-failed hidden>
+						<p><strong data-media-failed-title></strong> <?php esc_html_e( 'These episodes still play from the old host. Open each one to add the audio file, or run the import again, before you close the old account.', 'elementor-podcast-manager' ); ?></p>
+						<ul class="epm-callout__list" data-media-failed-list></ul>
+					</div>
 					<details class="epm-details">
 						<summary><?php esc_html_e( 'Show the import log', 'elementor-podcast-manager' ); ?></summary>
 						<div class="epm-details__body"><ul class="epm-log" data-job-log></ul></div>
@@ -296,7 +304,7 @@ $epm_when = static function ( int $timestamp ): string {
 					<li class="epm-checklist__item">
 						<span class="epm-checklist__icon" aria-hidden="true">1</span>
 						<span class="epm-checklist__label"><?php esc_html_e( 'Let the new host import this feed', 'elementor-podcast-manager' ); ?></span>
-						<p class="epm-checklist__text"><?php esc_html_e( 'Give it this site’s feed address. Set “Feed episode limit” to 0 in Podcast Settings first so every episode is included, and unlock the feed.', 'elementor-podcast-manager' ); ?></p>
+						<p class="epm-checklist__text"><?php esc_html_e( 'Give it this site’s feed address. Set “Feed episode limit” to 0 in Podcast settings first so every episode is included, and unlock the feed.', 'elementor-podcast-manager' ); ?></p>
 					</li>
 					<li class="epm-checklist__item">
 						<span class="epm-checklist__icon" aria-hidden="true">2</span>

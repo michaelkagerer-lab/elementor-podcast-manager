@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic Atom feed: blogs publish these; podcast apps need RSS. -->
+<feed xmlns="http://www.w3.org/2005/Atom">
+	<title>An Atom feed</title>
+	<id>urn:uuid:60a76c80-d399-11d9-b93C-0003939e0af6</id>
+	<updated>2026-06-01T08:00:00Z</updated>
+	<link href="https://show.example.test/"/>
+	<entry>
+		<title>An entry</title>
+		<id>urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa6a</id>
+		<updated>2026-06-01T08:00:00Z</updated>
+		<link rel="enclosure" type="audio/mpeg" length="1000" href="https://feeds.example.test/media/atom.mp3"/>
+	</entry>
+</feed>

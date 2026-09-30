@@ -16,25 +16,127 @@ final class EpisodePostType {
 	public const CPT = 'podcast_episode';
 
 	/**
-	 * Register the post type. Safe to call on activation and on init.
+	 * Topics taxonomy (non-hierarchical, like tags).
+	 */
+	public const TOPIC = 'podcast_topic';
+
+	/**
+	 * Register the post type and the topics taxonomy. Safe to call on
+	 * activation and on init.
 	 *
 	 * @return void
 	 */
 	public static function register(): void {
+		self::register_post_type();
+		self::register_topics();
+	}
+
+	/**
+	 * Register the Topics taxonomy: tags for episodes (themes, guests'
+	 * fields, series), with an archive at /podcast-topic/<slug>/, a column
+	 * and Quick Edit field in the episode list, and REST support for the
+	 * block editor.
+	 *
+	 * Like core tags: everyone who can edit episodes can assign topics
+	 * (and add new ones while tagging), but renaming, re-slugging and
+	 * deleting topics, which changes published episodes, needs
+	 * manage_categories (editors and administrators). A site with a custom
+	 * episode capability uses that capability for all four; the
+	 * epm_cap_manage_topics filter changes the one for managing topics.
+	 *
+	 * @return void
+	 */
+	public static function register_topics(): void {
+		$manage = self::primitive_cap( Capabilities::manage_episodes() );
+
+		/**
+		 * Filters the capability needed to manage, edit and delete topics.
+		 *
+		 * @since 1.3.0
+		 *
+		 * @param string $capability Default: manage_categories, or the
+		 *                           filtered episode capability.
+		 */
+		$terms_cap = (string) apply_filters( 'epm_cap_manage_topics', 'edit_posts' === $manage ? 'manage_categories' : $manage );
+		// Meta capabilities are resolved per object and cannot stand in here.
+		if ( '' === $terms_cap || $terms_cap !== self::primitive_cap( $terms_cap ) || in_array( $terms_cap, [ 'edit_term', 'delete_term', 'assign_term' ], true ) ) {
+			$terms_cap = 'manage_categories';
+		}
+
+		$labels = [
+			'name'                       => _x( 'Topics', 'Taxonomy general name', 'elementor-podcast-manager' ),
+			'singular_name'              => _x( 'Topic', 'Taxonomy singular name', 'elementor-podcast-manager' ),
+			'menu_name'                  => __( 'Topics', 'elementor-podcast-manager' ),
+			'all_items'                  => __( 'All topics', 'elementor-podcast-manager' ),
+			'edit_item'                  => __( 'Edit topic', 'elementor-podcast-manager' ),
+			'view_item'                  => __( 'View topic', 'elementor-podcast-manager' ),
+			'update_item'                => __( 'Update topic', 'elementor-podcast-manager' ),
+			'add_new_item'               => __( 'Add topic', 'elementor-podcast-manager' ),
+			'new_item_name'              => __( 'New topic name', 'elementor-podcast-manager' ),
+			'search_items'               => __( 'Search topics', 'elementor-podcast-manager' ),
+			'popular_items'              => __( 'Popular topics', 'elementor-podcast-manager' ),
+			'separate_items_with_commas' => __( 'Separate topics with commas', 'elementor-podcast-manager' ),
+			'add_or_remove_items'        => __( 'Add or remove topics', 'elementor-podcast-manager' ),
+			'choose_from_most_used'      => __( 'Choose from the most used topics', 'elementor-podcast-manager' ),
+			'not_found'                  => __( 'No topics found.', 'elementor-podcast-manager' ),
+			'no_terms'                   => __( 'No topics', 'elementor-podcast-manager' ),
+			'items_list_navigation'      => __( 'Topics list navigation', 'elementor-podcast-manager' ),
+			'items_list'                 => __( 'Topics list', 'elementor-podcast-manager' ),
+			'back_to_items'              => __( '&larr; Go to topics', 'elementor-podcast-manager' ),
+			'item_link'                  => __( 'Topic link', 'elementor-podcast-manager' ),
+			'item_link_description'      => __( 'A link to a topic.', 'elementor-podcast-manager' ),
+		];
+
+		register_taxonomy(
+			self::TOPIC,
+			[ self::CPT ],
+			[
+				'labels'             => $labels,
+				'description'        => __( 'Topics group episodes by theme, so listeners can find every episode about one subject.', 'elementor-podcast-manager' ),
+				'public'             => true,
+				'hierarchical'       => false,
+				'show_ui'            => true,
+				'show_in_menu'       => false, // Linked from the Podcast menu (Admin::register_menu()).
+				'show_in_nav_menus'  => true,
+				'show_in_rest'       => true,
+				'show_admin_column'  => true,
+				'show_in_quick_edit' => true,
+				'show_tagcloud'      => true,
+				'query_var'          => true,
+				'rewrite'            => [
+					'slug'       => 'podcast-topic',
+					'with_front' => false,
+				],
+				'capabilities'       => [
+					'manage_terms' => $terms_cap,
+					'edit_terms'   => $terms_cap,
+					'delete_terms' => $terms_cap,
+					'assign_terms' => $manage,
+				],
+			]
+		);
+	}
+
+	/**
+	 * Register the episode post type.
+	 *
+	 * @return void
+	 */
+	private static function register_post_type(): void {
 		$labels = [
 			'name'                  => _x( 'Episodes', 'Post type general name', 'elementor-podcast-manager' ),
 			'singular_name'         => _x( 'Episode', 'Post type singular name', 'elementor-podcast-manager' ),
 			'menu_name'             => _x( 'Podcast', 'Admin menu', 'elementor-podcast-manager' ),
 			'name_admin_bar'        => _x( 'Episode', 'Add New on toolbar', 'elementor-podcast-manager' ),
-			'add_new'               => _x( 'Add Episode', 'podcast_episode', 'elementor-podcast-manager' ),
-			'add_new_item'          => __( 'Add New Episode', 'elementor-podcast-manager' ),
-			'new_item'              => __( 'New Episode', 'elementor-podcast-manager' ),
-			'edit_item'             => __( 'Edit Episode', 'elementor-podcast-manager' ),
-			'view_item'             => __( 'View Episode', 'elementor-podcast-manager' ),
+			'add_new'               => _x( 'Add episode', 'podcast_episode', 'elementor-podcast-manager' ),
+			'add_new_item'          => __( 'Add episode', 'elementor-podcast-manager' ),
+			'new_item'              => __( 'New episode', 'elementor-podcast-manager' ),
+			'edit_item'             => __( 'Edit episode', 'elementor-podcast-manager' ),
+			'view_item'             => __( 'View episode', 'elementor-podcast-manager' ),
 			'all_items'             => __( 'Episodes', 'elementor-podcast-manager' ),
-			'search_items'          => __( 'Search Episodes', 'elementor-podcast-manager' ),
+			'search_items'          => __( 'Search episodes', 'elementor-podcast-manager' ),
 			'not_found'             => __( 'No episodes found.', 'elementor-podcast-manager' ),
-			'not_found_in_trash'    => __( 'No episodes found in Trash.', 'elementor-podcast-manager' ),
+			'not_found_in_trash'    => __( 'No episodes found in the trash.', 'elementor-podcast-manager' ),
 			'archives'              => _x( 'Episode archives', 'The post type archive label', 'elementor-podcast-manager' ),
 		];
 

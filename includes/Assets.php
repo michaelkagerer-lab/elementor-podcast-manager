@@ -87,8 +87,17 @@ final class Assets {
 			true
 		);
 
-		// Localized UI strings for the player engine. The script degrades
-		// to English fallbacks when this object is absent.
+		// Embed bridge: loads only inside the episode embed (see Embed).
+		wp_register_script(
+			'epm-embed',
+			EPM_URL . 'assets/js/epm-embed.js',
+			[],
+			EPM_VERSION,
+			true
+		);
+
+		// Localized UI strings for the player engine (it has no strings of
+		// its own). Labels that belong to markup are rendered with it.
 		wp_localize_script(
 			'epm-player',
 			'epmPlayer',
@@ -103,10 +112,28 @@ final class Assets {
 					'playEpisode'  => __( 'Play episode', 'elementor-podcast-manager' ),
 					'pauseEpisode' => __( 'Pause episode', 'elementor-podcast-manager' ),
 					'playPause'    => __( 'Play or pause', 'elementor-podcast-manager' ),
+					// Names of the card and row play buttons.
+					/* translators: %s: episode title */
+					'playTitle'    => __( 'Play %s', 'elementor-podcast-manager' ),
+					/* translators: %s: episode title */
+					'pauseTitle'   => __( 'Pause %s', 'elementor-podcast-manager' ),
+					/* translators: %s: episode title */
+					'retryTitle'   => __( 'Retry %s', 'elementor-podcast-manager' ),
 					'audioError'   => __( 'This audio could not be loaded. Check your connection and try again.', 'elementor-podcast-manager' ),
 					'retry'        => __( 'Retry', 'elementor-podcast-manager' ),
+					// Short form for the one-line sticky bar title.
+					'audioErrorShort' => __( 'This audio could not be loaded.', 'elementor-podcast-manager' ),
 					/* translators: %s: playback speed, e.g. 1.5× */
 					'speedChanged' => __( 'Playback speed: %s', 'elementor-podcast-manager' ),
+					/* translators: 1: elapsed time, e.g. 1:05, 2: total duration, e.g. 42:10 */
+					'seekValue'    => _x( '%1$s of %2$s', 'player position', 'elementor-podcast-manager' ),
+					// Share menu feedback (announced to screen readers).
+					'linkCopied'   => __( 'Link copied', 'elementor-podcast-manager' ),
+					/* translators: %s: playback position, e.g. 12:34 */
+					'linkAtCopied' => __( 'Link at %s copied', 'elementor-podcast-manager' ),
+					'embedCopied'  => __( 'Embed code copied', 'elementor-podcast-manager' ),
+					/* translators: %s: playback position, e.g. 12:34 */
+					'startsAt'     => __( 'Starts at %s', 'elementor-podcast-manager' ),
 				],
 			]
 		);
@@ -179,24 +206,31 @@ final class Assets {
 		self::enqueue();
 		$renderer = epm()->renderer;
 		?>
-		<div class="epm-sticky" data-epm-sticky hidden>
+		<div class="epm-sticky" data-epm-sticky role="region" aria-label="<?php echo esc_attr__( 'Audio player', 'elementor-podcast-manager' ); ?>" hidden>
 			<div class="epm-sticky__artwork" data-epm-sticky-artwork></div>
 			<div class="epm-sticky__info">
 				<p class="epm-sticky__title" data-epm-sticky-title></p>
+				<span class="epm-sticky__time"><span data-epm-current>0:00</span> / <span data-epm-total>0:00</span></span>
 				<div class="epm-sticky__timeline" data-epm-timeline role="slider" tabindex="0"
 					aria-label="<?php echo esc_attr__( 'Seek', 'elementor-podcast-manager' ); ?>"
 					aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
 					<div class="epm-sticky__track"><div class="epm-sticky__progress" data-epm-progress></div></div>
+					<div class="epm-sticky__handle" data-epm-handle></div>
 				</div>
 			</div>
 			<div class="epm-sticky__controls">
-				<button type="button" data-epm-play aria-label="<?php echo esc_attr__( 'Play or pause', 'elementor-podcast-manager' ); ?>">
-					<span class="epm-player__icon-play"><?php echo $renderer->play_icon( 'play' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-					<span class="epm-player__icon-pause"><?php echo $renderer->play_icon( 'pause' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+				<button type="button" class="epm-sticky__play" data-epm-play aria-label="<?php echo esc_attr__( 'Play', 'elementor-podcast-manager' ); ?>"
+					data-label-play="<?php echo esc_attr__( 'Play', 'elementor-podcast-manager' ); ?>"
+					data-label-pause="<?php echo esc_attr__( 'Pause', 'elementor-podcast-manager' ); ?>"
+					data-label-retry="<?php echo esc_attr__( 'Retry', 'elementor-podcast-manager' ); ?>">
+					<?php echo $renderer->play_toggle_icons(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static SVG markup. ?>
 				</button>
-				<span class="epm-sticky__time"><span data-epm-current>0:00</span> / <span data-epm-total>0:00</span></span>
-				<button type="button" data-epm-speed aria-label="<?php echo esc_attr__( 'Playback speed', 'elementor-podcast-manager' ); ?>">1×</button>
-				<button type="button" data-epm-sticky-close aria-label="<?php echo esc_attr__( 'Close player', 'elementor-podcast-manager' ); ?>">×</button>
+				<button type="button" class="epm-sticky__speed" data-epm-speed>
+					<span class="epm-sr-only"><?php esc_html_e( 'Playback speed', 'elementor-podcast-manager' ); ?> </span><span data-epm-speed-value>1×</span>
+				</button>
+				<button type="button" class="epm-sticky__close" data-epm-sticky-close aria-label="<?php echo esc_attr__( 'Close player', 'elementor-podcast-manager' ); ?>">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+				</button>
 			</div>
 		</div>
 		<?php

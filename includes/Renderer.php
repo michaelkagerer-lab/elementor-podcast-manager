@@ -19,6 +19,101 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class Renderer {
 
 	/**
+	 * Taxonomy of episode topics (registered by EpisodePostType when
+	 * available; every topic feature checks taxonomy_exists() first).
+	 */
+	public const TOPIC_TAXONOMY = 'podcast_topic';
+
+	/**
+	 * Seconds from a timestamp link value (the "t" query argument).
+	 *
+	 * Accepts plain seconds ("83"), h/m/s ("1m23s", "1h2m3s", "45s") and
+	 * clock notation ("1:23", "1:02:03"). Anything else is 0.
+	 *
+	 * @param string $value Raw value.
+	 * @return int Seconds, never negative.
+	 */
+	public static function parse_timestamp( string $value ): int {
+		$value = strtolower( trim( $value ) );
+
+		if ( '' === $value || strlen( $value ) > 16 ) {
+			return 0;
+		}
+
+		if ( preg_match( '/^\d+(?:\.\d+)?$/', $value ) ) {
+			return (int) floor( (float) $value );
+		}
+
+		if ( preg_match( '/^(\d+):([0-5]?\d)(?::([0-5]?\d))?$/', $value, $m ) ) {
+			return isset( $m[3] )
+				? (int) $m[1] * 3600 + (int) $m[2] * 60 + (int) $m[3]
+				: (int) $m[1] * 60 + (int) $m[2];
+		}
+
+		if ( preg_match( '/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/', $value, $m ) ) {
+			return (int) ( $m[1] ?? 0 ) * 3600 + (int) ( $m[2] ?? 0 ) * 60 + (int) ( $m[3] ?? 0 );
+		}
+
+		return 0;
+	}
+
+	/**
+	 * Timestamp link value for a position: "45s", "1m23s", "1h2m3s".
+	 *
+	 * @param int $seconds Position in seconds.
+	 * @return string
+	 */
+	public static function timestamp_param( int $seconds ): string {
+		$seconds = max( 0, $seconds );
+		$h       = intdiv( $seconds, 3600 );
+		$m       = intdiv( $seconds % 3600, 60 );
+		$s       = $seconds % 60;
+
+		$out = '';
+		if ( $h > 0 ) {
+			$out .= $h . 'h';
+		}
+		if ( $m > 0 || $h > 0 ) {
+			$out .= $m . 'm';
+		}
+
+		return $out . $s . 's';
+	}
+
+	/**
+	 * Episode URL that starts playback at a position (?t=1m23s).
+	 *
+	 * The episode page's player seeks there once the audio is ready; it
+	 * never starts playing on its own.
+	 *
+	 * @param string $url     Episode URL.
+	 * @param int    $seconds Position in seconds.
+	 * @return string Raw URL (escape on output).
+	 */
+	public static function timestamp_url( string $url, int $seconds ): string {
+		if ( $seconds <= 0 ) {
+			return $url;
+		}
+
+		return add_query_arg( 't', self::timestamp_param( $seconds ), $url );
+	}
+
+	/**
+	 * Whether the episode is the one this request is about (its own page or
+	 * its embed). Players of that episode apply a ?t= start position.
+	 *
+	 * @param array<string, mixed> $episode Episode data.
+	 * @return bool
+	 */
+	public function is_page_episode( array $episode ): bool {
+		$id = (int) ( $episode['id'] ?? 0 );
+
+		return $id > 0
+			&& is_singular( EpisodePostType::CPT )
+			&& (int) get_queried_object_id() === $id;
+	}
+
+	/**
 	 * Resolve an episode from a data source.
 	 *
 	 * Public contexts (widgets, shortcodes, frontend) only ever receive
@@ -240,10 +335,12 @@ final class Renderer {
 	}
 
 	/**
-	 * Guest block.
+	 * Guest block: portrait, name, role and company on one line, bio.
 	 *
 	 * @param array<string, mixed> $episode Episode data.
-	 * @param array<string, mixed> $args Options: show_image, show_role, show_company, show_bio.
+	 * @param array<string, mixed> $args Options: show_image, show_role,
+	 *   show_company, show_bio, heading ('' = none; the episode page passes
+	 *   "Guest"), heading_tag (h2|h3|h4).
 	 * @return string Empty when no guest data.
 	 */
 	public function guest( array $episode, array $args = [] ): string {
@@ -254,6 +351,7 @@ final class Renderer {
 				'show_role'    => true,
 				'show_company' => true,
 				'show_bio'     => false,
+				'heading'      => '',
 			]
 		);
 
@@ -283,12 +381,16 @@ final class Renderer {
 
 		$role    = (string) ( $episode['guest_role'] ?? '' );
 		$company = (string) ( $episode['guest_company'] ?? '' );
+		$details = [];
 
 		if ( $args['show_role'] && '' !== $role ) {
-			$out .= '<p class="epm-guest__role">' . esc_html( $role ) . '</p>';
+			$details[] = '<span class="epm-guest__role">' . esc_html( $role ) . '</span>';
 		}
 		if ( $args['show_company'] && '' !== $company ) {
-			$out .= '<p class="epm-guest__company">' . esc_html( $company ) . '</p>';
+			$details[] = '<span class="epm-guest__company">' . esc_html( $company ) . '</span>';
+		}
+		if ( ! empty( $details ) ) {
+			$out .= '<p class="epm-guest__details">' . implode( '<span class="epm-guest__sep" aria-hidden="true"> · </span>', $details ) . '</p>';
 		}
 		if ( $args['show_bio'] && '' !== (string) ( $episode['guest_bio'] ?? '' ) ) {
 			$out .= '<div class="epm-guest__bio">' . wp_kses_post( wpautop( (string) $episode['guest_bio'] ) ) . '</div>';
@@ -296,14 +398,41 @@ final class Renderer {
 
 		$out .= '</div></div>';
 
+		if ( '' !== (string) $args['heading'] ) {
+			$tag = $this->heading_tag( $args );
+			$out = '<div class="epm-guest-block"><' . $tag . ' class="epm-guest__heading">' . esc_html( (string) $args['heading'] ) . '</' . $tag . '>' . $out . '</div>';
+		}
+
 		return $out;
+	}
+
+	/**
+	 * Section heading element for show notes, chapters and transcripts.
+	 *
+	 * The level depends on where the section sits in the page outline, so
+	 * callers pass it ('h2' on the automatic episode page, where the theme
+	 * prints the episode title as H1). Anything else falls back to h3.
+	 *
+	 * @param array<string, mixed> $args Renderer args with optional heading_tag.
+	 * @return string h2|h3|h4.
+	 */
+	public function heading_tag( array $args ): string {
+		$tag = strtolower( (string) ( $args['heading_tag'] ?? 'h3' ) );
+
+		return in_array( $tag, [ 'h2', 'h3', 'h4' ], true ) ? $tag : 'h3';
 	}
 
 	/**
 	 * Chapters list. Clicking a chapter seeks the nearest player.
 	 *
+	 * The whole row (timestamp and title) is one seek button, so the part
+	 * people read is also the part they can tap.
+	 *
 	 * @param array<string, mixed> $episode Episode data.
-	 * @param array<string, mixed> $args Options: heading.
+	 * @param array<string, mixed> $args Options: heading, heading_tag (h2|h3|h4),
+	 *                                   sticky (bool, default true: playback
+	 *                                   started here brings the sticky player;
+	 *                                   false inside a player).
 	 * @return string
 	 */
 	public function chapters( array $episode, array $args = [] ): string {
@@ -313,23 +442,32 @@ final class Renderer {
 			return '';
 		}
 
+		// A chapter list can start playback on a page without any player:
+		// the sticky bar then carries pause and seek.
+		if ( $args['sticky'] ?? true ) {
+			$this->request_sticky_for_lists();
+		}
+
 		$heading = $args['heading'] ?? __( 'Chapters', 'elementor-podcast-manager' );
+		$tag     = $this->heading_tag( $args );
 
 		$out = '<div class="epm-chapters" data-epm-chapters data-epm-episode-id="' . esc_attr( (string) ( $episode['id'] ?? 0 ) ) . '" data-epm-src="' . esc_url( (string) ( $episode['audio_url'] ?? '' ) ) . '" data-epm-title="' . esc_attr( (string) ( $episode['title'] ?? '' ) ) . '">';
 		if ( '' !== (string) $heading ) {
-			$out .= '<h3 class="epm-chapters__heading">' . esc_html( (string) $heading ) . '</h3>';
+			$out .= '<' . $tag . ' class="epm-chapters__heading">' . esc_html( (string) $heading ) . '</' . $tag . '>';
 		}
 		$out .= '<ol class="epm-chapters__list">';
 
 		foreach ( $chapters as $chapter ) {
 			$out .= '<li class="epm-chapters__item">';
-			/* translators: %s: chapter timestamp, e.g. 12:30 */
-			$out .= '<button type="button" class="epm-chapters__time" data-epm-seek="' . esc_attr( (string) $chapter['seconds'] ) . '" aria-label="' . esc_attr( sprintf( __( 'Skip to %s', 'elementor-podcast-manager' ), $chapter['time'] ) ) . '">';
-			$out .= esc_html( $chapter['time'] );
-			$out .= '</button>';
+			$out .= '<button type="button" class="epm-chapters__seek" data-epm-seek="' . esc_attr( (string) $chapter['seconds'] ) . '">';
+			$out .= '<span class="epm-chapters__time">' . esc_html( $chapter['time'] ) . '</span> ';
 			$out .= '<span class="epm-chapters__title">' . esc_html( $chapter['title'] ) . '</span>';
+			$out .= '</button>';
 			if ( '' !== (string) ( $chapter['url'] ?? '' ) ) {
-				$out .= ' <a class="epm-chapters__link" href="' . esc_url( $chapter['url'] ) . '">' . esc_html__( 'Link', 'elementor-podcast-manager' ) . '</a>';
+				// "Link" alone repeats for every chapter in a links list:
+				// the hidden suffix names the chapter it belongs to.
+				$out .= ' <a class="epm-chapters__link" href="' . esc_url( $chapter['url'] ) . '">' . esc_html__( 'Link', 'elementor-podcast-manager' )
+					. '<span class="epm-sr-only">: ' . esc_html( $chapter['title'] ) . '</span></a>';
 			}
 			$out .= '</li>';
 		}
@@ -343,7 +481,7 @@ final class Renderer {
 	 * Transcript block. Semantic, indexable HTML.
 	 *
 	 * @param array<string, mixed> $episode Episode data.
-	 * @param array<string, mixed> $args Options: heading, collapsible.
+	 * @param array<string, mixed> $args Options: heading, heading_tag (h2|h3|h4), collapsible.
 	 * @return string
 	 */
 	public function transcript( array $episode, array $args = [] ): string {
@@ -361,18 +499,23 @@ final class Renderer {
 			]
 		);
 
+		$tag     = $this->heading_tag( $args );
 		$content = '<div class="epm-transcript__content">' . wp_kses_post( wpautop( $transcript ) ) . '</div>';
 
 		if ( $args['collapsible'] ) {
+			$heading = '' !== (string) $args['heading'] ? (string) $args['heading'] : __( 'Transcript', 'elementor-podcast-manager' );
+
+			// A real heading inside the summary keeps the section reachable
+			// by heading navigation while it is collapsed.
 			return '<details class="epm-transcript epm-transcript--collapsible">'
-				. '<summary class="epm-transcript__heading">' . esc_html( (string) $args['heading'] ) . '</summary>'
+				. '<summary class="epm-transcript__summary"><' . $tag . ' class="epm-transcript__heading">' . esc_html( $heading ) . '</' . $tag . '></summary>'
 				. $content
 				. '</details>';
 		}
 
 		$out = '<div class="epm-transcript">';
 		if ( '' !== (string) $args['heading'] ) {
-			$out .= '<h3 class="epm-transcript__heading">' . esc_html( (string) $args['heading'] ) . '</h3>';
+			$out .= '<' . $tag . ' class="epm-transcript__heading">' . esc_html( (string) $args['heading'] ) . '</' . $tag . '>';
 		}
 		$out .= $content . '</div>';
 
@@ -383,7 +526,7 @@ final class Renderer {
 	 * Render episode show notes (rich HTML, semantic preserved).
 	 *
 	 * @param array<string, mixed> $episode Episode data.
-	 * @param array                $args  Optional: heading.
+	 * @param array                $args  Optional: heading, heading_tag (h2|h3|h4).
 	 * @return string
 	 */
 	public function show_notes( array $episode, array $args = [] ): string {
@@ -396,13 +539,15 @@ final class Renderer {
 		$args = wp_parse_args(
 			$args,
 			[
-				'heading' => __( 'Show Notes', 'elementor-podcast-manager' ),
+				'heading' => __( 'Show notes', 'elementor-podcast-manager' ),
 			]
 		);
 
+		$tag = $this->heading_tag( $args );
+
 		$out = '<div class="epm-show-notes">';
 		if ( '' !== (string) $args['heading'] ) {
-			$out .= '<h3 class="epm-show-notes__heading">' . esc_html( (string) $args['heading'] ) . '</h3>';
+			$out .= '<' . $tag . ' class="epm-show-notes__heading">' . esc_html( (string) $args['heading'] ) . '</' . $tag . '>';
 		}
 		$out .= '<div class="epm-show-notes__content">' . wp_kses_post( wpautop( $notes ) ) . '</div>';
 		$out .= '</div>';
@@ -413,7 +558,7 @@ final class Renderer {
 	/**
 	 * Render the automatic latest-episode CTA button.
 	 *
-	 * Only renders when the CTA is enabled in Podcast Settings and a
+	 * Only renders when the CTA is enabled in Podcast settings and a
 	 * publicly-visible latest episode exists.
 	 *
 	 * @param array $args Optional: label, class.
@@ -469,7 +614,7 @@ final class Renderer {
 
 		if ( $args['show_rss'] ) {
 			$links[] = [
-				'label'   => __( 'RSS Feed', 'elementor-podcast-manager' ),
+				'label'   => __( 'RSS feed', 'elementor-podcast-manager' ),
 				'url'     => Hosting::public_feed_url(),
 				'service' => 'rss',
 			];
@@ -489,16 +634,22 @@ final class Renderer {
 			$known   = Directories::services()[ $service ] ?? null;
 			$label   = '' !== (string) ( $link['label'] ?? '' ) ? (string) $link['label'] : ( null !== $known ? (string) $known['label'] : ucfirst( $service ) );
 
+			// Icon-only mode shows a visible label for services without a
+			// recognizable glyph: their shared fallback icon would make a row
+			// of indistinguishable buttons.
+			$has_glyph  = null !== $known && '' !== (string) $known['icon'] && BrandIcons::has( (string) $known['icon'] );
+			$show_label = 'icon' !== $args['display'] || ! $has_glyph;
+
 			$out .= '<li class="epm-subscribe__item epm-subscribe__item--' . esc_attr( $service ) . '">';
 			$out .= '<a class="epm-subscribe__link" href="' . esc_url( $link['url'] ) . '" target="_blank" rel="noopener">';
 
 			if ( 'text' !== $args['display'] ) {
 				$out .= '<span class="epm-subscribe__icon" aria-hidden="true">' . $this->service_icon( $service ) . '</span>';
 			}
-			if ( 'icon' !== $args['display'] ) {
+			if ( $show_label ) {
 				$out .= '<span class="epm-subscribe__label">' . esc_html( $label ) . '</span>';
 			} else {
-				$out .= '<span class="screen-reader-text">' . esc_html( $label ) . '</span>';
+				$out .= '<span class="epm-sr-only">' . esc_html( $label ) . '</span>';
 			}
 
 			$out .= '</a></li>';
@@ -552,11 +703,316 @@ final class Renderer {
 	}
 
 	/**
+	 * Both play and pause glyphs, stacked in one grid cell.
+	 *
+	 * Every play toggle (full player, sticky bar, card and row buttons)
+	 * uses this markup: the stylesheet cross-fades the two glyphs from the
+	 * button's own .is-playing class, so the icon always matches the state.
+	 *
+	 * @return string
+	 */
+	public function play_toggle_icons(): string {
+		return '<span class="epm-icon-swap" aria-hidden="true">'
+			. '<span class="epm-player__icon-play">' . $this->play_icon( 'play' ) . '</span>'
+			. '<span class="epm-player__icon-pause">' . $this->play_icon( 'pause' ) . '</span>'
+			. '</span>';
+	}
+
+	/**
+	 * Inline SVG icon (stroke, currentColor) for share and video controls.
+	 *
+	 * @param string $name share|check|link|clock|code|play.
+	 * @return string
+	 */
+	public function ui_icon( string $name ): string {
+		$paths = [
+			'share' => '<path d="M12 4v11M8 8l4-4 4 4"/><path d="M6 12v6.5A1.5 1.5 0 0 0 7.5 20h9a1.5 1.5 0 0 0 1.5-1.5V12"/>',
+			'check' => '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+			'link'  => '<path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/>',
+			'clock' => '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2.5"/>',
+			'code'  => '<path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/>',
+		];
+
+		if ( ! isset( $paths[ $name ] ) ) {
+			return '';
+		}
+
+		return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' . $paths[ $name ] . '</svg>';
+	}
+
+	/**
+	 * Share menu for an episode: copy link, copy link at the current
+	 * position (?t=), the device share sheet and the embed code.
+	 *
+	 * A menu button (APG pattern): the menu opens below the button, arrow
+	 * keys move between items, Escape closes it and returns focus. Labels are
+	 * rendered here so every string stays translatable; the player engine
+	 * fills in the position and shows "Share…" only where the browser offers
+	 * a share sheet.
+	 *
+	 * @param array<string, mixed> $episode Episode data.
+	 * @param string               $id      Unique ID prefix (the player ID).
+	 * @return string Empty when the episode has no public URL.
+	 */
+	public function share_menu( array $episode, string $id ): string {
+		$url = (string) ( $episode['url'] ?? '' );
+
+		if ( '' === $url || ! Episodes::is_publicly_visible( (int) ( $episode['id'] ?? 0 ) ) ) {
+			return '';
+		}
+
+		$menu_id = $id . '-share';
+		$title   = wp_strip_all_tags( (string) ( $episode['title'] ?? '' ) );
+		$embed   = Embed::code( $episode );
+
+		$item = function ( string $action, string $icon, string $label, bool $hidden = false, string $extra = '' ): string {
+			return '<button type="button" role="menuitem" tabindex="-1" class="epm-share__item" data-epm-share-action="' . esc_attr( $action ) . '"' . ( $hidden ? ' hidden' : '' ) . '>'
+				. $this->ui_icon( $icon )
+				. '<span class="epm-share__item-label"' . $extra . '>' . esc_html( $label ) . '</span>'
+				. '</button>';
+		};
+
+		/* translators: %s: playback position, e.g. 12:34 */
+		$at_template = __( 'Copy link at %s', 'elementor-podcast-manager' );
+
+		$out  = '<div class="epm-share" data-epm-share data-epm-url="' . esc_url( $url ) . '" data-epm-title="' . esc_attr( $title ) . '"'
+			. ( '' !== $embed ? ' data-epm-embed-code="' . esc_attr( $embed ) . '"' : '' ) . '>';
+		$out .= '<button type="button" class="epm-share__toggle" data-epm-share-toggle aria-haspopup="menu" aria-expanded="false" aria-controls="' . esc_attr( $menu_id ) . '">'
+			. '<span class="epm-icon-swap" aria-hidden="true">'
+			. '<span class="epm-share__icon-idle">' . $this->ui_icon( 'share' ) . '</span>'
+			. '<span class="epm-share__icon-done">' . $this->ui_icon( 'check' ) . '</span>'
+			. '</span>'
+			// Both labels share one grid cell, so the button never changes width.
+			. '<span class="epm-share__label">'
+			. '<span class="epm-share__label-idle">' . esc_html__( 'Share', 'elementor-podcast-manager' ) . '</span>'
+			. '<span class="epm-share__label-done" aria-hidden="true">' . esc_html__( 'Copied', 'elementor-podcast-manager' ) . '</span>'
+			. '</span>'
+			. '</button>';
+
+		$out .= '<div class="epm-share__menu" id="' . esc_attr( $menu_id ) . '" role="menu" aria-label="' . esc_attr__( 'Share this episode', 'elementor-podcast-manager' ) . '" data-epm-share-menu hidden>';
+		$out .= $item( 'copy', 'link', __( 'Copy link', 'elementor-podcast-manager' ) );
+		// Shown once the episode has a position to share.
+		$out .= $item( 'copy-time', 'clock', sprintf( $at_template, '0:00' ), true, ' data-epm-share-time-label data-template="' . esc_attr( $at_template ) . '"' );
+		// The device share sheet, where the browser offers one.
+		$out .= $item( 'native', 'share', __( 'Share…', 'elementor-podcast-manager' ), true );
+		if ( '' !== $embed ) {
+			$out .= $item( 'embed', 'code', __( 'Copy embed code', 'elementor-podcast-manager' ) );
+		}
+		$out .= '</div>';
+
+		// When the browser blocks copying, the text is offered here instead.
+		$out .= '<div class="epm-share__manual" data-epm-share-manual hidden>'
+			. '<label class="epm-share__manual-label" for="' . esc_attr( $menu_id ) . '-manual">' . esc_html__( 'Your browser blocked copying. Select the text and copy it.', 'elementor-podcast-manager' ) . '</label>'
+			. '<textarea class="epm-share__manual-field" id="' . esc_attr( $menu_id ) . '-manual" rows="3" readonly data-epm-share-manual-field></textarea>'
+			. '</div>';
+
+		$out .= '</div>';
+
+		return $out;
+	}
+
+	/**
+	 * Parse a video URL into a click-to-load source.
+	 *
+	 * YouTube (watch, youtu.be, embed, shorts and live URLs) plays through
+	 * youtube-nocookie.com, Vimeo with do-not-track, and direct video files
+	 * in a native <video>. Other addresses become a plain link.
+	 *
+	 * @param string $url Video URL.
+	 * @return array{kind: string, id: string, src: string, host: string}|null
+	 */
+	public static function video_source( string $url ): ?array {
+		$url = trim( $url );
+		if ( '' === $url ) {
+			return null;
+		}
+
+		$parts = wp_parse_url( $url );
+		if ( ! is_array( $parts ) || empty( $parts['host'] ) ) {
+			return null;
+		}
+
+		$host = strtolower( (string) preg_replace( '/^(www|m|music)\./', '', strtolower( (string) $parts['host'] ) ) );
+		$path = (string) ( $parts['path'] ?? '' );
+
+		$youtube = '';
+		if ( in_array( $host, [ 'youtube.com', 'youtube-nocookie.com' ], true ) ) {
+			if ( preg_match( '#^/(?:embed|shorts|live|v)/([A-Za-z0-9_-]{6,20})#', $path, $m ) ) {
+				$youtube = $m[1];
+			} else {
+				wp_parse_str( (string) ( $parts['query'] ?? '' ), $query );
+				$youtube = (string) ( $query['v'] ?? '' );
+			}
+		} elseif ( 'youtu.be' === $host ) {
+			$youtube = trim( $path, '/' );
+		}
+
+		if ( '' !== $youtube ) {
+			return preg_match( '/^[A-Za-z0-9_-]{6,20}$/', $youtube )
+				? [ 'kind' => 'youtube', 'id' => $youtube, 'src' => '', 'host' => 'YouTube' ]
+				: null;
+		}
+
+		if ( in_array( $host, [ 'vimeo.com', 'player.vimeo.com' ], true ) && preg_match( '#/(?:video/)?(\d{5,12})(?:/|$)#', $path, $m ) ) {
+			return [ 'kind' => 'vimeo', 'id' => $m[1], 'src' => '', 'host' => 'Vimeo' ];
+		}
+
+		$extension = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
+		if ( in_array( $extension, [ 'mp4', 'm4v', 'webm', 'mov', 'ogv' ], true ) ) {
+			return [ 'kind' => 'file', 'id' => '', 'src' => esc_url_raw( $url ), 'host' => '' ];
+		}
+
+		return [ 'kind' => 'link', 'id' => '', 'src' => esc_url_raw( $url ), 'host' => '' ];
+	}
+
+	/**
+	 * Episode video as a privacy-friendly click-to-load facade.
+	 *
+	 * Nothing is requested from the video platform until the visitor
+	 * presses play: the facade shows the episode artwork and a play button;
+	 * the player engine then swaps in youtube-nocookie.com / Vimeo (do not
+	 * track) or a native <video> and moves focus into it.
+	 *
+	 * @param array<string, mixed> $episode Episode data (youtube_url, video_url).
+	 * @param array<string, mixed> $args    Options: show_note (bool, default true).
+	 * @return string Empty when the episode has no video.
+	 */
+	public function video( array $episode, array $args = [] ): string {
+		$args = wp_parse_args( $args, [ 'show_note' => true ] );
+
+		$source = null;
+		foreach ( [ 'youtube_url', 'video_url' ] as $key ) {
+			$source = self::video_source( (string) ( $episode[ $key ] ?? '' ) );
+			if ( null !== $source ) {
+				break;
+			}
+		}
+
+		if ( null === $source ) {
+			return '';
+		}
+
+		$title = wp_strip_all_tags( (string) ( $episode['title'] ?? '' ) );
+
+		if ( 'link' === $source['kind'] ) {
+			Assets::enqueue_style();
+
+			return '<p class="epm-video epm-video--link"><a class="epm-video__link" href="' . esc_url( $source['src'] ) . '">'
+				/* translators: %s: episode title */
+				. esc_html( sprintf( __( 'Watch the video of %s', 'elementor-podcast-manager' ), $title ) )
+				. '</a></p>';
+		}
+
+		Assets::mark_player_used();
+
+		/* translators: %s: episode title */
+		$frame_title = sprintf( __( 'Video: %s', 'elementor-podcast-manager' ), $title );
+		$poster      = $this->artwork_url( $episode, 'large' );
+
+		$out = '<figure class="epm-video" data-epm-video'
+			. ' data-epm-video-kind="' . esc_attr( $source['kind'] ) . '"'
+			. ( '' !== $source['id'] ? ' data-epm-video-id="' . esc_attr( $source['id'] ) . '"' : '' )
+			. ( '' !== $source['src'] ? ' data-epm-video-src="' . esc_url( $source['src'] ) . '"' : '' )
+			. ' data-epm-video-title="' . esc_attr( $frame_title ) . '">';
+
+		$out .= '<div class="epm-video__frame">';
+		/* translators: %s: episode title */
+		$out .= '<button type="button" class="epm-video__facade" data-epm-video-play aria-label="' . esc_attr( sprintf( __( 'Play video: %s', 'elementor-podcast-manager' ), $title ) ) . '">';
+		if ( '' !== $poster ) {
+			// The same image twice: a soft backdrop that fills the 16:9 frame
+			// and the square artwork itself, uncropped.
+			$out .= '<img class="epm-video__backdrop" src="' . esc_url( $poster ) . '" alt="" loading="lazy" decoding="async" />';
+			$out .= '<img class="epm-video__poster" src="' . esc_url( $poster ) . '" alt="" loading="lazy" decoding="async" />';
+		}
+		$out .= '<span class="epm-video__button" aria-hidden="true">' . $this->play_icon( 'play' ) . '</span>';
+		$out .= '</button>';
+		$out .= '</div>';
+
+		if ( $args['show_note'] && '' !== $source['host'] ) {
+			$out .= '<figcaption class="epm-video__note">'
+				/* translators: %s: video platform, e.g. YouTube */
+				. esc_html( sprintf( __( 'The video loads from %s when you play it.', 'elementor-podcast-manager' ), $source['host'] ) )
+				. '</figcaption>';
+		}
+
+		$out .= '</figure>';
+
+		return $out;
+	}
+
+	/**
+	 * Topic chips of an episode (links to the topic archives).
+	 *
+	 * @param array<string, mixed> $episode Episode data.
+	 * @return string Empty when topics are unavailable or none are set.
+	 */
+	public function topics( array $episode ): string {
+		if ( ! taxonomy_exists( self::TOPIC_TAXONOMY ) ) {
+			return '';
+		}
+
+		$terms = get_the_terms( (int) ( $episode['id'] ?? 0 ), self::TOPIC_TAXONOMY );
+		if ( ! is_array( $terms ) || empty( $terms ) ) {
+			return '';
+		}
+
+		$out = '<ul class="epm-topics" aria-label="' . esc_attr__( 'Topics', 'elementor-podcast-manager' ) . '">';
+		foreach ( $terms as $term ) {
+			$link = get_term_link( $term );
+			$name = esc_html( $term->name );
+			$out .= '<li class="epm-topics__item">'
+				. ( is_string( $link ) ? '<a class="epm-topic" href="' . esc_url( $link ) . '">' . $name . '</a>' : '<span class="epm-topic">' . $name . '</span>' )
+				. '</li>';
+		}
+		$out .= '</ul>';
+
+		return $out;
+	}
+
+	/**
+	 * Topic slugs from a shortcode or widget value ("a,b" or an array).
+	 *
+	 * @param mixed $value Raw value.
+	 * @return string[] Sanitized slugs.
+	 */
+	public static function topic_slugs( $value ): array {
+		$list = is_array( $value ) ? $value : explode( ',', (string) $value );
+
+		return array_values( array_unique( array_filter( array_map( 'sanitize_title', array_map( 'strval', $list ) ) ) ) );
+	}
+
+	/**
+	 * Episode query arguments that limit a list to topics. Empty when the
+	 * topics taxonomy is not registered or no slug is given.
+	 *
+	 * @param string[] $slugs Topic slugs.
+	 * @return array<string, mixed>
+	 */
+	public static function topic_query_args( array $slugs ): array {
+		if ( empty( $slugs ) || ! taxonomy_exists( self::TOPIC_TAXONOMY ) ) {
+			return [];
+		}
+
+		return [
+			'tax_query' => [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
+				[
+					'taxonomy' => self::TOPIC_TAXONOMY,
+					'field'    => 'slug',
+					'terms'    => $slugs,
+				],
+			],
+		];
+	}
+
+	/**
 	 * THE player. One engine, layouts are configurations.
 	 *
 	 * @param array<string, mixed> $episode Episode data.
 	 * @param array<string, mixed> $args Options:
-	 *   layout, show_* flags, style_vars, sticky (bool), player_id.
+	 *   layout, show_* flags (show_share: the share menu in the secondary
+	 *   row), style_vars, sticky (bool), player_id, label (replaces the
+	 *   episode label), title_url (links the title, opening in the top
+	 *   window), class (extra classes).
 	 * @return string
 	 */
 	public function player( array $episode, array $args = [] ): string {
@@ -586,9 +1042,13 @@ final class Renderer {
 				'show_download'        => false,
 				'show_chapters_link'   => false,
 				'show_platform_links'  => false,
+				'show_share'           => true,
 				'sticky'               => false,
 				'style_vars'           => [],
 				'player_id'            => 'epm-player-' . (int) ( $episode['id'] ?? 0 ) . '-' . wp_unique_id(),
+				'label'                => '',
+				'title_url'            => '',
+				'class'                => '',
 			]
 		);
 
@@ -607,6 +1067,12 @@ final class Renderer {
 		Assets::mark_player_used();
 
 		$classes = [ 'epm-player', 'epm-player--' . $layout ];
+		foreach ( preg_split( '/\s+/', (string) $args['class'] ) as $extra ) {
+			$extra = sanitize_html_class( $extra );
+			if ( '' !== $extra ) {
+				$classes[] = $extra;
+			}
+		}
 		$classes = apply_filters( 'epm_player_classes', $classes, $episode, $args );
 
 		$duration_seconds = (int) ( $episode['duration_seconds'] ?? 0 );
@@ -619,11 +1085,30 @@ final class Renderer {
 			. ' data-epm-title="' . esc_attr( (string) ( $episode['title'] ?? '' ) ) . '"'
 			. ' data-epm-artwork="' . esc_url( $this->artwork_url( $episode, 'medium' ) ) . '"'
 			. ' data-epm-src="' . esc_url( (string) $episode['audio_url'] ) . '"'
+			// The episode this page is about: a ?t= link starts it there.
+			. ( $this->is_page_episode( $episode ) ? ' data-epm-page-episode' : '' )
 			. $this->style_vars( (array) $args['style_vars'] )
 			. '>';
 
 		// Hidden native audio element — the single engine underneath.
-		$out .= '<audio preload="metadata" src="' . esc_url( (string) $episode['audio_url'] ) . '"></audio>';
+		// Audio on another host (a hosting service, a tracking prefix)
+		// loads on the first press only: no request carries the visitor's
+		// address there before they ask for it, and page views never count
+		// as downloads. The duration comes from data-epm-duration.
+		$audio_host = strtolower( (string) wp_parse_url( (string) $episode['audio_url'], PHP_URL_HOST ) );
+		$preload    = ( '' === $audio_host || strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) ) === $audio_host ) ? 'metadata' : 'none';
+
+		/**
+		 * Preload behaviour of a player's audio element.
+		 *
+		 * @param string $preload 'metadata' for audio on this site, 'none' for audio on another host.
+		 * @param array  $episode Episode data.
+		 */
+		$preload = (string) apply_filters( 'epm_player_preload', $preload, $episode );
+		if ( ! in_array( $preload, [ 'none', 'metadata', 'auto' ], true ) ) {
+			$preload = 'none';
+		}
+		$out .= '<audio preload="' . esc_attr( $preload ) . '" src="' . esc_url( (string) $episode['audio_url'] ) . '"></audio>';
 
 		// Artwork.
 		if ( $args['show_artwork'] ) {
@@ -638,13 +1123,19 @@ final class Renderer {
 		// Header: label, title, meta.
 		$out .= '<div class="epm-player__header">';
 		if ( $args['show_episode_label'] ) {
-			$label = $this->episode_label( $episode, (bool) $args['show_episode_number'], (bool) $args['show_season'] );
+			$label = '' !== (string) $args['label']
+				? esc_html( (string) $args['label'] )
+				: $this->episode_label( $episode, (bool) $args['show_episode_number'], (bool) $args['show_season'] );
 			if ( '' !== $label ) {
 				$out .= '<p class="epm-player__label">' . $label . '</p>';
 			}
 		}
 		if ( $args['show_title'] ) {
-			$out .= '<p class="epm-player__title">' . esc_html( (string) ( $episode['title'] ?? '' ) ) . '</p>';
+			$title = esc_html( (string) ( $episode['title'] ?? '' ) );
+			if ( '' !== (string) $args['title_url'] ) {
+				$title = '<a class="epm-player__title-link" href="' . esc_url( (string) $args['title_url'] ) . '" target="_top">' . $title . '</a>';
+			}
+			$out .= '<p class="epm-player__title">' . $title . '</p>';
 		}
 		$meta_fields = [];
 		if ( $args['show_guest'] ) {
@@ -661,14 +1152,15 @@ final class Renderer {
 		}
 		$out .= '</div>';
 
-		// Controls row.
+		// Controls row: the transport group (play, back, forward) stays
+		// together; the timeline follows as its own group.
 		$out .= '<div class="epm-player__controls">';
+		$out .= '<div class="epm-player__transport">';
 
 		$out .= '<button type="button" class="epm-player__play" data-epm-play aria-label="' . esc_attr__( 'Play episode', 'elementor-podcast-manager' ) . '"'
 			. ' data-label-play="' . esc_attr__( 'Play episode', 'elementor-podcast-manager' ) . '"'
 			. ' data-label-pause="' . esc_attr__( 'Pause episode', 'elementor-podcast-manager' ) . '">'
-			. '<span class="epm-player__icon-play">' . $this->play_icon( 'play' ) . '</span>'
-			. '<span class="epm-player__icon-pause">' . $this->play_icon( 'pause' ) . '</span>'
+			. $this->play_toggle_icons()
 			. '</button>';
 
 		if ( $args['show_skip_backward'] ) {
@@ -676,6 +1168,14 @@ final class Renderer {
 				. '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M11 8l-4 4 4 4M18 8l-4 4 4 4"/></svg>'
 				. '<span aria-hidden="true">15</span></button>';
 		}
+
+		if ( $args['show_skip_forward'] ) {
+			$out .= '<button type="button" class="epm-player__skip" data-epm-seek-rel="30" aria-label="' . esc_attr__( 'Skip forward 30 seconds', 'elementor-podcast-manager' ) . '">'
+				. '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M13 8l4 4-4 4M6 8l4 4-4 4"/></svg>'
+				. '<span aria-hidden="true">30</span></button>';
+		}
+
+		$out .= '</div>'; // .epm-player__transport
 
 		// Timeline.
 		$out .= '<div class="epm-player__timeline-wrap">';
@@ -686,28 +1186,30 @@ final class Renderer {
 		$out .= '<div class="epm-player__handle" data-epm-handle></div>';
 		$out .= '</div>';
 		$out .= '<div class="epm-player__times"><span data-epm-current>0:00</span><span data-epm-total>' . esc_html( Episodes::format_duration( $duration_seconds ) ) . '</span></div>';
-		$out .= '</div>';
+		$out .= '</div>'; // .epm-player__timeline-wrap
 
-		if ( $args['show_skip_forward'] ) {
-			$out .= '<button type="button" class="epm-player__skip" data-epm-seek-rel="30" aria-label="' . esc_attr__( 'Skip forward 30 seconds', 'elementor-podcast-manager' ) . '">'
-				. '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M13 8l4 4-4 4M6 8l4 4-4 4"/></svg>'
-				. '<span aria-hidden="true">30</span></button>';
-		}
-
-		$out .= '</div>';
+		$out .= '</div>'; // .epm-player__controls
 
 		// Secondary row: speed, volume, download.
 		$secondary = '';
 		if ( $args['show_playback_speed'] ) {
-			$secondary .= '<button type="button" class="epm-player__speed" data-epm-speed aria-label="' . esc_attr__( 'Playback speed', 'elementor-podcast-manager' ) . '">1×</button>';
+			// The visible value stays part of the accessible name, so speech
+			// users can say what they see ("1×").
+			$secondary .= '<button type="button" class="epm-player__speed" data-epm-speed>'
+				. '<span class="epm-sr-only">' . esc_html__( 'Playback speed', 'elementor-podcast-manager' ) . ' </span>'
+				. '<span data-epm-speed-value>1×</span></button>';
 		}
 		if ( $args['show_volume'] ) {
-			$secondary .= '<label class="epm-player__volume"><span class="screen-reader-text">' . esc_html__( 'Volume', 'elementor-podcast-manager' ) . '</span>'
+			$secondary .= '<label class="epm-player__volume"><span class="epm-sr-only">' . esc_html__( 'Volume', 'elementor-podcast-manager' ) . '</span>'
 				. '<input type="range" min="0" max="1" step="0.05" value="1" data-epm-volume aria-label="' . esc_attr__( 'Volume', 'elementor-podcast-manager' ) . '" /></label>';
 		}
 		if ( $args['show_download'] && ! empty( $episode['audio_url'] ) ) {
 			$secondary .= '<a class="epm-player__download" href="' . esc_url( (string) $episode['audio_url'] ) . '" download aria-label="' . esc_attr__( 'Download episode', 'elementor-podcast-manager' ) . '">'
 				. '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 4v12m0 0l-4-4m4 4l4-4M5 20h14"/></svg></a>';
+		}
+		if ( $args['show_share'] ) {
+			// Sits at the trailing end of the row (see the stylesheet).
+			$secondary .= $this->share_menu( $episode, (string) $args['player_id'] );
 		}
 
 		if ( '' !== $secondary ) {
@@ -729,7 +1231,8 @@ final class Renderer {
 			$out .= '<details class="epm-player__chapters"><summary class="epm-player__chapters-toggle">'
 				. esc_html__( 'Chapters', 'elementor-podcast-manager' )
 				. '</summary>'
-				. $this->chapters( $episode, [ 'heading' => '' ] )
+				// The player has its own controls: its sticky setting decides.
+				. $this->chapters( $episode, [ 'heading' => '', 'sticky' => false ] )
 				. '</details>';
 		}
 
@@ -774,28 +1277,42 @@ final class Renderer {
 	}
 
 	/**
-	 * Episode label like "01 / Episode" or "Episode 3 · Season 1".
+	 * Episode label ("eyebrow") like "01 / Episode", "01 / Episode · Season 1"
+	 * or "Bonus".
+	 *
+	 * Only says something the title does not: the number (when shown), the
+	 * season (when shown) and a bonus or trailer type. Without any of them
+	 * it is empty, so no bare "Episode" eyebrow repeats on every item.
 	 *
 	 * @param array<string, mixed> $episode Episode data.
 	 * @param bool                 $show_number Show episode number.
 	 * @param bool                 $show_season Show season.
-	 * @return string
+	 * @return string Escaped label, '' when there is nothing to say.
 	 */
 	public function episode_label( array $episode, bool $show_number = true, bool $show_season = false ): string {
 		$number = (string) ( $episode['episode_number'] ?? '' );
 		$season = (string) ( $episode['season_number'] ?? '' );
+		$parts  = [];
 
 		if ( $show_number && '' !== $number ) {
-			$label = sprintf( '%02d', (int) $number ) . ' / ' . __( 'Episode', 'elementor-podcast-manager' );
-		} else {
-			$label = __( 'Episode', 'elementor-podcast-manager' );
+			$parts[] = sprintf( '%02d', (int) $number ) . ' / ' . __( 'Episode', 'elementor-podcast-manager' );
 		}
 
 		if ( $show_season && '' !== $season ) {
-			$label .= ' · ' . sprintf( __( 'Season %s', 'elementor-podcast-manager' ), $season );
+			/* translators: %s: season number */
+			$parts[] = sprintf( __( 'Season %s', 'elementor-podcast-manager' ), $season );
 		}
 
-		return esc_html( $label );
+		$types = [
+			'trailer' => __( 'Trailer', 'elementor-podcast-manager' ),
+			'bonus'   => __( 'Bonus', 'elementor-podcast-manager' ),
+		];
+		$type  = (string) ( $episode['episode_type'] ?? '' );
+		if ( isset( $types[ $type ] ) ) {
+			$parts[] = $types[ $type ];
+		}
+
+		return esc_html( implode( ' · ', $parts ) );
 	}
 
 	/**
@@ -832,17 +1349,46 @@ final class Renderer {
 	public function list_play_button( array $episode, string $class ): string {
 		$title = (string) ( $episode['title'] ?? '' );
 
+		// Once scrolled away from the list, playback keeps its controls.
+		$this->request_sticky_for_lists();
+
 		return '<button type="button" class="' . esc_attr( $class ) . '"'
 			. ' data-epm-card-play="' . esc_attr( (string) $episode['id'] ) . '"'
 			. ' data-epm-src="' . esc_url( (string) $episode['audio_url'] ) . '"'
 			. ' data-epm-title="' . esc_attr( $title ) . '"'
 			. ' data-epm-artwork="' . esc_url( $this->artwork_url( $episode, 'medium' ) ) . '"'
 			. ' data-epm-duration="' . esc_attr( (string) (int) ( $episode['duration_seconds'] ?? 0 ) ) . '"'
-			. ' aria-pressed="false"'
+			// The Play/Pause label is the only state signal: aria-pressed
+			// on top of it would announce "Pause …, pressed".
 			/* translators: %s: episode title */
 			. ' aria-label="' . esc_attr( sprintf( __( 'Play %s', 'elementor-podcast-manager' ), $title ) ) . '">'
-			. $this->play_icon( 'play' )
-			. '<span>' . esc_html__( 'Play', 'elementor-podcast-manager' ) . '</span></button>';
+			. $this->play_toggle_icons()
+			// All three words share one grid cell and the state classes
+			// (.is-playing, .has-error) show one of them, so the button
+			// keeps its width when the label changes.
+			. '<span class="epm-list-play__label">'
+			. '<span class="epm-list-play__text--play">' . esc_html__( 'Play', 'elementor-podcast-manager' ) . '</span>'
+			. '<span class="epm-list-play__text--pause" aria-hidden="true">' . esc_html__( 'Pause', 'elementor-podcast-manager' ) . '</span>'
+			. '<span class="epm-list-play__text--retry" aria-hidden="true">' . esc_html__( 'Retry', 'elementor-podcast-manager' ) . '</span>'
+			. '</span></button>';
+	}
+
+	/**
+	 * Request the sticky player for playback that starts outside a full
+	 * player (card and row buttons, chapter lists). The shell stays hidden
+	 * until something plays.
+	 *
+	 * @return void
+	 */
+	private function request_sticky_for_lists(): void {
+		/**
+		 * Whether list play buttons and chapter lists bring the sticky player.
+		 *
+		 * @param bool $enabled Default true.
+		 */
+		if ( apply_filters( 'epm_sticky_player_for_lists', true ) ) {
+			Assets::request_sticky_player();
+		}
 	}
 
 	/**
@@ -864,6 +1410,7 @@ final class Renderer {
 				'show_date'         => true,
 				'show_duration'     => true,
 				'show_play_button'  => true,
+				'show_topics'       => false,
 				'excerpt_length'    => 20,
 				'style_vars'        => [],
 				'link'              => true,
@@ -914,6 +1461,10 @@ final class Renderer {
 			}
 		}
 
+		if ( $args['show_topics'] ) {
+			$out .= $this->topics( $episode );
+		}
+
 		$meta_fields = [];
 		if ( $args['show_date'] ) {
 			$meta_fields[] = 'date';
@@ -953,6 +1504,7 @@ final class Renderer {
 				'show_date'         => true,
 				'show_duration'     => true,
 				'show_play_button'  => true,
+				'show_topics'       => false,
 				'excerpt_length'    => 20,
 				'style_vars'        => [],
 			]
@@ -985,6 +1537,10 @@ final class Renderer {
 			}
 		}
 
+		if ( $args['show_topics'] ) {
+			$out .= $this->topics( $episode );
+		}
+
 		$out .= '</div>';
 
 		$out .= '<div class="epm-episode-row__aside">';
@@ -1010,10 +1566,41 @@ final class Renderer {
 	}
 
 	/**
+	 * Empty state of an episode list: says what the place is and, for a
+	 * filtered list (season, category), points to all episodes.
+	 *
+	 * @param array<string, mixed> $args List args: empty_message (overrides,
+	 *                                   '' renders nothing), filtered (bool).
+	 * @return string
+	 */
+	public function empty_list( array $args ): string {
+		if ( isset( $args['empty_message'] ) ) {
+			$message = (string) $args['empty_message'];
+
+			return '' === $message ? '' : '<p class="epm-episode-list__empty">' . esc_html( $message ) . '</p>';
+		}
+
+		$filtered = ! empty( $args['filtered'] );
+		$archive  = $filtered ? get_post_type_archive_link( EpisodePostType::CPT ) : '';
+		$message  = $filtered
+			? __( 'No episodes in this selection yet.', 'elementor-podcast-manager' )
+			: __( 'No episodes yet. New episodes will appear here.', 'elementor-podcast-manager' );
+
+		$link = '';
+		if ( is_string( $archive ) && '' !== $archive ) {
+			$link = ' <a class="epm-episode-list__empty-link" href="' . esc_url( $archive ) . '">' . esc_html__( 'Browse all episodes', 'elementor-podcast-manager' ) . '</a>';
+		}
+
+		return '<p class="epm-episode-list__empty">' . esc_html( $message ) . $link . '</p>';
+	}
+
+	/**
 	 * Episode list wrapper — renders rows or cards per layout.
 	 *
 	 * @param \WP_Post[]           $posts Episode posts.
-	 * @param array<string, mixed> $args Options: layout + card/row args.
+	 * @param array<string, mixed> $args Options: layout + card/row args,
+	 *                                   filtered (bool, a season/category
+	 *                                   filter is active), empty_message.
 	 * @return string
 	 */
 	public function episode_list( array $posts, array $args = [] ): string {
@@ -1034,25 +1621,34 @@ final class Renderer {
 		Assets::mark_player_used();
 
 		if ( empty( $posts ) ) {
-			$message = isset( $args['empty_message'] )
-				? (string) $args['empty_message']
-				: __( 'No episodes published yet.', 'elementor-podcast-manager' );
-
-			return '' === $message ? '' : '<p class="epm-episode-list__empty">' . esc_html( $message ) . '</p>';
+			return $this->empty_list( $args );
 		}
 
 		// Prime attachment caches once for the whole list (F18).
 		Episodes::prime_attachments( $posts );
 
-		$out = '<div class="epm-episode-list epm-episode-list--' . esc_attr( $layout ) . '"' . $this->style_vars( (array) $args['style_vars'] ) . '>';
+		$episodes = array_filter( array_map( [ epm()->episodes, 'get_data' ], $posts ) );
 
-		foreach ( $posts as $post ) {
-			$episode = epm()->episodes->get_data( $post );
+		$classes = [ 'epm-episode-list', 'epm-episode-list--' . $layout ];
+		// Numbered row layouts reserve the number column on every row, so
+		// titles share one edge whether or not an episode has a number. A
+		// list in which no episode has a number reserves nothing.
+		$numbered = in_array( $layout, [ 'list', 'editorial-rows' ], true ) && ! empty( $args['show_episode_number'] ?? true );
+		if ( $numbered ) {
+			$numbered = [] !== array_filter(
+				$episodes,
+				static function ( array $episode ): bool {
+					return '' !== (string) ( $episode['episode_number'] ?? '' );
+				}
+			);
+		}
+		if ( $numbered ) {
+			$classes[] = 'epm-episode-list--numbered';
+		}
 
-			if ( ! $episode ) {
-				continue;
-			}
+		$out = '<div class="' . esc_attr( implode( ' ', $classes ) ) . '"' . $this->style_vars( (array) $args['style_vars'] ) . '>';
 
+		foreach ( $episodes as $episode ) {
 			if ( in_array( $layout, [ 'cards', 'grid' ], true ) ) {
 				$out .= $this->episode_card( $episode, $args );
 			} else {

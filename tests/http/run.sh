@@ -44,6 +44,14 @@ check "ETag header present" '[ -n "$etag" ]'
 check "If-None-Match answers 304" '[ "$(curl -s -o /dev/null -w "%{http_code}" -H "If-None-Match: $etag" "$URL/podcast/feed/")" = 304 ]'
 check "If-Modified-Since answers 304" '[ "$(curl -s -o /dev/null -w "%{http_code}" -H "If-Modified-Since: $lastmod" "$URL/podcast/feed/")" = 304 ]'
 check "stale ETag gets the full feed" '[ "$(curl -s -o /dev/null -w "%{http_code}" -H "If-None-Match: \"stale\"" "$URL/podcast/feed/")" = 200 ]'
+# A channel change without a new episode moves Last-Modified too, so a
+# client that only sends If-Modified-Since gets the new feed.
+SETTINGS_BEFORE="$($WP option get epm_podcast_settings --format=json 2>/dev/null | grep '^{' | head -1)"
+sleep 1
+$WP eval 'update_option( "epm_podcast_settings", array_merge( (array) get_option( "epm_podcast_settings" ), [ "copyright" => "Changed by the HTTP tests" ] ) );' > /dev/null 2>&1
+check "a channel change answers If-Modified-Since with the full feed" '[ "$(curl -s -o /dev/null -w "%{http_code}" -H "If-Modified-Since: $lastmod" "$URL/podcast/feed/")" = 200 ]'
+check "and names its new build time" '[ "$(curl -s -D - -o /dev/null "$URL/podcast/feed/" | grep -i "^last-modified:" | cut -d" " -f2- | tr -d "\r")" != "$lastmod" ]'
+[ -n "$SETTINGS_BEFORE" ] && $WP option update epm_podcast_settings "$SETTINGS_BEFORE" --format=json > /dev/null 2>&1
 
 echo "Companion documents"
 check "chapters JSON for a public episode" 'curl -s "$URL/?epm_chapters=$EP1" | php -r "\$d = json_decode(stream_get_contents(STDIN), true); exit(isset(\$d[\"chapters\"][1][\"startTime\"]) && 30 === \$d[\"chapters\"][1][\"startTime\"] ? 0 : 1);"'
@@ -73,6 +81,41 @@ check "password-protected episode meta hidden in REST" 'curl -s "$URL/wp-json/wp
 echo "Media"
 AUDIO=$(grep -o '<enclosure url="[^"]*"' "$TMP/feed.xml" | head -1 | sed 's/.*url="//; s/"$//')
 check "enclosure answers byte-range requests" '[ "$(curl -s -o /dev/null -w "%{http_code}" -r 0-99 "$AUDIO")" = 206 ]'
+
+echo "Hosted elsewhere"
+# The hosting option is saved (JSON, empty when it does not exist) and put
+# back afterwards, also when the script is interrupted.
+HOST_FEED="https://feeds.example.test/synthetic/locked-show.xml"
+HOSTING_BEFORE="$($WP option get epm_hosting --format=json 2>/dev/null | grep '^{' | head -1)"
+restore_hosting() {
+	if [ -n "$HOSTING_BEFORE" ]; then
+		$WP option update epm_hosting "$HOSTING_BEFORE" --format=json > /dev/null 2>&1
+	else
+		$WP option delete epm_hosting > /dev/null 2>&1
+	fi
+}
+trap 'restore_hosting; rm -rf "$TMP"' EXIT
+# Through the settings sanitizer, like the Hosting screen.
+set_hosting() {
+	$WP eval "update_option( EPM\\Hosting::OPTION, EPM\\Hosting::sanitize( array_merge( EPM\\Hosting::all(), [ 'mode' => '$1', 'feed_url' => '$HOST_FEED', 'redirect' => '$2', 'sync' => '' ] ) ) );" > /dev/null 2>&1
+}
+status_and_location() { curl -s -o /dev/null -w '%{http_code} %{redirect_url}' "$URL$1"; }
+
+set_hosting external 1
+for path in /podcast/feed/ "/?epm_podcast_feed=1" /podcast/rss2/ /podcast/feed/atom/; do
+	check "$path answers 301 to the host's feed" '[ "$(status_and_location "$path")" = "301 $HOST_FEED" ]'
+done
+check "the redirect names the plugin" 'curl -s -D - -o /dev/null "$URL/podcast/feed/" | grep -qi "^x-redirect-by: Elementor Podcast Manager"'
+check "pages point feed readers at the host's feed" 'curl -s "$URL/" | grep -q "type=\"application/rss+xml\"[^>]*href=\"$HOST_FEED\""'
+check "the blog feed is not redirected" '[ "$(curl -s -o /dev/null -w "%{http_code}" "$URL/feed/")" = 200 ]'
+
+set_hosting external ""
+check "redirect turned off: the site's feed answers 200" '[ "$(status_and_location /podcast/feed/)" = "200 " ]'
+
+restore_hosting
+for path in /podcast/feed/ "/?epm_podcast_feed=1"; do
+	check "self-hosted again: $path answers 200 with the podcast feed" '[ "$(status_and_location "$path")" = "200 " ] && curl -s "$URL$path" | grep -q "<itunes:owner>"'
+done
 
 echo
 echo "$PASSED passed, $FAILED failed."

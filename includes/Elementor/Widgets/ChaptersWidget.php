@@ -3,7 +3,7 @@
  * Elementor widget: Podcast Chapters (Layer 3).
  *
  * Renders episode chapters via \EPM\Renderer::chapters(). Clicking a chapter
- * timestamp seeks the active player. Outputs nothing when the episode has
+ * row seeks the episode's player. Outputs nothing when the episode has
  * no chapters.
  *
  * @package EPM
@@ -111,6 +111,8 @@ final class ChaptersWidget extends Widget_Base {
 			]
 		);
 
+		$this->add_heading_tag_control();
+
 		$this->end_controls_section();
 
 		// Style.
@@ -168,7 +170,8 @@ final class ChaptersWidget extends Widget_Base {
 		$html = epm()->renderer->chapters(
 			$episode,
 			[
-				'heading' => sanitize_text_field( $settings['heading'] ?? '' ),
+				'heading'     => sanitize_text_field( $settings['heading'] ?? '' ),
+				'heading_tag' => sanitize_key( $settings['heading_tag'] ?? 'h3' ),
 			]
 		);
 

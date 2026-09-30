@@ -4,58 +4,117 @@ Tags: podcast, elementor, audio player, rss, episodes
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.2.0
+Stable tag: 1.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Manage and display a podcast on Elementor websites. Episodes, RSS feed, custom audio player, and Elementor widgets — no external podcast platform required.
+Run a podcast website on Elementor: host episodes and the RSS feed yourself, or connect a show hosted at Spotify for Creators or any other host.
 
 == Description ==
 
-Elementor Podcast Manager turns a WordPress + Elementor website into a complete podcast home:
+Elementor Podcast Manager turns a WordPress + Elementor website into the home of a podcast, whichever way the show is hosted:
 
-* **Podcast → Add Episode** — title, drop the audio (MP3/M4A), description, publish. Duration and file size are detected automatically.
-* **Directory-ready RSS feed** at `/podcast/feed/` for Apple Podcasts, Spotify and every podcast app: Apple categories and subcategories, explicit flags, seasons, episode types, rich show notes, plus Podcasting 2.0 chapters, transcripts, GUID, lock and funding tags. Cached, with conditional-GET support.
-* **Distribution readiness report** on the dashboard before you submit.
-* **Automatic episode pages** with any theme: player, guest, show notes, chapters and transcript.
+* **Host the show on your website.** Podcast → Add episode: title, drop the audio (MP3/M4A), description, publish. Duration and file size are detected automatically. Audio can also come from a CDN or storage bucket URL. The plugin publishes a directory-ready RSS feed at `/podcast/feed/`.
+* **Or be the website of a show hosted elsewhere.** Spotify for Creators, Buzzsprout, Libsyn, Podbean, Transistor, Captivate, RSS.com, Acast, Podigee, Simplecast, Megaphone or any other host keeps publishing the feed. The plugin imports the episodes, checks the host's feed every hour for new and changed episodes, keeps edits made on the website, and redirects the site's own feed address to the host's feed.
+* **Move a show in either direction.** Import a show from another host with its audio, episode IDs (GUIDs) and podcast GUID, then redirect the old feed. Or hand the show to a new host, check that it kept the episode IDs, and redirect this site's feed there.
+* **Setup assistant.** Three paths (host on this website, move my podcast here, keep my current host), show details and artwork checks, a design preset and an optional podcast page.
+* **Distribution center.** Step-by-step submission to Apple Podcasts, Spotify, YouTube, Amazon Music, Podcast Index, iHeartRadio, Pocket Casts, Deezer and more, with progress tracking and a feed and audio delivery test. Listing links become subscribe buttons automatically.
+* **Directory-ready RSS feed:** Apple categories and subcategories, explicit flags, seasons, episode types, rich show notes, plus Podcasting 2.0 chapters, transcripts, caption files (WebVTT/SRT), GUID, lock, funding, medium and person tags. Cached, with conditional-GET support.
+* **Transcript files.** Attach a WebVTT or SRT file for captions in podcast apps; the readable transcript is filled from it. Imports keep the host's transcript files.
+* **Automatic episode pages** with any theme: player, video, topics, guest, show notes, chapters and transcript, plus schema.org podcast structured data.
+* **Share menu and timestamp links:** copy the episode link, a link that starts at the current position (`?t=1m23s`) or the embed code.
+* **Episode embeds:** an episode URL pasted into another WordPress site becomes a compact playable card; the embed code works on any site.
+* **Privacy-friendly video:** YouTube, Vimeo or a video file behind a click-to-load facade; nothing loads from the platform before play.
+* **Topics:** tag episodes, filter episode lists by topic and show topic chips.
 * **One custom audio player engine** (vanilla JS) with five layouts, a sticky mini player, lock-screen controls, resume position and remembered speed.
-* **Eleven Elementor widgets** (Podcast category): Podcast Player, Episode List, Latest Episode, Podcast Hero, Episode Header, Episode Metadata, Guest, Subscribe Links, Transcript, Show Notes, Chapters — with Theme Builder "Current Episode" support and a searchable episode picker.
+* **Twelve Elementor widgets** (Podcast category): Podcast Player, Episode List, Latest Episode, Podcast Hero, Episode Header, Metadata, Guest, Subscribe Links, Transcript, Show Notes, Chapters, Episode Video — with Theme Builder "Current Episode" support and a searchable episode picker.
 * **Shortcodes** for every component, for pages without Elementor.
-* **Global Podcast Styles** (Podcast → Design) with presets and design export/import.
+* **Design system** (Podcast → Design): eleven presets, a live preview, a contrast check, button shape, font, shadow and track color settings, and design export/import.
+* **Faster editing:** next episode number, paste a chapter list, Quick Edit and Bulk Edit for numbers, seasons, types and explicit flags.
+* **WP-CLI:** `wp podcast import`, `wp podcast sync`, `wp podcast status`.
 * **Brand-independent architecture** — three layers (podcast engine, UI components, Elementor presentation). No hardcoded branding.
 
-The plugin works without Elementor (publishing, feed, episode pages and shortcodes); only the widgets require it.
+The plugin works without Elementor (publishing, feed, import and sync, episode pages, embeds and shortcodes); only the widgets require it.
+
+Host, platform and brand names are trademarks of their owners and only identify the services. Platform icons come from Simple Icons (CC0). Six presets use design values derived from the awesome-design-md collection (MIT); they carry generic names and no brand assets.
 
 == Installation ==
 
 1. Upload the `elementor-podcast-manager` folder to `/wp-content/plugins/`.
-2. Activate the plugin. Rewrite rules are flushed automatically.
-3. Go to **Podcast → Podcast Settings**, enter title, description, artwork, owner details.
-4. Go to **Podcast → Add Episode**, upload audio, publish.
-5. Copy the RSS feed URL from **Podcast → Dashboard** and submit it to podcast directories.
-6. In Elementor, add the Podcast widgets and style them with the site's Global Colors/Fonts.
+2. Activate the plugin. Rewrite rules are flushed automatically. On a site without a podcast, the setup assistant opens.
+3. Follow the setup assistant, or configure by hand:
+   * **Podcast → Hosting & import:** keep "This website", or choose "Another podcast host" and paste its feed address.
+   * **Podcast → Podcast settings:** title, description, artwork, owner details.
+   * **Podcast → Add episode:** upload audio, publish.
+4. **Podcast → Distribution:** copy the feed address and submit it to Apple Podcasts, Spotify and the other platforms.
+5. **Podcast → Design:** choose a preset; in Elementor, add the Podcast widgets.
+
+Importing and syncing need outbound HTTPS requests from the server, a writable uploads folder and WP-Cron (or a server cron job). Hosting audio on the website needs HTTPS and a web server that answers HEAD and byte-range requests; see `docs/HOSTING.md`.
 
 == Frequently Asked Questions ==
 
 = Where is the RSS feed? =
-At `https://your-site.com/podcast/feed/`. Find it any time under Podcast → Dashboard or Podcast → Podcast Settings → Distribution.
+When the website hosts the show: at `https://your-site.com/podcast/feed/`. When another host publishes the show, the host's feed is the one listeners use, and `/podcast/feed/` redirects to it. Podcast → Distribution always shows the address to submit.
+
+= Can I keep my podcast on Spotify for Creators (or another host)? =
+Yes. Choose "Keep my current host" in the setup assistant or "Another podcast host" under Podcast → Hosting & import and paste the host's RSS feed address. On Spotify for Creators it is under Settings → Availability → RSS distribution (RSS has to be turned on there; shows without RSS distribution have no public feed). The website checks the host's feed every hour through WP-Cron; "Sync now" checks immediately.
+
+= How do I move my podcast to my website? =
+Choose "Move my podcast to this website" in the setup assistant. The plugin imports every episode with its audio and keeps the episode IDs, so apps do not show duplicates. Then set a permanent (301) redirect from the old feed to this site's feed at the old host and keep the old account for at least four weeks. The full procedure is in `docs/HOSTING.md`.
+
+= Will importing twice create duplicate episodes? =
+No. Episodes are matched by their GUID; existing episodes are updated, and fields you edited on the website are kept.
+
+= How do timestamp links work? =
+Add `?t=` to an episode address: `?t=90`, `?t=1m30s` or `?t=1:30`. The episode page's player is set to that position and starts there when the visitor presses play. The share menu's "Copy link at …" writes such a link.
+
+= Does the video load YouTube before a visitor plays it? =
+No. The page shows the episode artwork and a play button; YouTube (through youtube-nocookie.com) or Vimeo (with do-not-track) loads only after the press. Audio hosted on another domain is also requested only when a visitor presses play.
 
 = Do I need Elementor? =
-Only for the widgets. Episode management, audio uploads and the RSS feed work without it.
+Only for the widgets. Episode management, audio uploads, import and sync, the RSS feed, episode pages, embeds and shortcodes work without it.
 
 = Will my episodes survive if I remove Elementor? =
 Yes. Episodes are normal WordPress posts, audio stays in the Media Library, the feed keeps working.
 
 = How do I build the episode template? =
-You don't have to: episode pages get the player and all episode details automatically. For a custom design, use Elementor Pro's Theme Builder: create a Single template for Podcast Episodes with the Episode Header, Podcast Player, Guest, Show Notes, Chapters and Transcript widgets set to "Current Episode" (the automatic content is then skipped). Without Elementor Pro, use the shortcodes ([podcast_player], [podcast_episodes], [podcast_subscribe], [podcast_chapters], [podcast_transcript] …).
+You don't have to: episode pages get the player and all episode details automatically. For a custom design, use Elementor Pro's Theme Builder: create a Single template for Podcast Episodes with the Episode Header, Podcast Player, Episode Video, Guest, Show Notes, Chapters and Transcript widgets set to "Current Episode" (the automatic content is then skipped). Without Elementor Pro, use the shortcodes ([podcast_player], [podcast_episodes], [podcast_video], [podcast_subscribe], [podcast_chapters], [podcast_transcript] …).
 
 = Which audio formats are supported? =
-MP3 and M4A are distributed in the feed. WAV can be stored but is excluded from the feed (the episode list marks it "Not in feed").
+Uploads: MP3 and M4A are distributed in the feed; WAV can be stored but is excluded from the feed (the episode list marks it "Not in feed"). Imported episodes can also carry AAC and MP4 video enclosures, which stay in the feed.
+
+= Which transcript formats are supported? =
+Uploads: WebVTT (.vtt) and SubRip (.srt), listed in the feed as captions. Imports keep the host's WebVTT, SRT or Podcasting 2.0 JSON file and convert HTML, WebVTT, SRT, JSON and plain-text transcripts into readable text.
 
 = Can I use the block editor for episodes? =
 Episodes use the classic screen so the audio upload sits right under the title. Add `add_filter( 'epm_use_block_editor', '__return_true' );` to switch.
 
 == Changelog ==
+
+= 1.3.0 =
+* Added: hosting modes. "This website" publishes the feed as before; "Another podcast host" mirrors a show hosted at Spotify for Creators, Buzzsprout, Libsyn or any other host, syncs it hourly and redirects the site's feed to the host's feed (301).
+* Added: feed import from a feed address, an Apple Podcasts link or a web page; tolerant parser for feeds from any host; paged feeds; batched background import; episode GUIDs and the podcast GUID kept; chapters and transcripts converted; optional copy of audio, images and caption files into the Media Library, with a list of episodes whose audio could not be copied; locked feeds require ownership confirmation.
+* Added: sync that keeps local edits, never changes anything on an empty or suddenly shrunken feed, follows feed moves, optionally unpublishes removed episodes, and backs off after failures.
+* Added: episodes with an external audio URL (CDN, storage bucket or host), checked on the server.
+* Added: setup assistant with three paths (host here, move here, keep current host); opens once after activation on a site without a podcast.
+* Added: Distribution screen with submission steps and progress for Apple Podcasts, Spotify, YouTube, Amazon Music, Podcast Index and 14 more platforms, and a feed and audio delivery test; listing links become subscribe buttons.
+* Added: transcript files (WebVTT, SRT, JSON) listed in the feed as podcast:transcript, with rel="captions" for WebVTT and SRT.
+* Added: share menu (link, link at the current position, share sheet, embed code), ?t= timestamp links, episode embed cards (/podcast/{slug}/embed/, oEmbed).
+* Added: click-to-load video ([podcast_video], Episode Video widget, automatic episode pages).
+* Added: Topics taxonomy with archives, list filters ([podcast_episodes topic=".."], Episode List widget) and topic chips.
+* Added: Design screen with preset gallery, live preview and contrast check; button shape, font, shadow and track color tokens; six presets derived from the awesome-design-md collection (MIT, design values only, generic names).
+* Added: next episode number, paste chapters, transcript file picker, Quick Edit and Bulk Edit (number from, season, type, explicit); dashboard cards.
+* Added: platform icons (Simple Icons, CC0) for subscribe links; link service detection.
+* Added: podcast:medium and podcast:person in the feed; schema.org podcast structured data and og:audio on episode pages; Podcast Index notification when an episode is published.
+* Added: WP-CLI commands `wp podcast import|sync|status`.
+* Changed: AAC and MP4/M4V/MOV video enclosures are distributed (for imported shows); uploads are unchanged. M4A uploads are announced as audio/x-m4a.
+* Changed: episode pages and list play buttons bring the sticky player; audio on another domain loads only on the first press; dark designs give sections a surface.
+* Changed: admin wording in sentence case ("Add episode", "Podcast settings", "Feed and links"); the Author column is hidden by default.
+* Changed: deactivation clears the plugin's scheduled events; uninstall always removes them and temporary import files.
+* Fixed: Last-Modified now follows feed content changes; control characters no longer break the feed; serial feeds with an episode limit keep the newest episodes.
+* Fixed: editor saves of imported episodes no longer count as local edits; publish dates with wrong weekdays; feed discovery on WordPress sites; long imports keep their lock; moving a mirrored show no longer leaves a redirect loop.
+* Fixed: SRT uploads behave the same on every server.
+* Security: all outgoing requests (including the delivery test) refuse private networks; XML entity expansion stays bounded; audio and transcript files must be readable by the user; private episodes are hidden from the episode picker; managing topics needs manage_categories.
 
 = 1.2.0 =
 * Fixed: /podcast/feed/ served WordPress's generic RSS instead of the podcast feed.
@@ -86,3 +145,8 @@ Episodes use the classic screen so the audio upload sits right under the title. 
 
 = 1.0.0 =
 * Initial release.
+
+== Upgrade Notice ==
+
+= 1.3.0 =
+Adds hosting modes (keep your host or move a show), import and sync, a setup assistant, a distribution center, transcript files, share links, embeds, video, topics and a new Design screen. Existing sites keep working; see MIGRATION.md.

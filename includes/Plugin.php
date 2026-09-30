@@ -113,9 +113,11 @@ final class Plugin {
 		( new ImportJob() )->init();
 		Cli::register();
 		( new StructuredData() )->init();
+		Transcripts::init();
 		$this->register_meta();
 		new Shortcodes();
 		( new EpisodeTemplate() )->init();
+		( new Embed() )->init();
 
 		// One-time upgrade tasks (rewrite rules) after a plugin update.
 		add_action( 'init', [ $this, 'maybe_upgrade' ], 99 );
@@ -227,6 +229,13 @@ final class Plugin {
 			return ( '' === $value || null === $value ) ? '' : absint( $value );
 		};
 
+		// GUIDs are kept byte-for-byte: sanitize_text_field() drops
+		// %-escapes ("f%C3%BCr"), and the next import would then create the
+		// episode again.
+		$guid = static function ( $value ): string {
+			return trim( (string) preg_replace( '/[\x00-\x1F\x7F]/', '', wp_check_invalid_utf8( (string) $value ) ) );
+		};
+
 		$fields = [
 			// key => [ REST type, sanitize callback, editable via REST ].
 			'audio_id'          => [ 'integer', 'absint', true ],
@@ -242,6 +251,11 @@ final class Plugin {
 			'short_description' => [ 'string', 'sanitize_textarea_field', true ],
 			'show_notes'        => [ 'string', 'wp_kses_post', true ],
 			'transcript'        => [ 'string', 'wp_kses_post', true ],
+			// Transcript file for captions (WebVTT/SRT/JSON): an upload, or
+			// a URL kept from an imported feed.
+			'transcript_file_id' => [ 'integer', 'absint', true ],
+			'transcript_url'    => [ 'string', 'esc_url_raw', true ],
+			'transcript_type'   => [ 'string', 'sanitize_text_field', true ],
 			'canonical_url'     => [ 'string', 'esc_url_raw', true ],
 			'video_url'         => [ 'string', 'esc_url_raw', true ],
 			'youtube_url'       => [ 'string', 'esc_url_raw', true ],
@@ -259,7 +273,7 @@ final class Plugin {
 			'guest_company'     => [ 'string', 'sanitize_text_field', true ],
 			'guest_bio'         => [ 'string', 'sanitize_textarea_field', true ],
 			// Immutable identity: readable, never writable through REST.
-			'guid'              => [ 'string', 'sanitize_text_field', false ],
+			'guid'              => [ 'string', $guid, false ],
 		];
 
 		foreach ( $fields as $key => [ $type, $sanitize, $editable ] ) {
@@ -305,6 +319,9 @@ final class Plugin {
 
 		// Password-protected episodes keep their metadata private in REST.
 		add_filter( 'rest_prepare_' . EpisodePostType::CPT, [ $this, 'protect_rest_meta' ], 10, 2 );
+
+		// Audio and transcript files set through REST must be readable media.
+		add_filter( 'rest_pre_insert_' . EpisodePostType::CPT, [ $this, 'rest_check_attachment_meta' ], 10, 2 );
 	}
 
 	/**
@@ -317,6 +334,55 @@ final class Plugin {
 	 */
 	public function meta_auth( $allowed, $meta_key = '', $post_id = 0 ): bool {
 		return current_user_can( 'edit_post', (int) $post_id );
+	}
+
+	/**
+	 * REST: a newly set audio or transcript file must be an attachment of
+	 * the right kind that the user may read (media attached to someone
+	 * else's unpublished episode is not). Unchanged values pass, so
+	 * re-saving keeps the stored file.
+	 *
+	 * The check lives here and not in the meta sanitizers: those also run
+	 * for the editor's own saves and for imports from cron, where there is
+	 * no user, and would silently clear stored files.
+	 *
+	 * @param \stdClass|\WP_Error $prepared Prepared post.
+	 * @param \WP_REST_Request     $request  Request.
+	 * @return \stdClass|\WP_Error
+	 */
+	public function rest_check_attachment_meta( $prepared, $request ) {
+		$meta = $request->get_param( 'meta' );
+		if ( is_wp_error( $prepared ) || ! is_array( $meta ) ) {
+			return $prepared;
+		}
+
+		$post_id = (int) ( $prepared->ID ?? 0 );
+		$checks  = [
+			'audio_id'           => [ AudioMetadata::class, 'is_valid_audio_attachment' ],
+			'transcript_file_id' => [ EpisodeMeta::class, 'is_transcript_attachment' ],
+		];
+
+		foreach ( $checks as $key => $is_valid ) {
+			$name = Episodes::META_PREFIX . $key;
+			if ( ! array_key_exists( $name, $meta ) ) {
+				continue;
+			}
+
+			$id = absint( $meta[ $name ] );
+			if ( $id <= 0 || ( $post_id > 0 && (int) get_post_meta( $post_id, $name, true ) === $id ) ) {
+				continue;
+			}
+
+			if ( ! $is_valid( $id ) || ! current_user_can( 'read_post', $id ) ) {
+				return new \WP_Error(
+					'rest_forbidden_meta',
+					__( 'You can’t use this file for the episode.', 'elementor-podcast-manager' ),
+					[ 'status' => 403 ]
+				);
+			}
+		}
+
+		return $prepared;
 	}
 
 	/**

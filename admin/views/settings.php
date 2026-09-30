@@ -9,10 +9,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$settings = epm()->settings->all();
+$settings         = epm()->settings->all();
+$epm_external     = \EPM\Hosting::is_external();
+$epm_public_feed  = \EPM\Hosting::public_feed_url();
 ?>
 <div class="wrap epm-settings">
-	<h1><?php esc_html_e( 'Podcast Settings', 'elementor-podcast-manager' ); ?></h1>
+	<h1><?php esc_html_e( 'Podcast settings', 'elementor-podcast-manager' ); ?></h1>
+	<hr class="wp-header-end" />
 	<?php settings_errors(); ?>
 
 	<form method="post" action="options.php">
@@ -22,7 +25,7 @@ $settings = epm()->settings->all();
 		<table class="form-table" role="presentation">
 			<tr>
 				<th scope="row"><label for="epm-s-title"><?php esc_html_e( 'Podcast title', 'elementor-podcast-manager' ); ?></label></th>
-				<td><input type="text" id="epm-s-title" name="epm_podcast_settings[title]" value="<?php echo esc_attr( (string) $settings['title'] ); ?>" class="regular-text" required /></td>
+				<td><input type="text" id="epm-s-title" name="epm_podcast_settings[title]" value="<?php echo esc_attr( (string) $settings['title'] ); ?>" class="regular-text" required aria-required="true" /></td>
 			</tr>
 			<tr>
 				<th scope="row"><label for="epm-s-desc"><?php esc_html_e( 'Description', 'elementor-podcast-manager' ); ?></label></th>
@@ -37,8 +40,11 @@ $settings = epm()->settings->all();
 				<td><input type="text" id="epm-s-author" name="epm_podcast_settings[author]" value="<?php echo esc_attr( (string) $settings['author'] ); ?>" class="regular-text" /></td>
 			</tr>
 			<tr>
-				<th scope="row"><label for="epm-s-host"><?php esc_html_e( 'Host', 'elementor-podcast-manager' ); ?></label></th>
-				<td><input type="text" id="epm-s-host" name="epm_podcast_settings[host]" value="<?php echo esc_attr( (string) $settings['host'] ); ?>" class="regular-text" /></td>
+				<th scope="row"><label for="epm-s-host"><?php esc_html_e( 'Host (presenter)', 'elementor-podcast-manager' ); ?></label></th>
+				<td>
+					<input type="text" id="epm-s-host" name="epm_podcast_settings[host]" value="<?php echo esc_attr( (string) $settings['host'] ); ?>" class="regular-text" aria-describedby="epm-s-host-help" />
+					<p class="description" id="epm-s-host-help"><?php esc_html_e( 'The person who presents the show. Shown in the podcast header and in the feed.', 'elementor-podcast-manager' ); ?></p>
+				</td>
 			</tr>
 			<tr>
 				<th scope="row"><label for="epm-s-url"><?php esc_html_e( 'Website URL', 'elementor-podcast-manager' ); ?></label></th>
@@ -51,7 +57,7 @@ $settings = epm()->settings->all();
 					$epm_current_category = \EPM\Categories::encode( (string) $settings['category'], (string) ( $settings['subcategory'] ?? '' ) );
 					$epm_known_category   = '' === (string) $settings['category'] || \EPM\Categories::is_valid( (string) $settings['category'] );
 					?>
-					<select id="epm-s-category" name="epm_podcast_settings[category]">
+					<select id="epm-s-category" name="epm_podcast_settings[category]" aria-describedby="epm-s-category-help">
 						<option value=""><?php esc_html_e( '— Select a category —', 'elementor-podcast-manager' ); ?></option>
 						<?php if ( ! $epm_known_category ) : ?>
 							<option value="<?php echo esc_attr( $epm_current_category ); ?>" selected><?php echo esc_html( $epm_current_category ); ?></option>
@@ -66,19 +72,19 @@ $settings = epm()->settings->all();
 							</optgroup>
 						<?php endforeach; ?>
 					</select>
-					<p class="description"><?php esc_html_e( 'Apple Podcasts categories (used by most directories). Choose a subcategory where one fits.', 'elementor-podcast-manager' ); ?></p>
+					<p class="description" id="epm-s-category-help"><?php esc_html_e( 'Apple Podcasts categories (used by most directories). Choose a subcategory where one fits.', 'elementor-podcast-manager' ); ?></p>
 				</td>
 			</tr>
 			<tr>
 				<th scope="row"><label for="epm-s-language"><?php esc_html_e( 'Language', 'elementor-podcast-manager' ); ?></label></th>
 				<td>
-					<input type="text" id="epm-s-language" name="epm_podcast_settings[language]" value="<?php echo esc_attr( (string) $settings['language'] ); ?>" class="regular-text" list="epm-language-suggestions" />
+					<input type="text" id="epm-s-language" name="epm_podcast_settings[language]" value="<?php echo esc_attr( (string) $settings['language'] ); ?>" class="regular-text" list="epm-language-suggestions" aria-describedby="epm-s-language-help" autocomplete="off" />
 					<datalist id="epm-language-suggestions">
 						<?php foreach ( [ 'en', 'en-us', 'en-gb', 'de', 'de-de', 'de-at', 'de-ch', 'fr', 'es', 'it', 'nl', 'pt', 'pt-br', 'sv', 'da', 'no', 'fi', 'pl', 'cs', 'ja', 'zh' ] as $epm_lang ) : ?>
 							<option value="<?php echo esc_attr( $epm_lang ); ?>"></option>
 						<?php endforeach; ?>
 					</datalist>
-					<p class="description">
+					<p class="description" id="epm-s-language-help">
 						<?php
 						printf(
 							/* translators: %s: normalized RSS language code */
@@ -90,20 +96,20 @@ $settings = epm()->settings->all();
 				</td>
 			</tr>
 			<tr>
-				<th scope="row"><label for="epm-s-explicit"><?php esc_html_e( 'Explicit', 'elementor-podcast-manager' ); ?></label></th>
+				<th scope="row"><label for="epm-s-explicit"><?php esc_html_e( 'Content', 'elementor-podcast-manager' ); ?></label></th>
 				<td>
 					<select id="epm-s-explicit" name="epm_podcast_settings[explicit]">
-						<option value="clean" <?php selected( $settings['explicit'], 'clean' ); ?>><?php esc_html_e( 'Clean', 'elementor-podcast-manager' ); ?></option>
+						<option value="clean" <?php selected( $settings['explicit'], 'clean' ); ?>><?php esc_html_e( 'Suitable for all ages', 'elementor-podcast-manager' ); ?></option>
 						<option value="explicit" <?php selected( $settings['explicit'], 'explicit' ); ?>><?php esc_html_e( 'Explicit', 'elementor-podcast-manager' ); ?></option>
 					</select>
 				</td>
 			</tr>
 			<tr>
-				<th scope="row"><label for="epm-s-type"><?php esc_html_e( 'Podcast type', 'elementor-podcast-manager' ); ?></label></th>
+				<th scope="row"><label for="epm-s-type"><?php esc_html_e( 'Episode order', 'elementor-podcast-manager' ); ?></label></th>
 				<td>
 					<select id="epm-s-type" name="epm_podcast_settings[type]">
-						<option value="episodic" <?php selected( $settings['type'], 'episodic' ); ?>><?php esc_html_e( 'Episodic', 'elementor-podcast-manager' ); ?></option>
-						<option value="serial" <?php selected( $settings['type'], 'serial' ); ?>><?php esc_html_e( 'Serial', 'elementor-podcast-manager' ); ?></option>
+						<option value="episodic" <?php selected( $settings['type'], 'episodic' ); ?>><?php esc_html_e( 'Newest first (episodic)', 'elementor-podcast-manager' ); ?></option>
+						<option value="serial" <?php selected( $settings['type'], 'serial' ); ?>><?php esc_html_e( 'Oldest first (serial)', 'elementor-podcast-manager' ); ?></option>
 					</select>
 				</td>
 			</tr>
@@ -117,7 +123,10 @@ $settings = epm()->settings->all();
 			</tr>
 			<tr>
 				<th scope="row"><label for="epm-s-owner-email"><?php esc_html_e( 'Owner email', 'elementor-podcast-manager' ); ?></label></th>
-				<td><input type="email" id="epm-s-owner-email" name="epm_podcast_settings[owner_email]" value="<?php echo esc_attr( (string) $settings['owner_email'] ); ?>" class="regular-text" /></td>
+				<td>
+					<input type="email" id="epm-s-owner-email" name="epm_podcast_settings[owner_email]" value="<?php echo esc_attr( (string) $settings['owner_email'] ); ?>" class="regular-text" autocomplete="email" aria-describedby="epm-s-owner-email-help" />
+					<p class="description" id="epm-s-owner-email-help"><?php esc_html_e( 'Apple Podcasts, Spotify and YouTube send the verification code for your show to this address.', 'elementor-podcast-manager' ); ?></p>
+				</td>
 			</tr>
 		</table>
 
@@ -126,15 +135,15 @@ $settings = epm()->settings->all();
 			<tr>
 				<th scope="row" id="epm-s-artwork_id"><?php esc_html_e( 'Podcast artwork', 'elementor-podcast-manager' ); ?></th>
 				<td>
-					<?php $this->media_field( 'artwork_id', (int) $settings['artwork_id'], __( 'Choose podcast artwork', 'elementor-podcast-manager' ) ); ?>
-					<p class="description"><?php esc_html_e( 'Square image, at least 1400×1400 px recommended for podcast directories.', 'elementor-podcast-manager' ); ?></p>
+					<?php $this->media_field( 'artwork_id', (int) $settings['artwork_id'], __( 'Choose podcast artwork', 'elementor-podcast-manager' ), 'epm_podcast_settings', __( 'Remove podcast artwork', 'elementor-podcast-manager' ), 'epm-s-artwork-help' ); ?>
+					<p class="description" id="epm-s-artwork-help"><?php esc_html_e( 'Square JPEG or PNG, 1400 to 3000 px wide (3000 px is best). Apple Podcasts and Spotify require it.', 'elementor-podcast-manager' ); ?></p>
 				</td>
 			</tr>
 			<tr>
 				<th scope="row"><?php esc_html_e( 'Default episode artwork', 'elementor-podcast-manager' ); ?></th>
 				<td>
-					<?php $this->media_field( 'default_artwork_id', (int) $settings['default_artwork_id'], __( 'Choose default episode artwork', 'elementor-podcast-manager' ) ); ?>
-					<p class="description"><?php esc_html_e( 'Used when an episode has no artwork of its own.', 'elementor-podcast-manager' ); ?></p>
+					<?php $this->media_field( 'default_artwork_id', (int) $settings['default_artwork_id'], __( 'Choose default episode artwork', 'elementor-podcast-manager' ), 'epm_podcast_settings', __( 'Remove default episode artwork', 'elementor-podcast-manager' ), 'epm-s-default-artwork-help' ); ?>
+					<p class="description" id="epm-s-default-artwork-help"><?php esc_html_e( 'Used when an episode has no artwork of its own.', 'elementor-podcast-manager' ); ?></p>
 				</td>
 			</tr>
 			<tr>
@@ -143,13 +152,13 @@ $settings = epm()->settings->all();
 			</tr>
 		</table>
 
-		<h2><?php esc_html_e( 'Distribution', 'elementor-podcast-manager' ); ?></h2>
+		<h2><?php esc_html_e( 'Feed and links', 'elementor-podcast-manager' ); ?></h2>
 		<table class="form-table" role="presentation">
 			<tr>
 				<th scope="row"><label for="epm-s-feed-limit"><?php esc_html_e( 'Feed episode limit', 'elementor-podcast-manager' ); ?></label></th>
 				<td>
-					<input type="number" id="epm-s-feed-limit" name="epm_podcast_settings[feed_limit]" value="<?php echo esc_attr( (string) $settings['feed_limit'] ); ?>" class="small-text" min="0" max="10000" step="1" />
-					<p class="description"><?php esc_html_e( 'Newest episodes with distribution-ready audio included in the feed. 0 = unlimited. Episodes without audio never displace eligible episodes.', 'elementor-podcast-manager' ); ?></p>
+					<input type="number" id="epm-s-feed-limit" name="epm_podcast_settings[feed_limit]" value="<?php echo esc_attr( (string) $settings['feed_limit'] ); ?>" class="small-text" min="0" max="10000" step="1" aria-describedby="epm-s-feed-limit-help" />
+					<p class="description" id="epm-s-feed-limit-help"><?php esc_html_e( 'Newest episodes with distribution-ready audio included in the feed. 0 = unlimited. Episodes without audio never displace eligible episodes.', 'elementor-podcast-manager' ); ?></p>
 				</td>
 			</tr>
 			<tr>
@@ -160,39 +169,54 @@ $settings = epm()->settings->all();
 						<?php esc_html_e( 'Enable automatic latest-episode call to action', 'elementor-podcast-manager' ); ?>
 					</label>
 					<p>
-						<label for="epm-s-cta-label"><?php esc_html_e( 'Button label', 'elementor-podcast-manager' ); ?></label><br />
-						<input type="text" id="epm-s-cta-label" name="epm_podcast_settings[latest_cta_label]" value="<?php echo esc_attr( (string) $settings['latest_cta_label'] ); ?>" class="regular-text" placeholder="<?php esc_attr_e( 'Listen to the latest episode', 'elementor-podcast-manager' ); ?>" />
+						<label for="epm-s-cta-label"><?php esc_html_e( 'Button label', 'elementor-podcast-manager' ); ?></label>
+						<input type="text" id="epm-s-cta-label" name="epm_podcast_settings[latest_cta_label]" value="<?php echo esc_attr( (string) $settings['latest_cta_label'] ); ?>" class="regular-text" aria-describedby="epm-s-cta-label-help" />
 					</p>
+					<p class="description" id="epm-s-cta-label-help"><?php esc_html_e( 'Leave empty to use “Listen to the latest episode”.', 'elementor-podcast-manager' ); ?></p>
 					<p class="description"><?php esc_html_e( 'When enabled, the [podcast_latest_cta] shortcode renders a button that always links to the newest published episode.', 'elementor-podcast-manager' ); ?></p>
 				</td>
 			</tr>
 			<tr>
-				<th scope="row"><?php esc_html_e( 'RSS Feed URL', 'elementor-podcast-manager' ); ?></th>
+				<th scope="row"><?php esc_html_e( 'Feed address', 'elementor-podcast-manager' ); ?></th>
 				<td>
-					<p><code><?php echo esc_html( \EPM\Feed::url() ); ?></code></p>
-					<p>
-						<button type="button" class="button" data-epm-copy="<?php echo esc_attr( \EPM\Feed::url() ); ?>"><?php esc_html_e( 'Copy', 'elementor-podcast-manager' ); ?></button>
-						<a href="<?php echo esc_url( \EPM\Feed::url() ); ?>" target="_blank" rel="noopener" class="button"><?php esc_html_e( 'Open Feed', 'elementor-podcast-manager' ); ?></a>
+					<div class="epm-copy">
+						<code class="epm-copy__value"><?php echo esc_html( $epm_public_feed ); ?></code>
+						<?php echo \EPM\Admin::copy_button( $epm_public_feed, __( 'Copy feed address', 'elementor-podcast-manager' ), '', __( 'Feed address copied.', 'elementor-podcast-manager' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in copy_button(). ?>
+						<a href="<?php echo esc_url( $epm_public_feed ); ?>" target="_blank" rel="noopener" class="button"><?php esc_html_e( 'View feed', 'elementor-podcast-manager' ); ?><span class="screen-reader-text"> <?php esc_html_e( '(opens in a new tab)', 'elementor-podcast-manager' ); ?></span></a>
+					</div>
+					<p class="description">
+						<?php
+						if ( $epm_external ) {
+							printf(
+								/* translators: 1: podcast host name, 2: link to the Hosting & import screen */
+								esc_html__( '%1$s publishes this feed. Submit it to podcast platforms, or change where the show is hosted under %2$s.', 'elementor-podcast-manager' ),
+								esc_html( \EPM\Hosting::provider_name() ),
+								'<a href="' . esc_url( admin_url( 'admin.php?page=epm-hosting' ) ) . '">' . esc_html__( 'Hosting & import', 'elementor-podcast-manager' ) . '</a>'
+							);
+						} else {
+							esc_html_e( 'Submit this address to Apple Podcasts, Spotify and other podcast platforms.', 'elementor-podcast-manager' );
+						}
+						?>
 					</p>
-					<p class="description"><?php esc_html_e( 'Use this URL when submitting your podcast to podcast platforms.', 'elementor-podcast-manager' ); ?></p>
 				</td>
 			</tr>
 			<tr>
 				<th scope="row"><label for="epm-s-funding-url"><?php esc_html_e( 'Support / funding link', 'elementor-podcast-manager' ); ?></label></th>
 				<td>
-					<input type="url" id="epm-s-funding-url" name="epm_podcast_settings[funding_url]" value="<?php echo esc_attr( (string) $settings['funding_url'] ); ?>" class="regular-text" placeholder="https://" />
+					<input type="url" id="epm-s-funding-url" name="epm_podcast_settings[funding_url]" value="<?php echo esc_attr( (string) $settings['funding_url'] ); ?>" class="regular-text" inputmode="url" spellcheck="false" aria-describedby="epm-s-funding-help" />
 					<p>
-						<label for="epm-s-funding-label"><?php esc_html_e( 'Link text', 'elementor-podcast-manager' ); ?></label><br />
-						<input type="text" id="epm-s-funding-label" name="epm_podcast_settings[funding_label]" value="<?php echo esc_attr( (string) $settings['funding_label'] ); ?>" class="regular-text" placeholder="<?php esc_attr_e( 'Support the show', 'elementor-podcast-manager' ); ?>" />
+						<label for="epm-s-funding-label"><?php esc_html_e( 'Link text', 'elementor-podcast-manager' ); ?></label>
+						<input type="text" id="epm-s-funding-label" name="epm_podcast_settings[funding_label]" value="<?php echo esc_attr( (string) $settings['funding_label'] ); ?>" class="regular-text" aria-describedby="epm-s-funding-label-help" />
 					</p>
-					<p class="description"><?php esc_html_e( 'Optional. Podcast apps that support Podcasting 2.0 show this as a support/donation link.', 'elementor-podcast-manager' ); ?></p>
+					<p class="description" id="epm-s-funding-label-help"><?php esc_html_e( 'Leave empty to use “Support the show”.', 'elementor-podcast-manager' ); ?></p>
+					<p class="description" id="epm-s-funding-help"><?php esc_html_e( 'Optional. Podcast apps that support Podcasting 2.0 show this as a support or donation link.', 'elementor-podcast-manager' ); ?></p>
 				</td>
 			</tr>
 			<tr>
 				<th scope="row"><?php esc_html_e( 'Platform links', 'elementor-podcast-manager' ); ?></th>
 				<td>
+					<p class="description"><?php esc_html_e( 'Where listeners can follow the show, for example Apple Podcasts, Spotify or YouTube. Shown by the Subscribe Links widget. Links you add on the Distribution screen appear here automatically.', 'elementor-podcast-manager' ); ?></p>
 					<?php $this->links_repeater( 'platform_links', (array) ( $settings['platform_links'] ?? [] ) ); ?>
-					<p class="description"><?php esc_html_e( 'Shown by the Subscribe Links widget (e.g. Spotify, Apple Podcasts, YouTube).', 'elementor-podcast-manager' ); ?></p>
 				</td>
 			</tr>
 			<tr>
@@ -218,13 +242,21 @@ $settings = epm()->settings->all();
 		</table>
 
 		<h2><?php esc_html_e( 'Feed status', 'elementor-podcast-manager' ); ?></h2>
-		<p class="description"><?php esc_html_e( 'Advanced. Leave these unchanged unless you are moving, pausing or ending the podcast.', 'elementor-podcast-manager' ); ?></p>
+		<p class="description">
+			<?php
+			echo esc_html(
+				$epm_external
+					? __( 'Advanced. Your host publishes the feed, so these options only affect this website’s own feed.', 'elementor-podcast-manager' )
+					: __( 'Advanced. Leave these unchanged unless you are moving, pausing or ending the podcast.', 'elementor-podcast-manager' )
+			);
+			?>
+		</p>
 		<table class="form-table" role="presentation">
 			<tr>
 				<th scope="row"><label for="epm-s-new-feed-url"><?php esc_html_e( 'New feed URL', 'elementor-podcast-manager' ); ?></label></th>
 				<td>
-					<input type="url" id="epm-s-new-feed-url" name="epm_podcast_settings[new_feed_url]" value="<?php echo esc_attr( (string) $settings['new_feed_url'] ); ?>" class="regular-text" placeholder="https://" />
-					<p class="description"><?php esc_html_e( 'Only when moving the podcast to another host: directories follow this URL to the new feed. Keep the old feed online until they have switched.', 'elementor-podcast-manager' ); ?></p>
+					<input type="url" id="epm-s-new-feed-url" name="epm_podcast_settings[new_feed_url]" value="<?php echo esc_attr( (string) $settings['new_feed_url'] ); ?>" class="regular-text" inputmode="url" spellcheck="false" aria-describedby="epm-s-new-feed-help" />
+					<p class="description" id="epm-s-new-feed-help"><?php esc_html_e( 'Only when moving the podcast to another host: directories follow this URL to the new feed. Keep the old feed online until they have switched.', 'elementor-podcast-manager' ); ?></p>
 					<label>
 						<input type="checkbox" name="epm_podcast_settings[moved_in]" value="1" <?php checked( ! empty( $settings['moved_in'] ) ); ?> />
 						<?php esc_html_e( 'This show moved here from another host (the feed announces this address as its new home; keep it on for at least four weeks)', 'elementor-podcast-manager' ); ?>
@@ -237,11 +269,11 @@ $settings = epm()->settings->all();
 					<label>
 						<input type="checkbox" name="epm_podcast_settings[locked]" value="1" <?php checked( ! empty( $settings['locked'] ) ); ?> />
 						<?php esc_html_e( 'Lock the feed (other platforms may not import it without the owner’s consent)', 'elementor-podcast-manager' ); ?>
-					</label><br />
+					</label>
 					<label>
 						<input type="checkbox" name="epm_podcast_settings[complete]" value="1" <?php checked( ! empty( $settings['complete'] ) ); ?> />
 						<?php esc_html_e( 'The podcast is complete (no new episodes will be published)', 'elementor-podcast-manager' ); ?>
-					</label><br />
+					</label>
 					<label>
 						<input type="checkbox" name="epm_podcast_settings[itunes_block]" value="1" <?php checked( ! empty( $settings['itunes_block'] ) ); ?> />
 						<?php esc_html_e( 'Hide the podcast from Apple Podcasts', 'elementor-podcast-manager' ); ?>
@@ -250,6 +282,6 @@ $settings = epm()->settings->all();
 			</tr>
 		</table>
 
-		<?php submit_button(); ?>
+		<?php submit_button( __( 'Save settings', 'elementor-podcast-manager' ) ); ?>
 	</form>
 </div>

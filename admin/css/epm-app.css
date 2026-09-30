@@ -363,6 +363,12 @@
 	grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
 }
 
+/* Cells of a row line up; the row's gap spaces them (after the rule above,
+   which has the same specificity). */
+.epm-field-row > .epm-field {
+	margin-block-start: 0;
+}
+
 .epm-field__label {
 	font-weight: 600;
 }
@@ -446,8 +452,9 @@
 	vertical-align: baseline;
 }
 
+/* Only the browser's side margins: the block margin comes from the stack. */
 fieldset.epm-field {
-	margin: 0;
+	margin-inline: 0;
 	padding: 0;
 	border: 0;
 }
@@ -605,6 +612,17 @@ fieldset.epm-field > legend {
 	display: none;
 }
 
+/* Episodes listed in a callout (e.g. audio that was not copied). */
+.epm-callout__list {
+	margin: 4px 0 0;
+	padding-inline-start: 20px;
+	list-style: disc;
+}
+
+.epm-callout__list li {
+	margin: 0;
+}
+
 /* ---------- Copy field ---------- */
 
 .epm-copy {
@@ -626,6 +644,37 @@ fieldset.epm-field > legend {
 	font-size: 13px;
 	line-height: 1.5;
 	user-select: all;
+}
+
+/* ---------- Distribution: feed card ---------- */
+
+.epm-card > .epm-copy + .epm-field__help {
+	margin-block-start: 8px;
+}
+
+.epm-dist-check {
+	margin-block-start: 16px;
+}
+
+.epm-dist-check > div {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 12px;
+}
+
+.epm-dist-check .epm-field__help {
+	flex: 1 1 240px;
+}
+
+.epm-dist-check + .epm-callout {
+	margin-block-start: 16px;
+}
+
+.epm-dist-problems {
+	margin: 8px 0;
+	padding-inline-start: 20px;
+	list-style: disc;
 }
 
 /* ---------- Feed preview ---------- */

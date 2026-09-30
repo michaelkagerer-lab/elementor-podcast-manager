@@ -162,7 +162,20 @@ final class PodcastHeroWidget extends Widget_Base {
 		);
 
 		$this->add_style_source_control();
-		$this->add_token_color( 'hero_background', __( 'Background', 'elementor-podcast-manager' ), '--epm-hero-background', '{{WRAPPER}} .epm-podcast-hero' );
+		// A background also brings inner padding, so artwork and text do
+		// not sit on the colored edge (Elementor prints it only when a
+		// color is set).
+		$this->add_control(
+			'hero_background',
+			[
+				'label'     => __( 'Background', 'elementor-podcast-manager' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => [
+					'{{WRAPPER}} .epm-podcast-hero' => '--epm-hero-background: {{VALUE}}; --epm-hero-padding: calc(var(--epm-gap, 24px) * 1.5);',
+				],
+				'condition' => $this->custom_condition(),
+			]
+		);
 		$this->add_token_color( 'hero_text', __( 'Text Color', 'elementor-podcast-manager' ), '--epm-text', '{{WRAPPER}} .epm-podcast-hero' );
 		$this->add_token_color( 'hero_muted', __( 'Muted Text Color', 'elementor-podcast-manager' ), '--epm-text-muted', '{{WRAPPER}} .epm-podcast-hero' );
 		$this->add_token_color( 'hero_accent', __( 'Accent Color', 'elementor-podcast-manager' ), '--epm-accent', '{{WRAPPER}} .epm-podcast-hero' );
@@ -178,6 +191,8 @@ final class PodcastHeroWidget extends Widget_Base {
 				'condition'  => $this->custom_condition(),
 			]
 		);
+
+		$this->add_button_shape_control( 'hero_button_shape', '{{WRAPPER}} .epm-podcast-hero' );
 
 		$this->add_group_control(
 			Group_Control_Typography::get_type(),

@@ -33,6 +33,14 @@ final class ImportJob {
 	private const NONCE = 'epm_import';
 
 	/**
+	 * Owner part of the lock this request holds ('' when it holds none).
+	 * The lock's value is "<time>:<owner>".
+	 *
+	 * @var string
+	 */
+	private static string $lock_owner = '';
+
+	/**
 	 * Wire AJAX handlers and the background continuation.
 	 *
 	 * @return void
@@ -57,30 +65,93 @@ final class ImportJob {
 	/**
 	 * Take the import/sync lock. Stale locks (a crashed request) expire.
 	 *
+	 * The lock stores its time and an owner, so only the request that took
+	 * it releases it, and a running import refreshes it before every
+	 * episode (see refresh_lock()).
+	 *
 	 * @return bool
 	 */
 	public static function acquire_lock(): bool {
+		$owner = wp_generate_password( 12, false );
+
 		// add_option() fails when the row exists: an atomic test-and-set.
-		if ( add_option( self::LOCK, (string) time(), '', false ) ) {
+		if ( add_option( self::LOCK, time() . ':' . $owner, '', false ) ) {
+			self::$lock_owner = $owner;
 			return true;
 		}
 
-		$since = (int) get_option( self::LOCK, 0 );
-		if ( $since > 0 && time() - $since > 5 * MINUTE_IN_SECONDS ) {
+		wp_cache_delete( self::LOCK, 'options' );
+		$since = (int) strtok( (string) get_option( self::LOCK, '' ), ':' );
+		if ( $since > 0 && time() - $since > self::lock_ttl() ) {
 			delete_option( self::LOCK );
-			return add_option( self::LOCK, (string) time(), '', false );
+			if ( add_option( self::LOCK, time() . ':' . $owner, '', false ) ) {
+				self::$lock_owner = $owner;
+				return true;
+			}
 		}
 
 		return false;
 	}
 
 	/**
-	 * Release the lock.
+	 * Seconds after which a lock counts as stale. One "copy media" step
+	 * downloads a single audio file, which may take up to 15 minutes.
+	 *
+	 * @return int
+	 */
+	private static function lock_ttl(): int {
+		wp_cache_delete( self::OPTION, 'options' );
+		$job = self::get();
+
+		return ! empty( $job['options']['download_media'] ) && 'running' === ( $job['status'] ?? '' )
+			? 20 * MINUTE_IN_SECONDS
+			: 5 * MINUTE_IN_SECONDS;
+	}
+
+	/**
+	 * Whether this request holds the lock (read past the request cache).
+	 *
+	 * @return bool
+	 */
+	private static function owns_lock(): bool {
+		if ( '' === self::$lock_owner ) {
+			return false;
+		}
+
+		wp_cache_delete( self::LOCK, 'options' );
+		$value = (string) get_option( self::LOCK, '' );
+		$colon = strpos( $value, ':' );
+
+		return false !== $colon && substr( $value, $colon + 1 ) === self::$lock_owner;
+	}
+
+	/**
+	 * Renew the lock this request holds, so a long import is never taken
+	 * for a crashed one.
+	 *
+	 * @return bool Whether the lock is still held by this request.
+	 */
+	public static function refresh_lock(): bool {
+		if ( ! self::owns_lock() ) {
+			return false;
+		}
+
+		update_option( self::LOCK, time() . ':' . self::$lock_owner, false );
+
+		return true;
+	}
+
+	/**
+	 * Release the lock, if this request holds it (a lock taken over by
+	 * another request stays).
 	 *
 	 * @return void
 	 */
 	public static function release_lock(): void {
-		delete_option( self::LOCK );
+		if ( self::owns_lock() ) {
+			delete_option( self::LOCK );
+		}
+		self::$lock_owner = '';
 	}
 
 	/**
@@ -323,11 +394,14 @@ final class ImportJob {
 	 */
 	private static function empty_counts(): array {
 		return [
-			'created'   => 0,
-			'updated'   => 0,
-			'unchanged' => 0,
-			'skipped'   => 0,
-			'failed'    => 0,
+			'created'      => 0,
+			'updated'      => 0,
+			'unchanged'    => 0,
+			'skipped'      => 0,
+			'failed'       => 0,
+			// Not an outcome of its own: episodes (counted above) whose
+			// audio could not be copied and still loads from the old host.
+			'media_failed' => 0,
 		];
 	}
 
@@ -360,6 +434,15 @@ final class ImportJob {
 
 		if ( ! empty( $options['apply_channel'] ) ) {
 			$job['settings_changed'] = Importer::apply_channel( (array) $job['channel'], ! empty( $options['overwrite_channel'] ), true, 'move' === $purpose ? (string) $job['feed_url'] : '' );
+		}
+
+		// A move keeps the show's podcast:guid (apps and OP3 statistics are
+		// keyed by it), whatever else is taken from the feed. It replaces a
+		// guid this site only derived for itself (on the first feed request),
+		// never one adopted earlier or set on purpose.
+		if ( 'move' === $purpose ) {
+			$stored = (string) get_option( Feed::GUID_OPTION, '' );
+			Importer::adopt_podcast_guid( (array) $job['channel'], (string) $job['feed_url'], '' === $stored || Feed::derived_podcast_guid() === $stored );
 		}
 
 		$job['status']  = 'running';
@@ -415,11 +498,17 @@ final class ImportJob {
 
 			$done = 0;
 			while ( (int) $job['position'] < $total && $done < $batch && ( microtime( true ) - $started ) < $budget ) {
+				self::refresh_lock();
 				$item    = $items[ (int) $job['position'] ];
 				$outcome = $importer->import_item( $item );
 
 				$action = isset( $job['counts'][ $outcome['action'] ] ) ? $outcome['action'] : 'skipped';
 				++$job['counts'][ $action ];
+
+				if ( ! empty( $outcome['media_failed'] ) ) {
+					$job['counts']['media_failed'] = (int) ( $job['counts']['media_failed'] ?? 0 ) + 1;
+					$job['media_failed_ids']       = array_slice( array_merge( (array) ( $job['media_failed_ids'] ?? [] ), [ (int) $outcome['id'] ] ), -500 );
+				}
 
 				array_unshift(
 					$job['log'],
@@ -437,6 +526,15 @@ final class ImportJob {
 			}
 
 			$job['touched'] = time();
+
+			// Cancelled (or replaced) while this batch ran: never overwrite
+			// that with "running", and never finish a cancelled move. The
+			// option is read past this request's cache.
+			wp_cache_delete( self::OPTION, 'options' );
+			$fresh = self::get();
+			if ( 'running' !== ( $fresh['status'] ?? '' ) || ( $fresh['token'] ?? '' ) !== ( $job['token'] ?? '' ) ) {
+				return self::client_state( $fresh );
+			}
 
 			if ( (int) $job['position'] >= $total ) {
 				$job['status']   = 'done';
@@ -464,6 +562,10 @@ final class ImportJob {
 	 * missing item reads as a takedown to Spotify), the feed announces its
 	 * new home and is locked against unauthorized moves.
 	 *
+	 * This website now hosts the show: a site that mirrored its old host
+	 * stops syncing and stops redirecting the feed there (otherwise the
+	 * old host's redirect back to this feed would make a loop).
+	 *
 	 * @return void
 	 */
 	private static function finish_move(): void {
@@ -478,6 +580,12 @@ final class ImportJob {
 		$values['locked']   = '' !== (string) $values['owner_email'];
 
 		update_option( PodcastSettings::OPTION, $settings->sanitize( $values ) );
+
+		if ( Hosting::is_external() ) {
+			$hosting         = Hosting::all();
+			$hosting['mode'] = 'self';
+			update_option( Hosting::OPTION, Hosting::sanitize( $hosting ) );
+		}
 	}
 
 	/**
@@ -557,17 +665,34 @@ final class ImportJob {
 			];
 		}
 
+		// Episodes whose audio stayed at the old host (newest first).
+		$media_failed = [];
+		$failed_ids   = array_slice( array_reverse( array_unique( array_map( 'intval', (array) ( $job['media_failed_ids'] ?? [] ) ) ) ), 0, 100 );
+		if ( ! empty( $failed_ids ) ) {
+			_prime_post_caches( $failed_ids, false, false );
+		}
+		foreach ( $failed_ids as $id ) {
+			if ( $id <= 0 || ! get_post( $id ) ) {
+				continue;
+			}
+			$media_failed[] = [
+				'title' => html_entity_decode( get_the_title( $id ), ENT_QUOTES, 'UTF-8' ),
+				'edit'  => (string) get_edit_post_link( $id, 'raw' ),
+			];
+		}
+
 		return [
-			'status'   => (string) ( $job['status'] ?? 'none' ),
-			'total'    => (int) ( $job['total'] ?? 0 ),
-			'done'     => (int) ( $job['position'] ?? 0 ),
-			'counts'   => wp_parse_args( (array) ( $job['counts'] ?? [] ), self::empty_counts() ),
-			'log'      => $log,
-			'feed_url' => (string) ( $job['feed_url'] ?? '' ),
-			'title'    => (string) ( $job['channel']['title'] ?? '' ),
-			'error'    => (string) ( $job['error'] ?? '' ),
-			'settings' => array_values( (array) ( $job['settings_changed'] ?? [] ) ),
-			'episodes' => admin_url( 'edit.php?post_type=' . EpisodePostType::CPT ),
+			'status'       => (string) ( $job['status'] ?? 'none' ),
+			'total'        => (int) ( $job['total'] ?? 0 ),
+			'done'         => (int) ( $job['position'] ?? 0 ),
+			'counts'       => wp_parse_args( (array) ( $job['counts'] ?? [] ), self::empty_counts() ),
+			'media_failed' => $media_failed,
+			'log'          => $log,
+			'feed_url'     => (string) ( $job['feed_url'] ?? '' ),
+			'title'        => (string) ( $job['channel']['title'] ?? '' ),
+			'error'        => (string) ( $job['error'] ?? '' ),
+			'settings'     => array_values( (array) ( $job['settings_changed'] ?? [] ) ),
+			'episodes'     => admin_url( 'edit.php?post_type=' . EpisodePostType::CPT ),
 		];
 	}
 
@@ -678,7 +803,7 @@ final class ImportJob {
 			'status'   => $result['status'],
 			'message'  => $result['message'],
 			'last_run' => $state['last_run'] > 0 ? sprintf(
-				/* translators: %s: human time difference, e.g. "2 mins" */
+				/* translators: %s: human time difference, e.g. "5 mins" */
 				__( '%s ago', 'elementor-podcast-manager' ),
 				human_time_diff( (int) $state['last_run'] )
 			) : '',

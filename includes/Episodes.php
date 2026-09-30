@@ -407,7 +407,7 @@ final class Episodes {
 		$audio_id   = (int) $meta( 'audio_id', 0 );
 		$audio_url  = $audio_id > 0 ? wp_get_attachment_url( $audio_id ) : '';
 		$audio_meta = $audio_id > 0 ? wp_get_attachment_metadata( $audio_id ) : [];
-		$audio_mime = $audio_id > 0 ? (string) get_post_mime_type( $audio_id ) : '';
+		$audio_mime = $audio_id > 0 ? AudioMetadata::attachment_mime( $audio_id ) : '';
 		$audio_source = $audio_url ? 'media' : '';
 
 		// Audio hosted elsewhere (a podcast host, CDN or storage bucket):
@@ -496,6 +496,7 @@ final class Episodes {
 			'video_url'       => esc_url_raw( $meta( 'video_url', '' ) ),
 			'youtube_url'     => esc_url_raw( $meta( 'youtube_url', '' ) ),
 			'transcript'      => $meta( 'transcript', '' ),
+			'transcript_files' => Transcripts::files( $post->ID ),
 			'show_notes'      => $meta( 'show_notes', '' ),
 			'chapters'        => self::normalize_chapters( $meta( 'chapters', [] ) ),
 			'canonical_url'   => esc_url_raw( $meta( 'canonical_url', '' ) ),

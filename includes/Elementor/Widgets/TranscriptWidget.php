@@ -101,6 +101,8 @@ final class TranscriptWidget extends Widget_Base {
 			]
 		);
 
+		$this->add_heading_tag_control();
+
 		$this->add_control(
 			'collapsible',
 			[
@@ -171,6 +173,7 @@ final class TranscriptWidget extends Widget_Base {
 			$episode,
 			[
 				'heading'     => sanitize_text_field( $settings['heading'] ?? '' ),
+				'heading_tag' => sanitize_key( $settings['heading_tag'] ?? 'h3' ),
 				'collapsible' => $this->toggle_on( $settings, 'collapsible', false ),
 			]
 		);

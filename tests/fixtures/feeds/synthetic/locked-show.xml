@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic feed (not a real show). Covers: podcast:locked + podcast:guid, a duplicate GUID,
+     itunes:block, an undated item, plain-text notes, inline and JSON chapters, HTML/VTT/SRT
+     transcripts, a measurement-prefixed enclosure, audio/mp3 and length="0". -->
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:podcast="https://podcastindex.org/namespace/1.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:psc="http://podlove.org/simple-chapters">
+	<channel>
+		<title>Synthetic Show</title>
+		<link>https://show.example.test/</link>
+		<atom:link href="https://feeds.example.test/synthetic/locked-show.xml" rel="self" type="application/rss+xml"/>
+		<description><![CDATA[<p>A <strong>made-up</strong> show used by the test suites.</p>]]></description>
+		<language>en-gb</language>
+		<copyright>© 2026 Synthetic Media</copyright>
+		<generator>EPM test fixture</generator>
+		<itunes:subtitle>Made-up episodes for tests</itunes:subtitle>
+		<itunes:author>Sam Synth</itunes:author>
+		<itunes:owner>
+			<itunes:name>Sam Synth</itunes:name>
+			<itunes:email>owner@show.example.test</itunes:email>
+		</itunes:owner>
+		<itunes:image href="https://feeds.example.test/media/show-art.png"/>
+		<itunes:category text="Business">
+			<itunes:category text="Marketing"/>
+		</itunes:category>
+		<itunes:explicit>false</itunes:explicit>
+		<itunes:type>episodic</itunes:type>
+		<podcast:locked owner="owner@show.example.test">yes</podcast:locked>
+		<podcast:guid>C0FFEE00-1234-5ABC-8DEF-0123456789AB</podcast:guid>
+		<podcast:funding url="https://show.example.test/support">Support the show</podcast:funding>
+		<podcast:person role="host">Sam Synth</podcast:person>
+
+		<item>
+			<title>
+				Episode 3: Plain notes
+			</title>
+			<guid isPermaLink="false">tag:show.example.test,2026:episodes/3</guid>
+			<link>https://show.example.test/episodes/3</link>
+			<pubDate>Wed, 03 Jun 2026 08:00:00 +0000</pubDate>
+			<description>First line of the notes.
+
+More at https://show.example.test/notes/3</description>
+			<enclosure url="https://op3.dev/e/feeds.example.test/media/ep3.mp3" length="0" type="audio/mp3"/>
+			<itunes:duration>25:30</itunes:duration>
+			<itunes:episode>3</itunes:episode>
+			<itunes:season>1</itunes:season>
+			<itunes:episodeType>full</itunes:episodeType>
+			<podcast:person role="guest">Gia Guest</podcast:person>
+			<podcast:chapters url="https://feeds.example.test/synthetic/extras/ep3-chapters.json" type="application/json+chapters"/>
+			<podcast:transcript url="https://feeds.example.test/synthetic/extras/ep3.srt" type="application/x-subrip"/>
+		</item>
+
+		<item>
+			<title>Episode 2: Chapters &amp; captions</title>
+			<guid isPermaLink="false">https://show.example.test/?p=102&amp;preview=false</guid>
+			<link>https://show.example.test/episodes/2</link>
+			<pubDate>Tue, 02 Jun 2026 08:00:00 +0000</pubDate>
+			<description>Short plain summary of episode 2.</description>
+			<content:encoded><![CDATA[<p>Notes with <a href="https://show.example.test/">a link</a>.</p><script>alert(1)</script>]]></content:encoded>
+			<enclosure url="https://feeds.example.test/media/ep2.mp3" length="12345678" type="audio/mpeg"/>
+			<itunes:duration>3723</itunes:duration>
+			<itunes:episode>2</itunes:episode>
+			<itunes:season>1</itunes:season>
+			<itunes:explicit>yes</itunes:explicit>
+			<itunes:image href="https://feeds.example.test/media/ep2-art.png"/>
+			<psc:chapters version="1.2">
+				<psc:chapter start="00:00:00.000" title="Opening"/>
+				<psc:chapter start="00:01:30" title="Topic &amp; more" href="https://show.example.test/topic"/>
+				<psc:chapter start="62:03" title="Wrap-up"/>
+			</psc:chapters>
+			<podcast:chapters url="https://feeds.example.test/synthetic/extras/ep2-chapters.json" type="application/json+chapters"/>
+			<podcast:transcript url="https://feeds.example.test/synthetic/extras/ep2.vtt" type="text/vtt"/>
+		</item>
+
+		<item>
+			<title>Episode 1: HTML transcript</title>
+			<guid isPermaLink="false">Synthetic-0001</guid>
+			<link>https://show.example.test/episodes/1</link>
+			<pubDate>Mon, 01 Jun 2026 08:00:00 +0000</pubDate>
+			<description><![CDATA[<p>The first episode.</p>]]></description>
+			<enclosure url="https://feeds.example.test/media/ep1.m4a" length="2345678" type="audio/x-m4a"/>
+			<itunes:duration>00:10:00</itunes:duration>
+			<itunes:episode>1</itunes:episode>
+			<itunes:season>1</itunes:season>
+			<itunes:episodeType>trailer</itunes:episodeType>
+			<podcast:transcript url="https://feeds.example.test/synthetic/extras/ep1.srt" type="application/x-subrip"/>
+			<podcast:transcript url="https://feeds.example.test/synthetic/extras/ep1.html" type="text/html"/>
+		</item>
+
+		<item>
+			<title>Hidden episode</title>
+			<guid isPermaLink="false">synthetic-blocked</guid>
+			<pubDate>Sun, 31 May 2026 08:00:00 +0000</pubDate>
+			<description>Hidden from directories at the host.</description>
+			<enclosure url="https://feeds.example.test/media/blocked.mp3" length="1000" type="audio/mpeg"/>
+			<itunes:block>Yes</itunes:block>
+		</item>
+
+		<item>
+			<title>Undated episode</title>
+			<guid isPermaLink="false">synthetic-undated</guid>
+			<description>This item has no pubDate.</description>
+			<enclosure url="https://feeds.example.test/media/undated.mp3" length="1000" type="audio/mpeg"/>
+		</item>
+
+		<item>
+			<title>Duplicate of episode 1</title>
+			<guid isPermaLink="false">Synthetic-0001</guid>
+			<pubDate>Sat, 30 May 2026 08:00:00 +0000</pubDate>
+			<description>Same GUID as episode 1; apps keep the first one.</description>
+			<enclosure url="https://feeds.example.test/media/dup.mp3" length="1000" type="audio/mpeg"/>
+		</item>
+	</channel>
+</rss>

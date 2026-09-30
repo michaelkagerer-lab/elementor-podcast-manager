@@ -3,12 +3,16 @@
  * Shortcodes (Layer 2). Thin wrappers over the same repositories,
  * rendering and player used by Elementor widgets.
  *
- * [podcast_player id="123" layout="editorial"]
+ * [podcast_player id="123" layout="editorial" share="yes"]
  * [podcast_latest]
- * [podcast_episodes limit="10" layout="cards"]
+ * [podcast_episodes limit="10" layout="cards" topic="interviews,news" show_topics="yes"]
+ * [podcast_video id="123"]
  * [podcast_latest_cta label="Listen now"]
  * [podcast_subscribe display="icon-text" rss="yes"]
  * [podcast_guest id="123"] [podcast_show_notes] [podcast_chapters] [podcast_transcript]
+ *
+ * Show notes, chapters and transcripts accept heading_tag="h2|h3|h4"
+ * (default h3) so their headings fit the page outline.
  *
  * Episode components default to the current episode (the loop's episode
  * or the episode page) and accept id="123" or source="latest".
@@ -37,6 +41,7 @@ final class Shortcodes {
 		add_shortcode( 'podcast_show_notes', [ $this, 'show_notes' ] );
 		add_shortcode( 'podcast_chapters', [ $this, 'chapters' ] );
 		add_shortcode( 'podcast_transcript', [ $this, 'transcript' ] );
+		add_shortcode( 'podcast_video', [ $this, 'video' ] );
 	}
 
 	/**
@@ -114,13 +119,13 @@ final class Shortcodes {
 	}
 
 	/**
-	 * [podcast_show_notes id="123" heading="Show Notes"]
+	 * [podcast_show_notes id="123" heading="Show notes" heading_tag="h3"]
 	 *
 	 * @param array $atts Shortcode attributes.
 	 * @return string
 	 */
 	public function show_notes( $atts ): string {
-		$atts    = shortcode_atts( [ 'id' => 0, 'source' => 'current', 'heading' => __( 'Show Notes', 'elementor-podcast-manager' ) ], $atts, 'podcast_show_notes' );
+		$atts    = shortcode_atts( [ 'id' => 0, 'source' => 'current', 'heading' => __( 'Show notes', 'elementor-podcast-manager' ), 'heading_tag' => 'h3' ], $atts, 'podcast_show_notes' );
 		$episode = $this->episode_from_atts( $atts );
 
 		if ( ! $episode ) {
@@ -129,17 +134,23 @@ final class Shortcodes {
 
 		Assets::enqueue_style();
 
-		return epm()->renderer->show_notes( $episode, [ 'heading' => sanitize_text_field( $atts['heading'] ) ] );
+		return epm()->renderer->show_notes(
+			$episode,
+			[
+				'heading'     => sanitize_text_field( $atts['heading'] ),
+				'heading_tag' => sanitize_key( $atts['heading_tag'] ),
+			]
+		);
 	}
 
 	/**
-	 * [podcast_chapters id="123" heading="Chapters"]
+	 * [podcast_chapters id="123" heading="Chapters" heading_tag="h3"]
 	 *
 	 * @param array $atts Shortcode attributes.
 	 * @return string
 	 */
 	public function chapters( $atts ): string {
-		$atts    = shortcode_atts( [ 'id' => 0, 'source' => 'current', 'heading' => __( 'Chapters', 'elementor-podcast-manager' ) ], $atts, 'podcast_chapters' );
+		$atts    = shortcode_atts( [ 'id' => 0, 'source' => 'current', 'heading' => __( 'Chapters', 'elementor-podcast-manager' ), 'heading_tag' => 'h3' ], $atts, 'podcast_chapters' );
 		$episode = $this->episode_from_atts( $atts );
 
 		if ( ! $episode ) {
@@ -149,17 +160,23 @@ final class Shortcodes {
 		// Chapters seek the episode's audio: needs the player engine.
 		Assets::enqueue();
 
-		return epm()->renderer->chapters( $episode, [ 'heading' => sanitize_text_field( $atts['heading'] ) ] );
+		return epm()->renderer->chapters(
+			$episode,
+			[
+				'heading'     => sanitize_text_field( $atts['heading'] ),
+				'heading_tag' => sanitize_key( $atts['heading_tag'] ),
+			]
+		);
 	}
 
 	/**
-	 * [podcast_transcript id="123" heading="Transcript" collapsible="no"]
+	 * [podcast_transcript id="123" heading="Transcript" heading_tag="h3" collapsible="no"]
 	 *
 	 * @param array $atts Shortcode attributes.
 	 * @return string
 	 */
 	public function transcript( $atts ): string {
-		$atts    = shortcode_atts( [ 'id' => 0, 'source' => 'current', 'heading' => __( 'Transcript', 'elementor-podcast-manager' ), 'collapsible' => 'no' ], $atts, 'podcast_transcript' );
+		$atts    = shortcode_atts( [ 'id' => 0, 'source' => 'current', 'heading' => __( 'Transcript', 'elementor-podcast-manager' ), 'heading_tag' => 'h3', 'collapsible' => 'no' ], $atts, 'podcast_transcript' );
 		$episode = $this->episode_from_atts( $atts );
 
 		if ( ! $episode ) {
@@ -172,6 +189,7 @@ final class Shortcodes {
 			$episode,
 			[
 				'heading'     => sanitize_text_field( $atts['heading'] ),
+				'heading_tag' => sanitize_key( $atts['heading_tag'] ),
 				'collapsible' => $this->is_on( $atts['collapsible'] ),
 			]
 		);
@@ -191,6 +209,7 @@ final class Shortcodes {
 				'layout'   => '',
 				'sticky'   => 'no',
 				'download' => 'no',
+				'share'    => 'yes',
 			],
 			$atts,
 			'podcast_player'
@@ -206,6 +225,7 @@ final class Shortcodes {
 		$args = [
 			'sticky'        => $this->is_on( $atts['sticky'] ),
 			'show_download' => $this->is_on( $atts['download'] ),
+			'show_share'    => $this->is_on( $atts['share'] ),
 		];
 		if ( '' !== $atts['layout'] ) {
 			$args['layout'] = sanitize_key( $atts['layout'] );
@@ -251,7 +271,33 @@ final class Shortcodes {
 	}
 
 	/**
-	 * [podcast_episodes limit="10" layout="list" orderby="date" order="DESC"]
+	 * [podcast_video id="123"]
+	 *
+	 * The episode's video (YouTube, Vimeo or a video file) as a
+	 * click-to-load facade: nothing loads from the platform before play.
+	 *
+	 * @param array $atts Shortcode attributes.
+	 * @return string
+	 */
+	public function video( $atts ): string {
+		$atts    = shortcode_atts( [ 'id' => 0, 'source' => 'current', 'note' => 'yes' ], $atts, 'podcast_video' );
+		$episode = $this->episode_from_atts( $atts );
+
+		if ( ! $episode ) {
+			return '';
+		}
+
+		Assets::enqueue();
+
+		return epm()->renderer->video( $episode, [ 'show_note' => $this->is_on( $atts['note'] ) ] );
+	}
+
+	/**
+	 * [podcast_episodes limit="10" layout="list" orderby="date" order="DESC"
+	 *   season="1" topic="slug,slug" show_topics="no"]
+	 *
+	 * topic limits the list to episodes with any of the given topics;
+	 * show_topics adds topic chips to rows and cards.
 	 *
 	 * @param array $atts Shortcode attributes.
 	 * @return string
@@ -262,8 +308,10 @@ final class Shortcodes {
 				'limit'   => 10,
 				'layout'  => '',
 				'orderby' => 'date',
-				'order'   => 'DESC',
-				'season'  => 0,
+				'order'       => 'DESC',
+				'season'      => 0,
+				'topic'       => '',
+				'show_topics' => 'no',
 			],
 			$atts,
 			'podcast_episodes'
@@ -279,9 +327,17 @@ final class Shortcodes {
 			$query_args['season'] = (int) $atts['season'];
 		}
 
+		$topic_args = Renderer::topic_query_args( Renderer::topic_slugs( $atts['topic'] ) );
+		$query_args = array_merge( $query_args, $topic_args );
+
 		$posts = epm()->episodes->get_episodes( $query_args );
 
-		$args = [];
+		// A season or topic filter that matches nothing gets the "selection"
+		// empty state with a link to all episodes.
+		$args = [
+			'filtered'    => isset( $query_args['season'] ) || ! empty( $topic_args ),
+			'show_topics' => $this->is_on( $atts['show_topics'] ),
+		];
 		if ( '' !== $atts['layout'] ) {
 			$args['layout'] = sanitize_key( $atts['layout'] );
 		}

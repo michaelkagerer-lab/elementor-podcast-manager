@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="https://media.rss.com/style.xsl"?>
+<rss xmlns:podcast="https://podcastindex.org/namespace/1.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:psc="http://podlove.org/simple-chapters" xmlns:atom="http://www.w3.org/2005/Atom" xml:lang="en" version="2.0">
+  <channel>
+    <title><![CDATA[Podcasting 101 with RSS.com]]></title>
+    <link>https://rss.com/switch-to-rss/</link>
+    <atom:link href="https://media.rss.com/podcasting101/feed.xml" rel="self" type="application/rss+xml"/>
+    <atom:link rel="hub" href="https://pubsubhubbub.appspot.com/"/>
+    <description><![CDATA[On this show, we'll share the latest news in podcasting, interview experts, and teach free masterclasses on everything from how to pick your microphone to how to grow your audience. With every episode, and with everything we do, RSS.com empowers podcasters worldwide. ]]></description>
+    <generator>RSS.com 2026.817.133114</generator>
+    <lastBuildDate>Sat, 29 Aug 2026 00:00:36 GMT</lastBuildDate>
+    <language>en</language>
+    <copyright><![CDATA[RSS America LLC]]></copyright>
+    <itunes:image href="https://media.rss.com/podcasting101/20211103_011736_cfe5922ae49a183aa0c1d2f124cd0bda.jpg"/>
+    <podcast:guid>e22592ae-0893-5303-8e92-f53c257b7e21</podcast:guid>
+    <podcast:value type="lightning" method="keysend">
+      <podcast:valueRecipient name="Podcastindex.org" type="node" address="03ae9f91a0cb8ff43840e3c322c4c61f019d8c1c3cea15a25cfc425ac605e61a4a" split="30"/>
+      <podcast:valueRecipient name="Boostagram Monitor" type="node" address="038399372001f2741d58d6ec4846fccb78daa1a485e69e2eebc5aadba047d35956" split="1"/>
+      <podcast:valueRecipient name="RSS.com" type="node" address="020d45b014956d28abfb70118de9a5bfbb0324bb62033f5ed2b5df54546dbda102" split="69" customKey="696969" customValue="1"/>
+    </podcast:value>
+    <image>
+      <url>https://media.rss.com/podcasting101/20211103_011736_cfe5922ae49a183aa0c1d2f124cd0bda.jpg</url>
+      <title>Podcasting 101 with RSS.com</title>
+      <link>https://rss.com/switch-to-rss/</link>
+    </image>
+    <podcast:locked>yes</podcast:locked>
+    <podcast:license>RSS America LLC</podcast:license>
+    <itunes:author>RSS.com</itunes:author>
+    <itunes:owner>
+      <itunes:name>RSS.com</itunes:name>
+    </itunes:owner>
+    <itunes:explicit>false</itunes:explicit>
+    <itunes:type>episodic</itunes:type>
+    <itunes:category text="Business">
+      <itunes:category text="Marketing"/>
+    </itunes:category>
+    <itunes:category text="Education">
+      <itunes:category text="How To"/>
+    </itunes:category>
+    <podcast:liveItem status="ended" start="2024-06-27T16:00:00.000Z">
+      <title>🚀 The Future of Podcasting: New Tools For Listener Engagement, Growth and Monetization</title>
+      <guid isPermaLink="false">live-item-:8f143e2a-5b2a-4423-8c8e-af9471bfaf78</guid>
+      <enclosure url="rtmp://a.rtmp.youtube.com/live2" type="application/octet-stream" length="2018"/>
+      <podcast:contentLink href="https://youtube.com/live/Hd1hKtL7bHk?feature=share">Join Now</podcast:contentLink>
+    </podcast:liveItem>
+    <podcast:podroll>
+      <podcast:remoteItem feedGuid="396d9ae0-da7e-5557-b894-b606231fa3ea"/>
+      <podcast:remoteItem feedGuid="917393e3-1b1e-5cef-ace4-edaa54e1f810"/>
+      <podcast:remoteItem feedGuid="4c284371-29b5-538e-baa8-b1fa9e1f4fbd"/>
+      <podcast:remoteItem feedGuid="71db5a0d-90bd-4ffb-9b8c-1c45994a18b1"/>
+    </podcast:podroll>
+    <podcast:medium>podcast</podcast:medium>
+    <item>
+      <title><![CDATA[AI in Podcasting with Deirdre Tshien]]></title>
+      <itunes:title><![CDATA[AI in Podcasting with Deirdre Tshien]]></itunes:title>
+      <description><![CDATA[<p>Think AI is just for sci-fi movies? Think again! The robots are coming...to help with your podcast! This episode of Podcasting 101 explores how AI technologies can take your show to new heights. Listen in as podcaster extraordinaire Deirdre Tshien shares insider tips on leveraging AI for ideation, scripts that slay, and next-level post-production.</p><p>Whether you're a seasoned pro or just getting your feet wet, this practical peek behind the AI curtain has something for every podcaster. Come discover how a dash of futuristic tech can spice up your podcast and captivate listeners!</p><p>Ready to start your own podcast? Sign up for free today: <a href="https://rss.com">https://rss.com</a></p><p><a href="https://rss.com/blog/the-best-ai-tools-for-podcasting-and-how-to-use-them/">Read all about The Best AI Tools for Podcasting – And How To Use Them</a></p><p>--</p><p>Deirdre's Links:</p><p>-- Free Extended Trial of Capsho with a free course: <a href="http://Freegift.Capsho.com">Freegift.Capsho.com</a></p><p>-- Website: <a href="https://deirdretshien.com/">https://deirdretshien.com/</a></p><p>-- Facebook: <a href="https://www.facebook.com/deirdretshien/">https://www.facebook.com/deirdretshien/</a></p><p>-- Instagram: <a href="https://www.instagram.com/deirdretshien/">https://www.instagram.com/deirdretshien/</a></p><p>-- LinkedIn: <a href="https://www.linkedin.com/in/deirdretshien/">https://www.linkedin.com/in/deirdretshien/</a></p><p></p><p></p><p></p>]]></description>
+      <link>https://rss.com/podcasts/podcasting101/1253951</link>
+      <enclosure url="https://content.rss.com/episodes/88524/1253951/podcasting101/2023_12_06_20_29_49_d52d5176-1ee5-4696-8c99-95d3014863cc.mp3" length="34957473" type="audio/mpeg"/>
+      <guid isPermaLink="false">27c0c99a-1040-4a42-87d4-4c36ea383af6</guid>
+      <itunes:duration>2184</itunes:duration>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:season>1</itunes:season>
+      <podcast:season>1</podcast:season>
+      <itunes:episode>32</itunes:episode>
+      <podcast:episode>32</podcast:episode>
+      <pubDate>Wed, 06 Dec 2023 21:05:22 GMT</pubDate>
+      <itunes:explicit>false</itunes:explicit>
+      <itunes:image href="https://media.rss.com/podcasting101/ep_cover_20231206_081228_e266f2e36e112f57980effff86af9f61.jpg"/>
+      <podcast:transcript url="https://transcripts.rss.com/88524/1253951/transcript" type="application/x-subrip"/>
+      <podcast:chapters url="https://apollo.rss.com/chapters/1253951" type="application/json+chapters"/>
+      <psc:chapters>
+        <psc:chapter start="0" title="Who is Deirdre Tshien?"/>
+        <psc:chapter start="1:50" title="How AI is used in Capsho"/>
+        <psc:chapter start="3:13" title="Recommendations on using AI in podcasting"/>
+        <psc:chapter start="5:20" title="Deirdre's podcast traffic framework  "/>
+        <psc:chapter start="8:34" title="Using AI ethically in podcasting "/>
+        <psc:chapter start="18:56" title="How to build solid podcast foundations"/>
+        <psc:chapter start="23:13" title="Optimizing content on platforms like YouTube"/>
+        <psc:chapter start="28:44" title="Achieving &quot;niche fame&quot; via podcasting"/>
+        <psc:chapter start="31:22" title="Example of a unique podcast marketing tactic  "/>
+        <psc:chapter start="34:50" title="Where to find an extended Capsho free trial"/>
+      </psc:chapters>
+      <podcast:soundbite startTime="110" duration="83">How AI is used in Capsho</podcast:soundbite>
+      <podcast:soundbite startTime="193" duration="127">How to use AI in podcasting</podcast:soundbite>
+    </item>
+    <item>
+      <title><![CDATA[The Journey of Creating Engaging Podcasts with Jeremy Enns]]></title>
+      <itunes:title><![CDATA[The Journey of Creating Engaging Podcasts with Jeremy Enns]]></itunes:title>
+      <description><![CDATA[<p>In this episode we're chatting with Jeremy Enns all about the podcasting roadmap. Does one actually exist? Or is the journey different for every podcaster? Tune in to find out.</p><p>Jeremy's Links:</p><p>-- Podcast Marketing Academy: <a href="https://podcastmarketingacademy.com/">https://podcastmarketingacademy.com/</a></p><p>-- Website: <a href="https://jeremyenns.com/">https://jeremyenns.com/</a></p><p>-- Twitter: <a href="https://twitter.com/iamjeremyenns">https://twitter.com/iamjeremyenns</a></p><p>-- Instagram: <a href="https://www.instagram.com/iamjeremyenns/">https://www.instagram.com/iamjeremyenns/</a> </p><p>-- LinkedIn: <a href="https://www.linkedin.com/in/jeremy-enns/">https://www.linkedin.com/in/jeremy-enns/</a></p>]]></description>
+      <link>https://rss.com/podcasts/podcasting101/1207269</link>
+      <enclosure url="https://content.rss.com/episodes/88524/1207269/podcasting101/2023_11_06_20_00_49_60d3a2a8-c821-428e-a6ec-4da634662f52.mp3" length="42171045" type="audio/mpeg"/>
+      <guid isPermaLink="false">c09404c6-3f68-4521-af6d-3cb137930014</guid>
+      <itunes:duration>2635</itunes:duration>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:season>1</itunes:season>
+      <podcast:season>1</podcast:season>
+      <itunes:episode>31</itunes:episode>
+      <podcast:episode>31</podcast:episode>
+      <pubDate>Wed, 08 Nov 2023 05:00:26 GMT</pubDate>
+      <itunes:explicit>false</itunes:explicit>
+      <itunes:image href="https://media.rss.com/podcasting101/ep_cover_20231106_081120_13a6f01861f19e88a31169b01f9035b7.jpg"/>
+      <podcast:transcript url="https://transcripts.rss.com/88524/1207269/transcript" type="application/x-subrip"/>
+      <podcast:chapters url="https://apollo.rss.com/chapters/1207269" type="application/json+chapters"/>
+      <psc:chapters>
+        <psc:chapter start="0" title="Intro to the show"/>
+        <psc:chapter start="43" title="Guest Jeremy Enns introduces himself"/>
+        <psc:chapter start="2:52" title="Different podcasting paths depending on goals"/>
+        <psc:chapter start="4:58" title="Most show ideas need more development "/>
+        <psc:chapter start="7:17" title="Avoid comparing to high-budget studio shows "/>
+        <psc:chapter start="13:37" title="Developing show ideas across mediums is a good idea"/>
+        <psc:chapter start="18:44" title="Be realistic on timeframe to gain skill  "/>
+        <psc:chapter start="23:15" title="Actively participate in relevant communities"/>
+        <psc:chapter start="28:51" title="Pick one social media platform to focus time on"/>
+        <psc:chapter start="34:59" title="The creative process involves uncertainty  "/>
+        <psc:chapter start="39:09" title="Unique personal traits draw listeners"/>
+      </psc:chapters>
+      <podcast:soundbite startTime="2349" duration="286">Unique personal traits draw podcast listeners</podcast:soundbite>
+    </item>
+    <item>
+      <title><![CDATA[Do Podcast Reviews Matter? - Alex Sanfilippo Chimes In]]></title>
+      <itunes:title><![CDATA[Do Podcast Reviews Matter? - Alex Sanfilippo Chimes In]]></itunes:title>
+      <description><![CDATA[<p>In this episode, we're chatting with Alex Sanfilippo of <a href="http://PodPros.com">PodPros.com</a>. The question we're addressing - Do Podcast Reviews Really Matter? Tune in to find out!</p><p><em>Ready to start your own podcast? Sign up for free today: </em><a href="https://rss.com"><em>https://rss.com</em></a></p><p><strong>Alex's Links:</strong></p><p>-- Website: <a href="https://podpros.com/">https://podpros.com/</a></p><p>-- Instagram: <a href="https://www.instagram.com/podpros_com/">https://www.instagram.com/podpros_com/</a></p><p>-- Facebook: <a href="https://www.facebook.com/PodcastingPros">https://www.facebook.com/PodcastingPros</a></p><p>-- LinkedIn: <a href="https://www.linkedin.com/company/podpros/">https://www.linkedin.com/company/podpros/</a></p><p>-- Twitter: <a href="https://twitter.com/podpros_com">https://twitter.com/podpros_com</a></p><p>-- YouTube: <a href="https://www.youtube.com/channel/UC4DJzxAgjypfUeS-mNgi-Jg">https://www.youtube.com/channel/UC4DJzxAgjypfUeS-mNgi-Jg</a></p><p>-- Pinterest: <a href="https://www.pinterest.com/podpros/">https://www.pinterest.com/podpros/</a></p><p></p><p></p><p></p><p>#startapodcast #podcastlife #podcasting101 #Episode30</p>]]></description>
+      <link>https://rss.com/podcasts/podcasting101/1057374</link>
+      <enclosure url="https://content.rss.com/episodes/88524/1057374/podcasting101/2023_07_30_05_11_17_44ac13ff-a366-4c03-b7a1-cbaba66bf490.mp3" length="27587623" type="audio/mpeg"/>
+      <guid isPermaLink="false">f11d6360-8f1e-4e19-8c72-9cc543c92870</guid>
+      <itunes:duration>1724</itunes:duration>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:episode>30</itunes:episode>
+      <podcast:episode>30</podcast:episode>
+      <pubDate>Wed, 04 Oct 2023 07:00:29 GMT</pubDate>
+      <itunes:explicit>false</itunes:explicit>
+      <itunes:image href="https://media.rss.com/podcasting101/ep_cover_20230730_050752_1000aa0f9ef3807894d76aaed0b65c39.jpg"/>
+      <podcast:transcript url="https://transcripts.rss.com/88524/1057374/transcript" type="application/x-subrip"/>
+      <podcast:chapters url="https://apollo.rss.com/chapters/1057374" type="application/json+chapters"/>
+      <psc:chapters>
+        <psc:chapter start="0" title="Introduction of Alex Sanfilippo" image="https://media.rss.com/podcasting101/20231002_121040_5463a61bde93a29f48f4674f2e841546.jpg"/>
+        <psc:chapter start="1:31" title="Reviews help listeners and sponsors" image="https://media.rss.com/podcasting101/20231002_121051_31533de97d0f57b3f1155277e6ec56bf.jpg"/>
+        <psc:chapter start="2:14" title="Use services for direct review links " image="https://media.rss.com/podcasting101/20231002_121006_7a65aea197ef6c7fee765881567cf4b5.jpg"/>
+        <psc:chapter start="3:59" title="Avoid review requests for sensitive topics" image="https://media.rss.com/podcasting101/20231002_121017_4cd8fd1effb87d48d7c39c57bc82c724.jpg"/>
+        <psc:chapter start="7:12" title="Reviews don't directly impact Apple rankings " image="https://media.rss.com/podcasting101/20231002_121038_fdd666c9c83752656760c4fdf63e46f4.jpg"/>
+        <psc:chapter start="8:18" title="Schedule listener calls to request reviews" image="https://media.rss.com/podcasting101/20231002_121008_b7560161c4e8eb42e2be919206351071.jpg"/>
+        <psc:chapter start="14:45" title="Negative reviews can increase engagement " image="https://media.rss.com/podcasting101/20231002_121024_0c5444702ae48317ba5bfb64e5003b7a.jpg"/>
+        <psc:chapter start="16:10" title="Use negative feedback to improve " image="https://media.rss.com/podcasting101/20231002_121035_63d5cdeb3018c836d8f1663bf35806d6.jpg"/>
+        <psc:chapter start="21:48" title="PodLottery for free review swaps" image="https://media.rss.com/podcasting101/20231002_121049_1d553b2df15b173f7a6551a810d3bece.jpg"/>
+        <psc:chapter start="26:57" title="Serve listeners, instead of focusing only on reviews" image="https://media.rss.com/podcasting101/20231002_121058_7f95acef1aaf57d284987bfa85d7dc01.jpg"/>
+      </psc:chapters>
+      <podcast:soundbite startTime="885" duration="85">Negative reviews can increase engagement </podcast:soundbite>
+    </item>
+  </channel>
+</rss>

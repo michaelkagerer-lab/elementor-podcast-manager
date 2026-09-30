@@ -97,9 +97,11 @@ final class ShowNotesWidget extends Widget_Base {
 			[
 				'label'   => __( 'Heading', 'elementor-podcast-manager' ),
 				'type'    => Controls_Manager::TEXT,
-				'default' => __( 'Show Notes', 'elementor-podcast-manager' ),
+				'default' => __( 'Show notes', 'elementor-podcast-manager' ),
 			]
 		);
+
+		$this->add_heading_tag_control();
 
 		$this->end_controls_section();
 
@@ -158,7 +160,8 @@ final class ShowNotesWidget extends Widget_Base {
 		$html = epm()->renderer->show_notes(
 			$episode,
 			[
-				'heading' => sanitize_text_field( $settings['heading'] ?? '' ),
+				'heading'     => sanitize_text_field( $settings['heading'] ?? '' ),
+				'heading_tag' => sanitize_key( $settings['heading_tag'] ?? 'h3' ),
 			]
 		);
 

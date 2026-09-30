@@ -192,6 +192,6 @@ final class EpisodeMetadataWidget extends Widget_Base {
 			return;
 		}
 
-		echo '<p class="epm-meta">' . implode( '<span class="epm-meta__sep" aria-hidden="true">' . esc_html( $separator ) . '</span>', $items ) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- values escaped above, separator escaped inline.
+		echo '<p class="epm-meta epm-meta--standalone">' . implode( '<span class="epm-meta__sep" aria-hidden="true">' . esc_html( $separator ) . '</span>', $items ) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- values escaped above, separator escaped inline.
 	}
 }

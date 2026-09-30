@@ -1,0 +1,1172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:podcast="https://podcastindex.org/namespace/1.0"
+    xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+    xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom"
+    xmlns:sy="http://purl.org/rss/1.0/modules/syndication/" xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+    xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:spotify="http://www.spotify.com/ns/rss">
+    <channel>
+        <title>Startups For the Rest of Us</title>
+        <generator>Castos</generator>
+        <atom:link href="https://feeds.castos.com/mqv6" rel="self" type="application/rss+xml" />
+        <link>https://www.startupsfortherestofus.com/</link>
+        <description>The original podcast for bootstrapped and mostly bootstrapped startups, this show follow the stories of founders as they start, acquire, and grow SaaS companies. Hear when they fail, struggle, succeed, and take you with them through the tumultuous life of a SaaS founder. If you like Mixergy, This Week in Startups, or SaaStr, you’ll enjoy Startup for the Rest of Us.</description>
+        <lastBuildDate>Tue, 29 Sep 2026 10:00:15 +0000</lastBuildDate>
+        <language>en-US</language>
+        <copyright>© 2025 Startups For the Rest of Us</copyright>
+        
+        <spotify:limit recentCount="329" />
+        
+        <spotify:countryOfOrigin>
+              
+        </spotify:countryOfOrigin>
+                    <image>
+                <url>https://episodes.castos.com/5e1c969972fbb8-96341148/images/podcast/covers/c1a-9g8v-mkwv1jmzf6jz-16hp2f.png</url>
+                <title>Startups For the Rest of Us</title>
+                <link>https://www.startupsfortherestofus.com/</link>
+            </image>
+                <itunes:subtitle>The original podcast for bootstrapped and mostly bootstrapped startups, this show follow the stories of founders as they start, acquire, and grow SaaS companies. Hear when they fail, struggle, succeed, and take you with them through the tumultuous life of a SaaS founder. If you like Mixergy, This Week in Startups, or SaaStr, you’ll enjoy Startup for the Rest of Us.</itunes:subtitle>
+        <itunes:author>Rob Walling</itunes:author>
+        <itunes:type>episodic</itunes:type>
+        <itunes:summary>The original podcast for bootstrapped and mostly bootstrapped startups, this show follow the stories of founders as they start, acquire, and grow SaaS companies. Hear when they fail, struggle, succeed, and take you with them through the tumultuous life of a SaaS founder. If you like Mixergy, This Week in Startups, or SaaStr, you’ll enjoy Startup for the Rest of Us.</itunes:summary>
+        <itunes:owner>
+            <itunes:name>Rob Walling</itunes:name>
+            <itunes:email>questions@startupsfortherestofus.com</itunes:email>
+        </itunes:owner>
+        <itunes:explicit>false</itunes:explicit>
+                    <itunes:image href="https://episodes.castos.com/5e1c969972fbb8-96341148/images/podcast/covers/c1a-9g8v-mkwv1jmzf6jz-16hp2f.png"></itunes:image>
+        
+                                    <itunes:category text="Business">
+                                            <itunes:category text="Entrepreneurship" />
+                                            <itunes:category text="Marketing" />
+                                            <itunes:category text="Management" />
+                                    </itunes:category>
+                    
+                    <itunes:new-feed-url>https://feeds.castos.com/mqv6</itunes:new-feed-url>
+                
+        
+        <podcast:locked>no</podcast:locked>
+                                    <item>
+                <title>
+                    <![CDATA[Episode 852 | Getting Big Name Customer Case Studies and More Listener Questions (with Ruben Gamez)]]>
+                </title>
+                <pubDate>Tue, 29 Sep 2026 10:00:15 +0000</pubDate>
+                <dc:creator>Rob Walling</dc:creator>
+                <guid isPermaLink="false">
+                    https://permalink.castos.com/podcast/5031/episode/2614279</guid>
+                                    <link>https://www.startupsfortherestofus.com/episodes/episode-852-getting-big-name-customer-case-studies-and-more-listener-questions-with-ruben-gamez</link>
+                                <description>
+                                            <![CDATA[<p class="wp-block-paragraph">Should you be worried that another founder will steal your idea if you ask them for advice?</p>
+
+
+
+<p class="wp-block-paragraph">In this episode, Rob is joined by Ruben Gamez to answer four listener questions: whether reaching out to more advanced founders puts your idea at risk, how to convince big name customers to agree to a case study, what to do when a platform ecosystem (like Shopify's app store) turns hostile, and how to sell a B2G SaaS product when your sales cycle only runs during the hours you're already at a day job.</p>
+
+
+
+<p class="wp-block-paragraph">Want to get your question answered? <a href="https://www.startupsfortherestofus.com/contact" target="_blank" rel="noreferrer noopener">Submit your question</a> for an upcoming episode.</p>
+
+
+
+<h2 class="wp-block-heading"><strong>Topics we cover:</strong></h2>
+
+
+
+<ul class="wp-block-list">
+<li>(1:59) – Fear that outreach could get an idea stolen</li>
+
+
+
+<li>(3:50) – Why no one actually steals ideas</li>
+
+
+
+<li>(9:12) – Getting copied is inevitable once you're public</li>
+
+
+
+<li>(13:45) – How to land big brand case studies</li>
+
+
+
+<li>(15:39) – Using discounts to secure case studies</li>
+
+
+
+<li>(18:11) – Shopify's fake review extortion</li>
+
+
+
+<li>(20:21) – Should you move to a standalone SaaS</li>
+
+
+
+<li>(25:06) – B2G SaaS around a day job</li>
+
+
+
+<li>(28:29) – Why GovTech rarely attracts angel investment</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading"><strong>Links from the show:</strong></h2>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://tinyseed.com/tinysummit" target="_blank" rel="noreferrer noopener">Tiny Summit</a> | December 5–7, 2026 · Cancun, Mexico</li>
+
+
+
+<li><a href="https://tinyseed.com/institute" target="_blank" rel="noreferrer noopener">TinySeed SaaS Institute</a></li>
+
+
+
+<li><a href="https://microconf.com/" target="_blank" rel="noreferrer noopener">MicroConf</a></li>
+
+
+
+<li><a href="https://signwell.com/" target="_blank" rel="noreferrer noopener">SignWell</a></li>
+
+
+
+<li><a href="https://x.com/earthlingworks" target="_blank" rel="noreferrer noopener">Ruben Gamez (@earthlingworks) | X</a></li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">If you have questions about starting or scaling a software business that you'd like for us to cover, please <a href="https://www.startupsfortherestofus.com/contact" target="_blank" rel="noreferrer noopener">submit your question</a> for an upcoming episode. We'd love to hear from you!</p>
+
+
+
+<p class="wp-block-paragraph">Subscribe &amp; Review: <a href="https://podcasts.apple.com/us/podcast/startups-for-the-rest-of-us/id366931951" target="_blank" rel="noreferrer noopener">iTunes</a> | <a href="https://open.spotify.com/show/5089lJbLDOmXCvbcJzLZYj" target="_blank" rel="noreferrer noopener">Spotify</a></p>]]>
+                                    </description>
+                <itunes:subtitle>
+                    <![CDATA[Should you be worried that another founder will steal your idea if you ask them for advice?
+
+
+
+In this episode, Rob is joined by Ruben Gamez to answer four listener questions: whether reaching out to more advanced founders puts your idea at risk, how to convince big name customers to agree to a case study, what to do when a platform ecosystem (like Shopify's app store) turns hostile, and how to sell a B2G SaaS product when your sales cycle only runs during the hours you're already at a day job.
+
+
+
+Want to get your question answered? Submit your question for an upcoming episode.
+
+
+
+Topics we cover:
+
+
+
+
+(1:59) – Fear that outreach could get an idea stolen
+
+
+
+(3:50) – Why no one actually steals ideas
+
+
+
+(9:12) – Getting copied is inevitable once you're public
+
+
+
+(13:45) – How to land big brand case studies
+
+
+
+(15:39) – Using discounts to secure case studies
+
+
+
+(18:11) – Shopify's fake review extortion
+
+
+
+(20:21) – Should you move to a standalone SaaS
+
+
+
+(25:06) – B2G SaaS around a day job
+
+
+
+(28:29) – Why GovTech rarely attracts angel investment
+
+
+
+
+Links from the show:
+
+
+
+
+Tiny Summit | December 5–7, 2026 · Cancun, Mexico
+
+
+
+TinySeed SaaS Institute
+
+
+
+MicroConf
+
+
+
+SignWell
+
+
+
+Ruben Gamez (@earthlingworks) | X
+
+
+
+
+If you have questions about starting or scaling a software business that you'd like for us to cover, please submit your question for an upcoming episode. We'd love to hear from you!
+
+
+
+Subscribe & Review: iTunes | Spotify]]>
+                </itunes:subtitle>
+                                <itunes:title>
+                    <![CDATA[Episode 852 | Getting Big Name Customer Case Studies and More Listener Questions (with Ruben Gamez)]]>
+                </itunes:title>
+                                                <itunes:explicit>false</itunes:explicit>
+                <content:encoded>
+                    <![CDATA[<p class="wp-block-paragraph">Should you be worried that another founder will steal your idea if you ask them for advice?</p>
+
+
+
+<p class="wp-block-paragraph">In this episode, Rob is joined by Ruben Gamez to answer four listener questions: whether reaching out to more advanced founders puts your idea at risk, how to convince big name customers to agree to a case study, what to do when a platform ecosystem (like Shopify's app store) turns hostile, and how to sell a B2G SaaS product when your sales cycle only runs during the hours you're already at a day job.</p>
+
+
+
+<p class="wp-block-paragraph">Want to get your question answered? <a href="https://www.startupsfortherestofus.com/contact" target="_blank" rel="noreferrer noopener">Submit your question</a> for an upcoming episode.</p>
+
+
+
+<h2 class="wp-block-heading"><strong>Topics we cover:</strong></h2>
+
+
+
+<ul class="wp-block-list">
+<li>(1:59) – Fear that outreach could get an idea stolen</li>
+
+
+
+<li>(3:50) – Why no one actually steals ideas</li>
+
+
+
+<li>(9:12) – Getting copied is inevitable once you're public</li>
+
+
+
+<li>(13:45) – How to land big brand case studies</li>
+
+
+
+<li>(15:39) – Using discounts to secure case studies</li>
+
+
+
+<li>(18:11) – Shopify's fake review extortion</li>
+
+
+
+<li>(20:21) – Should you move to a standalone SaaS</li>
+
+
+
+<li>(25:06) – B2G SaaS around a day job</li>
+
+
+
+<li>(28:29) – Why GovTech rarely attracts angel investment</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading"><strong>Links from the show:</strong></h2>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://tinyseed.com/tinysummit" target="_blank" rel="noreferrer noopener">Tiny Summit</a> | December 5–7, 2026 · Cancun, Mexico</li>
+
+
+
+<li><a href="https://tinyseed.com/institute" target="_blank" rel="noreferrer noopener">TinySeed SaaS Institute</a></li>
+
+
+
+<li><a href="https://microconf.com/" target="_blank" rel="noreferrer noopener">MicroConf</a></li>
+
+
+
+<li><a href="https://signwell.com/" target="_blank" rel="noreferrer noopener">SignWell</a></li>
+
+
+
+<li><a href="https://x.com/earthlingworks" target="_blank" rel="noreferrer noopener">Ruben Gamez (@earthlingworks) | X</a></li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">If you have questions about starting or scaling a software business that you'd like for us to cover, please <a href="https://www.startupsfortherestofus.com/contact" target="_blank" rel="noreferrer noopener">submit your question</a> for an upcoming episode. We'd love to hear from you!</p>
+
+
+
+<p class="wp-block-paragraph">Subscribe &amp; Review: <a href="https://podcasts.apple.com/us/podcast/startups-for-the-rest-of-us/id366931951" target="_blank" rel="noreferrer noopener">iTunes</a> | <a href="https://open.spotify.com/show/5089lJbLDOmXCvbcJzLZYj" target="_blank" rel="noreferrer noopener">Spotify</a></p>]]>
+                </content:encoded>
+                                    <enclosure url="https://prfx.byspotify.com/e/episodes.castos.com/5e1c969972fbb8-96341148/2614279/c1e-129ztnpg4na6nj8z-z3ovzw26h3po-go4hoe.mp3" length="31499353"
+                        type="audio/mpeg">
+                    </enclosure>
+                                <itunes:summary>
+                    <![CDATA[Should you be worried that another founder will steal your idea if you ask them for advice?
+
+
+
+In this episode, Rob is joined by Ruben Gamez to answer four listener questions: whether reaching out to more advanced founders puts your idea at risk, how to convince big name customers to agree to a case study, what to do when a platform ecosystem (like Shopify's app store) turns hostile, and how to sell a B2G SaaS product when your sales cycle only runs during the hours you're already at a day job.
+
+
+
+Want to get your question answered? Submit your question for an upcoming episode.
+
+
+
+Topics we cover:
+
+
+
+
+(1:59) – Fear that outreach could get an idea stolen
+
+
+
+(3:50) – Why no one actually steals ideas
+
+
+
+(9:12) – Getting copied is inevitable once you're public
+
+
+
+(13:45) – How to land big brand case studies
+
+
+
+(15:39) – Using discounts to secure case studies
+
+
+
+(18:11) – Shopify's fake review extortion
+
+
+
+(20:21) – Should you move to a standalone SaaS
+
+
+
+(25:06) – B2G SaaS around a day job
+
+
+
+(28:29) – Why GovTech rarely attracts angel investment
+
+
+
+
+Links from the show:
+
+
+
+
+Tiny Summit | December 5–7, 2026 · Cancun, Mexico
+
+
+
+TinySeed SaaS Institute
+
+
+
+MicroConf
+
+
+
+SignWell
+
+
+
+Ruben Gamez (@earthlingworks) | X
+
+
+
+
+If you have questions about starting or scaling a software business that you'd like for us to cover, please submit your question for an upcoming episode. We'd love to hear from you!
+
+
+
+Subscribe & Review: iTunes | Spotify]]>
+                </itunes:summary>
+                                                                            <itunes:duration>00:32:18</itunes:duration>
+                                                    <itunes:author>
+                    <![CDATA[Rob Walling]]>
+                </itunes:author>
+                                            </item>
+                    <item>
+                <title>
+                    <![CDATA[Episode 851 | The Messy Middle of a SaaS Pivot]]>
+                </title>
+                <pubDate>Tue, 22 Sep 2026 10:00:32 +0000</pubDate>
+                <dc:creator>Rob Walling</dc:creator>
+                <guid isPermaLink="false">
+                    https://permalink.castos.com/podcast/5031/episode/2610016</guid>
+                                    <link>https://www.startupsfortherestofus.com/episodes/episode-851-the-messy-middle-of-a-saas-pivot</link>
+                                <description>
+                                            <![CDATA[<p class="wp-block-paragraph">How do you pivot your SaaS when things aren’t working?</p>
+
+
+
+<p class="wp-block-paragraph">This week Rob talks with Nathan Tyler, founder of BlinkMetrics, about the messy, uncertain process of finding product market fit in real time. Nathan walks through why his original EOS scorecard idea didn't work, how hundreds of coffee chats led to a done for you reporting business, and why he just launched a second product, BlinkPages, right in the middle of it all.</p>
+
+
+
+<h2 class="wp-block-heading">Topics we cover:</h2>
+
+
+
+<ul class="wp-block-list">
+<li>(2:43) – The Staging Pilot exit to Pantheon</li>
+
+
+
+<li>(4:44) – BlinkMetrics origin story</li>
+
+
+
+<li>(5:59) – 104 coffee chats, real revenue</li>
+
+
+
+<li>(8:09) – Why not launch 12 products in 12 weeks</li>
+
+
+
+<li>(9:39) – Launching a second product: BlinkPages</li>
+
+
+
+<li>(13:09) – Squarespace to BlinkPages migration</li>
+
+
+
+<li>(17:03) – Why static sites beat WordPress now</li>
+
+
+
+<li>(21:02) – Knowing when to pivot</li>
+
+
+
+<li>(25:26) – Market pull vs. shiny object</li>
+
+
+
+<li>(32:10) – Pricing migrations, hosting, and AI costs</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading">Links from the show:</h2>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://microconf.com/us-flagship">Get your Ticket for MicroConf US</a> - Austin, Texas on April 18 - 20, 2027 | Use promo code <strong>ROB50 </strong></li>
+
+
+
+<li><a href="https://blinkmetrics.com">BlinkMetrics</a></li>
+
+
+
+<li><a href="https://blinkpages.com">BlinkPages</a></li>
+
+
+
+<li><a href="https://saasplaybook.com">The SaaS Playbook</a></li>
+
+
+
+<li><a href="https://exitstrategybook.com/">Exit Strategy Book</a></li>
+
+
+
+<li><a href="https://www.linkedin.com/in/nathantyler13/">Nathan Tyler | LinkedIn </a></li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">If you have questions about starting or scaling a software business that you'd like for us to cover, please <a href="https://www.startupsfortherestofus.com/contact">submit your question</a> for an upcoming episode. We'd love to hear from you!</p>
+
+
+
+<p class="wp-block-paragraph">Subscribe &amp; Review: <a href="https://podcasts.apple.com/us/podcast/startups-for-the-rest-of-us/id366931951">iTunes</a> | <a href="https://open.spotify.com/show/5089lJbLDOmXCvbcJzLZYj">Spotify</a></p>]]>
+                                    </description>
+                <itunes:subtitle>
+                    <![CDATA[How do you pivot your SaaS when things aren’t working?
+
+
+
+This week Rob talks with Nathan Tyler, founder of BlinkMetrics, about the messy, uncertain process of finding product market fit in real time. Nathan walks through why his original EOS scorecard idea didn't work, how hundreds of coffee chats led to a done for you reporting business, and why he just launched a second product, BlinkPages, right in the middle of it all.
+
+
+
+Topics we cover:
+
+
+
+
+(2:43) – The Staging Pilot exit to Pantheon
+
+
+
+(4:44) – BlinkMetrics origin story
+
+
+
+(5:59) – 104 coffee chats, real revenue
+
+
+
+(8:09) – Why not launch 12 products in 12 weeks
+
+
+
+(9:39) – Launching a second product: BlinkPages
+
+
+
+(13:09) – Squarespace to BlinkPages migration
+
+
+
+(17:03) – Why static sites beat WordPress now
+
+
+
+(21:02) – Knowing when to pivot
+
+
+
+(25:26) – Market pull vs. shiny object
+
+
+
+(32:10) – Pricing migrations, hosting, and AI costs
+
+
+
+
+Links from the show:
+
+
+
+
+Get your Ticket for MicroConf US - Austin, Texas on April 18 - 20, 2027 | Use promo code ROB50 
+
+
+
+BlinkMetrics
+
+
+
+BlinkPages
+
+
+
+The SaaS Playbook
+
+
+
+Exit Strategy Book
+
+
+
+Nathan Tyler | LinkedIn 
+
+
+
+
+If you have questions about starting or scaling a software business that you'd like for us to cover, please submit your question for an upcoming episode. We'd love to hear from you!
+
+
+
+Subscribe & Review: iTunes | Spotify]]>
+                </itunes:subtitle>
+                                <itunes:title>
+                    <![CDATA[Episode 851 | The Messy Middle of a SaaS Pivot]]>
+                </itunes:title>
+                                                <itunes:explicit>false</itunes:explicit>
+                <content:encoded>
+                    <![CDATA[<p class="wp-block-paragraph">How do you pivot your SaaS when things aren’t working?</p>
+
+
+
+<p class="wp-block-paragraph">This week Rob talks with Nathan Tyler, founder of BlinkMetrics, about the messy, uncertain process of finding product market fit in real time. Nathan walks through why his original EOS scorecard idea didn't work, how hundreds of coffee chats led to a done for you reporting business, and why he just launched a second product, BlinkPages, right in the middle of it all.</p>
+
+
+
+<h2 class="wp-block-heading">Topics we cover:</h2>
+
+
+
+<ul class="wp-block-list">
+<li>(2:43) – The Staging Pilot exit to Pantheon</li>
+
+
+
+<li>(4:44) – BlinkMetrics origin story</li>
+
+
+
+<li>(5:59) – 104 coffee chats, real revenue</li>
+
+
+
+<li>(8:09) – Why not launch 12 products in 12 weeks</li>
+
+
+
+<li>(9:39) – Launching a second product: BlinkPages</li>
+
+
+
+<li>(13:09) – Squarespace to BlinkPages migration</li>
+
+
+
+<li>(17:03) – Why static sites beat WordPress now</li>
+
+
+
+<li>(21:02) – Knowing when to pivot</li>
+
+
+
+<li>(25:26) – Market pull vs. shiny object</li>
+
+
+
+<li>(32:10) – Pricing migrations, hosting, and AI costs</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading">Links from the show:</h2>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://microconf.com/us-flagship">Get your Ticket for MicroConf US</a> - Austin, Texas on April 18 - 20, 2027 | Use promo code <strong>ROB50 </strong></li>
+
+
+
+<li><a href="https://blinkmetrics.com">BlinkMetrics</a></li>
+
+
+
+<li><a href="https://blinkpages.com">BlinkPages</a></li>
+
+
+
+<li><a href="https://saasplaybook.com">The SaaS Playbook</a></li>
+
+
+
+<li><a href="https://exitstrategybook.com/">Exit Strategy Book</a></li>
+
+
+
+<li><a href="https://www.linkedin.com/in/nathantyler13/">Nathan Tyler | LinkedIn </a></li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">If you have questions about starting or scaling a software business that you'd like for us to cover, please <a href="https://www.startupsfortherestofus.com/contact">submit your question</a> for an upcoming episode. We'd love to hear from you!</p>
+
+
+
+<p class="wp-block-paragraph">Subscribe &amp; Review: <a href="https://podcasts.apple.com/us/podcast/startups-for-the-rest-of-us/id366931951">iTunes</a> | <a href="https://open.spotify.com/show/5089lJbLDOmXCvbcJzLZYj">Spotify</a></p>]]>
+                </content:encoded>
+                                    <enclosure url="https://prfx.byspotify.com/e/episodes.castos.com/5e1c969972fbb8-96341148/2610016/c1e-vvr3f5m17vadvkrg-1px9rv77ioj4-j5iof0.mp3" length="42676618"
+                        type="audio/mpeg">
+                    </enclosure>
+                                <itunes:summary>
+                    <![CDATA[How do you pivot your SaaS when things aren’t working?
+
+
+
+This week Rob talks with Nathan Tyler, founder of BlinkMetrics, about the messy, uncertain process of finding product market fit in real time. Nathan walks through why his original EOS scorecard idea didn't work, how hundreds of coffee chats led to a done for you reporting business, and why he just launched a second product, BlinkPages, right in the middle of it all.
+
+
+
+Topics we cover:
+
+
+
+
+(2:43) – The Staging Pilot exit to Pantheon
+
+
+
+(4:44) – BlinkMetrics origin story
+
+
+
+(5:59) – 104 coffee chats, real revenue
+
+
+
+(8:09) – Why not launch 12 products in 12 weeks
+
+
+
+(9:39) – Launching a second product: BlinkPages
+
+
+
+(13:09) – Squarespace to BlinkPages migration
+
+
+
+(17:03) – Why static sites beat WordPress now
+
+
+
+(21:02) – Knowing when to pivot
+
+
+
+(25:26) – Market pull vs. shiny object
+
+
+
+(32:10) – Pricing migrations, hosting, and AI costs
+
+
+
+
+Links from the show:
+
+
+
+
+Get your Ticket for MicroConf US - Austin, Texas on April 18 - 20, 2027 | Use promo code ROB50 
+
+
+
+BlinkMetrics
+
+
+
+BlinkPages
+
+
+
+The SaaS Playbook
+
+
+
+Exit Strategy Book
+
+
+
+Nathan Tyler | LinkedIn 
+
+
+
+
+If you have questions about starting or scaling a software business that you'd like for us to cover, please submit your question for an upcoming episode. We'd love to hear from you!
+
+
+
+Subscribe & Review: iTunes | Spotify]]>
+                </itunes:summary>
+                                                                            <itunes:duration>00:43:57</itunes:duration>
+                                                    <itunes:author>
+                    <![CDATA[Rob Walling]]>
+                </itunes:author>
+                                            </item>
+                    <item>
+                <title>
+                    <![CDATA[Episode 850 | How Not to Screw Up When Hiring Your first Developer and More Listener Questions (with Derrick Reimer)]]>
+                </title>
+                <pubDate>Tue, 15 Sep 2026 10:00:12 +0000</pubDate>
+                <dc:creator>Rob Walling</dc:creator>
+                <guid isPermaLink="false">
+                    https://permalink.castos.com/podcast/5031/episode/2599305</guid>
+                                    <link>https://www.startupsfortherestofus.com/episodes/episode-850-how-not-to-screw-up-when-hiring-your-first-developer-and-more-listener-questions-with-derrick-reimer</link>
+                                <description>
+                                            <![CDATA[<p class="wp-block-paragraph">How do you onboard a hire onto a codebase you built alone?</p>
+
+
+
+<p class="wp-block-paragraph">In this episode, Derrick Reimer joins Rob to tackle four listener questions. They cover hiring and onboarding your first developer as a bootstrapped founder, then move into the temptation to build features just because AI makes them cheap to ship, getting past social anxiety as a founder, and whether it's worth trademarking your product name.</p>
+
+
+
+<h2 class="wp-block-heading"><strong>Topics we cover:</strong></h2>
+
+
+
+<ul class="wp-block-list">
+<li>(3:59) – How do you hire your first developer?  </li>
+
+
+
+<li>(5:14) – Qualities to look for in a first developer hire</li>
+
+
+
+<li>(13:37) – Onboarding a new hire into your codebase with AI</li>
+
+
+
+<li>(16:49) – Reducing hiring risk: pairing, reliability, recruiters</li>
+
+
+
+<li>(22:50) – The temptation to build features just because AI makes it cheap</li>
+
+
+
+<li>(30:43) – Getting over social anxiety as a founder</li>
+
+
+
+<li>(35:25) – Is trademarking your product name worth it?</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading"><strong>Links from the show:</strong></h2>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://tinyseed.com/tinysummit">TinySummit</a> | December 5–7, 2026 · JW Marriott, Cancun</li>
+
+
+
+<li><a href="https://microconf.com/us">MicroConf US</a> | April 18–20, 2027 · Austin, TX</li>
+
+
+
+<li><a href="mailto:sponsors@microconf.com">Partnerships:</a> sponsors@microconf.com</li>
+
+
+
+<li><a href="https://ideatotractionbook.com/">Idea to Traction: Stop Building SaaS Nobody Wants (book wait list)</a></li>
+
+
+
+<li><a href="https://robwalling.com/subscribe">Rob Walling Newsletter</a></li>
+
+
+
+<li><a href="https://remotefirstrecruiting.com">Remote First Recruiting</a> </li>
+
+
+
+<li><a href="https://savvycal.com">SavvyCal</a></li>
+
+
+
+<li><a href="https://www.linkedin.com/in/derrickreimer/">Derrick Reimer | LinkedIn</a></li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">If you have questions about starting or scaling a software business that you'd like for us to cover, please <a href="https://www.startupsfortherestofus.com/contact">submit your question</a> for an upcoming episode. We'd love to hear from you!</p>
+
+
+
+<p class="wp-block-paragraph">Subscribe &amp; Review: <a href="https://podcasts.apple.com/us/podcast/startups-for-the-rest-of-us/id366931951">iTunes</a> | <a href="https://open.spotify.com/show/5089lJbLDOmXCvbcJzLZYj">Spotify</a></p>]]>
+                                    </description>
+                <itunes:subtitle>
+                    <![CDATA[How do you onboard a hire onto a codebase you built alone?
+
+
+
+In this episode, Derrick Reimer joins Rob to tackle four listener questions. They cover hiring and onboarding your first developer as a bootstrapped founder, then move into the temptation to build features just because AI makes them cheap to ship, getting past social anxiety as a founder, and whether it's worth trademarking your product name.
+
+
+
+Topics we cover:
+
+
+
+
+(3:59) – How do you hire your first developer?  
+
+
+
+(5:14) – Qualities to look for in a first developer hire
+
+
+
+(13:37) – Onboarding a new hire into your codebase with AI
+
+
+
+(16:49) – Reducing hiring risk: pairing, reliability, recruiters
+
+
+
+(22:50) – The temptation to build features just because AI makes it cheap
+
+
+
+(30:43) – Getting over social anxiety as a founder
+
+
+
+(35:25) – Is trademarking your product name worth it?
+
+
+
+
+Links from the show:
+
+
+
+
+TinySummit | December 5–7, 2026 · JW Marriott, Cancun
+
+
+
+MicroConf US | April 18–20, 2027 · Austin, TX
+
+
+
+Partnerships: sponsors@microconf.com
+
+
+
+Idea to Traction: Stop Building SaaS Nobody Wants (book wait list)
+
+
+
+Rob Walling Newsletter
+
+
+
+Remote First Recruiting 
+
+
+
+SavvyCal
+
+
+
+Derrick Reimer | LinkedIn
+
+
+
+
+If you have questions about starting or scaling a software business that you'd like for us to cover, please submit your question for an upcoming episode. We'd love to hear from you!
+
+
+
+Subscribe & Review: iTunes | Spotify]]>
+                </itunes:subtitle>
+                                <itunes:title>
+                    <![CDATA[Episode 850 | How Not to Screw Up When Hiring Your first Developer and More Listener Questions (with Derrick Reimer)]]>
+                </itunes:title>
+                                                <itunes:explicit>false</itunes:explicit>
+                <content:encoded>
+                    <![CDATA[<p class="wp-block-paragraph">How do you onboard a hire onto a codebase you built alone?</p>
+
+
+
+<p class="wp-block-paragraph">In this episode, Derrick Reimer joins Rob to tackle four listener questions. They cover hiring and onboarding your first developer as a bootstrapped founder, then move into the temptation to build features just because AI makes them cheap to ship, getting past social anxiety as a founder, and whether it's worth trademarking your product name.</p>
+
+
+
+<h2 class="wp-block-heading"><strong>Topics we cover:</strong></h2>
+
+
+
+<ul class="wp-block-list">
+<li>(3:59) – How do you hire your first developer?  </li>
+
+
+
+<li>(5:14) – Qualities to look for in a first developer hire</li>
+
+
+
+<li>(13:37) – Onboarding a new hire into your codebase with AI</li>
+
+
+
+<li>(16:49) – Reducing hiring risk: pairing, reliability, recruiters</li>
+
+
+
+<li>(22:50) – The temptation to build features just because AI makes it cheap</li>
+
+
+
+<li>(30:43) – Getting over social anxiety as a founder</li>
+
+
+
+<li>(35:25) – Is trademarking your product name worth it?</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading"><strong>Links from the show:</strong></h2>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://tinyseed.com/tinysummit">TinySummit</a> | December 5–7, 2026 · JW Marriott, Cancun</li>
+
+
+
+<li><a href="https://microconf.com/us">MicroConf US</a> | April 18–20, 2027 · Austin, TX</li>
+
+
+
+<li><a href="mailto:sponsors@microconf.com">Partnerships:</a> sponsors@microconf.com</li>
+
+
+
+<li><a href="https://ideatotractionbook.com/">Idea to Traction: Stop Building SaaS Nobody Wants (book wait list)</a></li>
+
+
+
+<li><a href="https://robwalling.com/subscribe">Rob Walling Newsletter</a></li>
+
+
+
+<li><a href="https://remotefirstrecruiting.com">Remote First Recruiting</a> </li>
+
+
+
+<li><a href="https://savvycal.com">SavvyCal</a></li>
+
+
+
+<li><a href="https://www.linkedin.com/in/derrickreimer/">Derrick Reimer | LinkedIn</a></li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">If you have questions about starting or scaling a software business that you'd like for us to cover, please <a href="https://www.startupsfortherestofus.com/contact">submit your question</a> for an upcoming episode. We'd love to hear from you!</p>
+
+
+
+<p class="wp-block-paragraph">Subscribe &amp; Review: <a href="https://podcasts.apple.com/us/podcast/startups-for-the-rest-of-us/id366931951">iTunes</a> | <a href="https://open.spotify.com/show/5089lJbLDOmXCvbcJzLZYj">Spotify</a></p>]]>
+                </content:encoded>
+                                    <enclosure url="https://prfx.byspotify.com/e/episodes.castos.com/5e1c969972fbb8-96341148/2599305/c1e-m9vrc49wp5bg4nmr-v60o3qw0b791-4b7a3b.mp3" length="49836916"
+                        type="audio/mpeg">
+                    </enclosure>
+                                <itunes:summary>
+                    <![CDATA[How do you onboard a hire onto a codebase you built alone?
+
+
+
+In this episode, Derrick Reimer joins Rob to tackle four listener questions. They cover hiring and onboarding your first developer as a bootstrapped founder, then move into the temptation to build features just because AI makes them cheap to ship, getting past social anxiety as a founder, and whether it's worth trademarking your product name.
+
+
+
+Topics we cover:
+
+
+
+
+(3:59) – How do you hire your first developer?  
+
+
+
+(5:14) – Qualities to look for in a first developer hire
+
+
+
+(13:37) – Onboarding a new hire into your codebase with AI
+
+
+
+(16:49) – Reducing hiring risk: pairing, reliability, recruiters
+
+
+
+(22:50) – The temptation to build features just because AI makes it cheap
+
+
+
+(30:43) – Getting over social anxiety as a founder
+
+
+
+(35:25) – Is trademarking your product name worth it?
+
+
+
+
+Links from the show:
+
+
+
+
+TinySummit | December 5–7, 2026 · JW Marriott, Cancun
+
+
+
+MicroConf US | April 18–20, 2027 · Austin, TX
+
+
+
+Partnerships: sponsors@microconf.com
+
+
+
+Idea to Traction: Stop Building SaaS Nobody Wants (book wait list)
+
+
+
+Rob Walling Newsletter
+
+
+
+Remote First Recruiting 
+
+
+
+SavvyCal
+
+
+
+Derrick Reimer | LinkedIn
+
+
+
+
+If you have questions about starting or scaling a software business that you'd like for us to cover, please submit your question for an upcoming episode. We'd love to hear from you!
+
+
+
+Subscribe & Review: iTunes | Spotify]]>
+                </itunes:summary>
+                                                                            <itunes:duration>00:51:23</itunes:duration>
+                                                    <itunes:author>
+                    <![CDATA[Rob Walling]]>
+                </itunes:author>
+                                            </item>
+            </channel>
+</rss>

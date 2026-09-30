@@ -115,6 +115,10 @@ final class Providers {
 			return __( 'Use your podcast plugin’s feed redirect setting, or a redirect plugin, to send the old feed address to this site’s feed address with a permanent (301) redirect.', 'elementor-podcast-manager' );
 		}
 
+		if ( 'other' === $id ) {
+			return __( 'In your host’s settings, find the option that redirects or moves the feed (often called “301 redirect”, “Redirect feed” or “Move podcast”) and paste this site’s feed address. If you cannot find it, the host’s support can set the redirect for you.', 'elementor-podcast-manager' );
+		}
+
 		return sprintf(
 			/* translators: %s: podcast host name */
 			__( 'In %s, find the setting that redirects or moves the feed (often called “301 redirect”, “Redirect feed” or “Move podcast”) and paste this site’s feed address. If you cannot find it, the host’s support can set the redirect for you.', 'elementor-podcast-manager' ),

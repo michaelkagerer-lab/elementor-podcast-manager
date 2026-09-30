@@ -140,17 +140,19 @@ final class Importer {
 	 * Import or update one parsed item.
 	 *
 	 * @param array<string, mixed> $item Item from FeedParser.
-	 * @return array{action: string, id: int, title: string, message: string}
+	 * @return array{action: string, id: int, title: string, message: string, media_failed: bool}
 	 */
 	public function import_item( array $item ): array {
 		$guid  = trim( (string) ( $item['guid'] ?? '' ) );
 		$title = sanitize_text_field( (string) ( $item['title'] ?? '' ) );
 
 		$result = [
-			'action'  => 'skipped',
-			'id'      => 0,
-			'title'   => $title,
-			'message' => '',
+			'action'       => 'skipped',
+			'id'           => 0,
+			'title'        => $title,
+			'message'      => '',
+			// "Copy media" was chosen, but the audio stayed at the host.
+			'media_failed' => false,
 		];
 
 		if ( '' === $guid ) {
@@ -180,13 +182,23 @@ final class Importer {
 				delete_post_meta( $post_id, Episodes::META_PREFIX . 'missing_since' );
 			}
 
+			// The host's feed moved: re-tag the imported episodes it still
+			// lists, so "unpublish episodes the host removed" keeps finding
+			// them. Episodes created on this site stay untagged.
+			$source_feed = (string) get_post_meta( $post_id, Episodes::META_PREFIX . 'source_feed', true );
+			if ( '' !== $this->options['feed_url'] && '' !== $source_feed && $source_feed !== $this->options['feed_url'] ) {
+				update_post_meta( $post_id, Episodes::META_PREFIX . 'source_feed', $this->options['feed_url'] );
+			}
+
 			// Moving a show that was mirrored before (or a copy that was
 			// interrupted): bring the audio over for existing episodes too.
+			// Not while another request is still downloading it.
 			$copied = false;
-			if ( $this->options['download_media'] && (int) get_post_meta( $post_id, Episodes::META_PREFIX . 'audio_id', true ) <= 0 && '' !== (string) ( $item['audio_url'] ?? '' ) ) {
-				$problem           = $this->copy_media( $post_id, $item );
-				$copied            = '' === $problem;
-				$result['message'] = $problem;
+			if ( $this->options['download_media'] && (int) get_post_meta( $post_id, Episodes::META_PREFIX . 'audio_id', true ) <= 0 && '' !== (string) ( $item['audio_url'] ?? '' ) && ! self::copy_in_progress( $post_id ) ) {
+				$problem                = $this->copy_media( $post_id, $item );
+				$copied                 = '' === $problem;
+				$result['message']      = $problem;
+				$result['media_failed'] = ! $copied;
 				Episodes::clear_data_cache( $post_id );
 			}
 
@@ -219,7 +231,8 @@ final class Importer {
 		if ( $this->options['download_media'] ) {
 			$media = $this->copy_media( $post_id, $item );
 			if ( '' !== $media ) {
-				$result['message'] = $media;
+				$result['message']      = $media;
+				$result['media_failed'] = true;
 			}
 		}
 
@@ -387,10 +400,39 @@ final class Importer {
 	/**
 	 * Stable hash of a field value.
 	 *
+	 * Saving an episode in an editor changes the bytes without changing the
+	 * content: textareas send CRLF line breaks, and the classic editor
+	 * stores show notes without the <p> tags the importer wrote. Both are
+	 * normalized away, so such a save does not count as a local edit.
+	 *
+	 * @param mixed  $value Value.
+	 * @param string $field Field the value belongs to.
+	 * @return string
+	 */
+	private static function hash( $value, string $field = '' ): string {
+		if ( ! is_scalar( $value ) ) {
+			return md5( (string) wp_json_encode( $value ) );
+		}
+
+		$value = str_replace( [ "\r\n", "\r" ], "\n", (string) $value );
+
+		if ( 'post_content' === $field ) {
+			$value = wpautop( $value );
+			$value = (string) preg_replace( '/\s+/', ' ', $value );
+			$value = trim( (string) preg_replace( '#\s*(</?(?:p|br|ul|ol|li|h[1-6]|blockquote|div|pre|table|tr|td|th)\b[^>]*>)\s*#i', '$1', $value ) );
+		}
+
+		return md5( $value );
+	}
+
+	/**
+	 * The hash earlier versions stored (raw bytes), still accepted as
+	 * "written by the importer" for episodes imported before.
+	 *
 	 * @param mixed $value Value.
 	 * @return string
 	 */
-	private static function hash( $value ): string {
+	private static function legacy_hash( $value ): string {
 		return md5( is_scalar( $value ) ? (string) $value : (string) wp_json_encode( $value ) );
 	}
 
@@ -415,13 +457,13 @@ final class Importer {
 			$current = $this->current( $post_id, $field );
 
 			if ( ! $is_new ) {
-				if ( self::hash( $current ) === self::hash( $value ) ) {
+				if ( self::hash( $current, $field ) === self::hash( $value, $field ) ) {
 					$owned[] = $field; // Already identical.
 					continue;
 				}
 
 				$untouched = isset( $hashes[ $field ] )
-					? self::hash( $current ) === $hashes[ $field ]
+					? in_array( $hashes[ $field ], [ self::hash( $current, $field ), self::legacy_hash( $current ) ], true )
 					: ( '' === $current || null === $current || false === $current );
 
 				if ( ! $untouched ) {
@@ -452,7 +494,7 @@ final class Importer {
 		// Remember what the site holds now (after sanitizers ran), so the
 		// next sync can tell importer-written values from local edits.
 		foreach ( $owned as $field ) {
-			$hashes[ $field ] = self::hash( $this->current( $post_id, $field ) );
+			$hashes[ $field ] = self::hash( $this->current( $post_id, $field ), $field );
 		}
 		update_post_meta( $post_id, Episodes::META_PREFIX . 'import_hash', $hashes );
 
@@ -632,17 +674,28 @@ final class Importer {
 			update_option( PodcastSettings::OPTION, $settings->sanitize( $next ) );
 		}
 
-		// Keep the show's podcast:guid when it moves here. Without the tag,
-		// derive it from the source feed address the way Podcast Index did.
+		self::adopt_podcast_guid( $channel, $feed_url, $overwrite );
+
+		return array_values( array_unique( $changed ) );
+	}
+
+	/**
+	 * Keep the show's podcast:guid when it moves here. Without the tag, it
+	 * is derived from the source feed address the way Podcast Index did.
+	 *
+	 * @param array<string, mixed> $channel  Channel from FeedParser.
+	 * @param string               $feed_url Source feed address ('' for none).
+	 * @param bool                 $force    Replace a guid already stored here.
+	 * @return void
+	 */
+	public static function adopt_podcast_guid( array $channel, string $feed_url, bool $force ): void {
 		$guid = strtolower( trim( (string) ( $channel['podcast_guid'] ?? '' ) ) );
 		if ( '' === $guid && '' !== $feed_url ) {
 			$guid = Feed::uuid_v5( Feed::GUID_NAMESPACE, rtrim( (string) preg_replace( '#^[a-z][a-z0-9+.-]*://#i', '', $feed_url ), '/' ) );
 		}
-		if ( preg_match( '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', $guid ) && ( $overwrite || '' === (string) get_option( Feed::GUID_OPTION, '' ) ) ) {
+		if ( preg_match( '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', $guid ) && ( $force || '' === (string) get_option( Feed::GUID_OPTION, '' ) ) ) {
 			update_option( Feed::GUID_OPTION, $guid, false );
 		}
-
-		return array_values( array_unique( $changed ) );
 	}
 
 	/**
@@ -667,6 +720,19 @@ final class Importer {
 	}
 
 	/**
+	 * Whether another request is downloading this episode's audio right
+	 * now (a marker younger than the longest audio download).
+	 *
+	 * @param int $post_id Episode ID.
+	 * @return bool
+	 */
+	private static function copy_in_progress( int $post_id ): bool {
+		$since = (int) get_post_meta( $post_id, Episodes::META_PREFIX . 'copying', true );
+
+		return $since > 0 && time() - $since < 17 * MINUTE_IN_SECONDS;
+	}
+
+	/**
 	 * Download audio and the episode image into the Media Library.
 	 *
 	 * @param int                  $post_id Episode ID.
@@ -678,7 +744,11 @@ final class Importer {
 
 		$audio_url = (string) ( $item['audio_url'] ?? '' );
 		if ( '' !== $audio_url && (int) get_post_meta( $post_id, Episodes::META_PREFIX . 'audio_id', true ) <= 0 ) {
+			// Marks the download in progress for other requests (a retried
+			// import step must not download the same file twice).
+			update_post_meta( $post_id, Episodes::META_PREFIX . 'copying', time() );
 			$attachment = self::sideload( $audio_url, $post_id, (string) ( $item['title'] ?? '' ), 'audio' );
+			delete_post_meta( $post_id, Episodes::META_PREFIX . 'copying' );
 			if ( is_wp_error( $attachment ) ) {
 				$problems[] = sprintf(
 					/* translators: %s: error message */
@@ -751,7 +821,7 @@ final class Importer {
 	 * @param string $url     Remote URL.
 	 * @param int    $post_id Parent post.
 	 * @param string $title   Attachment title.
-	 * @param string $kind    audio|image.
+	 * @param string $kind    audio|image|transcript.
 	 * @return int|\WP_Error Attachment ID.
 	 */
 	public static function sideload( string $url, int $post_id, string $title, string $kind ) {
@@ -764,6 +834,12 @@ final class Importer {
 		}
 
 		$timeout = 'audio' === $kind ? 900 : 60;
+
+		// Transcript files are only copied when the URL names their format:
+		// their content cannot be sniffed reliably.
+		if ( 'transcript' === $kind && ! in_array( Transcripts::mime( $url ), [ 'text/vtt', 'application/x-subrip' ], true ) ) {
+			return new \WP_Error( 'epm_transcript_type', __( 'Only WebVTT (.vtt) and SRT (.srt) transcript files are copied.', 'elementor-podcast-manager' ) );
+		}
 		if ( function_exists( 'set_time_limit' ) ) {
 			@set_time_limit( $timeout + 60 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- may be disabled by the host.
 		}
@@ -777,7 +853,11 @@ final class Importer {
 		$name = sanitize_file_name( wp_basename( $path ) );
 		$ext  = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
 
-		$allowed = 'audio' === $kind ? array_keys( AudioMetadata::allowed_mimes() ) : [ 'jpg', 'jpeg', 'png', 'gif', 'webp' ];
+		$allowed = [
+			'audio'      => array_keys( AudioMetadata::allowed_mimes() ),
+			'image'      => [ 'jpg', 'jpeg', 'png', 'gif', 'webp' ],
+			'transcript' => [ 'vtt', 'srt' ],
+		][ $kind ] ?? [];
 
 		if ( ! in_array( $ext, $allowed, true ) ) {
 			$detected = '';
@@ -811,6 +891,7 @@ final class Importer {
 			$post_id,
 			'' !== $title ? $title : null
 		);
+
 
 		if ( is_wp_error( $attachment ) ) {
 			wp_delete_file( $tmp );
@@ -925,49 +1006,107 @@ final class Importer {
 	/**
 	 * Import a transcript when the episode has none.
 	 *
-	 * Prefers HTML, then WebVTT, SRT and plain text. Timed formats are turned
-	 * into readable paragraphs (speaker names kept, timestamps dropped).
+	 * Prefers HTML, then WebVTT, SRT, JSON and plain text. Timed formats are
+	 * turned into readable paragraphs (speaker names kept, timestamps
+	 * dropped). A timed file is also kept for the feed's captions.
 	 *
 	 * @param int                  $post_id Episode ID.
 	 * @param array<string, mixed> $item    Item.
 	 * @return void
 	 */
 	private function fetch_transcript( int $post_id, array $item ): void {
-		$transcripts = (array) ( $item['transcripts'] ?? [] );
-		if ( empty( $transcripts ) || '' !== trim( (string) get_post_meta( $post_id, Episodes::META_PREFIX . 'transcript', true ) ) ) {
+		$transcripts = [];
+		foreach ( (array) ( $item['transcripts'] ?? [] ) as $transcript ) {
+			$url = esc_url_raw( (string) ( $transcript['url'] ?? '' ) );
+			if ( '' !== $url ) {
+				$transcripts[] = [
+					'url'  => $url,
+					'type' => Transcripts::normalize_type( (string) ( $transcript['type'] ?? '' ), $url ),
+				];
+			}
+		}
+		if ( empty( $transcripts ) ) {
+			return;
+		}
+
+		$this->keep_transcript_file( $post_id, $transcripts, (string) ( $item['title'] ?? '' ) );
+
+		if ( '' !== trim( (string) get_post_meta( $post_id, Episodes::META_PREFIX . 'transcript', true ) ) ) {
 			return;
 		}
 
 		$rank = [
-			'text/html'          => 0,
-			'text/vtt'           => 1,
+			'text/html'            => 0,
+			'text/vtt'             => 1,
 			'application/x-subrip' => 2,
-			'application/srt'    => 2,
-			'text/srt'           => 2,
-			'text/plain'         => 3,
+			'application/json'     => 3,
+			'text/plain'           => 4,
 		];
 
 		usort(
 			$transcripts,
 			static function ( $a, $b ) use ( $rank ) {
-				return ( $rank[ $a['type'] ?? '' ] ?? 9 ) <=> ( $rank[ $b['type'] ?? '' ] ?? 9 );
+				return ( $rank[ $a['type'] ] ?? 9 ) <=> ( $rank[ $b['type'] ] ?? 9 );
 			}
 		);
 
 		$best = $transcripts[0];
-		if ( ! isset( $rank[ $best['type'] ?? '' ] ) ) {
+		if ( ! isset( $rank[ $best['type'] ] ) ) {
 			return;
 		}
 
-		$body = self::fetch_text( (string) $best['url'], 2 * MB_IN_BYTES );
+		$body = self::fetch_text( $best['url'], 2 * MB_IN_BYTES );
 		if ( '' === trim( $body ) ) {
 			return;
 		}
 
-		$html = self::transcript_html( $body, (string) $best['type'] );
+		$html = self::transcript_html( $body, $best['type'] );
 		if ( '' !== $html ) {
 			update_post_meta( $post_id, Episodes::META_PREFIX . 'transcript', wp_slash( $html ) );
 		}
+	}
+
+	/**
+	 * Keep the host's timed transcript (WebVTT, then SRT, then JSON) so the
+	 * feed can list it for captions. Copied into the Media Library along
+	 * with the audio, otherwise linked where it is.
+	 *
+	 * @param int                                           $post_id     Episode ID.
+	 * @param array<int, array{url: string, type: string}> $transcripts Normalized transcripts.
+	 * @param string                                        $title       Episode title.
+	 * @return void
+	 */
+	private function keep_transcript_file( int $post_id, array $transcripts, string $title ): void {
+		if ( (int) get_post_meta( $post_id, Episodes::META_PREFIX . 'transcript_file_id', true ) > 0
+			|| '' !== (string) get_post_meta( $post_id, Episodes::META_PREFIX . 'transcript_url', true ) ) {
+			return;
+		}
+
+		$rank = [
+			'text/vtt'             => 0,
+			'application/x-subrip' => 1,
+			'application/json'     => 2,
+		];
+		$best = null;
+		foreach ( $transcripts as $transcript ) {
+			if ( isset( $rank[ $transcript['type'] ] ) && ( null === $best || $rank[ $transcript['type'] ] < $rank[ $best['type'] ] ) ) {
+				$best = $transcript;
+			}
+		}
+		if ( null === $best ) {
+			return;
+		}
+
+		if ( $this->options['download_media'] && in_array( Transcripts::mime( $best['url'] ), [ 'text/vtt', 'application/x-subrip' ], true ) ) {
+			$attachment = self::sideload( $best['url'], $post_id, $title, 'transcript' );
+			if ( ! is_wp_error( $attachment ) ) {
+				update_post_meta( $post_id, Episodes::META_PREFIX . 'transcript_file_id', $attachment );
+				return;
+			}
+		}
+
+		update_post_meta( $post_id, Episodes::META_PREFIX . 'transcript_url', $best['url'] );
+		update_post_meta( $post_id, Episodes::META_PREFIX . 'transcript_type', $best['type'] );
 	}
 
 	/**
@@ -990,39 +1129,13 @@ final class Importer {
 			return trim( wpautop( esc_html( $body ) ) );
 		}
 
-		// WebVTT / SRT: group consecutive cues by speaker into paragraphs.
-		$body   = str_replace( [ "\r\n", "\r" ], "\n", $body );
-		$blocks = preg_split( '/\n{2,}/', $body );
-		$paras  = [];
+		// Timed formats: group consecutive cues by speaker into paragraphs.
+		$cues    = 'application/json' === $type ? self::json_cues( $body ) : self::timed_cues( $body );
+		$paras   = [];
 		$speaker = '';
 		$buffer  = '';
 
-		foreach ( (array) $blocks as $block ) {
-			$lines = array_values( array_filter( array_map( 'trim', explode( "\n", (string) $block ) ), 'strlen' ) );
-			$text  = [];
-			foreach ( $lines as $line ) {
-				if ( 'WEBVTT' === substr( $line, 0, 6 ) || preg_match( '/^(NOTE|STYLE|REGION)\b/', $line ) || ctype_digit( $line ) || false !== strpos( $line, '-->' ) ) {
-					continue;
-				}
-				$text[] = $line;
-			}
-			if ( empty( $text ) ) {
-				continue;
-			}
-
-			$line = implode( ' ', $text );
-			$who  = '';
-			if ( preg_match( '/^<v(?:\.[^\s>]+)?\s+([^>]+)>/', $line, $m ) ) {
-				$who = trim( $m[1] );
-			} elseif ( preg_match( '/^([\p{L}][\p{L} .\'-]{0,40}):\s/u', $line, $m ) ) {
-				$who  = trim( $m[1] );
-				$line = substr( $line, strlen( $m[0] ) );
-			}
-			$line = trim( wp_strip_all_tags( html_entity_decode( (string) preg_replace( '/<[^>]+>/', '', $line ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ) );
-			if ( '' === $line ) {
-				continue;
-			}
-
+		foreach ( $cues as [ $who, $line ] ) {
 			if ( '' !== $who && $who !== $speaker ) {
 				if ( '' !== $buffer ) {
 					$paras[] = [ $speaker, $buffer ];
@@ -1048,5 +1161,88 @@ final class Importer {
 		}
 
 		return trim( $html );
+	}
+
+	/**
+	 * Speaker and text of each WebVTT / SRT cue.
+	 *
+	 * @param string $body Document.
+	 * @return array<int, array{0: string, 1: string}>
+	 */
+	private static function timed_cues( string $body ): array {
+		$body   = str_replace( [ "\r\n", "\r" ], "\n", $body );
+		$blocks = preg_split( '/\n{2,}/', $body );
+		$cues   = [];
+
+		foreach ( (array) $blocks as $block ) {
+			$lines = array_values( array_filter( array_map( 'trim', explode( "\n", (string) $block ) ), 'strlen' ) );
+			$text  = [];
+			foreach ( $lines as $line ) {
+				if ( 'WEBVTT' === substr( $line, 0, 6 ) || preg_match( '/^(NOTE|STYLE|REGION)\b/', $line ) || ctype_digit( $line ) || false !== strpos( $line, '-->' ) ) {
+					continue;
+				}
+				$text[] = $line;
+			}
+			if ( empty( $text ) ) {
+				continue;
+			}
+
+			$line = implode( ' ', $text );
+			$who  = '';
+			if ( preg_match( '/^<v(?:\.[^\s>]+)?\s+([^>]+)>/', $line, $m ) ) {
+				$who = trim( $m[1] );
+			} elseif ( preg_match( '/^([\p{L}][\p{L} .\'-]{0,40}):\s/u', $line, $m ) ) {
+				$who  = trim( $m[1] );
+				$line = substr( $line, strlen( $m[0] ) );
+			}
+
+			$cues[] = [ $who, self::cue_text( $line ) ];
+		}
+
+		return array_values(
+			array_filter(
+				$cues,
+				static function ( $cue ) {
+					return '' !== $cue[1];
+				}
+			)
+		);
+	}
+
+	/**
+	 * Speaker and text of each Podcasting 2.0 JSON transcript segment.
+	 *
+	 * @param string $json Document.
+	 * @return array<int, array{0: string, 1: string}>
+	 */
+	private static function json_cues( string $json ): array {
+		$data = json_decode( $json, true );
+		if ( ! is_array( $data ) || ! isset( $data['segments'] ) || ! is_array( $data['segments'] ) ) {
+			return [];
+		}
+
+		$cues = [];
+		foreach ( $data['segments'] as $segment ) {
+			if ( ! is_array( $segment ) ) {
+				continue;
+			}
+			$text = self::cue_text( (string) ( $segment['body'] ?? '' ) );
+			if ( '' === $text ) {
+				continue;
+			}
+			$cues[] = [ sanitize_text_field( (string) ( $segment['speaker'] ?? '' ) ), $text ];
+		}
+
+		return $cues;
+	}
+
+	/**
+	 * Plain text of a cue (voice spans, styling tags and entities removed).
+	 *
+	 * @param string $line Cue text.
+	 * @return string
+	 */
+	private static function cue_text( string $line ): string {
+		return trim( wp_strip_all_tags( html_entity_decode( (string) preg_replace( '/<[^>]+>/', '', $line ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ) );
 	}
 }
