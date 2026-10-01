@@ -13,6 +13,8 @@
  * - volume and mute across views, a read-only volume (iOS), touch targets;
  * - preferred speed, resume position, timestamp links out of range,
  *   Media Session position, slider keys;
+ * - retry, the natural end and blocked storage, which the lifecycle
+ *   rewrite touched;
  * - the sticky bar: safe areas, a shell that appears later, the widget's
  *   sticky option next to a list.
  *
@@ -851,6 +853,50 @@ try {
 			const y = await page.evaluate(() => window.scrollY);
 			assert(keys > 0 && up === t0 + 5 && down === t0 - 5 && y === keys, `${selector.split(' ')[0]} timeline: ArrowUp/ArrowDown seek ±5 s and do not scroll (${t0} → ${up} → ${down}, scroll ${keys} → ${y})`);
 		}
+		await noProblems(page);
+	}
+
+	// -----------------------------------------------------------------------
+	console.log('Retry, end, blocked storage (kept working)');
+	{
+		// The same file fails, then works again: Retry recovers every view.
+		let broken = true;
+		const page = await open(URLS.two, {
+			routes: [[/epm-episode-1\.mp3/, (route) => (broken ? route.fulfill({ status: 404, body: 'gone' }) : route.continue())]],
+		});
+		await page.click('[data-epm-player] [data-epm-play]');
+		await page.waitForTimeout(1200);
+		let s = await episodeState(page, EP1);
+		assert(s.error && s.players.every((p) => p.error) && s.sticky.error, `a failing file: both players and the sticky bar show the error (${JSON.stringify(s)})`);
+		broken = false;
+		await page.click('.epm-player__error-retry >> nth=0');
+		await page.waitForTimeout(1500);
+		s = await episodeState(page, EP1);
+		assert(s.playing && !s.error && s.players.every((p) => p.playing && !p.error) && !s.sticky.error, `Retry after the file is back: every view plays without the error (${JSON.stringify(s)})`);
+		// The natural end: every view shows play, the remembered position
+		// is cleared, and play starts over.
+		await page.evaluate((id) => {
+			const c = window.epmPlayerEngine.getController(id);
+			c.seekAbsolute(c.getDuration() - 1);
+		}, EP1);
+		await page.waitForTimeout(2500);
+		s = await episodeState(page, EP1);
+		const stored = await page.evaluate((id) => localStorage.getItem(`epm:pos:${id}`), EP1);
+		assert(!s.playing && s.players.every((p) => !p.playing) && stored === null, `the end: every view shows play and the position is forgotten (${JSON.stringify({ s, stored })})`);
+		await page.click('[data-epm-player] [data-epm-play]');
+		await page.waitForTimeout(800);
+		s = await episodeState(page, EP1);
+		assert(s.playing && s.t < 3, `play after the end starts over (${s.t})`);
+		await noProblems(page);
+	}
+	{
+		const BLOCKED = `Object.defineProperty(window, 'localStorage', { configurable: true, get() { throw new DOMException('blocked', 'SecurityError'); } });`;
+		const page = await open(URLS.two, { init: [BLOCKED] });
+		await page.click('[data-epm-player] [data-epm-play]');
+		await page.waitForTimeout(800);
+		await page.click('[data-epm-player] [data-epm-speed]');
+		const speed = await page.textContent('[data-epm-player] [data-epm-speed-value]');
+		assert((await episodeState(page, EP1)).playing && speed === '1.25×', `blocked browser storage: playback and speed work (${speed})`);
 		await noProblems(page);
 	}
 
