@@ -25,6 +25,13 @@ final class EpisodeListWidget extends Widget_Base {
 	use WidgetHelpers;
 
 	/**
+	 * Paginated lists rendered on this request (see render()).
+	 *
+	 * @var int
+	 */
+	private static int $paginated = 0;
+
+	/**
 	 * Widget slug.
 	 *
 	 * @return string
@@ -243,10 +250,22 @@ final class EpisodeListWidget extends Widget_Base {
 		);
 
 		$this->add_style_source_control();
-		$this->add_token_color( 'list_background', __( 'Background', 'elementor-podcast-manager' ), '--epm-background', '{{WRAPPER}} .epm-episode-list' );
+		// A background also brings inner padding, so rows and cards do not
+		// sit on the colored edge (Elementor prints it only when a color is set).
+		$this->add_control(
+			'list_background',
+			[
+				'label'     => __( 'Background', 'elementor-podcast-manager' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => [
+					'{{WRAPPER}} .epm-episode-list' => '--epm-list-background: {{VALUE}}; --epm-list-padding: var(--epm-gap, 24px);',
+				],
+				'condition' => $this->custom_condition(),
+			]
+		);
 		$this->add_token_color( 'list_text', __( 'Text Color', 'elementor-podcast-manager' ), '--epm-text', '{{WRAPPER}} .epm-episode-list' );
 		$this->add_token_color( 'list_muted', __( 'Muted Text Color', 'elementor-podcast-manager' ), '--epm-text-muted', '{{WRAPPER}} .epm-episode-list' );
-		$this->add_token_color( 'list_accent', __( 'Accent Color', 'elementor-podcast-manager' ), '--epm-accent', '{{WRAPPER}} .epm-episode-list' );
+		$this->add_token_color( 'list_accent', __( 'Hover and Playing Color', 'elementor-podcast-manager' ), '--epm-accent', '{{WRAPPER}} .epm-episode-list' );
 		$this->add_token_color( 'list_border', __( 'Border Color', 'elementor-podcast-manager' ), '--epm-border', '{{WRAPPER}} .epm-episode-list' );
 
 		$this->add_responsive_control(
@@ -333,6 +352,48 @@ final class EpisodeListWidget extends Widget_Base {
 	}
 
 	/**
+	 * Whether this is the first Episode List with numbered pagination in
+	 * its Elementor document (in document order, so rendering twice, as
+	 * some SEO plugins do, cannot change it). Without a document: the
+	 * first one rendered on this request.
+	 *
+	 * @return bool
+	 */
+	private function is_first_paginated_list(): bool {
+		$document = class_exists( '\\Elementor\\Plugin' ) && isset( \Elementor\Plugin::$instance->documents ) ? \Elementor\Plugin::$instance->documents->get_current() : null;
+		$first    = $document ? self::first_paginated_list( (array) $document->get_elements_data() ) : null;
+
+		if ( null === $first ) {
+			return 0 === self::$paginated++;
+		}
+
+		return (string) $this->get_id() === $first;
+	}
+
+	/**
+	 * ID of the first paginated Episode List in element data.
+	 *
+	 * @param array $elements Elements data.
+	 * @return string|null Null when the data holds none (or not this widget).
+	 */
+	private static function first_paginated_list( array $elements ): ?string {
+		foreach ( $elements as $element ) {
+			if ( ! is_array( $element ) ) {
+				continue;
+			}
+			if ( 'epm-episode-list' === ( $element['widgetType'] ?? '' ) && 'numbered' === ( $element['settings']['pagination'] ?? '' ) ) {
+				return (string) ( $element['id'] ?? '' );
+			}
+			$found = self::first_paginated_list( (array) ( $element['elements'] ?? [] ) );
+			if ( null !== $found ) {
+				return $found;
+			}
+		}
+
+		return null;
+	}
+
+	/**
 	 * Raw data for the editor and for saving: a widget saved by 1.3.0
 	 * gets its details made explicit (it renders the same).
 	 *
@@ -404,21 +465,32 @@ final class EpisodeListWidget extends Widget_Base {
 		$args['filtered'] = $season > 0 || ! empty( $topic_args );
 
 		if ( 'numbered' === ( $settings['pagination'] ?? 'none' ) ) {
-			// Static front pages paginate with "page", archives with "paged".
-			$paged                = max( 1, (int) get_query_var( 'paged' ), (int) get_query_var( 'page' ) );
-			$query_args['paged']  = $paged;
-			$query                = epm()->episodes->query( $query_args );
+			// The first paginated list of a page pages with /page/N/ (static
+			// front pages with "page", archives with "paged"); every further
+			// list has its own ?epm-page-<id>=N, so lists page on their own.
+			$own   = ! $this->is_first_paginated_list();
+			$param = 'epm-page-' . sanitize_key( (string) $this->get_id() );
+			if ( $own ) {
+				$paged = isset( $_GET[ $param ] ) ? max( 1, absint( wp_unslash( $_GET[ $param ] ) ) ) : 1; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- a page number.
+			} else {
+				$paged = max( 1, (int) get_query_var( 'paged' ), (int) get_query_var( 'page' ) );
+			}
+			$query_args['paged'] = $paged;
+			$query               = epm()->episodes->query( $query_args );
 
-			echo epm()->renderer->episode_list( $query->posts, $args );
+			echo epm()->renderer->episode_list( $query->posts, $args ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the renderer.
 
 			if ( $query->max_num_pages > 1 ) {
-				$links = paginate_links(
-					[
-						'total'   => (int) $query->max_num_pages,
-						'current' => $paged,
-						'type'    => 'list',
-					]
-				);
+				$pagination = [
+					'total'   => (int) $query->max_num_pages,
+					'current' => $paged,
+					'type'    => 'list',
+				];
+				if ( $own ) {
+					$pagination['base']   = esc_url_raw( add_query_arg( $param, '%#%', remove_query_arg( $param ) ) );
+					$pagination['format'] = '';
+				}
+				$links = paginate_links( $pagination );
 
 				if ( $links ) {
 					echo '<nav class="epm-pagination" aria-label="' . esc_attr__( 'Episode pages', 'elementor-podcast-manager' ) . '">' . $links . '</nav>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
