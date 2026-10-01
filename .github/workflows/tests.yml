@@ -56,7 +56,7 @@ jobs:
         run: cat /tmp/epm-wp/site/wp-content/debug.log || true
 
   mariadb:
-    name: Races and import on MariaDB 10.11 (PHP 8.4)
+    name: Races, import and media on MariaDB 10.11 (PHP 8.4)
     runs-on: ubuntu-latest
     services:
       mariadb:
@@ -83,6 +83,12 @@ jobs:
         run: |
           EPM_ALLOW_TEST_SEED=1 /tmp/epm-wp/wp eval-file tests/fixtures/seed.php > /dev/null
           /tmp/epm-wp/wp eval-file tests/integration/import.php
+      - name: Media integration tests
+        run: |
+          EPM_ALLOW_TEST_SEED=1 /tmp/epm-wp/wp eval-file tests/fixtures/seed.php > /dev/null
+          /tmp/epm-wp/wp eval-file tests/integration/media.php
+      - name: Media downloads (local media host, real sockets)
+        run: WP_DIR=/tmp/epm-wp tests/media/run.sh
       - name: Race tests (two processes, with the stress run)
         run: STRESS=1 WP_DIR=/tmp/epm-wp tests/concurrency/run.sh
       - name: Debug log
