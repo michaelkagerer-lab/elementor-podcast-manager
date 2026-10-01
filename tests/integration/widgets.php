@@ -195,8 +195,8 @@ $t->test(
 	'the volume slider is named once',
 	static function ( EPM_Test_Runner $t ) use ( $ep1 ) {
 		$html = do_shortcode( '[podcast_player id="' . $ep1 . '" layout="full"]' );
-		$t->assert( (bool) preg_match( '/<label class="epm-player__volume">(.*?)<\/label>/s', $html, $m ), 'volume label' );
-		$inner = $m[1] ?? '';
+		$t->assert( (bool) preg_match( '/<(label|span) class="epm-player__volume">(.*?)<\/\1>/s', $html, $m ), 'volume wrapper' );
+		$inner = $m[2] ?? '';
 		$names = (int) preg_match( '/<input[^>]*aria-label=/', $inner ) + (int) preg_match( '/epm-sr-only[^>]*>[^<]+</', $inner );
 		$t->same( 1, $names, 'one name source: ' . $inner );
 		$t->assert( false !== stripos( wp_strip_all_tags( $inner ) . ( preg_match( '/aria-label="([^"]+)"/', $inner, $a ) ? $a[1] : '' ), 'Volume' ), 'named "Volume"' );

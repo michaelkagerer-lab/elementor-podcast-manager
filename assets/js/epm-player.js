@@ -1306,6 +1306,56 @@
 	// comes back into the page (a popup reopened) reconnects.
 	var playerViews = bindings ? new window.WeakMap() : null;
 
+	// Copies of rendered markup (carousel loop slides) repeat its ids: the
+	// copy gets new ones, and the references inside it (a share button's
+	// aria-controls, a label's for) follow, so every button controls its
+	// own menu and assistive technology never meets an id twice.
+	var idCopies = 0;
+	var ID_REFERENCES = ['aria-controls', 'aria-labelledby', 'aria-describedby', 'aria-owns', 'for'];
+
+	function uniqueIds(scope) {
+		if (!scope || scope.nodeType !== 1 || !scope.isConnected) {
+			return;
+		}
+		var renamed = {};
+		var any = false;
+		[scope].concat(Array.prototype.slice.call(scope.querySelectorAll('[id]'))).forEach(function (el) {
+			var id = el.id;
+			if (!id) {
+				return;
+			}
+			var same = document.querySelectorAll('[id="' + id.replace(/["\\]/g, '\\$&') + '"]');
+			if (same.length < 2) {
+				return;
+			}
+			var next;
+			do {
+				idCopies++;
+				next = id + '-copy' + idCopies;
+			} while (document.getElementById(next));
+			el.id = next;
+			renamed[id] = next;
+			any = true;
+		});
+		if (!any) {
+			return;
+		}
+		ID_REFERENCES.forEach(function (attr) {
+			[scope].concat(Array.prototype.slice.call(scope.querySelectorAll('[' + attr + ']'))).forEach(function (el) {
+				var value = el.getAttribute(attr);
+				if (!value) {
+					return;
+				}
+				var changed = value.split(/\s+/).map(function (ref) {
+					return Object.prototype.hasOwnProperty.call(renamed, ref) ? renamed[ref] : ref;
+				}).join(' ');
+				if (changed !== value) {
+					el.setAttribute(attr, changed);
+				}
+			});
+		});
+	}
+
 	function bindFullPlayer(root) {
 		if (!root || root.nodeType !== 1) {
 			return;
@@ -1321,6 +1371,7 @@
 			}
 			return;
 		}
+		uniqueIds(root);
 		// Absent in a copy of a bound player (a clone): the copy shares the
 		// episode's controller, or makes one from data-epm-src.
 		var audio = root.querySelector('audio');
@@ -1947,6 +1998,7 @@
 		if (!toggle || !menu || !claim(root, 'share')) {
 			return;
 		}
+		uniqueIds(root);
 
 		var manual = root.querySelector('[data-epm-share-manual]');
 		var manualField = root.querySelector('[data-epm-share-manual-field]');

@@ -181,7 +181,13 @@ try {
 		await login(page);
 		await page.goto(`${BASE}/wp-admin/post.php?post=${editId}&action=elementor`);
 		await page.waitForSelector('#elementor-preview-iframe', { timeout: 120000 });
-		await page.waitForFunction(() => window.$e && window.elementor && window.elementor.getContainer && window.elementor.getContainer('d5e5f01'), null, { timeout: 120000 });
+		await page.waitForFunction(() => {
+			try {
+				return !!(window.$e && window.elementor && window.elementor.getContainer && window.elementor.getContainer('d5e5f01'));
+			} catch (e) {
+				return false;
+			}
+		}, null, { timeout: 120000 });
 		await page.waitForTimeout(1500);
 		const create = (settings) =>
 			page.evaluate((settings) => window.$e.run('document/elements/create', { container: window.elementor.getContainer('d5e5f01'), model: { elType: 'widget', widgetType: 'epm-podcast-player', settings } }).id, settings);

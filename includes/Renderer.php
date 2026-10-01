@@ -1214,8 +1214,10 @@ final class Renderer {
 				. '<span data-epm-speed-value>1×</span></button>';
 		}
 		if ( $args['show_volume'] ) {
-			$secondary .= '<label class="epm-player__volume"><span class="epm-sr-only">' . esc_html__( 'Volume', 'elementor-podcast-manager' ) . '</span>'
-				. '<input type="range" min="0" max="1" step="0.05" value="1" data-epm-volume aria-label="' . esc_attr__( 'Volume', 'elementor-podcast-manager' ) . '" /></label>';
+			// Named once: a hidden label around it as well made screen
+			// readers read "Volume" as text and again as the slider's name.
+			$secondary .= '<span class="epm-player__volume">'
+				. '<input type="range" min="0" max="1" step="0.05" value="1" data-epm-volume aria-label="' . esc_attr__( 'Volume', 'elementor-podcast-manager' ) . '" /></span>';
 		}
 		if ( $args['show_download'] && ! empty( $episode['audio_url'] ) ) {
 			$secondary .= '<a class="epm-player__download" href="' . esc_url( (string) $episode['audio_url'] ) . '" download aria-label="' . esc_attr__( 'Download episode', 'elementor-podcast-manager' ) . '">'
