@@ -45,6 +45,58 @@
 - Host sync: when another request took over its lock, the sync carried
   on. It now stops before the next episode, stores no validators (so the
   next run reads the whole feed) and reports that it was interrupted.
+- Paged feeds (IMP-01): an error on a later page (HTTP 500, a timeout,
+  invalid XML), an empty page that still links on, the page limit or a
+  relative `rel="next"` link (taken as a host name) ended the preview
+  silently; it looked complete, and a move then finished with part of
+  the show: the site switched to *This website*, locked the feed and
+  published only the episodes read. The preview now records why the
+  catalog ends (`complete`, `http_error`, `transport_error`,
+  `parse_error`, `empty_page_with_next`, `page_limit`, `budget`), the
+  error and the page address; next links are resolved against the
+  page's address. *Try reading the rest again* continues from the page
+  that failed, without reading a page or importing an episode twice. A
+  move with an incomplete catalog is refused unless the missing part is
+  accepted explicitly (`accept_partial`); a mirror import is allowed and
+  says that it covers part of the feed.
+- Large catalogs (IMP-N1): the preview read every page in one request
+  (a fatal error at 128 MB from about 35 pages of 500 items, a proxy
+  timeout behind a slow host) and every import step decoded the whole
+  catalog (60+ MB on 10,000 items). Pages are now read over several
+  requests, about ten seconds each and never close to the memory limit
+  (filters `epm_import_request_seconds`, `epm_import_max_pages`, default
+  50, and `epm_import_max_bytes`, default 200 MB); a step reads only the
+  rows it needs. Measured with a 128M limit: 25,000 episodes (50 × 500)
+  checked in requests of at most 9.3 MB above the booted site; a step
+  needs 2.0 MB on 1,000 and 2.3 MB on 10,000 items (1.3.0: a fatal
+  error, and 6.2 vs. 61.5 MB).
+- Where an import keeps the parsed feed (IMP-05): 1.3.0 wrote it as JSON
+  to `wp-content/uploads/epm-import/`, protected only by an Apache
+  `.htaccess`, so nginx and Apache without `AllowOverride` served it to
+  anyone who knew the file name. It is now kept in non-autoloaded rows of
+  the options table (`epm_import_chunk_*`, at most 512 KB each), never in
+  a file. After the update a running 1.3.0 import continues from the
+  database; the folder and any other 1.3.0 file in it are removed.
+- Orphaned import data (IMPB-N5): two overlapping previews or a preview
+  nobody imported left job files behind indefinitely. A new preview
+  removes the data of the one it replaces (a replaced preview removes
+  what it wrote itself), a checked feed nobody imports expires after a
+  day (filter `epm_import_ttl`, cron event `epm_import_cleanup`), and the
+  data goes when an import finishes, fails or is cancelled. Uninstalling
+  removes it too.
+
+### Changed
+
+- `wp podcast import` reads paged feeds page by page and says when the
+  feed could not be read completely: it then imports nothing, exits with
+  an error that names the page, the address and the error, and keeps the
+  check. `--resume` continues it (reads the rest again, or continues an
+  interrupted import); `--accept-partial` imports only the episodes found
+  and warns instead of reporting success. `<feed>` is optional with
+  `--resume`.
+- New AJAX action `epm_import_more` (continue reading a feed); the
+  preview's summary has a `catalog` object (complete, reason, error, url,
+  pages, message), and so does the import's state.
 
 ### Tests
 
@@ -56,6 +108,14 @@
   SQLite and MariaDB.
 - `tests/bin/setup-wp.sh`: `WP_DB=mysql` installs the test site on
   MySQL/MariaDB (SQLite stays the default).
+- `tests/integration/import.php`: paged feeds (every stop reason, relative
+  links, cycle, duplicates, resume), the move guard, `wp podcast import`,
+  storage, cleanup, the 1.3.0 migration and uninstall.
+- `tests/perf/run.sh`: memory and time per request of a paged preview and
+  of import steps, with a 128M limit (`PERF_HEAVY=1` for 50 × 500 items
+  and 1,000 vs. 10,000).
+- `tests/http/run.sh`: a feed check through admin-ajax leaves nothing in
+  uploads, no import folder is served, the job token is in no URL or log.
 
 ## 1.3.0 — 2026-09-30
 

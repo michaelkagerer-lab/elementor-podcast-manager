@@ -167,6 +167,10 @@ final class Plugin {
 		flush_rewrite_rules( false );
 		Feed::flush_cache();
 
+		// 1.3.0 kept the parsed feed of an import in uploads/epm-import/:
+		// move a running import to the database, remove the rest.
+		ImportJob::cleanup();
+
 		// 1.2.0: numeric durations for sorting.
 		$ids = get_posts(
 			[

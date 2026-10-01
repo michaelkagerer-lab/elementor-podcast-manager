@@ -15,11 +15,15 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 
 // Scheduled events never outlive the plugin, whatever happens to the data.
 // (epm_ping_podcast_index: the Podcast Index event's name in 1.3.0.)
-foreach ( [ 'epm_sync_feed', 'epm_import_continue', 'epm_podcast_index_ping', 'epm_ping_podcast_index' ] as $epm_hook ) {
+foreach ( [ 'epm_sync_feed', 'epm_import_continue', 'epm_import_cleanup', 'epm_podcast_index_ping', 'epm_ping_podcast_index' ] as $epm_hook ) {
 	wp_clear_scheduled_hook( $epm_hook );
 }
 
-// Temporary import files (parsed feed data) are never kept.
+// Parsed feed data of an import (rows in the options table) is never kept.
+global $wpdb;
+$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $wpdb->esc_like( 'epm_import_chunk_' ) . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+// 1.3.0 kept it as files in uploads/epm-import/.
 $epm_uploads = wp_upload_dir( null, false );
 $epm_import  = trailingslashit( (string) $epm_uploads['basedir'] ) . 'epm-import';
 if ( empty( $epm_uploads['error'] ) && is_dir( $epm_import ) ) {

@@ -5,13 +5,17 @@
  * A show with hundreds of episodes cannot be imported in one request, so
  * the import runs as a job:
  *
- * 1. preview: fetch and parse the feed once, store the parsed items in a
- *    private file under uploads/epm-import/, and report what was found.
+ * 1. preview: read the feed page by page (a paged feed over several
+ *    requests), store the parsed items in the database (ImportStore) and
+ *    report what was found and whether the catalog is complete.
  * 2. start:   apply the show details (optional) and mark the job running.
  * 3. step:    import a few items per request (AJAX from the import screen).
  *    When the browser is closed, a WP-Cron event keeps the job going.
  *
- * Only one import or sync runs at a time (an option-based lock).
+ * Only one import or sync runs at a time (a lock row changed only with
+ * conditional statements). The job is one option, read from the database
+ * and saved with compare-and-swap, so requests never overwrite each
+ * other's changes.
  *
  * @package EPM
  */
@@ -27,6 +31,12 @@ final class ImportJob {
 	public const OPTION = 'epm_import_job';
 
 	public const CRON_HOOK = 'epm_import_continue';
+
+	/**
+	 * Cron hook: expire checked feeds nobody imported, remove stored data
+	 * no job uses (see cleanup()).
+	 */
+	public const CLEANUP_HOOK = 'epm_import_cleanup';
 
 	private const LOCK = 'epm_import_lock';
 
@@ -60,16 +70,26 @@ final class ImportJob {
 	private const LOCK_RENEW = 10;
 
 	/**
+	 * GUID hashes of the stored items of the job this request reads
+	 * (store, segments, hashes), see seen().
+	 *
+	 * @var array<string, mixed>
+	 */
+	private static array $seen = [];
+
+	/**
 	 * Wire AJAX handlers and the background continuation.
 	 *
 	 * @return void
 	 */
 	public function init(): void {
-		foreach ( [ 'preview', 'start', 'step', 'cancel', 'status' ] as $action ) {
+		foreach ( [ 'preview', 'more', 'start', 'step', 'cancel', 'status' ] as $action ) {
 			add_action( 'wp_ajax_epm_import_' . $action, [ $this, 'ajax_' . $action ] );
 		}
 		add_action( 'wp_ajax_epm_sync_now', [ $this, 'ajax_sync_now' ] );
 		add_action( self::CRON_HOOK, [ self::class, 'run_in_background' ] );
+		add_action( self::CLEANUP_HOOK, [ self::class, 'cleanup' ] );
+		add_action( 'admin_init', [ self::class, 'maybe_cleanup' ] );
 	}
 
 	/**
@@ -384,72 +404,38 @@ final class ImportJob {
 	}
 
 	/**
-	 * Private storage directory for parsed items.
+	 * Seconds a preview request spends reading pages before it hands over
+	 * to the next request (filter epm_import_request_seconds).
 	 *
-	 * @return string|\WP_Error Absolute path with trailing slash.
+	 * @return float
 	 */
-	private static function storage_dir() {
-		$uploads = wp_upload_dir( null, false );
-		if ( ! empty( $uploads['error'] ) ) {
-			return new \WP_Error( 'epm_import_storage', (string) $uploads['error'] );
-		}
-
-		$dir = trailingslashit( $uploads['basedir'] ) . 'epm-import/';
-		if ( ! wp_mkdir_p( $dir ) ) {
-			return new \WP_Error( 'epm_import_storage', __( 'The uploads folder is not writable, so the import cannot store its progress.', 'elementor-podcast-manager' ) );
-		}
-
-		if ( ! file_exists( $dir . 'index.php' ) ) {
-			file_put_contents( $dir . 'index.php', "<?php\n// Silence is golden.\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-		}
-		if ( ! file_exists( $dir . '.htaccess' ) ) {
-			file_put_contents( $dir . '.htaccess', "Require all denied\nDeny from all\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-		}
-
-		return $dir;
+	public static function request_seconds(): float {
+		return max( 1.0, (float) apply_filters( 'epm_import_request_seconds', 10.0 ) );
 	}
 
 	/**
-	 * Remove the job's item file.
+	 * Check a feed: read its first pages and store what was found.
 	 *
-	 * @param array<string, mixed> $job Job.
-	 * @return void
-	 */
-	private static function delete_file( array $job ): void {
-		$file = (string) ( $job['file'] ?? '' );
-		if ( '' !== $file && file_exists( $file ) && false !== strpos( wp_normalize_path( $file ), '/epm-import/' ) ) {
-			wp_delete_file( $file );
-		}
-	}
-
-	/**
-	 * Read the job's parsed items.
+	 * Paged feeds (atom:link rel="next", SoundCloud serves 500 items per
+	 * page) are read page by page, within a time and memory budget per
+	 * request; when the budget is used up the summary says "loading" and
+	 * preview_more() continues. The catalog ends with a reason: complete,
+	 * or why it stopped (http_error, transport_error, parse_error,
+	 * empty_page_with_next, page_limit, budget), with the error and the
+	 * page address, so the missing part can be read again later.
 	 *
-	 * @param array<string, mixed> $job Job.
-	 * @return array<int, array<string, mixed>>
-	 */
-	private static function items( array $job ): array {
-		$file = (string) ( $job['file'] ?? '' );
-		if ( '' === $file || ! is_readable( $file ) ) {
-			return [];
-		}
-
-		$data = json_decode( (string) file_get_contents( $file ), true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local file.
-
-		return is_array( $data ) ? $data : [];
-	}
-
-	/**
-	 * Fetch and analyse a feed; store it for the import.
-	 *
-	 * @param string $url Feed URL.
+	 * @param string $url    Feed URL, Apple Podcasts link or web page.
+	 * @param float  $budget Seconds to spend reading pages (0: default).
 	 * @return array<string, mixed>|\WP_Error Summary for the UI.
 	 */
-	public static function preview( string $url ) {
-		$current = self::get();
-		if ( 'running' === ( $current['status'] ?? '' ) ) {
-			return new \WP_Error( 'epm_import_running', __( 'An import is already running. Wait for it to finish or cancel it first.', 'elementor-podcast-manager' ) );
+	public static function preview( string $url, float $budget = 0.0 ) {
+		$deadline = microtime( true ) + ( $budget > 0 ? $budget : self::request_seconds() );
+
+		if ( 'running' === ( self::get()['status'] ?? '' ) ) {
+			return self::running_error();
 		}
+
+		self::sweep();
 
 		$located = Hosting::locate( $url );
 		if ( is_wp_error( $located ) ) {
@@ -462,78 +448,6 @@ final class ImportJob {
 			return $parsed;
 		}
 
-		$dir = self::storage_dir();
-		if ( is_wp_error( $dir ) ) {
-			return $dir;
-		}
-
-		// Paged feeds (SoundCloud serves 500 items per page): follow
-		// rel="next" so the whole back catalog is imported.
-		$pages = 1;
-		$next  = (string) ( $parsed['channel']['next'] ?? '' );
-		$seen  = [ $located['url'] => true ];
-		while ( '' !== $next && ! isset( $seen[ $next ] ) && $pages < (int) apply_filters( 'epm_import_max_pages', 50 ) ) {
-			$seen[ $next ] = true;
-			$page          = Hosting::fetch( $next );
-			if ( is_wp_error( $page ) ) {
-				break;
-			}
-			$more = ( new FeedParser() )->parse( $page['body'] );
-			if ( is_wp_error( $more ) || empty( $more['items'] ) ) {
-				break;
-			}
-			$parsed['items'] = array_merge( $parsed['items'], $more['items'] );
-			$next            = (string) ( $more['channel']['next'] ?? '' );
-			++$pages;
-		}
-
-		[ $unique, $duplicates ] = Importer::dedupe( $parsed['items'] );
-
-		// Oldest first, by date (some feeds are not in order): episodes are
-		// created in publishing order. Undated items go last.
-		$items = $unique;
-		usort(
-			$items,
-			static function ( $a, $b ) {
-				$x = (int) $a['pub_date'] > 0 ? (int) $a['pub_date'] : PHP_INT_MAX;
-				$y = (int) $b['pub_date'] > 0 ? (int) $b['pub_date'] : PHP_INT_MAX;
-				return $x <=> $y;
-			}
-		);
-		$token = wp_generate_password( 24, false );
-		$file  = $dir . 'job-' . $token . '.json';
-
-		if ( false === file_put_contents( $file, (string) wp_json_encode( $items ) ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			return new \WP_Error( 'epm_import_storage', __( 'The uploads folder is not writable, so the import cannot store its progress.', 'elementor-podcast-manager' ) );
-		}
-
-		$importer = new Importer();
-		$existing = 0;
-		$audio    = 0;
-		$newest   = 0;
-		$oldest   = 0;
-		$tracked  = 0;
-		$blocked  = 0;
-		foreach ( $items as $item ) {
-			if ( $importer->exists( (string) $item['guid'] ) ) {
-				++$existing;
-			}
-			if ( '' !== (string) $item['audio_url'] ) {
-				++$audio;
-				if ( self::has_measurement_prefix( (string) $item['audio_url'] ) ) {
-					++$tracked;
-				}
-			}
-			if ( ! empty( $item['block'] ) ) {
-				++$blocked;
-			}
-			$date = (int) $item['pub_date'];
-			if ( $date > 0 ) {
-				$newest = max( $newest, $date );
-				$oldest = 0 === $oldest ? $date : min( $oldest, $date );
-			}
-		}
-
 		$feed_url = (string) $located['url'];
 		$provider = Providers::detect( $feed_url );
 		if ( null === $provider ) {
@@ -543,20 +457,42 @@ final class ImportJob {
 			$provider = Providers::detect_generator( (string) $parsed['channel']['generator'] );
 		}
 
-		$channel = $parsed['channel'];
-		unset( $channel['description_html'] );
-
 		$job = [
-			'token'    => $token,
-			'status'   => 'ready',
+			'token'    => wp_generate_password( 24, false ),
+			'status'   => 'loading',
 			'feed_url' => $feed_url,
-			'file'     => $file,
+			'provider' => $provider,
 			'channel'  => $parsed['channel'],
-			'total'    => count( $items ),
+			'store'    => ImportStore::new_key(),
+			'catalog'  => [
+				'loaded'   => 0,
+				'pages'    => [],
+				'next'     => $feed_url,
+				'bytes'    => 0,
+				'segments' => [],
+				'sorted'   => [],
+				'items'    => 0,
+				'complete' => false,
+				'reason'   => '',
+				'error'    => '',
+				'url'      => '',
+			],
+			'stats'    => [
+				'existing'        => 0,
+				'with_audio'      => 0,
+				'tracked'         => 0,
+				'blocked'         => 0,
+				'newest'          => 0,
+				'oldest'          => 0,
+				'duplicates'      => [],
+				'duplicate_count' => 0,
+			],
+			'total'    => 0,
 			'position' => 0,
 			'counts'   => self::empty_counts(),
 			'log'      => [],
 			'created'  => time(),
+			'touched'  => time(),
 		];
 
 		// Replace the previous job, unless an import started meanwhile (in
@@ -568,36 +504,799 @@ final class ImportJob {
 				if ( 'running' === ( $current['status'] ?? '' ) ) {
 					return null;
 				}
-				$replaced = $current;
+				$replaced       = $current;
 				$job['version'] = (int) ( $current['version'] ?? 0 );
 				return $job;
 			}
 		);
 		if ( null === $saved ) {
-			self::delete_file( $job );
-			return new \WP_Error( 'epm_import_running', __( 'An import is already running. Wait for it to finish or cancel it first.', 'elementor-podcast-manager' ) );
+			return self::running_error();
 		}
-		self::delete_file( $replaced );
+		self::discard( $replaced );
+		self::schedule_cleanup( (int) $saved['created'] );
+
+		$recorded = self::record_page( $saved, $feed_url, (string) $fetched['final_url'], $parsed, strlen( (string) $fetched['body'] ) );
+		unset( $fetched, $located, $parsed );
+		if ( is_wp_error( $recorded ) ) {
+			return $recorded;
+		}
+
+		$loaded = self::load( (string) $saved['token'], $deadline, true );
+		if ( is_wp_error( $loaded ) ) {
+			return $loaded;
+		}
+
+		return self::summary( self::get() );
+	}
+
+	/**
+	 * Continue reading a feed: the next pages of a preview that is still
+	 * loading, or the page that failed (try again).
+	 *
+	 * @param string $token  Token from preview().
+	 * @param float  $budget Seconds to spend reading pages (0: default).
+	 * @return array<string, mixed>|\WP_Error Summary for the UI.
+	 */
+	public static function preview_more( string $token, float $budget = 0.0 ) {
+		$deadline = microtime( true ) + ( $budget > 0 ? $budget : self::request_seconds() );
+		$job      = self::get();
+
+		if ( '' === $token || ( $job['token'] ?? '' ) !== $token || ! in_array( $job['status'] ?? '', [ 'loading', 'ready' ], true ) || empty( $job['catalog'] ) ) {
+			return 'running' === ( $job['status'] ?? '' ) ? self::running_error() : self::expired_error();
+		}
+
+		// Read the missing part again, from the page that was not read.
+		if ( 'ready' === $job['status'] && empty( $job['catalog']['complete'] ) && '' !== (string) $job['catalog']['next'] ) {
+			$job = self::job_update(
+				static function ( array $current ) use ( $token ) {
+					if ( ( $current['token'] ?? '' ) !== $token || 'ready' !== ( $current['status'] ?? '' ) ) {
+						return null;
+					}
+					$current['status']             = 'loading';
+					$current['catalog']['reason']  = '';
+					$current['catalog']['error']   = '';
+					$current['catalog']['url']     = '';
+					$current['touched']            = time();
+					return $current;
+				}
+			);
+			if ( null === $job ) {
+				return self::expired_error();
+			}
+		}
+
+		$loaded = self::load( $token, $deadline );
+		if ( is_wp_error( $loaded ) ) {
+			return $loaded;
+		}
+
+		return self::summary( self::get() );
+	}
+
+	/**
+	 * Read further pages of a loading job until the catalog ends or this
+	 * request's budget is used up.
+	 *
+	 * @param string $token      Job token.
+	 * @param float  $deadline   microtime() to stop at.
+	 * @param bool   $progressed Whether this request already read a page.
+	 * @return true|\WP_Error
+	 */
+	private static function load( string $token, float $deadline, bool $progressed = false ) {
+		$max_pages = max( 1, (int) apply_filters( 'epm_import_max_pages', 50 ) );
+		$max_bytes = max( 1, (int) apply_filters( 'epm_import_max_bytes', 200 * MB_IN_BYTES ) );
+
+		for ( $guard = 0; $guard < 10000; $guard++ ) {
+			$job = self::get();
+			if ( ( $job['token'] ?? '' ) !== $token ) {
+				return self::replaced_error();
+			}
+			if ( 'loading' !== ( $job['status'] ?? '' ) ) {
+				return true;
+			}
+
+			$catalog = (array) $job['catalog'];
+			$next    = (string) $catalog['next'];
+
+			if ( '' === $next ) {
+				// The last page linked on with something that is no web
+				// address: the rest cannot be read.
+				$bad = (string) ( $catalog['bad_next'] ?? '' );
+				return '' === $bad
+					? self::finish_loading( $token, 'complete' )
+					: self::finish_loading( $token, 'parse_error', __( 'The feed links to its next page with an address that is not a web address.', 'elementor-podcast-manager' ), $bad );
+			}
+			if ( (int) $catalog['loaded'] >= $max_pages ) {
+				return self::finish_loading( $token, 'page_limit', '', $next );
+			}
+			if ( (int) $catalog['bytes'] >= $max_bytes ) {
+				return self::finish_loading( $token, 'budget', size_format( $max_bytes ), $next );
+			}
+			// The rest in the next request: no proxy timeout, no memory limit.
+			// (Every request reads at least one page, so the check always
+			// gets on.)
+			if ( $progressed && ( microtime( true ) >= $deadline || self::memory_low() ) ) {
+				return true;
+			}
+
+			$page = Hosting::fetch( $next );
+			if ( is_wp_error( $page ) ) {
+				$reason = in_array( $page->get_error_code(), [ 'epm_feed_http', 'epm_feed_blocked' ], true ) ? 'http_error' : ( 'epm_feed_url' === $page->get_error_code() ? 'parse_error' : 'transport_error' );
+				return self::finish_loading( $token, $reason, $page->get_error_message(), $next );
+			}
+
+			$parsed = ( new FeedParser() )->parse( (string) $page['body'] );
+			if ( is_wp_error( $parsed ) ) {
+				return self::finish_loading( $token, 'parse_error', $parsed->get_error_message(), $next );
+			}
+
+			// A page without episodes that links on is not the end of the
+			// feed: something went wrong at the host.
+			if ( empty( $parsed['items'] ) && '' !== self::next_page( $job, $parsed, (string) $page['final_url'] ) ) {
+				return self::finish_loading( $token, 'empty_page_with_next', '', $next );
+			}
+
+			$recorded = self::record_page( $job, $next, (string) $page['final_url'], $parsed, strlen( (string) $page['body'] ) );
+			unset( $page, $parsed );
+			if ( is_wp_error( $recorded ) ) {
+				return $recorded;
+			}
+			$progressed = true;
+		}
+
+		return true;
+	}
+
+	/**
+	 * The next page to read after a page, resolved against the page's
+	 * address ('' at the end of the feed, or when it points to a page that
+	 * was already read).
+	 *
+	 * @param array<string, mixed> $job      Job.
+	 * @param array<string, mixed> $parsed   Parsed page.
+	 * @param string               $page_url Address the page was read from (after redirects).
+	 * @return string
+	 */
+	private static function next_page( array $job, array $parsed, string $page_url ): string {
+		$next = self::next_href( $parsed, $page_url );
+		if ( '' === $next ) {
+			return '';
+		}
+
+		$seen = (array) ( $job['catalog']['pages'] ?? [] );
+
+		return in_array( md5( $next ), $seen, true ) || md5( $next ) === md5( $page_url ) ? '' : $next;
+	}
+
+	/**
+	 * A page's rel="next" address, resolved against the page's address
+	 * (relative and root-relative links are legal in Atom); '' when there
+	 * is none or it is no http(s) address.
+	 *
+	 * @param array<string, mixed> $parsed   Parsed page.
+	 * @param string               $page_url Page address.
+	 * @return string
+	 */
+	private static function next_href( array $parsed, string $page_url ): string {
+		$href = trim( (string) ( $parsed['channel']['next'] ?? '' ) );
+
+		return '' === $href ? '' : Hosting::sanitize_feed_url( \WP_Http::make_absolute_url( $href, $page_url ) );
+	}
+
+	/**
+	 * Store one page's items and move the cursor past it.
+	 *
+	 * @param array<string, mixed> $job       Job (as read before the page was fetched).
+	 * @param string               $requested Address that was requested (the cursor).
+	 * @param string               $final     Address it was read from (after redirects).
+	 * @param array<string, mixed> $parsed    Parsed page.
+	 * @param int                  $bytes     Response size.
+	 * @return true|\WP_Error
+	 */
+	private static function record_page( array $job, string $requested, string $final, array $parsed, int $bytes ) {
+		$token = (string) $job['token'];
+		$store = (string) $job['store'];
+		$seen  = self::seen( $store, (array) $job['catalog']['segments'] );
+		if ( is_wp_error( $seen ) ) {
+			return $seen;
+		}
+
+		// Episodes already on this site (one query per page).
+		$importer = new Importer();
+
+		$unique = [];
+		$hashes = [];
+		$stats  = [
+			'existing'   => 0,
+			'with_audio' => 0,
+			'tracked'    => 0,
+			'blocked'    => 0,
+			'newest'     => 0,
+			'oldest'     => 0,
+			'duplicates' => [],
+		];
+		foreach ( (array) $parsed['items'] as $item ) {
+			$guid = trim( (string) ( $item['guid'] ?? '' ) );
+			$hash = ImportStore::hash( $guid );
+			// Apple ignores duplicate-GUID episodes too; the first one wins.
+			if ( isset( $seen[ $hash ] ) ) {
+				$stats['duplicates'][] = (string) ( $item['title'] ?? $guid );
+				continue;
+			}
+			$seen[ $hash ] = true;
+			$unique[]      = $item;
+			$hashes[]      = $hash;
+
+			if ( $importer->exists( $guid ) ) {
+				++$stats['existing'];
+			}
+			if ( '' !== (string) ( $item['audio_url'] ?? '' ) ) {
+				++$stats['with_audio'];
+				if ( self::has_measurement_prefix( (string) $item['audio_url'] ) ) {
+					++$stats['tracked'];
+				}
+			}
+			if ( ! empty( $item['block'] ) ) {
+				++$stats['blocked'];
+			}
+			$date = (int) ( $item['pub_date'] ?? 0 );
+			if ( $date > 0 ) {
+				$stats['newest'] = max( $stats['newest'], $date );
+				$stats['oldest'] = 0 === $stats['oldest'] ? $date : min( $stats['oldest'], $date );
+			}
+		}
+
+		$stored = ImportStore::put_page( $store, $unique, $hashes );
+		if ( is_wp_error( $stored ) ) {
+			return $stored;
+		}
+
+		$base   = '' !== $final ? $final : $requested;
+		$next   = self::next_page( $job, $parsed, $base );
+		$href   = trim( (string) ( $parsed['channel']['next'] ?? '' ) );
+		$bad    = '' !== $href && '' === self::next_href( $parsed, $base ) ? $href : '';
+		$loaded = (int) $job['catalog']['loaded'];
+		$saved  = self::job_update(
+			static function ( array $current ) use ( $token, $requested, $final, $loaded, $next, $bad, $bytes, $stored, $unique, $stats ) {
+				if ( ( $current['token'] ?? '' ) !== $token || 'loading' !== ( $current['status'] ?? '' ) || (string) $current['catalog']['next'] !== $requested || (int) $current['catalog']['loaded'] !== $loaded ) {
+					return null;
+				}
+				$catalog               = (array) $current['catalog'];
+				$catalog['loaded']     = $loaded + 1;
+				$catalog['pages']      = array_values( array_unique( array_merge( (array) $catalog['pages'], [ md5( $requested ), md5( $final ) ] ) ) );
+				$catalog['next']       = $next;
+				$catalog['bad_next']   = $bad;
+				$catalog['bytes']      = (int) $catalog['bytes'] + $bytes;
+				$catalog['segments'][] = $stored['segment'];
+				$catalog['items']      = (int) $catalog['items'] + count( $unique );
+				$current['catalog']    = $catalog;
+				$current['total']      = (int) $catalog['items'];
+
+				$all = (array) $current['stats'];
+				foreach ( [ 'existing', 'with_audio', 'tracked', 'blocked' ] as $key ) {
+					$all[ $key ] = (int) ( $all[ $key ] ?? 0 ) + $stats[ $key ];
+				}
+				if ( $stats['newest'] > 0 ) {
+					$all['newest'] = max( (int) ( $all['newest'] ?? 0 ), $stats['newest'] );
+					$all['oldest'] = (int) ( $all['oldest'] ?? 0 ) > 0 ? min( (int) $all['oldest'], $stats['oldest'] ) : $stats['oldest'];
+				}
+				$all['duplicate_count'] = (int) ( $all['duplicate_count'] ?? 0 ) + count( $stats['duplicates'] );
+				$all['duplicates']      = array_slice( array_merge( (array) ( $all['duplicates'] ?? [] ), $stats['duplicates'] ), 0, 100 );
+				$current['stats']       = $all;
+				$current['touched']     = time();
+
+				return $current;
+			}
+		);
+
+		if ( null === $saved ) {
+			// Replaced, cancelled or read by another request meanwhile: what
+			// this request stored is nobody's.
+			ImportStore::delete( $stored['rows'] );
+			self::$seen = [];
+			$now        = self::get();
+			return ( $now['token'] ?? '' ) === $token && in_array( $now['status'] ?? '', [ 'loading', 'ready' ], true ) ? true : self::replaced_error();
+		}
+
+		// The next page of this request checks against these too.
+		self::$seen['segments'][] = $stored['segment'];
+		self::$seen['hashes']     = $seen;
+
+		return true;
+	}
+
+	/**
+	 * GUID hashes of every item stored so far: read once per request, then
+	 * kept up to date page by page.
+	 *
+	 * @param string   $store    Storage key.
+	 * @param string[] $segments Index segments of the stored pages.
+	 * @return array<string, true>|\WP_Error
+	 */
+	private static function seen( string $store, array $segments ) {
+		$known = (array) ( self::$seen['segments'] ?? [] );
+		if ( ( self::$seen['store'] ?? '' ) !== $store || array_slice( $segments, 0, count( $known ) ) !== $known ) {
+			self::$seen = [
+				'store'    => $store,
+				'segments' => [],
+				'hashes'   => [],
+			];
+			$known      = [];
+		}
+
+		$more = ImportStore::hashes( $store, array_slice( $segments, count( $known ) ) );
+		if ( is_wp_error( $more ) ) {
+			self::$seen = [];
+			return $more;
+		}
+		self::$seen['segments'] = $segments;
+		self::$seen['hashes']   = self::$seen['hashes'] + $more;
+
+		return self::$seen['hashes'];
+	}
+
+	/**
+	 * End the reading of a feed: build the import order and record why the
+	 * catalog ends.
+	 *
+	 * @param string $token  Job token.
+	 * @param string $reason complete, http_error, transport_error, parse_error, empty_page_with_next, page_limit or budget.
+	 * @param string $error  The concrete error ('' when none).
+	 * @param string $url    The page that was not read ('' when complete).
+	 * @return true|\WP_Error
+	 */
+	private static function finish_loading( string $token, string $reason, string $error = '', string $url = '' ) {
+		$job = self::get();
+		if ( ( $job['token'] ?? '' ) !== $token || 'loading' !== ( $job['status'] ?? '' ) ) {
+			return true;
+		}
+
+		$sorted = ImportStore::sort( (string) $job['store'], (array) $job['catalog']['segments'] );
+		if ( is_wp_error( $sorted ) ) {
+			return $sorted;
+		}
+
+		$version = (int) ( $job['version'] ?? 0 );
+		$before  = (array) $job['catalog']['sorted'];
+		$saved   = self::job_update(
+			static function ( array $current ) use ( $token, $version, $reason, $error, $url, $sorted ) {
+				if ( ( $current['token'] ?? '' ) !== $token || 'loading' !== ( $current['status'] ?? '' ) || (int) ( $current['version'] ?? 0 ) !== $version ) {
+					return null;
+				}
+				$current['status']              = 'ready';
+				$current['catalog']['complete'] = 'complete' === $reason;
+				$current['catalog']['reason']   = $reason;
+				$current['catalog']['error']    = $error;
+				$current['catalog']['url']      = $url;
+				$current['catalog']['sorted']   = $sorted['rows'];
+				$current['total']               = (int) $sorted['count'];
+				$current['touched']             = time();
+				return $current;
+			}
+		);
+
+		if ( null === $saved ) {
+			ImportStore::delete_ids( (string) $job['store'], 's', $sorted['rows'] );
+			return true;
+		}
+		ImportStore::delete_ids( (string) $job['store'], 's', $before );
+
+		return true;
+	}
+
+	/**
+	 * Whether this request is close to its memory limit (the rest of the
+	 * feed is then read by the next request).
+	 *
+	 * @return bool
+	 */
+	private static function memory_low(): bool {
+		$limit = wp_convert_hr_to_bytes( (string) ini_get( 'memory_limit' ) );
+
+		// Room for one more large page (500 items: about 10 MB).
+		return $limit > 0 && memory_get_usage() > $limit - max( 24 * MB_IN_BYTES, (int) ( $limit / 4 ) );
+	}
+
+	/**
+	 * Summary of a previewed feed for the import screens and WP-CLI.
+	 *
+	 * @param array<string, mixed> $job Job.
+	 * @return array<string, mixed>
+	 */
+	public static function summary( array $job ): array {
+		$channel  = (array) ( $job['channel'] ?? [] );
+		$stats    = (array) ( $job['stats'] ?? [] );
+		$feed_url = (string) ( $job['feed_url'] ?? '' );
+		$provider = $job['provider'] ?? null;
+		$new_feed = (string) ( $channel['new_feed_url'] ?? '' );
+		unset( $channel['description_html'] );
 
 		return [
-			'token'     => $token,
-			'feed_url'  => $feed_url,
-			'provider'  => $provider,
-			'provider_name' => null !== $provider ? (string) ( Providers::get( $provider )['name'] ?? '' ) : '',
-			'channel'   => $channel,
-			'episodes'  => count( $items ),
-			'with_audio' => $audio,
-			'existing'  => $existing,
-			'newest'    => $newest > 0 ? date_i18n( get_option( 'date_format' ), $newest ) : '',
-			'oldest'    => $oldest > 0 ? date_i18n( get_option( 'date_format' ), $oldest ) : '',
+			'token'         => (string) ( $job['token'] ?? '' ),
+			'status'        => (string) ( $job['status'] ?? '' ),
+			'feed_url'      => $feed_url,
+			'provider'      => $provider,
+			'provider_name' => null !== $provider ? (string) ( Providers::get( (string) $provider )['name'] ?? '' ) : '',
+			'channel'       => $channel,
+			'episodes'      => (int) ( $job['catalog']['items'] ?? $job['total'] ?? 0 ),
+			'with_audio'    => (int) ( $stats['with_audio'] ?? 0 ),
+			'existing'      => (int) ( $stats['existing'] ?? 0 ),
+			'newest'        => (int) ( $stats['newest'] ?? 0 ) > 0 ? date_i18n( get_option( 'date_format' ), (int) $stats['newest'] ) : '',
+			'oldest'        => (int) ( $stats['oldest'] ?? 0 ) > 0 ? date_i18n( get_option( 'date_format' ), (int) $stats['oldest'] ) : '',
 			// Only a real move counts (many hosts point the tag at themselves).
-			'locked'     => ! empty( $parsed['channel']['locked'] ),
-			'duplicates' => $duplicates,
-			'tracked'    => $tracked,
-			'blocked'    => $blocked,
-			'podcast_guid' => (string) $parsed['channel']['podcast_guid'],
-			'moved_to'  => ( '' !== (string) $parsed['channel']['new_feed_url'] && untrailingslashit( Hosting::sanitize_feed_url( (string) $parsed['channel']['new_feed_url'] ) ) !== untrailingslashit( $feed_url ) ) ? (string) $parsed['channel']['new_feed_url'] : '',
+			'locked'        => ! empty( $channel['locked'] ),
+			'duplicates'    => array_values( (array) ( $stats['duplicates'] ?? [] ) ),
+			'tracked'       => (int) ( $stats['tracked'] ?? 0 ),
+			'blocked'       => (int) ( $stats['blocked'] ?? 0 ),
+			'podcast_guid'  => (string) ( $channel['podcast_guid'] ?? '' ),
+			'moved_to'      => ( '' !== $new_feed && untrailingslashit( Hosting::sanitize_feed_url( $new_feed ) ) !== untrailingslashit( $feed_url ) ) ? $new_feed : '',
+			'catalog'       => self::catalog_state( $job ),
 		];
+	}
+
+	/**
+	 * How complete the read catalog is, for the screens and WP-CLI (null
+	 * for an import started by 1.3.0, which did not record it).
+	 *
+	 * @param array<string, mixed> $job Job.
+	 * @return array<string, mixed>|null
+	 */
+	public static function catalog_state( array $job ): ?array {
+		if ( empty( $job['catalog'] ) ) {
+			return null;
+		}
+
+		$catalog = (array) $job['catalog'];
+		$reason  = (string) $catalog['reason'];
+		$loading = 'loading' === ( $job['status'] ?? '' );
+
+		return [
+			'complete' => ! $loading && ! empty( $catalog['complete'] ),
+			'loading'  => $loading,
+			'reason'   => $reason,
+			'error'    => (string) $catalog['error'],
+			'url'      => (string) $catalog['url'],
+			'pages'    => (int) $catalog['loaded'],
+			'episodes' => (int) $catalog['items'],
+			// A failed page may answer next time; a limit stays a limit.
+			'retry'    => in_array( $reason, [ 'http_error', 'transport_error', 'parse_error', 'empty_page_with_next' ], true ),
+			'message'  => self::catalog_message( $job ),
+		];
+	}
+
+	/**
+	 * The catalog's state in words.
+	 *
+	 * @param array<string, mixed> $job Job.
+	 * @return string
+	 */
+	private static function catalog_message( array $job ): string {
+		$catalog  = (array) $job['catalog'];
+		$pages    = (int) $catalog['loaded'];
+		$episodes = (int) $catalog['items'];
+		$count    = number_format_i18n( $episodes );
+		$page     = number_format_i18n( $pages + 1 );
+
+		if ( 'loading' === ( $job['status'] ?? '' ) ) {
+			return sprintf(
+				/* translators: 1: number of the feed page being read, 2: number of episodes found so far */
+				_n( 'Reading page %1$s of the feed… %2$s episode found so far.', 'Reading page %1$s of the feed… %2$s episodes found so far.', $episodes, 'elementor-podcast-manager' ),
+				$page,
+				$count
+			);
+		}
+
+		switch ( (string) $catalog['reason'] ) {
+			case 'complete':
+				return $pages > 1 ? sprintf(
+					/* translators: %s: number of feed pages */
+					_n( 'All %s page of the feed was read.', 'All %s pages of the feed were read.', $pages, 'elementor-podcast-manager' ),
+					number_format_i18n( $pages )
+				) : '';
+
+			case 'http_error':
+			case 'transport_error':
+			case 'parse_error':
+				return sprintf(
+					/* translators: 1: page number, 2: page address, 3: error message, 4: number of episodes found */
+					_n( 'Page %1$s of the feed (%2$s) could not be read: %3$s Only %4$s episode was found on the pages before it. The episodes on that page and any later pages are missing.', 'Page %1$s of the feed (%2$s) could not be read: %3$s Only %4$s episodes were found on the pages before it. The episodes on that page and any later pages are missing.', $episodes, 'elementor-podcast-manager' ),
+					$page,
+					(string) $catalog['url'],
+					rtrim( (string) $catalog['error'], '. ' ) . '.',
+					$count
+				);
+
+			case 'empty_page_with_next':
+				return sprintf(
+					/* translators: 1: page number, 2: page address, 3: number of episodes found */
+					_n( 'Page %1$s of the feed (%2$s) lists no episodes but links to further pages. Only %3$s episode was found on the pages before it; later episodes may be missing.', 'Page %1$s of the feed (%2$s) lists no episodes but links to further pages. Only %3$s episodes were found on the pages before it; later episodes may be missing.', $episodes, 'elementor-podcast-manager' ),
+					$page,
+					(string) $catalog['url'],
+					$count
+				);
+
+			case 'page_limit':
+				return sprintf(
+					/* translators: 1: maximum number of pages, 2: number of episodes found */
+					_n( 'The feed has more than %1$s pages, and the import reads at most %1$s. Only the %2$s episode on those pages was found; the episodes on later pages are missing.', 'The feed has more than %1$s pages, and the import reads at most %1$s. Only the %2$s episodes on those pages were found; the episodes on later pages are missing.', $episodes, 'elementor-podcast-manager' ),
+					number_format_i18n( $pages ),
+					$count
+				);
+
+			case 'budget':
+				return sprintf(
+					/* translators: 1: size limit, e.g. "200 MB", 2: number of episodes found */
+					_n( 'The feed is larger than the import reads (%1$s). Only %2$s episode was found; the episodes on later pages are missing.', 'The feed is larger than the import reads (%1$s). Only %2$s episodes were found; the episodes on later pages are missing.', $episodes, 'elementor-podcast-manager' ),
+					(string) $catalog['error'],
+					$count
+				);
+		}
+
+		return '';
+	}
+
+	/**
+	 * Remove a job's stored items (and a 1.3.0 job's file).
+	 *
+	 * @param array<string, mixed> $job Job.
+	 * @return void
+	 */
+	private static function discard( array $job ): void {
+		if ( '' !== (string) ( $job['store'] ?? '' ) ) {
+			ImportStore::purge( (string) $job['store'] );
+		}
+		self::delete_legacy_file( (string) ( $job['file'] ?? '' ) );
+	}
+
+	/**
+	 * Error: an import is running.
+	 *
+	 * @return \WP_Error
+	 */
+	private static function running_error(): \WP_Error {
+		return new \WP_Error( 'epm_import_running', __( 'An import is already running. Wait for it to finish or cancel it first.', 'elementor-podcast-manager' ) );
+	}
+
+	/**
+	 * Error: the previewed job is gone.
+	 *
+	 * @return \WP_Error
+	 */
+	private static function expired_error(): \WP_Error {
+		return new \WP_Error( 'epm_import_token', __( 'This import expired. Check the feed again to start a new one.', 'elementor-podcast-manager' ) );
+	}
+
+	/**
+	 * Error: another preview replaced this one while it was reading.
+	 *
+	 * @return \WP_Error
+	 */
+	private static function replaced_error(): \WP_Error {
+		return new \WP_Error( 'epm_import_replaced', __( 'Another feed check (in another tab or by another administrator) replaced this one. Check the feed again.', 'elementor-podcast-manager' ) );
+	}
+
+	/* ---------------------------------------------------------------------
+	 * Cleanup: expired previews, orphaned data, the 1.3.0 folder.
+	 * ------------------------------------------------------------------- */
+
+	/**
+	 * Seconds a checked feed waits to be imported (filter epm_import_ttl).
+	 *
+	 * @return int
+	 */
+	public static function ttl(): int {
+		return max( HOUR_IN_SECONDS, (int) apply_filters( 'epm_import_ttl', DAY_IN_SECONDS ) );
+	}
+
+	/**
+	 * Run the cleanup once a checked feed could expire.
+	 *
+	 * @param int $created When the job was created.
+	 * @return void
+	 */
+	private static function schedule_cleanup( int $created ): void {
+		$when = max( time(), $created ) + self::ttl() + MINUTE_IN_SECONDS;
+		$next = wp_next_scheduled( self::CLEANUP_HOOK );
+		if ( false === $next || $next > $when ) {
+			wp_clear_scheduled_hook( self::CLEANUP_HOOK );
+			wp_schedule_single_event( $when, self::CLEANUP_HOOK );
+		}
+	}
+
+	/**
+	 * Cron (and after an update): expire previews nobody imported, remove
+	 * stored data no job uses any more and the 1.3.0 import folder.
+	 *
+	 * @return void
+	 */
+	public static function cleanup(): void {
+		$job    = self::get();
+		$status = (string) ( $job['status'] ?? '' );
+		$since  = max( (int) ( $job['created'] ?? 0 ), (int) ( $job['touched'] ?? 0 ) );
+
+		// A checked feed nobody imported (or a 1.3.0 preview, whose
+		// completeness is unknown): expired, its data removed.
+		if ( in_array( $status, [ 'loading', 'ready' ], true ) && ( time() - $since > self::ttl() || ! empty( $job['file'] ) ) ) {
+			$token   = (string) ( $job['token'] ?? '' );
+			$expired = self::job_update(
+				static function ( array $current ) use ( $token ) {
+					if ( ( $current['token'] ?? '' ) !== $token || ! in_array( $current['status'] ?? '', [ 'loading', 'ready' ], true ) ) {
+						return null;
+					}
+					$current['status']   = 'expired';
+					$current['finished'] = time();
+					return $current;
+				}
+			);
+			if ( null !== $expired ) {
+				self::discard( $expired );
+				$job    = $expired;
+				$status = 'expired';
+			}
+		}
+
+		if ( in_array( $status, [ 'done', 'cancelled', 'failed', 'expired' ], true ) ) {
+			self::discard( $job );
+		}
+
+		self::sweep();
+		self::cleanup_legacy_folder();
+
+		$job = self::get();
+		if ( in_array( $job['status'] ?? '', [ 'loading', 'ready' ], true ) ) {
+			self::schedule_cleanup( max( (int) ( $job['created'] ?? 0 ), (int) ( $job['touched'] ?? 0 ) ) );
+		}
+	}
+
+	/**
+	 * Remove stored data of jobs that are not the current one (a preview
+	 * replaced while it was still reading, a request that died). Data
+	 * younger than an hour stays: it may belong to a preview that is
+	 * being saved right now.
+	 *
+	 * @return void
+	 */
+	private static function sweep(): void {
+		$job     = self::get();
+		$current = in_array( $job['status'] ?? '', [ 'loading', 'ready', 'running' ], true ) ? (string) ( $job['store'] ?? '' ) : '';
+		foreach ( ImportStore::keys() as $key => $created ) {
+			if ( $key !== $current && time() - $created > HOUR_IN_SECONDS ) {
+				ImportStore::purge( $key );
+			}
+		}
+	}
+
+	/**
+	 * Admin requests: clean up after an update from 1.3.0 (its folder in
+	 * uploads) and keep the cleanup scheduled while a checked feed waits.
+	 *
+	 * @return void
+	 */
+	public static function maybe_cleanup(): void {
+		$dir = self::legacy_dir();
+		if ( '' !== $dir && is_dir( $dir ) ) {
+			self::cleanup();
+			return;
+		}
+
+		$job = self::get();
+		if ( in_array( $job['status'] ?? '', [ 'loading', 'ready' ], true ) && false === wp_next_scheduled( self::CLEANUP_HOOK ) ) {
+			self::schedule_cleanup( max( (int) ( $job['created'] ?? 0 ), (int) ( $job['touched'] ?? 0 ) ) );
+		}
+	}
+
+	/**
+	 * The 1.3.0 import folder (uploads/epm-import/), '' when unknown.
+	 *
+	 * @return string
+	 */
+	private static function legacy_dir(): string {
+		$uploads = wp_upload_dir( null, false );
+
+		return empty( $uploads['error'] ) ? trailingslashit( (string) $uploads['basedir'] ) . 'epm-import/' : '';
+	}
+
+	/**
+	 * Delete a 1.3.0 job file.
+	 *
+	 * @param string $file Path.
+	 * @return void
+	 */
+	private static function delete_legacy_file( string $file ): void {
+		if ( '' !== $file && file_exists( $file ) && false !== strpos( wp_normalize_path( $file ), '/epm-import/' ) ) {
+			wp_delete_file( $file );
+		}
+	}
+
+	/**
+	 * Remove the 1.3.0 import folder: every file in it, unless a running
+	 * 1.3.0 import still reads its file (it moves to the database with its
+	 * next step, see migrate_legacy()).
+	 *
+	 * @return void
+	 */
+	private static function cleanup_legacy_folder(): void {
+		$dir = self::legacy_dir();
+		if ( '' === $dir || ! is_dir( $dir ) ) {
+			return;
+		}
+
+		$job  = self::get();
+		$keep = 'running' === ( $job['status'] ?? '' ) && ! empty( $job['file'] ) ? wp_normalize_path( (string) $job['file'] ) : '';
+		$left = false;
+		foreach ( (array) scandir( $dir ) as $name ) {
+			$path = $dir . $name;
+			if ( ! is_file( $path ) ) {
+				continue;
+			}
+			if ( wp_normalize_path( $path ) === $keep ) {
+				$left = true;
+				continue;
+			}
+			wp_delete_file( $path );
+		}
+		if ( ! $left ) {
+			@rmdir( $dir ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+		}
+	}
+
+	/**
+	 * Move a running 1.3.0 import (items in a JSON file in uploads) to the
+	 * database storage. The file is removed afterwards.
+	 *
+	 * @param array<string, mixed> $job Job (running, with 'file').
+	 * @return array<string, mixed>|\WP_Error The migrated job.
+	 */
+	private static function migrate_legacy( array $job ) {
+		$file  = (string) ( $job['file'] ?? '' );
+		$items = '' !== $file && is_readable( $file ) ? json_decode( (string) file_get_contents( $file ), true ) : null; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local file of 1.3.0.
+		if ( ! is_array( $items ) ) {
+			return new \WP_Error( 'epm_import_missing', __( 'The stored feed data is missing. Check the feed again to restart the import.', 'elementor-podcast-manager' ) );
+		}
+
+		// 1.3.0 stored the items already de-duplicated and in import order.
+		$store  = ImportStore::new_key();
+		$items  = array_values( $items );
+		$hashes = array_map(
+			static function ( $item ) {
+				return ImportStore::hash( trim( (string) ( $item['guid'] ?? '' ) ) );
+			},
+			$items
+		);
+		$stored = ImportStore::put_page( $store, $items, $hashes );
+		if ( is_wp_error( $stored ) ) {
+			return $stored;
+		}
+		// The file is already in import order (by date, undated last, feed
+		// order among equals); sorting by the same rule keeps that order,
+		// so the job's position stays valid.
+		$sorted = ImportStore::sort( $store, [ $stored['segment'] ] );
+		if ( is_wp_error( $sorted ) ) {
+			ImportStore::purge( $store );
+			return $sorted;
+		}
+
+		$token    = (string) $job['token'];
+		$migrated = self::job_update(
+			static function ( array $current ) use ( $token, $store, $sorted ) {
+				if ( ( $current['token'] ?? '' ) !== $token || empty( $current['file'] ) ) {
+					return null;
+				}
+				unset( $current['file'] );
+				$current['store']  = $store;
+				$current['legacy'] = true;
+				$current['sorted'] = $sorted['rows'];
+				$current['total']  = (int) $sorted['count'];
+				return $current;
+			}
+		);
+		if ( null === $migrated ) {
+			ImportStore::purge( $store );
+			return new \WP_Error( 'epm_import_missing', __( 'The stored feed data is missing. Check the feed again to restart the import.', 'elementor-podcast-manager' ) );
+		}
+		self::delete_legacy_file( $file );
+
+		return $migrated;
 	}
 
 	/**
@@ -656,10 +1355,19 @@ final class ImportJob {
 					return null;
 				}
 
+				// A move finishes with this site publishing the feed (and the
+				// old host's account closed later): only with the whole
+				// catalog, or when the missing part was accepted knowingly.
+				if ( 'move' === $purpose && empty( $job['catalog']['complete'] ) && empty( $options['accept_partial'] ) ) {
+					$error = new \WP_Error( 'epm_import_incomplete', __( 'The feed could not be read completely, so moving it now would leave episodes behind. Try reading the rest of the feed again, or confirm that you want to move only the episodes that were found.', 'elementor-podcast-manager' ) );
+					return null;
+				}
+
 				$job['options'] = [
 					'status'         => 'draft' === ( $options['status'] ?? '' ) ? 'draft' : 'publish',
 					'download_media' => ! empty( $options['download_media'] ),
 					'purpose'        => $purpose,
+					'accept_partial' => empty( $job['catalog']['complete'] ) && ! empty( $options['accept_partial'] ),
 				];
 				$job['status']  = 'running';
 				$job['started'] = time();
@@ -732,26 +1440,24 @@ final class ImportJob {
 				return self::client_state( $job );
 			}
 
-			$token    = (string) ( $job['token'] ?? '' );
-			$items    = self::items( $job );
-			$total    = count( $items );
+			$token = (string) ( $job['token'] ?? '' );
+
+			// An import 1.3.0 was running when the plugin was updated: its
+			// items move from the uploads folder to the database first.
+			if ( ! empty( $job['file'] ) && empty( $job['store'] ) ) {
+				$migrated = self::migrate_legacy( $job );
+				if ( is_wp_error( $migrated ) ) {
+					return self::fail( $token, $migrated->get_error_message() );
+				}
+				$job = $migrated;
+			}
+
+			$store    = (string) ( $job['store'] ?? '' );
+			$sorted   = (array) ( $job['catalog']['sorted'] ?? $job['sorted'] ?? [] );
+			$total    = (int) ( $job['total'] ?? 0 );
 			$started  = microtime( true );
 			$download = ! empty( $job['options']['download_media'] );
 			$batch    = $download ? 1 : 10;
-
-			if ( 0 === $total && (int) $job['total'] > 0 ) {
-				self::job_update(
-					static function ( array $current ) use ( $token ) {
-						if ( 'running' !== ( $current['status'] ?? '' ) || ( $current['token'] ?? '' ) !== $token ) {
-							return null;
-						}
-						$current['status'] = 'failed';
-						$current['error']  = __( 'The stored feed data is missing. Check the feed again to restart the import.', 'elementor-podcast-manager' );
-						return $current;
-					}
-				);
-				return self::client_state( self::get() );
-			}
 
 			$importer = new Importer(
 				[
@@ -777,7 +1483,12 @@ final class ImportJob {
 				}
 
 				$position = (int) $job['position'];
-				$outcome  = $importer->import_item( $items[ $position ] );
+				$item     = ImportStore::item( $store, $sorted, $position );
+				if ( null === $item ) {
+					return self::fail( $token, __( 'The stored feed data is missing. Check the feed again to restart the import.', 'elementor-podcast-manager' ) );
+				}
+				$outcome = $importer->import_item( $item );
+				unset( $item );
 
 				// A request that took the lock over (this episode took longer
 				// than the lock lives) handles the job now; its own check of
@@ -830,8 +1541,10 @@ final class ImportJob {
 				) : null;
 
 				if ( null !== $finished ) {
-					self::delete_file( $finished );
-					if ( 'move' === ( $finished['options']['purpose'] ?? '' ) ) {
+					self::discard( $finished );
+					// A move of an incomplete catalog finishes only when that
+					// was accepted (an import started by 1.3.0 did not know).
+					if ( 'move' === ( $finished['options']['purpose'] ?? '' ) && ( ! empty( $finished['catalog']['complete'] ) || ! empty( $finished['options']['accept_partial'] ) || empty( $finished['catalog'] ) ) ) {
 						self::finish_move();
 					}
 					wp_clear_scheduled_hook( self::CRON_HOOK );
@@ -845,6 +1558,34 @@ final class ImportJob {
 		} finally {
 			self::release_lock();
 		}
+	}
+
+	/**
+	 * Mark the running job failed (only the job this request worked on,
+	 * only while it is running) and remove its stored data.
+	 *
+	 * @param string $token   Job token.
+	 * @param string $message Error.
+	 * @return array<string, mixed> Client state.
+	 */
+	private static function fail( string $token, string $message ): array {
+		$failed = self::job_update(
+			static function ( array $current ) use ( $token, $message ) {
+				if ( 'running' !== ( $current['status'] ?? '' ) || ( $current['token'] ?? '' ) !== $token ) {
+					return null;
+				}
+				$current['status']   = 'failed';
+				$current['error']    = $message;
+				$current['finished'] = time();
+				return $current;
+			}
+		);
+		if ( null !== $failed ) {
+			self::discard( $failed );
+			wp_clear_scheduled_hook( self::CRON_HOOK );
+		}
+
+		return self::client_state( self::get() );
 	}
 
 	/**
@@ -923,7 +1664,7 @@ final class ImportJob {
 		// is never started again.
 		$cancelled = self::job_update(
 			static function ( array $job ) {
-				if ( ! in_array( $job['status'] ?? '', [ 'ready', 'running' ], true ) ) {
+				if ( ! in_array( $job['status'] ?? '', [ 'loading', 'ready', 'running' ], true ) ) {
 					return null;
 				}
 				$job['status']   = 'cancelled';
@@ -933,7 +1674,7 @@ final class ImportJob {
 		);
 
 		if ( null !== $cancelled ) {
-			self::delete_file( $cancelled );
+			self::discard( $cancelled );
 		}
 
 		wp_clear_scheduled_hook( self::CRON_HOOK );
@@ -1026,6 +1767,9 @@ final class ImportJob {
 			'error'        => (string) ( $job['error'] ?? '' ),
 			'settings'     => array_values( (array) ( $job['settings_changed'] ?? [] ) ),
 			'episodes'     => admin_url( 'edit.php?post_type=' . EpisodePostType::CPT ),
+			// How complete the imported catalog was (null: started by 1.3.0).
+			'catalog'      => self::catalog_state( $job ),
+			'purpose'      => (string) ( $job['options']['purpose'] ?? '' ),
 		];
 	}
 
@@ -1063,6 +1807,25 @@ final class ImportJob {
 	}
 
 	/**
+	 * AJAX: continue reading a feed (the next pages, or the page that
+	 * failed).
+	 *
+	 * @return void
+	 */
+	public function ajax_more(): void {
+		$this->guard();
+
+		$token   = isset( $_POST['token'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['token'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- guard() checked it.
+		$summary = self::preview_more( $token );
+
+		if ( is_wp_error( $summary ) ) {
+			wp_send_json_error( [ 'message' => $summary->get_error_message() ] );
+		}
+
+		wp_send_json_success( $summary );
+	}
+
+	/**
 	 * AJAX: start an import.
 	 *
 	 * @return void
@@ -1079,13 +1842,19 @@ final class ImportJob {
 			'overwrite_channel' => ! empty( $_POST['overwrite_channel'] ),
 			'purpose'           => isset( $_POST['purpose'] ) ? sanitize_key( wp_unslash( (string) $_POST['purpose'] ) ) : 'mirror',
 			'confirm_owner'     => ! empty( $_POST['confirm_owner'] ),
+			'accept_partial'    => ! empty( $_POST['accept_partial'] ),
 		];
 		// phpcs:enable
 
 		$state = self::start( $token, $options );
 
 		if ( is_wp_error( $state ) ) {
-			wp_send_json_error( [ 'message' => $state->get_error_message() ] );
+			wp_send_json_error(
+				[
+					'message' => $state->get_error_message(),
+					'code'    => $state->get_error_code(),
+				]
+			);
 		}
 
 		wp_send_json_success( $state );

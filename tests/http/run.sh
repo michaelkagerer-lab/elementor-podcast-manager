@@ -82,6 +82,31 @@ echo "Media"
 AUDIO=$(grep -o '<enclosure url="[^"]*"' "$TMP/feed.xml" | head -1 | sed 's/.*url="//; s/"$//')
 check "enclosure answers byte-range requests" '[ "$(curl -s -o /dev/null -w "%{http_code}" -r 0-99 "$AUDIO")" = 206 ]'
 
+echo "Import data is never public"
+# A feed check through the import screen's AJAX, as an administrator.
+COOKIES="$TMP/cookies"
+curl -s -o /dev/null -c "$COOKIES" -b "wordpress_test_cookie=WP%20Cookie%20check" \
+	-d "log=admin&pwd=admin&wp-submit=Log+In&testcookie=1" "$URL/wp-login.php"
+NONCE="$(curl -s -b "$COOKIES" "$URL/wp-admin/admin.php?page=epm-hosting" | grep -o '"importNonce":"[a-z0-9]*"' | head -1 | cut -d'"' -f4)"
+check "the import screen gives an administrator a nonce" '[ -n "$NONCE" ]'
+curl -s -b "$COOKIES" -o "$TMP/preview.json" \
+	-d "action=epm_import_preview&nonce=$NONCE&url=https://feeds.example.test/synthetic/locked-show.xml" "$URL/wp-admin/admin-ajax.php"
+TOKEN="$(php -r '$d = json_decode((string) file_get_contents($argv[1]), true); echo $d["data"]["token"] ?? "";' "$TMP/preview.json")"
+check "a feed check creates an import job" '[ -n "$TOKEN" ]'
+UPLOADS="$($WP eval 'echo wp_upload_dir( null, false )["basedir"], "\n";' 2>/dev/null | head -1)"
+# (Before the requests below, which name the token themselves.)
+SERVER_LOG="$(dirname "$WP")/server.log"
+DEBUG_LOG="$(dirname "$UPLOADS")/debug.log"
+check "the job token is in no URL or log" '! grep -qsF "$TOKEN" "$SERVER_LOG" "$DEBUG_LOG"'
+STORED="$($WP eval 'global $wpdb; echo (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value LIKE %s", "epm\\_import\\_chunk\\_%", "%synthetic-undated%" ) ), "\n";' 2>/dev/null | head -1)"
+check "the parsed feed is stored in the database" '[ "${STORED:-0}" -gt 0 ]'
+check "and in no file under the uploads folder" '[ -d "$UPLOADS" ] && ! grep -rqs "synthetic-undated" "$UPLOADS"'
+check "no import folder exists to be served or listed" '[ "$(curl -s -o /dev/null -w "%{http_code}" "$URL/wp-content/uploads/epm-import/")" = 404 ]'
+check "the address a 1.3.0 job file had serves no feed data" '! curl -s "$URL/wp-content/uploads/epm-import/job-$TOKEN.json" | grep -q "synthetic-undated"'
+curl -s -b "$COOKIES" -o /dev/null -d "action=epm_import_cancel&nonce=$NONCE" "$URL/wp-admin/admin-ajax.php"
+STORED="$($WP eval 'global $wpdb; echo (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE %s", "epm\\_import\\_chunk\\_%" ) ), "\n";' 2>/dev/null | head -1)"
+check "cancelling removes the stored feed" '[ "${STORED:-1}" = 0 ]'
+
 echo "Hosted elsewhere"
 # The hosting option is saved (JSON, empty when it does not exist) and put
 # back afterwards, also when the script is interrupted.

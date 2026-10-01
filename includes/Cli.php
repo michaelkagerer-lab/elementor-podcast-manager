@@ -30,10 +30,16 @@ final class Cli {
 	/**
 	 * Import episodes from a podcast feed.
 	 *
+	 * Paged feeds are read page by page. When a feed cannot be read
+	 * completely (a page fails, an empty page links on, the page limit is
+	 * reached), nothing is imported: the command names the page and the
+	 * reason and keeps the check, so `--resume` can read the rest again
+	 * later; `--accept-partial` imports only the episodes that were found.
+	 *
 	 * ## OPTIONS
 	 *
-	 * <feed>
-	 * : RSS feed address, Apple Podcasts link or a page that links to the feed.
+	 * [<feed>]
+	 * : RSS feed address, Apple Podcasts link or a page that links to the feed. Not needed with --resume.
 	 *
 	 * [--move]
 	 * : Take the show over: adopt its podcast:guid, lift the feed episode limit, announce the new home and lock the feed when done.
@@ -50,33 +56,79 @@ final class Cli {
 	 * [--owner]
 	 * : Confirm that you own a locked feed (required to --move a locked feed).
 	 *
+	 * [--accept-partial]
+	 * : Import even when the feed could not be read completely: only the episodes found (a --move is then finished anyway).
+	 *
+	 * [--resume]
+	 * : Continue the last import: read the rest of a feed that could not be read completely, or keep an interrupted import going.
+	 *
 	 * ## EXAMPLES
 	 *
 	 *     wp podcast import https://anchor.fm/s/123abc/podcast/rss --move --copy-media --show-details --owner
 	 *     wp podcast import https://podcasts.apple.com/us/podcast/example/id123456789 --draft
+	 *     wp podcast import --resume --move --copy-media --owner
 	 *
 	 * @param array<int, string>    $args       Positional arguments.
 	 * @param array<string, string> $assoc_args Options.
 	 * @return void
 	 */
 	public function import( array $args, array $assoc_args ): void {
-		$preview = ImportJob::preview( (string) $args[0] );
-		if ( is_wp_error( $preview ) ) {
-			\WP_CLI::error( $preview->get_error_message() );
+		$resume = isset( $assoc_args['resume'] );
+		$job    = ImportJob::get();
+
+		// An import that was interrupted (or is waiting for WP-Cron).
+		if ( $resume && 'running' === ( $job['status'] ?? '' ) ) {
+			$state = ImportJob::client_state( $job );
+			\WP_CLI::log( sprintf( 'Continuing the import of %s (%d of %d done).', '' !== $state['title'] ? $state['title'] : $state['feed_url'], (int) $state['done'], (int) $state['total'] ) );
+			self::report( self::run( $state ) );
+			return;
+		}
+
+		if ( $resume ) {
+			if ( ! in_array( $job['status'] ?? '', [ 'loading', 'ready' ], true ) ) {
+				\WP_CLI::error( 'There is no import to resume. Run the command with a feed address.' );
+			}
+			$summary = ImportJob::preview_more( (string) ( $job['token'] ?? '' ), 120.0 );
+		} else {
+			if ( empty( $args[0] ) ) {
+				\WP_CLI::error( 'Give a feed address, or --resume to continue the last import.' );
+			}
+			$summary = ImportJob::preview( (string) $args[0], 120.0 );
+		}
+
+		while ( ! is_wp_error( $summary ) && ! empty( $summary['catalog']['loading'] ) ) {
+			\WP_CLI::log( (string) $summary['catalog']['message'] );
+			$summary = ImportJob::preview_more( (string) $summary['token'], 120.0 );
+		}
+		if ( is_wp_error( $summary ) ) {
+			\WP_CLI::error( $summary->get_error_message() );
 		}
 
 		\WP_CLI::log(
 			sprintf(
 				'%s — %d episodes (%d already here)%s',
-				(string) ( $preview['channel']['title'] ?? $preview['feed_url'] ),
-				(int) $preview['episodes'],
-				(int) $preview['existing'],
-				'' !== (string) $preview['provider_name'] ? ', ' . $preview['provider_name'] : ''
+				(string) ( $summary['channel']['title'] ?? $summary['feed_url'] ),
+				(int) $summary['episodes'],
+				(int) $summary['existing'],
+				'' !== (string) $summary['provider_name'] ? ', ' . $summary['provider_name'] : ''
 			)
 		);
 
-		$job = ImportJob::start(
-			(string) $preview['token'],
+		$catalog = (array) $summary['catalog'];
+		if ( empty( $catalog['complete'] ) ) {
+			if ( ! isset( $assoc_args['accept-partial'] ) ) {
+				\WP_CLI::error(
+					'The feed could not be read completely. ' . $catalog['message'] . "\n"
+					. 'Nothing was imported. Run `wp podcast import --resume` (with the same options) to read the rest of the feed again, or add --accept-partial to import only the episodes that were found.'
+				);
+			}
+			\WP_CLI::warning( 'The feed is incomplete. ' . $catalog['message'] . ' Importing only the episodes that were found (--accept-partial).' );
+		} elseif ( '' !== (string) $catalog['message'] ) {
+			\WP_CLI::log( (string) $catalog['message'] );
+		}
+
+		$state = ImportJob::start(
+			(string) $summary['token'],
 			[
 				'purpose'           => isset( $assoc_args['move'] ) ? 'move' : 'mirror',
 				'status'            => isset( $assoc_args['draft'] ) ? 'draft' : 'publish',
@@ -84,41 +136,70 @@ final class Cli {
 				'apply_channel'     => isset( $assoc_args['show-details'] ),
 				'overwrite_channel' => false,
 				'confirm_owner'     => isset( $assoc_args['owner'] ),
+				'accept_partial'    => isset( $assoc_args['accept-partial'] ),
 			]
 		);
-		if ( is_wp_error( $job ) ) {
-			\WP_CLI::error( $job->get_error_message() );
+		if ( is_wp_error( $state ) ) {
+			\WP_CLI::error( $state->get_error_message() );
 		}
 
-		$progress = \WP_CLI\Utils\make_progress_bar( 'Importing', max( 1, (int) $job['total'] ) );
-		$done     = 0;
+		self::report( self::run( $state ) );
+	}
 
-		while ( 'running' === $job['status'] ) {
-			$job = ImportJob::step( 20.0 );
-			if ( ! empty( $job['busy'] ) ) {
+	/**
+	 * Step a running import until it stops, with a progress bar.
+	 *
+	 * @param array<string, mixed> $state Client state.
+	 * @return array<string, mixed> Final client state.
+	 */
+	private static function run( array $state ): array {
+		$progress = \WP_CLI\Utils\make_progress_bar( 'Importing', max( 1, (int) $state['total'] ) );
+		$done     = (int) $state['done'];
+		$progress->tick( $done );
+
+		while ( 'running' === $state['status'] ) {
+			$state = ImportJob::step( 20.0 );
+			if ( ! empty( $state['busy'] ) ) {
 				sleep( 2 );
 				continue;
 			}
-			$progress->tick( max( 0, (int) $job['done'] - $done ) );
-			$done = (int) $job['done'];
+			$progress->tick( max( 0, (int) $state['done'] - $done ) );
+			$done = (int) $state['done'];
 		}
 		$progress->finish();
 
-		if ( 'done' !== $job['status'] ) {
-			\WP_CLI::error( '' !== $job['error'] ? $job['error'] : 'The import stopped: ' . $job['status'] );
+		return $state;
+	}
+
+	/**
+	 * Report a finished import (an error when it did not finish).
+	 *
+	 * @param array<string, mixed> $state Final client state.
+	 * @return void
+	 */
+	private static function report( array $state ): void {
+		if ( 'done' !== $state['status'] ) {
+			\WP_CLI::error( '' !== $state['error'] ? $state['error'] : 'The import stopped: ' . $state['status'] );
 		}
 
-		$counts = $job['counts'];
-		\WP_CLI::success(
-			sprintf(
-				'%d new, %d updated, %d unchanged, %d skipped, %d failed.',
-				(int) $counts['created'],
-				(int) $counts['updated'],
-				(int) $counts['unchanged'],
-				(int) $counts['skipped'],
-				(int) $counts['failed']
-			)
+		$counts = $state['counts'];
+		$line   = sprintf(
+			'%d new, %d updated, %d unchanged, %d skipped, %d failed.',
+			(int) $counts['created'],
+			(int) $counts['updated'],
+			(int) $counts['unchanged'],
+			(int) $counts['skipped'],
+			(int) $counts['failed']
 		);
+
+		// Never a plain success for part of a catalog.
+		$catalog = $state['catalog'] ?? null;
+		if ( is_array( $catalog ) && empty( $catalog['complete'] ) ) {
+			\WP_CLI::warning( 'Imported from an incomplete feed: ' . $catalog['message'] );
+			\WP_CLI::log( 'Imported: ' . $line );
+		} else {
+			\WP_CLI::success( $line );
+		}
 
 		// Audio that stayed at the old host must be copied before that
 		// account is closed.
@@ -133,7 +214,7 @@ final class Cli {
 							static function ( $episode ) {
 								return (string) $episode['title'];
 							},
-							(array) ( $job['media_failed'] ?? [] )
+							(array) ( $state['media_failed'] ?? [] )
 						)
 					)
 				)
