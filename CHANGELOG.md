@@ -87,6 +87,18 @@
 
 ### Changed
 
+- Hosting & import and the setup assistant read a paged feed over several
+  requests and say which page they are reading (visible next to the
+  address and announced to screen readers). A feed that could not be
+  read completely gets a warning next to the result that names the page,
+  its address and the error, with *Try reading the rest again* when a
+  retry can help. Mirroring the episodes found needs no extra step;
+  copying the audio (Hosting & import) or moving the show (setup
+  assistant) asks to confirm "Move only the N episodes that were found.
+  The missing episodes stay at the old host and will not be on this
+  website."; without it the import does not start, the message appears
+  under the checkbox and focus moves there. After the import, the result
+  says that it covers only part of the feed.
 - `wp podcast import` reads paged feeds page by page and says when the
   feed could not be read completely: it then imports nothing, exits with
   an error that names the page, the address and the error, and keeps the
@@ -116,6 +128,10 @@
   and 1,000 vs. 10,000).
 - `tests/http/run.sh`: a feed check through admin-ajax leaves nothing in
   uploads, no import folder is served, the job token is in no URL or log.
+- `tests/e2e/setup.mjs`: an incomplete feed on Hosting & import and in
+  the setup assistant (the warning, try again, the move confirmation,
+  focus and error, the partial result); fixture
+  `synthetic/paged-broken-1.xml`.
 
 ## 1.3.0 — 2026-09-30
 

@@ -144,10 +144,11 @@ $epm_steps = [
 			<div class="epm-field">
 				<label class="epm-field__label" for="epm-setup-feed"><?php esc_html_e( 'RSS feed address', 'elementor-podcast-manager' ); ?></label>
 				<div class="epm-inline-form">
-					<input type="url" id="epm-setup-feed" name="feed_url" value="<?php echo esc_attr( (string) $epm_hosting['feed_url'] ); ?>" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://" aria-describedby="epm-setup-feed-help epm-setup-feed-error" />
+					<input type="url" id="epm-setup-feed" name="feed_url" value="<?php echo esc_attr( (string) $epm_hosting['feed_url'] ); ?>" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://" aria-describedby="epm-setup-feed-help epm-setup-feed-progress epm-setup-feed-error" />
 					<button type="button" class="button" data-action="check-feed"><?php esc_html_e( 'Check feed', 'elementor-podcast-manager' ); ?></button>
 				</div>
 				<p class="epm-field__help" id="epm-setup-feed-help" data-feed-help></p>
+				<p class="epm-field__help" id="epm-setup-feed-progress" data-preview-progress hidden></p>
 				<p class="epm-field__error" id="epm-setup-feed-error" data-error hidden></p>
 			</div>
 
@@ -171,6 +172,13 @@ $epm_steps = [
 				<div class="epm-callout" data-preview-existing hidden><p></p></div>
 				<div class="epm-callout epm-callout--warn" data-preview-moved hidden><p></p></div>
 				<div class="epm-callout" data-preview-notes hidden><p></p></div>
+				<div class="epm-callout epm-callout--warn" data-preview-incomplete hidden>
+					<p><strong><?php esc_html_e( 'The feed could not be read completely.', 'elementor-podcast-manager' ); ?></strong> <span data-preview-incomplete-text></span></p>
+					<p data-path-only="external"><?php esc_html_e( 'You can connect the show with the episodes that were found; the regular sync and a later import add the rest. Episodes that are already here are updated, never duplicated.', 'elementor-podcast-manager' ); ?></p>
+					<div class="epm-callout__actions" data-retry-wrap>
+						<button type="button" class="button" data-action="retry-feed"><?php esc_html_e( 'Try reading the rest again', 'elementor-podcast-manager' ); ?></button>
+					</div>
+				</div>
 
 				<fieldset class="epm-stack--tight" data-path-only="move">
 					<legend class="epm-field__label"><?php esc_html_e( 'Moving options', 'elementor-podcast-manager' ); ?></legend>
@@ -185,6 +193,12 @@ $epm_steps = [
 						<span class="epm-choice__text"><?php esc_html_e( 'Required for locked feeds.', 'elementor-podcast-manager' ); ?></span>
 					</label>
 					<p class="epm-field__error" id="epm-setup-confirm-error" data-error-for="confirm_owner" hidden><?php esc_html_e( 'Confirm that you own this podcast to move it.', 'elementor-podcast-manager' ); ?></p>
+					<label class="epm-choice" data-accept-partial hidden>
+						<input type="checkbox" name="accept_partial" value="1" aria-describedby="epm-setup-partial-error" />
+						<span class="epm-choice__title" data-accept-partial-label></span>
+						<span class="epm-choice__text"><?php esc_html_e( 'Only if those episodes are gone for good. Otherwise try reading the rest of the feed again, or fix the feed at your old host first.', 'elementor-podcast-manager' ); ?></span>
+					</label>
+					<p class="epm-field__error" id="epm-setup-partial-error" data-error-for="accept_partial" hidden><?php esc_html_e( 'Confirm that the missing episodes may stay behind, or try reading the rest of the feed again first.', 'elementor-podcast-manager' ); ?></p>
 				</fieldset>
 
 				<fieldset class="epm-stack--tight" data-path-only="external">
@@ -225,6 +239,7 @@ $epm_steps = [
 		</div>
 
 		<div class="epm-callout epm-callout--error" data-import-error hidden><p></p></div>
+		<div class="epm-callout epm-callout--warn" data-import-incomplete hidden><p></p></div>
 
 		<div class="epm-callout epm-callout--warn" data-media-failed hidden>
 			<p><strong data-media-failed-title></strong> <?php esc_html_e( 'These episodes still play from the old host. Open each one to add the audio file, or run the import again, before you close the old account.', 'elementor-podcast-manager' ); ?></p>

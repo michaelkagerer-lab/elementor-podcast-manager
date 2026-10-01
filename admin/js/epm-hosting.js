@@ -20,7 +20,9 @@
 	};
 
 	var announcer = root.querySelector( '[data-epm-announce]' );
-	var state = { preview: null, stepping: false };
+	// check: bumped when the address changes, so a feed that is still
+	// being read page by page stops updating the screen.
+	var state = { preview: null, stepping: false, check: 0 };
 
 	function $( selector, scope ) {
 		return ( scope || root ).querySelector( selector );
@@ -164,6 +166,31 @@
 		}
 	}
 
+	function showProgress( message ) {
+		var el = $( '[data-preview-progress]', importForm );
+		el.textContent = message || '';
+		el.hidden = ! message;
+	}
+
+	/**
+	 * A paged feed is read over several requests: keep asking for the
+	 * next pages while the server says it is still reading.
+	 */
+	function readAll( result, run ) {
+		if ( run !== state.check ) {
+			return Promise.reject( null );
+		}
+		if ( ! result.catalog || ! result.catalog.loading ) {
+			showProgress( '' );
+			return Promise.resolve( result );
+		}
+		showProgress( result.catalog.message );
+		announce( result.catalog.message );
+		return request( 'epm_import_more', { token: result.token } ).then( function ( next ) {
+			return readAll( next, run );
+		} );
+	}
+
 	function check( button ) {
 		var input = importForm.querySelector( '[name="url"]' );
 		if ( ! input.value.trim() ) {
@@ -176,20 +203,118 @@
 		$( '[data-preview]', importForm ).hidden = true;
 		busy( button, true );
 		announce( app.strings.checking );
+		var run = ++state.check;
 
 		request( 'epm_import_preview', { url: input.value.trim() } )
+			.then( function ( result ) {
+				return readAll( result, run );
+			} )
 			.then( function ( result ) {
 				state.preview = result;
 				input.value = result.feed_url;
 				renderPreview( result );
 			} )
 			.catch( function ( error ) {
+				if ( ! error || run !== state.check ) {
+					return;
+				}
+				showProgress( '' );
 				showImportError( error.message );
 				announce( error.message );
+				input.focus();
 			} )
 			.then( function () {
 				busy( button, false );
 			} );
+	}
+
+	/**
+	 * "Try reading the rest again": continue from the page that failed.
+	 */
+	function retry( button ) {
+		if ( ! state.preview ) {
+			return;
+		}
+		busy( button, true );
+		announce( app.strings.checking );
+		var run = ++state.check;
+		var error = $( '[data-error-for="accept_partial"]', importForm );
+
+		request( 'epm_import_more', { token: state.preview.token } )
+			.then( function ( result ) {
+				return readAll( result, run );
+			} )
+			.then( function ( result ) {
+				state.preview = result;
+				error.hidden = true;
+				renderPreview( result );
+				// The callout (and this button) may be gone: focus the result.
+				var target = result.catalog && ! result.catalog.complete ? $( '[data-preview-incomplete]', importForm ) : $( '[data-preview-title]', importForm );
+				target.setAttribute( 'tabindex', '-1' );
+				target.focus();
+			} )
+			.catch( function ( failure ) {
+				if ( ! failure || run !== state.check ) {
+					return;
+				}
+				showProgress( '' );
+				var text = $( '[data-preview-incomplete-text]', importForm );
+				text.textContent = failure.message;
+				announce( failure.message );
+			} )
+			.then( function () {
+				busy( button, false );
+			} );
+	}
+
+	/**
+	 * The incomplete-feed callout and, when the audio is copied (a move),
+	 * the confirmation that names what is missing.
+	 */
+	function renderCompleteness( result ) {
+		var catalog = result.catalog || { complete: true };
+		var incomplete = ! catalog.complete;
+		var box = $( '[data-preview-incomplete]', importForm );
+
+		box.hidden = ! incomplete;
+		$( '[data-preview-incomplete-text]', importForm ).textContent = incomplete ? catalog.message : '';
+		$( '[data-retry-wrap]', importForm ).hidden = ! ( incomplete && catalog.retry );
+
+		var accept = importForm.querySelector( '[name="accept_partial"]' );
+		accept.checked = false;
+		$( '[data-accept-partial-label]', importForm ).textContent = incomplete
+			? format(
+					/* translators: %1$s: number of episodes found in the feed */
+					_n( 'Move only the %1$s episode that was found. The missing episodes stay at the old host and will not be on this website.', 'Move only the %1$s episodes that were found. The missing episodes stay at the old host and will not be on this website.', result.episodes, 'elementor-podcast-manager' ),
+					result.episodes
+			  )
+			: '';
+		updateAccept();
+	}
+
+	// The confirmation matters for a move only (copying the audio).
+	function updateAccept() {
+		var incomplete = state.preview && state.preview.catalog && ! state.preview.catalog.complete;
+		var move = importForm.querySelector( '[name="download_media"]' ).checked;
+		$( '[data-accept-partial]', importForm ).hidden = ! ( incomplete && move );
+		$( '[data-preview-incomplete-mirror]', importForm ).hidden = move;
+		if ( ! move ) {
+			fieldError( 'accept_partial', false );
+		}
+	}
+
+	function fieldError( name, show ) {
+		var field = importForm.querySelector( '[name="' + name + '"]' );
+		var error = $( '[data-error-for="' + name + '"]', importForm );
+		if ( error ) {
+			error.hidden = ! show;
+		}
+		if ( show ) {
+			field.setAttribute( 'aria-invalid', 'true' );
+		} else {
+			field.removeAttribute( 'aria-invalid' );
+		}
+		return field;
 	}
 
 	function renderPreview( result ) {
@@ -252,6 +377,7 @@
 		$( 'p', box ).textContent = notes.join( ' ' );
 
 		$( '[data-confirm-owner]', importForm ).hidden = ! result.locked;
+		renderCompleteness( result );
 		$( '[data-preview]', importForm ).hidden = false;
 		announce(
 			format(
@@ -272,7 +398,17 @@
 			draft: importForm.querySelector( '[name="draft"]' ).checked,
 			apply_channel: importForm.querySelector( '[name="apply_channel"]' ).checked,
 			confirm_owner: importForm.querySelector( '[name="confirm_owner"]' ).checked,
+			accept_partial: importForm.querySelector( '[name="accept_partial"]' ).checked,
 		};
+		var incomplete = state.preview.catalog && ! state.preview.catalog.complete;
+
+		// A move of part of a show only after the informed confirmation;
+		// the message sits under the checkbox, which gets focus.
+		if ( values.download_media && incomplete && ! values.accept_partial ) {
+			fieldError( 'accept_partial', true ).focus();
+			return;
+		}
+		fieldError( 'accept_partial', false );
 
 		// Copying the audio moves the show here: a site that mirrors its
 		// host stops syncing and redirecting when the import finishes.
@@ -294,6 +430,7 @@
 			status: values.draft ? 'draft' : 'publish',
 			download_media: values.download_media,
 			confirm_owner: values.confirm_owner || ! state.preview.locked,
+			accept_partial: values.download_media && incomplete && values.accept_partial,
 			apply_channel: values.apply_channel,
 			overwrite_channel: false,
 		} )
@@ -306,6 +443,10 @@
 				loop();
 			} )
 			.catch( function ( error ) {
+				if ( error.data && error.data.code === 'epm_import_incomplete' ) {
+					fieldError( 'accept_partial', true ).focus();
+					return;
+				}
 				showImportError( error.message );
 				announce( error.message );
 			} )
@@ -382,6 +523,18 @@
 			$( 'p', error ).textContent = job.error;
 		}
 
+		// Imported from part of the feed: say so, also after the import.
+		var partial = $( '[data-job-incomplete]', jobBox );
+		var incomplete = job.catalog && ! job.catalog.complete && job.catalog.message;
+		partial.hidden = ! incomplete;
+		if ( incomplete ) {
+			$( 'p', partial ).textContent = format(
+				/* translators: %1$s: why the feed could not be read completely */
+				__( 'This import covers only part of the feed. %1$s', 'elementor-podcast-manager' ),
+				job.catalog.message
+			);
+		}
+
 		var running = job.status === 'running';
 		$( '[data-action="cancel"]', jobBox ).hidden = ! running;
 		$( '[data-job-episodes]', jobBox ).hidden = running;
@@ -389,7 +542,7 @@
 		var media = renderMediaFailed( job );
 
 		if ( job.status === 'done' ) {
-			announce( format( app.strings.progress, done, total ) + ( media ? ' ' + media : '' ) );
+			announce( format( app.strings.progress, done, total ) + ( media ? ' ' + media : '' ) + ( incomplete ? ' ' + $( 'p', partial ).textContent : '' ) );
 		}
 	}
 
@@ -510,7 +663,15 @@
 		} );
 		importForm.querySelector( '[name="url"]' ).addEventListener( 'input', function () {
 			state.preview = null;
+			state.check++;
+			showProgress( '' );
 			$( '[data-preview]', importForm ).hidden = true;
+		} );
+		importForm.querySelector( '[name="download_media"]' ).addEventListener( 'change', updateAccept );
+		importForm.querySelector( '[name="accept_partial"]' ).addEventListener( 'change', function ( event ) {
+			if ( event.target.checked ) {
+				fieldError( 'accept_partial', false );
+			}
 		} );
 	}
 
@@ -529,6 +690,9 @@
 				break;
 			case 'start':
 				start( target );
+				break;
+			case 'retry-feed':
+				retry( target );
 				break;
 			case 'cancel':
 				busy( target, true );

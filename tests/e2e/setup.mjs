@@ -455,6 +455,85 @@ console.log('Hosting & import');
 }
 
 // ---------------------------------------------------------------------------
+console.log('A feed that cannot be read completely');
+{
+	fresh();
+	const BROKEN = 'https://feeds.example.test/synthetic/paged-broken-1.xml';
+	const page = await newPage(browser);
+	await login(page);
+	await page.goto(`${BASE}/wp-admin/admin.php?page=epm-hosting`);
+
+	await page.fill('#epm-import-url', BROKEN);
+	await page.click('[data-import-form] [data-action="check"]');
+	await page.waitForSelector('[data-import-form] [data-preview]:not([hidden])', { timeout: 30000 });
+	const callout = page.locator('[data-import-form] [data-preview-incomplete]');
+	const said = ((await callout.textContent()) || '').replace(/\s+/g, ' ').trim();
+	assert(await callout.isVisible(), 'an incomplete feed is announced next to the result');
+	assert(/Page 2/.test(said) && /paged-broken-2\.xml/.test(said) && /404/.test(said), `naming the page, its address and the error (${said})`);
+	assert(/2 episodes/.test((await page.textContent('[data-import-form] [data-preview-meta]')) || ''), 'the episodes found so far are counted');
+	assert(await page.locator('[data-import-form] [data-preview-incomplete-mirror]').isVisible(), 'mirroring what was found is offered');
+	assert(await page.locator('[data-import-form] [data-accept-partial]').isHidden(), 'no move confirmation while the audio is not copied');
+
+	// Try again: the page still fails, the result says so.
+	await page.click('[data-import-form] [data-action="retry-feed"]');
+	await page.waitForFunction(() => !document.querySelector('[data-action="retry-feed"]').hasAttribute('aria-busy'), null, { timeout: 30000 });
+	assert(await callout.isVisible(), 'after trying again the feed is still incomplete');
+	assert(await page.evaluate(() => document.activeElement === document.querySelector('[data-import-form] [data-preview-incomplete]')), 'focus moves to the result of the retry');
+
+	// Copying the audio moves the show: only with the informed confirmation.
+	await page.check('[data-import-form] [name="download_media"]');
+	const accept = page.locator('[data-import-form] [data-accept-partial]');
+	assert(await accept.isVisible(), 'a move asks to confirm what is missing');
+	assert(/Move only the 2 episodes/.test((await accept.textContent()) || ''), `naming how many episodes move (${((await accept.textContent()) || '').trim()})`);
+	await page.click('[data-import-form] [data-action="start"]');
+	await page.waitForTimeout(300);
+	const refusal = page.locator('#epm-import-partial-error');
+	assert(await refusal.isVisible(), 'moving without the confirmation is refused next to the checkbox');
+	const box = await page.evaluate(() => {
+		const input = document.querySelector('[data-import-form] [name="accept_partial"]');
+		return { focused: document.activeElement === input, described: input.getAttribute('aria-describedby'), invalid: input.getAttribute('aria-invalid') };
+	});
+	assert(box.focused && box.described === 'epm-import-partial-error' && box.invalid === 'true', `focus goes to the confirmation, which carries the message (${JSON.stringify(box)})`);
+	assert(await page.locator('[data-job]').isHidden(), 'the import does not start');
+	await page.screenshot({ path: 'screenshots/hosting-incomplete-feed.png', fullPage: true });
+
+	await page.check('[data-import-form] [name="accept_partial"]');
+	assert(await refusal.isHidden(), 'the message goes once confirmed');
+	await page.click('[data-import-form] [data-action="start"]');
+	await page.waitForSelector('[data-job-episodes]:not([hidden])', { timeout: 60000 });
+	const partial = ((await page.textContent('[data-job-incomplete]')) || '').trim();
+	assert(await page.locator('[data-job-incomplete]').isVisible() && /only part of the feed/.test(partial), `the result says the import covers part of the feed (${partial})`);
+	assert(/2 new/.test((await page.textContent('[data-job-summary]')) || ''), 'the two episodes found are imported');
+	const moved = php(`echo wp_json_encode( [ epm()->settings->get( 'moved_in' ), EPM\\ImportJob::get()['options']['accept_partial'] ?? null ] )`);
+	assert(JSON.stringify(moved) === '[true,true]', `the confirmed move is finished (${JSON.stringify(moved)})`);
+	assert(page.problems.length === 0, `no browser errors ${page.problems.join('; ')}`);
+	await page.context().close();
+
+	// The setup assistant: the same confirmation when moving.
+	fresh();
+	const setup = await newPage(browser);
+	await login(setup);
+	await setup.goto(`${BASE}/wp-admin/admin.php?page=epm-setup`);
+	await setup.check('input[name="path"][value="move"]');
+	await setup.click('[data-step-form="path"] [type="submit"]');
+	await setup.waitForSelector('[data-panel="connect"]:not([hidden])');
+	await setup.fill('#epm-setup-feed', BROKEN);
+	await setup.click('[data-step-form="connect"] [data-action="check-feed"]');
+	await setup.waitForSelector('[data-panel="connect"] [data-preview]:not([hidden])', { timeout: 30000 });
+	assert(await setup.locator('[data-panel="connect"] [data-preview-incomplete]').isVisible(), 'the assistant shows the incomplete feed');
+	assert(await setup.locator('[data-panel="connect"] [data-accept-partial]').isVisible(), 'and asks to confirm what is missing before a move');
+	await setup.click('[data-import-button]');
+	await setup.waitForTimeout(300);
+	assert(await setup.locator('#epm-setup-partial-error').isVisible(), 'without it the move is refused');
+	assert((await focused(setup)) === 'input[name=accept_partial]', `focus goes to the confirmation (${await focused(setup)})`);
+	assert(await setup.locator('[data-panel="connect"]').isVisible(), 'the import does not start');
+	await setup.setViewportSize({ width: 390, height: 844 });
+	assert(await noOverflow(setup), 'the step fits 390 px');
+	assert(setup.problems.length === 0, `no browser errors ${setup.problems.join('; ')}`);
+	await setup.context().close();
+}
+
+// ---------------------------------------------------------------------------
 console.log('Distribution');
 {
 	fresh();

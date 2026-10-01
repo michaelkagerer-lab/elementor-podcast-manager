@@ -61,6 +61,7 @@ Made-up shows for cases no real feed shows in three items.
 |---|---|
 | `locked-show.xml` | `podcast:locked` + `podcast:guid`, a duplicate GUID, `itunes:block`, an undated item, plain-text notes, inline and JSON chapters, HTML/WebVTT/SRT transcripts (`extras/`), a measurement-prefixed enclosure, `audio/mp3` and `length="0"`. Apple's lookup API answers ID `1000000001` with this feed |
 | `paged-1.xml`, `paged-2.xml` | two pages linked with `rel="next"`; page 2 links back to page 1 (the importer must stop) |
+| `paged-broken-1.xml` | page 1 of a paged feed whose relative `rel="next"` (`paged-broken-2.xml`) answers 404: the catalog is incomplete |
 | `broken-markup.xml` | BOM, leading whitespace, bare `&`, HTML named entities, control characters |
 | `atom.xml` | an Atom feed (rejected: podcast apps need RSS) |
 | `missing-audio.xml` | two episodes; the first one's audio answers 404, so "copy media" must list it as not copied |

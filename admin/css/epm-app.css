@@ -612,6 +612,15 @@ fieldset.epm-field > legend {
 	display: none;
 }
 
+/* Buttons inside a callout (e.g. "Try reading the rest again"). */
+.epm-callout__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	margin-block-start: 4px;
+}
+
 /* Episodes listed in a callout (e.g. audio that was not copied). */
 .epm-callout__list {
 	margin: 4px 0 0;

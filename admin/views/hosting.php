@@ -192,9 +192,10 @@ $epm_when = static function ( int $timestamp ): string {
 					<div class="epm-field">
 						<label class="epm-field__label" for="epm-import-url"><?php esc_html_e( 'RSS feed, Apple Podcasts link or show page', 'elementor-podcast-manager' ); ?></label>
 						<div class="epm-inline-form">
-							<input type="url" id="epm-import-url" name="url" inputmode="url" spellcheck="false" placeholder="https://" value="<?php echo esc_attr( $epm_external ? (string) $epm_hosting['feed_url'] : '' ); ?>" aria-describedby="epm-import-error" />
+							<input type="url" id="epm-import-url" name="url" inputmode="url" spellcheck="false" placeholder="https://" value="<?php echo esc_attr( $epm_external ? (string) $epm_hosting['feed_url'] : '' ); ?>" aria-describedby="epm-import-error epm-import-progress" />
 							<button type="submit" class="button" data-action="check"><?php esc_html_e( 'Check feed', 'elementor-podcast-manager' ); ?></button>
 						</div>
+						<p class="epm-field__help" id="epm-import-progress" data-preview-progress hidden></p>
 						<p class="epm-field__error" id="epm-import-error" data-error hidden></p>
 					</div>
 
@@ -207,6 +208,13 @@ $epm_when = static function ( int $timestamp ): string {
 							</div>
 						</div>
 						<div class="epm-callout" data-preview-notes hidden><p></p></div>
+						<div class="epm-callout epm-callout--warn" data-preview-incomplete hidden>
+							<p><strong><?php esc_html_e( 'The feed could not be read completely.', 'elementor-podcast-manager' ); ?></strong> <span data-preview-incomplete-text></span></p>
+							<p data-preview-incomplete-mirror><?php esc_html_e( 'You can import the episodes that were found and check the feed again later: episodes that are already here are updated, never duplicated.', 'elementor-podcast-manager' ); ?></p>
+							<div class="epm-callout__actions" data-retry-wrap>
+								<button type="button" class="button" data-action="retry-feed"><?php esc_html_e( 'Try reading the rest again', 'elementor-podcast-manager' ); ?></button>
+							</div>
+						</div>
 						<fieldset class="epm-field">
 							<legend class="epm-field__label"><?php esc_html_e( 'Options', 'elementor-podcast-manager' ); ?></legend>
 							<label class="epm-check">
@@ -225,6 +233,11 @@ $epm_when = static function ( int $timestamp ): string {
 								<input type="checkbox" name="confirm_owner" value="1" />
 								<?php esc_html_e( 'This feed is locked. I own this podcast and have the right to copy it.', 'elementor-podcast-manager' ); ?>
 							</label>
+							<label class="epm-check" data-accept-partial hidden>
+								<input type="checkbox" name="accept_partial" value="1" aria-describedby="epm-import-partial-error" />
+								<span data-accept-partial-label></span>
+							</label>
+							<p class="epm-field__error" id="epm-import-partial-error" data-error-for="accept_partial" hidden><?php esc_html_e( 'Copying the audio moves your podcast here. Confirm that the missing episodes may stay behind, or try reading the rest of the feed again first.', 'elementor-podcast-manager' ); ?></p>
 						</fieldset>
 						<div>
 							<button type="button" class="button button-primary" data-action="start"><?php esc_html_e( 'Import episodes', 'elementor-podcast-manager' ); ?></button>
@@ -243,6 +256,7 @@ $epm_when = static function ( int $timestamp ): string {
 						</div>
 					</div>
 					<div class="epm-callout epm-callout--error" data-job-error hidden><p></p></div>
+					<div class="epm-callout epm-callout--warn" data-job-incomplete hidden><p></p></div>
 					<div class="epm-callout epm-callout--warn" data-media-failed hidden>
 						<p><strong data-media-failed-title></strong> <?php esc_html_e( 'These episodes still play from the old host. Open each one to add the audio file, or run the import again, before you close the old account.', 'elementor-podcast-manager' ); ?></p>
 						<ul class="epm-callout__list" data-media-failed-list></ul>
