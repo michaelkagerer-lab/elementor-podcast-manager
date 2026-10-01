@@ -130,6 +130,11 @@ set_hosting external 1
 for path in /podcast/feed/ "/?epm_podcast_feed=1" /podcast/rss2/ /podcast/feed/atom/; do
 	check "$path answers 301 to the host's feed" '[ "$(status_and_location "$path")" = "301 $HOST_FEED" ]'
 done
+# Also to clients that only send If-Modified-Since (WordPress used to
+# answer the archive feeds with its own 304 first).
+for path in /podcast/rss2/ "/?post_type=podcast_episode&feed=rss2"; do
+	check "$path answers 301 also to If-Modified-Since" '[ "$(curl -s -o /dev/null -w "%{http_code}" -H "If-Modified-Since: $(date -u -d "+1 day" "+%a, %d %b %Y %H:%M:%S GMT")" "$URL$path")" = 301 ]'
+done
 check "the redirect names the plugin" 'curl -s -D - -o /dev/null "$URL/podcast/feed/" | grep -qi "^x-redirect-by: Elementor Podcast Manager"'
 check "pages point feed readers at the host's feed" 'curl -s "$URL/" | grep -q "type=\"application/rss+xml\"[^>]*href=\"$HOST_FEED\""'
 check "the blog feed is not redirected" '[ "$(curl -s -o /dev/null -w "%{http_code}" "$URL/feed/")" = 200 ]'
@@ -141,6 +146,56 @@ restore_hosting
 for path in /podcast/feed/ "/?epm_podcast_feed=1"; do
 	check "self-hosted again: $path answers 200 with the podcast feed" '[ "$(status_and_location "$path")" = "200 " ] && curl -s "$URL$path" | grep -q "<itunes:owner>"'
 done
+
+echo "Conditional requests on every feed address"
+header_of() { curl -s -D - -o /dev/null "${@:2}" "$URL$1" | grep -i "^$3:" | cut -d' ' -f2- | tr -d '\r'; }
+main_etag="$(curl -s -D - -o /dev/null "$URL/podcast/feed/" | grep -i '^etag:' | cut -d' ' -f2 | tr -d '\r')"
+main_lastmod="$(curl -s -D - -o /dev/null "$URL/podcast/feed/" | grep -i '^last-modified:' | cut -d' ' -f2- | tr -d '\r')"
+ARCHIVE_FEEDS=(/podcast/rss2/ /podcast/feed/atom/ "/?post_type=podcast_episode&feed=rss2")
+for path in "${ARCHIVE_FEEDS[@]}"; do
+	check "$path carries the podcast feed's ETag" '[ "$(curl -s -D - -o /dev/null "$URL$path" | grep -i "^etag:" | cut -d" " -f2 | tr -d "\r")" = "$main_etag" ]'
+done
+sleep 1
+SETTINGS_BEFORE="$($WP option get epm_podcast_settings --format=json 2>/dev/null | grep '^{' | head -1)"
+$WP eval 'update_option( "epm_podcast_settings", array_merge( (array) get_option( "epm_podcast_settings" ), [ "copyright" => "Changed again by the HTTP tests" ] ) );' > /dev/null 2>&1
+for path in "${ARCHIVE_FEEDS[@]}"; do
+	# WordPress would answer If-Modified-Since on these itself (304, from
+	# the last post change) before the plugin ran.
+	check "$path: If-Modified-Since after a channel change gets the new feed" '[ "$(curl -s -o /dev/null -w "%{http_code}" -H "If-Modified-Since: $main_lastmod" "$URL$path")" = 200 ]'
+done
+check "If-None-Match: * answers 304" '[ "$(curl -s -o /dev/null -w "%{http_code}" -H "If-None-Match: *" "$URL/podcast/feed/")" = 304 ]'
+new_etag="$(curl -s -D - -o /dev/null "$URL/podcast/feed/" | grep -i '^etag:' | cut -d' ' -f2 | tr -d '\r')"
+check "a list of tags with the current one answers 304" '[ "$(curl -s -o /dev/null -w "%{http_code}" -H "If-None-Match: \"abc\", W/$new_etag" "$URL/podcast/feed/")" = 304 ]'
+check "a tag that merely contains the ETag gets the full feed" '[ "$(curl -s -o /dev/null -w "%{http_code}" -H "If-None-Match: \"xx${new_etag//\"/}yy\"" "$URL/podcast/feed/")" = 200 ]'
+check "HEAD sends the headers without a body" '[ "$(curl -s -I -o /dev/null -w "%{http_code} %{size_download}" "$URL/podcast/feed/")" = "200 0" ] && curl -s -I "$URL/podcast/feed/" | grep -qi "^etag: $new_etag"'
+[ -n "$SETTINGS_BEFORE" ] && $WP option update epm_podcast_settings "$SETTINGS_BEFORE" --format=json > /dev/null 2>&1
+
+echo "Build time never in the future"
+FUTURE_ID="$($WP eval '$id = wp_insert_post( [ "post_type" => "podcast_episode", "post_status" => "publish", "post_title" => "Dated next year", "post_date" => gmdate( "Y-m-d H:i:s", time() + YEAR_IN_SECONDS ) ] ); update_post_meta( $id, "_epm_audio_url", "https://feeds.example.test/media/next-year.mp3" ); wp_publish_post( $id ); echo "ID:", $id, "\n";' 2>/dev/null | grep '^ID:' | cut -c4-)"
+future_lastmod="$(curl -s -D - -o /dev/null "$URL/podcast/feed/" | grep -i '^last-modified:' | cut -d' ' -f2- | tr -d '\r')"
+check "an episode published with a date next year does not move Last-Modified past now" '[ -n "$future_lastmod" ] && [ "$(date -d "$future_lastmod" +%s)" -le "$(date +%s)" ]'
+check "and the episode is in the feed" 'curl -s "$URL/podcast/feed/" | grep -q "Dated next year"'
+[ -n "$FUTURE_ID" ] && $WP post delete "$FUTURE_ID" --force > /dev/null 2>&1
+
+echo "The previous address of a WordPress podcast plugin"
+alias_setting() { $WP eval '$s = (array) get_option( "epm_podcast_settings" ); $s["feed_alias"] = '"$1"'; update_option( "epm_podcast_settings", $s );' > /dev/null 2>&1; }
+check "off: /feed/podcast/ is not found" '[ "$(curl -s -o /dev/null -w "%{http_code}" "$URL/feed/podcast/")" = 404 ]'
+alias_setting true
+for path in /feed/podcast/ "/?feed=podcast"; do
+	check "on: $path answers 301 to the feed" '[ "$(status_and_location "$path")" = "301 $URL/podcast/feed/" ]'
+	check "on: $path answers 301 also to If-Modified-Since" '[ "$(curl -s -o /dev/null -w "%{http_code}" -H "If-Modified-Since: $(date -u -d "+1 day" "+%a, %d %b %Y %H:%M:%S GMT")" "$URL$path")" = 301 ]'
+done
+check "the blog feed is unchanged" '[ "$(curl -s -o /dev/null -w "%{http_code}" "$URL/feed/")" = 200 ]'
+alias_setting false
+check "off again: /feed/podcast/ is not found" '[ "$(curl -s -o /dev/null -w "%{http_code}" "$URL/feed/podcast/")" = 404 ]'
+
+echo "Plain permalinks"
+$WP rewrite structure '' --hard > /dev/null 2>&1
+check "the old address /podcast/feed/ still serves the feed" 'curl -s "$URL/podcast/feed/" | grep -q "<itunes:owner>"'
+check "?epm_podcast_feed=1 serves it" 'curl -s "$URL/?epm_podcast_feed=1" | grep -q "<itunes:owner>"'
+check "?post_type=podcast_episode&feed=rss2 serves it" 'curl -s "$URL/?post_type=podcast_episode&feed=rss2" | grep -q "<itunes:owner>"'
+$WP rewrite structure '/%postname%/' --hard > /dev/null 2>&1
+$WP rewrite flush --hard > /dev/null 2>&1
 
 echo
 echo "$PASSED passed, $FAILED failed."

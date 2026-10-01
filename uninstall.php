@@ -19,9 +19,16 @@ foreach ( [ 'epm_sync_feed', 'epm_import_continue', 'epm_import_cleanup', 'epm_p
 	wp_clear_scheduled_hook( $epm_hook );
 }
 
-// Parsed feed data of an import (rows in the options table) is never kept.
+// Parsed feed data of an import and the cached feed (rows in the options
+// table) are never kept.
 global $wpdb;
-$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $wpdb->esc_like( 'epm_import_chunk_' ) . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+foreach ( [ 'epm_import_chunk_', 'epm_feed_chunk_' ] as $epm_prefix ) {
+	$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $wpdb->esc_like( $epm_prefix ) . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+}
+delete_option( 'epm_feed_cache' );
+delete_transient( 'epm_feed_cache' );
+delete_option( 'epm_upgrade_state' );
+delete_option( 'epm_upgrade_lock' );
 
 // 1.3.0 kept it as files in uploads/epm-import/.
 $epm_uploads = wp_upload_dir( null, false );
@@ -34,8 +41,6 @@ if ( empty( $epm_uploads['error'] ) && is_dir( $epm_import ) ) {
 	}
 	@rmdir( $epm_import ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
 }
-delete_option( 'epm_upgrade_state' );
-delete_option( 'epm_upgrade_lock' );
 delete_option( 'epm_import_job' );
 delete_option( 'epm_import_lock' );
 delete_option( 'epm_activation_redirect' );
@@ -59,8 +64,8 @@ delete_option( 'epm_sync_state' );
 delete_option( 'epm_setup' );
 delete_option( 'epm_distribution' );
 delete_option( 'epm_feed_build' );
+delete_option( 'epm_feed_address' );
 delete_option( 'epm_removed_guid_rows' );
-delete_transient( 'epm_feed_cache' );
 
 // The plugin is not loaded here: register the Topics taxonomy so that
 // wp_delete_post() removes each episode's topic relationships.

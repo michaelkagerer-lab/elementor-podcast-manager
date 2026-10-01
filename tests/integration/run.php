@@ -357,12 +357,12 @@ $t->test(
 	static function ( EPM_Test_Runner $t ) use ( $fx ) {
 		Feed::flush_cache();
 		$first = epm()->feed->get_document();
-		$t->assert( false !== get_transient( 'epm_feed_cache' ), 'cached' );
+		$t->assert( null !== \EPM\FeedStore::current(), 'cached' );
 		$t->same( $first['etag'], epm()->feed->get_document()['etag'], 'stable etag' );
 		update_post_meta( $fx['ep1'], '_edit_lock', time() . ':1' );
-		$t->assert( false !== get_transient( 'epm_feed_cache' ), 'editor heartbeats keep the cache' );
+		$t->assert( null !== \EPM\FeedStore::current(), 'editor heartbeats keep the cache' );
 		wp_update_post( [ 'ID' => $fx['ep3'], 'post_excerpt' => 'changed' ] );
-		$t->same( false, get_transient( 'epm_feed_cache' ), 'episode save flushes the cache' );
+		$t->same( null, \EPM\FeedStore::current(), 'episode save flushes the cache' );
 		wp_update_post( [ 'ID' => $fx['ep3'], 'post_excerpt' => '' ] );
 	}
 );

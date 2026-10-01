@@ -28,6 +28,24 @@ final class Episodes {
 	public const REMOVED_GUIDS_OPTION = 'epm_removed_guid_rows';
 
 	/**
+	 * Episodes loaded at a time when many are worked through (at most).
+	 */
+	public const PAGE = 100;
+
+	/**
+	 * Memory a page of loaded episodes may take. Pages get smaller when
+	 * the episodes carry a lot of meta (long transcripts).
+	 */
+	private const PAGE_BYTES = 4 * MB_IN_BYTES;
+
+	/**
+	 * Memory one episode took when the last page was loaded (0: none yet).
+	 *
+	 * @var int
+	 */
+	private static int $episode_bytes = 0;
+
+	/**
 	 * Per-request cache of normalized episode data.
 	 *
 	 * @var array<int, array<string, mixed>>
@@ -42,6 +60,10 @@ final class Episodes {
 	public function init(): void {
 		add_action( 'init', [ EpisodePostType::class, 'register' ], 5 );
 		add_action( 'init', [ $this, 'maybe_migrate_guids' ], 20 );
+		// Every new episode gets its GUID when it is created, whatever
+		// created it (editor, REST, WP-CLI, an integration), before the
+		// first read could race to make one.
+		add_action( 'save_post_' . EpisodePostType::CPT, [ self::class, 'assign_guid' ], 1, 1 );
 	}
 
 	/**
@@ -79,6 +101,11 @@ final class Episodes {
 	 * Get the immutable GUID for an episode. Generated once, never changes —
 	 * title, slug, domain and HTTP/HTTPS changes do not regenerate it.
 	 *
+	 * Episodes normally get it when they are created (assign_guid()). One
+	 * created without the hooks gets it on first read; the value is derived
+	 * from the episode (new_guid()), so two requests that create it at the
+	 * same time store and serve the same GUID.
+	 *
 	 * @param int $post_id Episode post ID.
 	 * @return string
 	 */
@@ -89,11 +116,40 @@ final class Episodes {
 			return $guid;
 		}
 
-		// Domain-independent URN for episodes created after the migration.
-		$guid = 'urn:uuid:' . wp_generate_uuid4();
-		update_post_meta( $post_id, self::META_PREFIX . 'guid', $guid );
+		$guid = self::new_guid( $post_id );
+		add_post_meta( $post_id, self::META_PREFIX . 'guid', $guid, true );
 
 		return $guid;
+	}
+
+	/**
+	 * The GUID a new episode gets: a name-based UUID (version 5) of the
+	 * episode ID in this show's namespace (its podcast:guid). Domain
+	 * independent like the random UUIDs before 1.4, but every request
+	 * computes the same value, so concurrent first reads cannot hand out
+	 * two GUIDs for one episode.
+	 *
+	 * @param int $post_id Episode post ID.
+	 * @return string
+	 */
+	public static function new_guid( int $post_id ): string {
+		return 'urn:uuid:' . Feed::uuid_v5( Feed::podcast_guid(), 'episode:' . $post_id );
+	}
+
+	/**
+	 * save_post: give a new episode its GUID (an imported one already has
+	 * the host's, set before this runs).
+	 *
+	 * @param int $post_id Episode post ID.
+	 * @return void
+	 */
+	public static function assign_guid( $post_id ): void {
+		$post_id = (int) $post_id;
+		if ( $post_id <= 0 || wp_is_post_revision( $post_id ) || EpisodePostType::CPT !== get_post_type( $post_id ) ) {
+			return;
+		}
+
+		self::get_guid( $post_id );
 	}
 
 	/**
@@ -220,6 +276,9 @@ final class Episodes {
 	 * the human-readable duration, for numeric sorting and integrations.
 	 * Falls back to the length WordPress read from the audio file.
 	 *
+	 * Reads only the keys it needs, never the episode's whole meta (a
+	 * transcript can be megabytes).
+	 *
 	 * @param int $post_id Episode post ID.
 	 * @return int Seconds stored.
 	 */
@@ -306,6 +365,111 @@ final class Episodes {
 	}
 
 	/**
+	 * A page of published, unprotected episodes (what get_public_data()
+	 * returns data for), ordered by date and ID, after a position. The condition on the position is written so the
+	 * database reads the page from its post_type/status/date index instead
+	 * of sorting every episode for every page.
+	 *
+	 * @param string                        $order DESC or ASC.
+	 * @param array{0: string, 1: int}|null $after Date and ID of the last episode of the previous page.
+	 * @param int                           $count Page size.
+	 * @return array<int, array{0: string, 1: string}> Rows of [ ID, post_date ].
+	 */
+	public static function public_page( string $order, ?array $after, int $count ): array {
+		global $wpdb;
+
+		$order = 'ASC' === $order ? 'ASC' : 'DESC';
+		$cmp   = 'ASC' === $order ? '>' : '<';
+		$where = $wpdb->prepare( 'post_type = %s AND post_status = %s AND post_password = %s', EpisodePostType::CPT, 'publish', '' );
+		if ( null !== $after ) {
+			$where .= $wpdb->prepare( " AND post_date {$cmp}= %s AND ( post_date {$cmp} %s OR ID {$cmp} %d )", $after[0], $after[0], $after[1] ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- operator from a fixed list.
+		}
+
+		return (array) $wpdb->get_results( "SELECT ID, post_date FROM {$wpdb->posts} WHERE {$where} ORDER BY post_date {$order}, ID {$order} LIMIT " . (int) $count, ARRAY_N ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- parts prepared above.
+	}
+
+	/**
+	 * Every published, unprotected episode, newest first, loaded a page
+	 * at a time: each page's posts, meta and attachments are released
+	 * when the next page is loaded, so a loop over a large catalog needs
+	 * the memory of one page.
+	 *
+	 * @return \Generator<int, \WP_Post>
+	 */
+	public function each_public(): \Generator {
+		$after = null;
+		do {
+			$rows = self::public_page( 'DESC', $after, self::PAGE );
+			if ( empty( $rows ) ) {
+				return;
+			}
+			$last  = end( $rows );
+			$after = [ (string) $last[1], (int) $last[0] ];
+			$ids   = array_map( 'intval', array_column( $rows, 0 ) );
+
+			foreach ( self::batches( $ids ) as $batch ) {
+				$attachments = self::prime_page( $batch );
+				foreach ( $batch as $id ) {
+					$post = get_post( $id );
+					if ( $post instanceof \WP_Post ) {
+						yield $post;
+					}
+				}
+				self::release_caches( array_merge( $batch, $attachments ) );
+			}
+		} while ( count( $rows ) === self::PAGE );
+	}
+
+	/**
+	 * Split IDs into batches to load at a time: as many episodes as fit
+	 * into PAGE_BYTES, judged by what the last batch took (small at first).
+	 *
+	 * @param int[] $ids Episode IDs.
+	 * @return array<int, int[]>
+	 */
+	public static function batches( array $ids ): array {
+		$size = self::$episode_bytes > 0 ? (int) floor( self::PAGE_BYTES / self::$episode_bytes ) : 25;
+
+		return array_chunk( $ids, max( 10, min( self::PAGE, $size ) ) );
+	}
+
+	/**
+	 * Load a page of episodes for rendering many of them (the feed, the
+	 * readiness report): their posts and meta, and the attachments they
+	 * use (audio, artwork, featured image, transcript file, guest image).
+	 *
+	 * @param int[] $ids Episode post IDs.
+	 * @return int[] Attachment IDs loaded (pass them to release_caches() too).
+	 */
+	public static function prime_page( array $ids ): array {
+		$ids = array_values( array_filter( array_map( 'intval', $ids ) ) );
+		if ( empty( $ids ) ) {
+			return [];
+		}
+
+		$before = memory_get_usage();
+		_prime_post_caches( $ids, false, true );
+
+		$attachments = [];
+		foreach ( $ids as $id ) {
+			foreach ( [ 'audio_id', 'artwork_id', 'transcript_file_id', 'guest_image_id' ] as $key ) {
+				$attachments[] = (int) get_post_meta( $id, self::META_PREFIX . $key, true );
+			}
+			$attachments[] = (int) get_post_meta( $id, '_thumbnail_id', true );
+		}
+		$attachments = array_values( array_unique( array_filter( $attachments ) ) );
+		if ( ! empty( $attachments ) ) {
+			_prime_post_caches( $attachments, false, true );
+		}
+		// The query results stay in $wpdb (and the database driver's
+		// buffer) until the next query: let them go now.
+		$GLOBALS['wpdb']->flush();
+		self::$episode_bytes = max( 1, (int) ( ( memory_get_usage() - $before ) / count( $ids ) ) );
+
+		return $attachments;
+	}
+
+	/**
 	 * Free what a page of episodes put into memory (posts, meta, the
 	 * normalized data), so working through a large catalog page by page
 	 * needs the memory of one page. With a persistent object cache only
@@ -336,9 +500,6 @@ final class Episodes {
 
 	/**
 	 * Clear the per-request data cache (e.g. after metadata changes).
-	 *
-	 * Reads only the keys it needs, never the episode's whole meta (a
-	 * transcript can be megabytes).
 	 *
 	 * @param int $post_id Episode post ID.
 	 * @return void

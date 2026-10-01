@@ -7,8 +7,22 @@
  *
  *   wp eval-file tests/integration/feed.php
  *
+ * - the feed built a page at a time is byte for byte the feed the 1.3
+ *   builder made (tests/integration/reference/Feed-1.3.php), for episodic
+ *   and serial shows and several limits; the readiness report agrees with
+ *   the 1.3 report (reference/Readiness-1.3.php) on a small catalog;
+ * - the feed cache: pieces no larger than FeedWriter::CHUNK, a build
+ *   overtaken by a change is not stored, missing pieces are rebuilt;
+ * - Last-Modified never in the future, If-None-Match lists and "*",
+ *   characters XML does not allow, cache invalidation for media files and
+ *   the site title, archive-feed and previous-address routing, a changed
+ *   feed address;
+ * - GUIDs exist from creation on and are the same for every request,
+ *   duplicate GUID rows collapse to the one WordPress returned;
  * - the upgrade stores the version first, queues the per-episode work and
- *   finishes it in batches, under a memory limit far below the catalog.
+ *   finishes it in batches, under a memory limit far below the catalog;
+ * - the delivery test checks the first enclosure of the feed;
+ * - listing links must belong to the platform; YouTube's requirements.
  *
  * Episodes created here are deleted and the options changed here are
  * restored at the end.
@@ -33,6 +47,8 @@ use EPM\Readiness;
 use EPM\Upgrade;
 
 require_once __DIR__ . '/lib.php';
+require_once __DIR__ . '/reference/Feed-1.3.php';
+require_once __DIR__ . '/reference/Readiness-1.3.php';
 require_once dirname( __DIR__ ) . '/perf/catalog.php';
 if ( ! class_exists( 'EPM_Test_HTTP' ) ) {
 	require dirname( __DIR__ ) . '/fixtures/mu-plugins/epm-test-http.php';
@@ -49,7 +65,7 @@ EPM_Test_HTTP::$routes  = [];
 // What the run changes, to put back at the end.
 $GLOBALS['epm_f_max_id']  = (int) $GLOBALS['wpdb']->get_var( "SELECT MAX(ID) FROM {$GLOBALS['wpdb']->posts}" );
 $GLOBALS['epm_f_options'] = [];
-foreach ( [ PodcastSettings::OPTION, Hosting::OPTION, Directories::OPTION, Feed::BUILD_OPTION, 'epm_version', 'blogname', 'permalink_structure', 'powerpress_general' ] as $epm_f_name ) {
+foreach ( [ PodcastSettings::OPTION, Hosting::OPTION, Directories::OPTION, Feed::BUILD_OPTION, Feed::ADDRESS_OPTION, 'epm_version', 'blogname', 'permalink_structure', 'powerpress_general' ] as $epm_f_name ) {
 	$GLOBALS['epm_f_options'][ $epm_f_name ] = get_option( $epm_f_name, '__epm_absent__' );
 }
 
@@ -169,6 +185,417 @@ function epm_f_serve( array $server = [] ): array {
 $t = new EPM_Test_Runner();
 
 /* ------------------------------------------------------------------------- */
+/* PERF-01 / PERF-N1: the paged build makes the same feed                    */
+/* ------------------------------------------------------------------------- */
+
+$t->test(
+	'the feed built a page at a time is byte for byte the 1.3 feed (episodic and serial, limits 0, 1, 2, 3 and 500)',
+	static function ( EPM_Test_Runner $t ) use ( $fx ) {
+		// More cases than the seed: a trailer (channel-level element), XML
+		// special characters, CDATA, imported episodes with external audio
+		// and artwork, a measurement prefix, the per-episode feed filter.
+		$extra   = [];
+		$extra[] = epm_f_episode( 'Trailer: <Coming> & "soon"', '2026-05-01 09:00:00', [ 'episode_type' => 'trailer', 'season_number' => 3, 'show_notes' => '<p>Notes with ]]> inside</p>', 'artwork_url' => 'https://feeds.example.test/media/trailer.png' ] );
+		$extra[] = epm_f_episode( 'Imported one', '2026-04-01 09:00:00', [ 'source' => 'import', 'chapters' => [ [ 'time' => '0:00', 'title' => 'Start', 'url' => '' ] ], 'guest_name' => 'Ann' ] );
+		$extra[] = epm_f_episode( 'Without distributable audio', '2026-09-03 09:00:00', [ 'audio_url' => 'https://feeds.example.test/media/master.wav', 'audio_type' => 'audio/wav' ] );
+		$filter  = static function ( $data ) {
+			$data['title'] = $data['title'] . ' (filtered)';
+			return $data;
+		};
+		add_filter( 'epm_feed_episode', $filter );
+
+		$cases = [];
+		foreach ( [ 'episodic', 'serial' ] as $type ) {
+			foreach ( [ 0, 1, 2, 3, 500 ] as $limit ) {
+				$cases[] = [ $type, $limit, '' ];
+			}
+		}
+		$cases[] = [ 'episodic', 500, 'op3' ];
+		$cases[] = [ 'serial', 2, 'op3' ];
+
+		$hosting = Hosting::all();
+		foreach ( $cases as [ $type, $limit, $stats ] ) {
+			epm_f_settings(
+				[
+					'type'       => $type,
+					'feed_limit' => $limit,
+				]
+			);
+			update_option( Hosting::OPTION, Hosting::sanitize( array_merge( $hosting, [ 'stats' => $stats ] ) ) );
+			Feed::flush_cache();
+			$new = epm()->feed->get_document()['xml'];
+			$old = epm_f_reference_xml();
+			$t->same( epm_f_strip( $old ), epm_f_strip( $new ), "$type, limit $limit" . ( '' !== $stats ? ", $stats prefix" : '' ) );
+			$t->assert( false !== simplexml_load_string( $new ), "$type, limit $limit: well-formed" );
+		}
+		update_option( Hosting::OPTION, $hosting );
+		remove_filter( 'epm_feed_episode', $filter );
+
+		// The trailer and the serial order are really in there.
+		epm_f_settings( [ 'type' => 'serial', 'feed_limit' => 2 ] );
+		$xp     = epm_test_xpath( epm_test_feed() );
+		$titles = [];
+		foreach ( $xp->query( '/rss/channel/item/title' ) as $node ) {
+			$titles[] = $node->textContent;
+		}
+		$t->same( [ 'Episode Two', 'Episode Three (bonus)' ], $titles, 'serial window: the newest two, oldest first' );
+		epm_f_settings( [ 'type' => 'episodic', 'feed_limit' => 500 ] );
+		$t->same( 1, epm_test_xpath( epm_test_feed() )->query( '/rss/channel/podcast:trailer' )->length, 'the trailer is announced on the channel' );
+
+		foreach ( $extra as $id ) {
+			wp_delete_post( $id, true );
+		}
+	}
+);
+
+$t->test(
+	'episodes with the same publish time keep a fixed order (newest ID first) across pages',
+	static function ( EPM_Test_Runner $t ) {
+		$ids = [];
+		for ( $i = 1; $i <= 5; $i++ ) {
+			$ids[] = epm_f_episode( 'Same time ' . $i, '2025-01-01 12:00:00' );
+		}
+		epm_f_settings( [ 'feed_limit' => 0 ] );
+		$xp     = epm_test_xpath( epm_test_feed() );
+		$titles = [];
+		foreach ( $xp->query( '/rss/channel/item/title' ) as $node ) {
+			if ( 0 === strpos( $node->textContent, 'Same time' ) ) {
+				$titles[] = $node->textContent;
+			}
+		}
+		$t->same( [ 'Same time 5', 'Same time 4', 'Same time 3', 'Same time 2', 'Same time 1' ], $titles );
+		$t->same( array_reverse( $ids ), array_values( array_intersect( epm()->feed->eligible_ids( 0 ), $ids ) ), 'eligible_ids() in the same order' );
+		epm_f_settings( [ 'feed_limit' => 500 ] );
+		foreach ( $ids as $id ) {
+			wp_delete_post( $id, true );
+		}
+	}
+);
+
+$t->test(
+	'the feed of 600 episodes needs the memory of a page: limits 20 and 500 build within 8 MB, and so does the unlimited feed',
+	static function ( EPM_Test_Runner $t ) {
+		epm_perf_catalog( 600, 8, true );
+		foreach ( [ 20, 500, 0 ] as $limit ) {
+			epm_f_settings( [ 'feed_limit' => $limit ] );
+			Feed::flush_cache();
+			wp_cache_flush();
+			gc_collect_cycles();
+			$before = memory_get_usage();
+			memory_reset_peak_usage();
+			$served = epm_f_serve();
+			$peak   = ( memory_get_peak_usage() - $before ) / MB_IN_BYTES;
+			$items  = substr_count( $served['body'], '<item>' );
+			$t->assert( $peak < 8, sprintf( 'limit %d: %.1f MB', $limit, $peak ) );
+			$t->same( 0 === $limit ? epm_perf_distributable( 600, true ) + 3 : min( $limit, epm_perf_distributable( 600, true ) + 3 ), $items, "limit $limit: items" );
+		}
+		epm_f_settings( [ 'feed_limit' => 500 ] );
+		epm_perf_catalog_reset();
+	}
+);
+
+/* ------------------------------------------------------------------------- */
+/* The feed cache                                                            */
+/* ------------------------------------------------------------------------- */
+
+$t->test(
+	'the cached feed is kept in pieces of at most 256 KB, read back intact, and a 304 needs none of them',
+	static function ( EPM_Test_Runner $t ) {
+		global $wpdb;
+
+		epm_perf_catalog( 800, 0, false, 1200 );
+		epm_f_settings( [ 'feed_limit' => 0 ] );
+		Feed::flush_cache();
+		$document = epm()->feed->get_document();
+		$stored   = FeedStore::current();
+		$t->assert( null !== $stored && $stored['chunks'] >= 4, 'stored in ' . ( $stored['chunks'] ?? 0 ) . ' pieces' );
+		$largest = (int) $wpdb->get_var( $wpdb->prepare( "SELECT MAX(LENGTH(option_value)) FROM {$wpdb->options} WHERE option_name LIKE %s", $wpdb->esc_like( 'epm_feed' ) . '%' ) );
+		$t->assert( $largest <= FeedWriter::CHUNK + 64 * KB_IN_BYTES, "largest row $largest bytes" );
+		$t->same( 0, (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE '%transient%epm_feed_cache%'" ), 'no transient row' );
+		$t->same( $stored['etag'], $document['etag'], 'same document' );
+		$t->assert( false !== simplexml_load_string( $document['xml'] ), 'well-formed after reassembly' );
+
+		$served = epm_f_serve();
+		$t->same( 200, $served['status'], 'served' );
+		$t->same( $document['xml'], $served['body'], 'streamed piece by piece, byte for byte' );
+
+		// A conditional request reads the pointer only.
+		$reads = 0;
+		$count = static function ( $query ) use ( &$reads ) {
+			if ( false !== strpos( (string) $query, 'epm_feed_chunk_' ) ) {
+				++$reads;
+			}
+			return $query;
+		};
+		add_filter( 'query', $count );
+		$not_modified = epm_f_serve( [ 'HTTP_IF_NONE_MATCH' => $document['etag'] ] );
+		remove_filter( 'query', $count );
+		$t->same( 304, $not_modified['status'], '304' );
+		$t->same( '', $not_modified['body'], 'no body' );
+		$t->same( 0, $reads, 'no piece read for a 304' );
+
+		// Pieces removed under a stored feed: rebuilt, never a broken feed.
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name = %s", FeedStore::chunk_name( $stored['gen'], 2 ) ) );
+		$served = epm_f_serve();
+		$t->same( 200, $served['status'], 'served after a piece went missing' );
+		$t->assert( false !== simplexml_load_string( $served['body'] ) && substr_count( $served['body'], '<item>' ) === substr_count( $document['xml'], '<item>' ), 'complete after a piece went missing' );
+
+		epm_f_settings( [ 'feed_limit' => 500 ] );
+		epm_perf_catalog_reset();
+	}
+);
+
+$t->test(
+	'one request builds at a time; a build that a change overtook is served to its request but not stored; old pieces are removed',
+	static function ( EPM_Test_Runner $t ) {
+		global $wpdb;
+
+		Feed::flush_cache();
+		$claim = FeedStore::claim();
+		$t->assert( null !== $claim, 'a request claims the build' );
+		$t->same( null, FeedStore::claim(), 'a second request does not' );
+
+		// The show changes while the first request builds.
+		Feed::flush_cache();
+		$t->same( false, FeedStore::publish( $claim, [ 'chunks' => 1, 'etag' => '"x"', 'modified' => time(), 'bytes' => 1 ] ), 'the overtaken build is not stored' );
+		$t->same( null, FeedStore::current(), 'nothing stored' );
+
+		// Builds older than five minutes, beyond the newest two, go away.
+		FeedStore::purge();
+		$now = time();
+		foreach ( [ 3600, 2400, 1800, 1200 ] as $age ) {
+			FeedStore::put( ( $now - $age ) . '_old' . $age, 0, 'x' );
+		}
+		epm()->feed->get_document();
+		$left = [];
+		foreach ( [ 3600, 2400, 1800, 1200 ] as $age ) {
+			if ( null !== \EPM\OptionRow::read( FeedStore::chunk_name( ( $now - $age ) . '_old' . $age, 0 ) ) ) {
+				$left[] = $age;
+			}
+			FeedStore::discard( ( $now - $age ) . '_old' . $age );
+		}
+		$t->same( [ 1800, 1200 ], $left, 'the two newest older builds stay for requests still sending them' );
+
+		// A claim of a request that died is taken over after two minutes.
+		$wpdb->update( $wpdb->options, [ 'option_value' => (string) wp_json_encode( [ 'v' => 2, 'building' => '1_dead', 'since' => time() - 600 ] ) ], [ 'option_name' => FeedStore::POINTER ] );
+		$wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'no')", FeedStore::POINTER, (string) wp_json_encode( [ 'v' => 2, 'building' => '1_dead', 'since' => time() - 600 ] ) ) );
+		$t->assert( null !== FeedStore::claim(), 'an abandoned build is taken over' );
+		Feed::flush_cache();
+	}
+);
+
+/* ------------------------------------------------------------------------- */
+/* FEED-N10 / N11 / N12 / N9                                                 */
+/* ------------------------------------------------------------------------- */
+
+$t->test(
+	'FEED-N10: Last-Modified is never later than now, also after an episode dated in the future, and a stored future time is repaired',
+	static function ( EPM_Test_Runner $t ) use ( $fx ) {
+		$future = epm_f_episode( 'Dated next year', gmdate( 'Y-m-d H:i:s', time() + YEAR_IN_SECONDS ) );
+		wp_publish_post( $future );
+		Feed::flush_cache();
+		$document = epm()->feed->get_document();
+		$t->assert( $document['modified'] <= time(), 'build time ' . gmdate( 'c', $document['modified'] ) );
+		$t->assert( false !== strpos( $document['xml'], 'Dated next year' ), 'the episode is in the feed' );
+		wp_delete_post( $future, true );
+
+		update_option(
+			Feed::BUILD_OPTION,
+			[
+				'hash'     => 'x',
+				'modified' => time() + YEAR_IN_SECONDS,
+			],
+			false
+		);
+		Feed::repair_build_time();
+		$t->assert( (int) get_option( Feed::BUILD_OPTION )['modified'] <= time(), 'repaired by the upgrade' );
+
+		// A channel change answers If-Modified-Since with the new feed.
+		Feed::flush_cache();
+		$before = epm()->feed->get_document();
+		sleep( 1 );
+		epm_f_settings( [ 'copyright' => 'Changed ' . wp_generate_password( 6, false ) ] );
+		$since  = gmdate( 'D, d M Y H:i:s', $before['modified'] ) . ' GMT';
+		$served = epm_f_serve( [ 'HTTP_IF_MODIFIED_SINCE' => $since ] );
+		$t->same( 200, $served['status'], 'If-Modified-Since after a change: 200' );
+	}
+);
+
+$t->test(
+	'FEED-N11: If-None-Match matches "*", lists, weak tags and unquoted tags, but never a tag that only contains the ETag',
+	static function ( EPM_Test_Runner $t ) {
+		$etag = '"2e495b06c576d960e56af04a55e1194b"';
+		foreach ( [ '*', $etag, '"abc", ' . $etag, 'W/' . $etag, '"abc",W/' . $etag, trim( $etag, '"' ) ] as $header ) {
+			$t->assert( Feed::etag_matches( $header, $etag ), "matches: $header" );
+		}
+		foreach ( [ '"xx2e495b06c576d960e56af04a55e1194byy"', '"stale"', '"abc", "def"', '' ] as $header ) {
+			$t->assert( ! Feed::etag_matches( $header, $etag ), "no match: $header" );
+		}
+
+		Feed::flush_cache();
+		$document = epm()->feed->get_document();
+		$t->same( 304, epm_f_serve( [ 'HTTP_IF_NONE_MATCH' => '*' ] )['status'], '"*" answers 304' );
+		$t->same( 200, epm_f_serve( [ 'HTTP_IF_NONE_MATCH' => '"xx' . trim( $document['etag'], '"' ) . 'yy"' ] )['status'], 'a tag containing the ETag answers 200' );
+	}
+);
+
+$t->test(
+	'FEED-N12: U+FFFE, U+FFFF, control characters and invalid UTF-8 in titles, notes and channel text never break the feed',
+	static function ( EPM_Test_Runner $t ) {
+		// Injected where the feed reads them (a database may refuse invalid
+		// UTF-8 on the way in).
+		$bad     = "Bad \u{FFFE}chars\u{FFFF} \x01here \xC3\x28 ok ü 😀 & <b>";
+		$id      = epm_f_episode( 'Bad characters', '2026-09-05 10:00:00' );
+		$episode = static function ( $data ) use ( $id, $bad ) {
+			if ( (int) $data['id'] === $id ) {
+				$data['title']             = $bad;
+				$data['show_notes']        = '<p>' . $bad . '</p>';
+				$data['guest_name']        = $bad;
+				$data['short_description'] = $bad;
+			}
+			return $data;
+		};
+		$channel = static function ( $value ) use ( $bad ) {
+			if ( is_array( $value ) ) {
+				$value['description'] = 'Channel ' . $bad;
+			}
+			return $value;
+		};
+		add_filter( 'epm_episode_data', $episode );
+		add_filter( 'option_' . PodcastSettings::OPTION, $channel );
+		Episodes::clear_data_cache( $id );
+		Feed::flush_cache();
+		$xml = epm()->feed->get_document()['xml'];
+		libxml_use_internal_errors( true );
+		$sx = simplexml_load_string( $xml );
+		libxml_clear_errors();
+		$t->assert( false !== $sx, 'well-formed' );
+		$t->assert( false === strpos( $xml, "\u{FFFE}" ) && false === strpos( $xml, "\u{FFFF}" ) && false === strpos( $xml, "\x01" ), 'noncharacters and control characters removed' );
+		$t->assert( false !== strpos( $xml, 'ok ü 😀 &amp;' ), 'the rest kept' );
+		$t->assert( false !== strpos( $xml, "\u{FFFD}(" ), 'invalid UTF-8 replaced, the field not emptied' );
+		$t->same( 'Bad chars here ' . "\u{FFFD}" . '( ok ü 😀 &amp; &lt;b&gt;', epm_esc_xml( "Bad \u{FFFE}chars\u{FFFF} \x01here \xC3\x28 ok ü 😀 & <b>" ), 'epm_esc_xml()' );
+
+		remove_filter( 'epm_episode_data', $episode );
+		remove_filter( 'option_' . PodcastSettings::OPTION, $channel );
+		Episodes::clear_data_cache( $id );
+		wp_delete_post( $id, true );
+	}
+);
+
+$t->test(
+	'FEED-N9: replacing an episode\'s audio file or its metadata, and renaming the site, update the cached feed',
+	static function ( EPM_Test_Runner $t ) use ( $fx ) {
+		Feed::flush_cache();
+		epm()->feed->get_document();
+		$t->assert( null !== FeedStore::current(), 'cached' );
+
+		$meta             = wp_get_attachment_metadata( $fx['audio_1'] );
+		$changed          = $meta;
+		$changed['filesize'] = 999999;
+		wp_update_attachment_metadata( $fx['audio_1'], $changed );
+		$t->assert( false !== strpos( epm()->feed->get_document()['xml'], 'length="999999"' ), 'new length' );
+		wp_update_attachment_metadata( $fx['audio_1'], $meta );
+
+		$file = get_attached_file( $fx['audio_1'] );
+		$copy = dirname( $file ) . '/epm-episode-1-swapped.mp3';
+		copy( $file, $copy );
+		update_attached_file( $fx['audio_1'], $copy );
+		$t->assert( false !== strpos( epm()->feed->get_document()['xml'], 'epm-episode-1-swapped.mp3' ), 'new file' );
+		update_attached_file( $fx['audio_1'], $file );
+		wp_delete_file( $copy );
+
+		$settings = epm()->settings->all();
+		epm_f_settings( [ 'title' => '' ] );
+		epm()->feed->get_document();
+		update_option( 'blogname', 'Renamed Blog ' . wp_generate_password( 4, false ) );
+		$t->assert( false !== strpos( epm()->feed->get_document()['xml'], '<title>Renamed Blog' ), 'the site title stands in for an empty podcast title' );
+		update_option( PodcastSettings::OPTION, $settings );
+		epm_f_restore( 'blogname' );
+	}
+);
+
+/* ------------------------------------------------------------------------- */
+/* FEED-N3 / N8 / N15: routing                                               */
+/* ------------------------------------------------------------------------- */
+
+$t->test(
+	'FEED-N3/N8: archive feeds become the podcast feed before WordPress answers them; the previous address only when turned on',
+	static function ( EPM_Test_Runner $t ) {
+		$t->same( [ Feed::QUERY_VAR => '1' ], Feed::route_request( [ 'post_type' => EpisodePostType::CPT, 'feed' => 'rss2' ] ), '/podcast/rss2/' );
+		$t->same( [ Feed::QUERY_VAR => '1' ], Feed::route_request( [ 'post_type' => EpisodePostType::CPT, 'feed' => 'atom' ] ), '/podcast/feed/atom/' );
+		$t->same( [ 'post_type' => EpisodePostType::CPT, 'feed' => 'rss2', 's' => 'x' ], Feed::route_request( [ 'post_type' => EpisodePostType::CPT, 'feed' => 'rss2', 's' => 'x' ] ), 'a search feed stays WordPress\'s' );
+		$t->same( [ 'feed' => 'rss2' ], Feed::route_request( [ 'feed' => 'rss2' ] ), 'the blog feed stays WordPress\'s' );
+
+		epm_f_settings( [ 'feed_alias' => false ] );
+		$t->same( [ 'feed' => 'podcast' ], Feed::route_request( [ 'feed' => 'podcast' ] ), 'previous address off: untouched (404)' );
+		epm_f_settings( [ 'feed_alias' => true ] );
+		$t->same( [ Feed::ALIAS_VAR => '1' ], Feed::route_request( [ 'feed' => 'podcast' ] ), 'previous address on: redirected' );
+		global $wp_rewrite;
+		$t->assert( in_array( 'podcast', (array) $wp_rewrite->feeds, true ), '/feed/podcast/ has a rewrite rule' );
+		epm_f_settings( [ 'feed_alias' => false ] );
+		$t->assert( ! in_array( 'podcast', (array) $wp_rewrite->feeds, true ), 'and loses it when turned off' );
+	}
+);
+
+/* ------------------------------------------------------------------------- */
+/* FEED-N6: GUIDs                                                            */
+/* ------------------------------------------------------------------------- */
+
+$t->test(
+	'FEED-N6: every new episode has its GUID right after it is created, without the editor, and it is the same for every request',
+	static function ( EPM_Test_Runner $t ) {
+		global $wpdb;
+
+		unset( $_POST['epm_episode_meta_nonce'] );
+		$id   = (int) wp_insert_post( [ 'post_type' => EpisodePostType::CPT, 'post_status' => 'publish', 'post_title' => 'Made by an integration' ] );
+		$rows = $wpdb->get_col( $wpdb->prepare( "SELECT meta_value FROM {$wpdb->postmeta} WHERE post_id = %d AND meta_key = '_epm_guid'", $id ) );
+		$t->same( 1, count( $rows ), 'one GUID row right after wp_insert_post()' );
+		$t->same( Episodes::new_guid( $id ), $rows[0] ?? '', 'derived from the episode' );
+		$t->assert( (bool) preg_match( '/^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/', (string) ( $rows[0] ?? '' ) ), 'a URN UUID' );
+
+		// An episode written without hooks: every request derives the same.
+		$wpdb->delete( $wpdb->postmeta, [ 'post_id' => $id, 'meta_key' => '_epm_guid' ] );
+		wp_cache_delete( $id, 'post_meta' );
+		$first = Episodes::new_guid( $id );
+		$t->same( $first, Episodes::get_guid( $id ), 'first read' );
+		$t->same( $first, Episodes::new_guid( $id ), 'any other request computes the same' );
+
+		// An imported episode keeps its host's GUID.
+		$import = (int) wp_insert_post( [ 'post_type' => EpisodePostType::CPT, 'post_status' => 'publish', 'post_title' => 'Imported', 'meta_input' => [ '_epm_guid' => 'host-guid-1' ] ] );
+		$t->same( [ 'host-guid-1' ], $wpdb->get_col( $wpdb->prepare( "SELECT meta_value FROM {$wpdb->postmeta} WHERE post_id = %d AND meta_key = '_epm_guid'", $import ) ), 'the host\'s GUID, alone' );
+
+		wp_delete_post( $id, true );
+		wp_delete_post( $import, true );
+	}
+);
+
+$t->test(
+	'FEED-N6: the upgrade collapses duplicate GUID rows to the one WordPress returned (the oldest row)',
+	static function ( EPM_Test_Runner $t ) {
+		global $wpdb;
+
+		$id = (int) wp_insert_post( [ 'post_type' => EpisodePostType::CPT, 'post_status' => 'publish', 'post_title' => 'Raced' ] );
+		$wpdb->delete( $wpdb->postmeta, [ 'post_id' => $id, 'meta_key' => '_epm_guid' ] );
+		// Two requests stored a random GUID each (1.3).
+		$wpdb->insert( $wpdb->postmeta, [ 'post_id' => $id, 'meta_key' => '_epm_guid', 'meta_value' => 'urn:uuid:first-served' ] );
+		$wpdb->insert( $wpdb->postmeta, [ 'post_id' => $id, 'meta_key' => '_epm_guid', 'meta_value' => 'urn:uuid:second' ] );
+		wp_cache_delete( $id, 'post_meta' );
+		$served = Episodes::get_guid( $id );
+		$t->same( 'urn:uuid:first-served', $served, 'WordPress returns the oldest row' );
+
+		$record = get_option( Episodes::REMOVED_GUIDS_OPTION, '__absent__' );
+		$t->same( 1, Episodes::collapse_guid_rows( 100 ), 'one row removed' );
+		$removed = (array) get_option( Episodes::REMOVED_GUIDS_OPTION, [] );
+		$last    = end( $removed );
+		$t->assert( is_array( $last ) && $id === $last['post_id'] && 'urn:uuid:second' === $last['guid'] && 'urn:uuid:first-served' === $last['kept'], 'the removed value is recorded for recovery' );
+		'__absent__' === $record ? delete_option( Episodes::REMOVED_GUIDS_OPTION ) : update_option( Episodes::REMOVED_GUIDS_OPTION, $record, false );
+		$t->same( [ 'urn:uuid:first-served' ], $wpdb->get_col( $wpdb->prepare( "SELECT meta_value FROM {$wpdb->postmeta} WHERE post_id = %d AND meta_key = '_epm_guid'", $id ) ), 'the served GUID stays' );
+		$t->same( 0, Episodes::collapse_guid_rows( 100 ), 'nothing left' );
+		wp_delete_post( $id, true );
+	}
+);
+
+/* ------------------------------------------------------------------------- */
 /* LIFE-N1: the upgrade                                                      */
 /* ------------------------------------------------------------------------- */
 
@@ -235,6 +662,73 @@ $t->test(
 		$t->assert( $busy['busy'] && 0 === $busy['batches'], 'a second worker waits' );
 		\EPM\OptionRow::unlock( Upgrade::LOCK, $lock );
 		$t->same( [], Upgrade::run( 0 )['pending'], 'then the work finishes' );
+	}
+);
+
+/* ------------------------------------------------------------------------- */
+/* PERF-N4: readiness                                                        */
+/* ------------------------------------------------------------------------- */
+
+$t->test(
+	'PERF-N4: the readiness report worked through page by page equals the 1.3 report on a small catalog with problems',
+	static function ( EPM_Test_Runner $t ) use ( $fx ) {
+		$extra   = [];
+		$extra[] = epm_f_episode( 'Plain http audio', '2026-03-01 10:00:00', [ 'audio_url' => 'http://feeds.example.test/media/plain.mp3' ] );
+		$extra[] = epm_f_episode( 'Same audio as another', '2026-03-02 10:00:00', [ 'audio_url' => 'http://feeds.example.test/media/plain.mp3' ] );
+		$extra[] = epm_f_episode( 'Unknown size', '2026-03-03 10:00:00', [ 'audio_length' => 0 ] );
+		$extra[] = epm_f_episode( 'Deleted file', '2026-03-04 10:00:00', [ 'audio_url' => '', 'audio_id' => 999999 ] );
+		$extra[] = epm_f_episode( 'Imported, left at the host', '2026-03-05 10:00:00', [ 'source' => 'import' ] );
+
+		foreach ( [ false, true ] as $moved_in ) {
+			epm_f_settings( [ 'moved_in' => $moved_in ] );
+			$new = Readiness::report();
+			$old = \EPM\Reference\Readiness::report();
+			$t->same( $old, $new, $moved_in ? 'moved in' : 'self-hosted' );
+		}
+		epm_f_settings( [ 'moved_in' => false ] );
+		foreach ( $extra as $id ) {
+			wp_delete_post( $id, true );
+		}
+	}
+);
+
+$t->test(
+	'PERF-N4: with many problem episodes the first 50 are listed and the rest counted, with the same totals',
+	static function ( EPM_Test_Runner $t ) {
+		epm_perf_catalog( 120, 0, false );
+		global $wpdb;
+		$wpdb->query( "UPDATE {$wpdb->postmeta} SET meta_value = REPLACE(meta_value, 'https://', 'http://') WHERE meta_key = '_epm_audio_url' AND meta_value LIKE 'https://feeds.example.test/media/perf-cat-%'" );
+		wp_cache_flush();
+
+		$old = \EPM\Reference\Readiness::report();
+		$new = Readiness::report();
+		$t->same( $old['errors'], $new['errors'], 'errors' );
+		$t->same( $old['warnings'], $new['warnings'], 'warnings' );
+		$episode_checks = array_filter(
+			$new['checks'],
+			static function ( $check ) {
+				return 0 === strpos( $check['label'], 'Episode: ' );
+			}
+		);
+		$t->same( 50, count( $episode_checks ), 'fifty listed' );
+		$more = array_values(
+			array_filter(
+				$new['checks'],
+				static function ( $check ) {
+					return 'More episodes' === $check['label'];
+				}
+			)
+		);
+		$all = count(
+			array_filter(
+				$old['checks'],
+				static function ( $check ) {
+					return 0 === strpos( $check['label'], 'Episode: ' );
+				}
+			)
+		);
+		$t->assert( 1 === count( $more ) && false !== strpos( $more[0]['message'], number_format_i18n( $all - 50 ) . ' more' ), 'the rest counted: ' . ( $more[0]['message'] ?? '' ) );
+		epm_perf_catalog_reset();
 	}
 );
 

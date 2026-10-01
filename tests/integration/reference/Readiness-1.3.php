@@ -1,28 +1,29 @@
 <?php
 /**
- * Distribution readiness report (Layer 1).
+ * Reference copy of the readiness report before it worked through the
+ * episodes page by page: includes/Readiness.php as of commit 89bffa8,
+ * unchanged except for its namespace. Not loaded by the plugin.
  *
- * A nonempty title is not enough: this checks the metadata, artwork,
- * episodes and media that podcast directories actually require, and
- * surfaces actionable errors and warnings. Optional chapters, guests
- * and transcripts never block publishing.
+ * tests/integration/feed.php compares its report with the current one on
+ * a small catalog (they must agree). Do not "fix" this file.
  *
  * @package EPM
  */
 
-namespace EPM;
+namespace EPM\Reference;
+
+use EPM\AudioMetadata;
+use EPM\Capabilities;
+use EPM\Categories;
+use EPM\EpisodePostType;
+use EPM\Episodes;
+use EPM\Hosting;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 final class Readiness {
-
-	/**
-	 * Problems with single episodes listed one by one; more are counted in
-	 * one check.
-	 */
-	private const EPISODE_CHECKS = 50;
 
 	/**
 	 * Apple Podcasts top-level categories (validation reference).
@@ -82,23 +83,6 @@ final class Readiness {
 			return self::finish( self::external_checks( $add, $checks ) );
 		}
 
-		// --- The address directories know. ---
-		$address = Feed::address_change();
-		if ( null !== $address ) {
-			$add(
-				'error',
-				__( 'Feed address', 'elementor-podcast-manager' ),
-				sprintf(
-					/* translators: 1: feed address submitted to directories, 2: new feed address */
-					__( 'The feed address changed from %1$s to %2$s. Directories and apps keep loading the old address. Change the permalink setting back, or submit the new address to every directory and confirm it on the Distribution screen.', 'elementor-podcast-manager' ),
-					$address['shown'],
-					$address['now']
-				),
-				self::admin_page_url( 'epm-distribution' ),
-				__( 'Open Distribution', 'elementor-podcast-manager' )
-			);
-		}
-
 		// --- Required podcast metadata. ---
 		$title = trim( (string) $settings->get( 'title' ) );
 		if ( '' === $title ) {
@@ -156,7 +140,7 @@ final class Readiness {
 			$add( 'ok', __( 'Category', 'elementor-podcast-manager' ), '' !== $subcategory ? $category . ' › ' . $subcategory : $category );
 		}
 
-		$language = Feed::rss_language( (string) $settings->get( 'language' ) );
+		$language = \EPM\Feed::rss_language( (string) $settings->get( 'language' ) );
 		$add( 'ok', __( 'Language', 'elementor-podcast-manager' ), $language );
 
 		// --- Artwork. ---
@@ -212,20 +196,15 @@ final class Readiness {
 			}
 		}
 
-		// --- Episodes (a page at a time: a large catalog never sits in memory). ---
+		// --- Episodes. ---
+		$episodes    = epm()->episodes->get_episodes( [ 'posts_per_page' => -1 ] );
+		Episodes::prime_attachments( $episodes );
 		$distributable = 0;
 		$seen_urls     = [];
 		$left_at_host  = 0;
 		$moved_in      = ! empty( epm()->settings->get( 'moved_in' ) );
-		// YouTube (when it is tracked on the Distribution screen) rejects
-		// "<" and ">" in titles and descriptions.
-		$youtube = '' !== (string) ( Directories::progress()['youtube']['status'] ?? '' );
-		if ( $youtube && self::has_angle_brackets( Feed::plain_text( (string) $settings->get( 'title' ) ) . Feed::plain_text( (string) $settings->get( 'description' ) ) ) ) {
-			$add( 'warning', __( 'Podcast title and description', 'elementor-podcast-manager' ), __( 'YouTube does not accept “<” or “>” in titles and descriptions. Remove them from the podcast title and description.', 'elementor-podcast-manager' ), $settings_url( 'epm-s-title' ), $fix_here );
-		}
-		$first_episode = count( $checks );
 
-		foreach ( epm()->episodes->each_public() as $post ) {
+		foreach ( $episodes as $post ) {
 			$data = epm()->episodes->get_public_data( $post );
 			if ( ! $data ) {
 				continue;
@@ -312,14 +291,8 @@ final class Readiness {
 			}
 			$seen_urls[ $enclosure['url'] ] = $data['title'];
 
-			if ( $youtube && self::has_angle_brackets( Feed::plain_text( (string) $data['title'] ) . Feed::episode_summary( $post, $data ) ) ) {
-				$add( 'warning', sprintf( __( 'Episode: %s', 'elementor-podcast-manager' ), $data['title'] ), __( 'YouTube does not accept “<” or “>” in titles and descriptions. Remove them from the title and the description.', 'elementor-podcast-manager' ), $edit_url, $edit_text );
-			}
-
 			$distributable++;
 		}
-
-		self::fold_episode_checks( $checks, $first_episode );
 
 		if ( $left_at_host > 0 ) {
 			$add(
@@ -413,64 +386,6 @@ final class Readiness {
 	}
 
 	/**
-	 * Whether text contains "<" or ">".
-	 *
-	 * @param string $text Plain text.
-	 * @return bool
-	 */
-	private static function has_angle_brackets( string $text ): bool {
-		return false !== strpbrk( $text, '<>' );
-	}
-
-	/**
-	 * Keep the report readable for large catalogs: after the first
-	 * EPISODE_CHECKS problems with single episodes, the rest become one
-	 * check that counts them and links to the episode list. The counts of
-	 * errors and warnings still include every one of them.
-	 *
-	 * @param array<int, array<string, mixed>> $checks Checks (changed in place).
-	 * @param int                              $first  Index of the first episode check.
-	 * @return void
-	 */
-	private static function fold_episode_checks( array &$checks, int $first ): void {
-		$episode_checks = array_slice( $checks, $first );
-		if ( count( $episode_checks ) <= self::EPISODE_CHECKS ) {
-			return;
-		}
-
-		$rest   = array_slice( $episode_checks, self::EPISODE_CHECKS );
-		$errors = count(
-			array_filter(
-				$rest,
-				static function ( $check ) {
-					return 'error' === $check['status'];
-				}
-			)
-		);
-		$warnings = count( $rest ) - $errors;
-		$url      = admin_url( 'edit.php?post_type=' . EpisodePostType::CPT );
-
-		$checks   = array_slice( $checks, 0, $first + self::EPISODE_CHECKS );
-		$checks[] = [
-			'status'    => $errors > 0 ? 'error' : 'warning',
-			'label'     => __( 'More episodes', 'elementor-podcast-manager' ),
-			'message'   => sprintf(
-				/* translators: 1: number of further episode problems, 2: of them errors, 3: of them warnings */
-				_n( '%1$s more episode problem (%2$s errors, %3$s warnings) is not listed here.', '%1$s more episode problems (%2$s errors, %3$s warnings) are not listed here.', count( $rest ), 'elementor-podcast-manager' ),
-				number_format_i18n( count( $rest ) ),
-				number_format_i18n( $errors ),
-				number_format_i18n( $warnings )
-			),
-			'url'       => $url,
-			'fix_label' => __( 'Open the episode list', 'elementor-podcast-manager' ),
-			'folded'    => [
-				'error'   => $errors,
-				'warning' => $warnings,
-			],
-		];
-	}
-
-	/**
 	 * Sort checks and count problems.
 	 *
 	 * @param array<int, array<string, string>> $checks Checks.
@@ -500,11 +415,7 @@ final class Readiness {
 		$errors   = 0;
 		$warnings = 0;
 		foreach ( $checks as $check ) {
-			if ( isset( $check['folded'] ) ) {
-				// Problems folded into one check count one by one.
-				$errors   += (int) $check['folded']['error'];
-				$warnings += (int) $check['folded']['warning'];
-			} elseif ( 'error' === $check['status'] ) {
+			if ( 'error' === $check['status'] ) {
 				$errors++;
 			} elseif ( 'warning' === $check['status'] ) {
 				$warnings++;
