@@ -309,11 +309,17 @@
 	 * @return {string} Text.
 	 */
 	function describeChange(change) {
-		return change.shown
+		var format;
+
+		if (change.shown) {
 			/* translators: 1: detail, e.g. Volume slider, 2: where, e.g. Player and Episode pages */
-			? sprintf(__('%1$s shown: %2$s', 'elementor-podcast-manager'), change.label, listOf(change.places))
+			format = __('%1$s shown: %2$s', 'elementor-podcast-manager');
+		} else {
 			/* translators: 1: detail, e.g. Volume slider, 2: where, e.g. Player and Episode pages */
-			: sprintf(__('%1$s hidden: %2$s', 'elementor-podcast-manager'), change.label, listOf(change.places));
+			format = __('%1$s hidden: %2$s', 'elementor-podcast-manager');
+		}
+
+		return sprintf(format, change.label, listOf(change.places));
 	}
 
 	/**

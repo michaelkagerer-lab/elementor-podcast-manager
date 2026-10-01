@@ -3,13 +3,13 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Elementor Podcast Manager 1.3.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/elementor-podcast-manager\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/epm-work-c\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-30T20:27:41+00:00\n"
+"POT-Creation-Date: 2026-10-01T11:43:32+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: elementor-podcast-manager\n"
@@ -70,17 +70,17 @@ msgstr ""
 #: admin/views/dashboard.php:62
 #: admin/views/settings.php:24
 #: admin/views/setup.php:54
-#: includes/Admin.php:317
 #: includes/Admin.php:318
+#: includes/Admin.php:319
 #: includes/AdminPages.php:133
 #: includes/AdminPages.php:519
-#: includes/Elementor/Integration.php:46
+#: includes/Elementor/Integration.php:62
 msgid "Podcast"
 msgstr ""
 
 #: admin/views/dashboard.php:63
-#: includes/Admin.php:345
 #: includes/Admin.php:346
+#: includes/Admin.php:347
 #: includes/EpisodePostType.php:132
 msgid "Add episode"
 msgstr ""
@@ -277,6 +277,7 @@ msgid "Add more platforms"
 msgstr ""
 
 #: admin/views/dashboard.php:242
+#: includes/Details.php:199
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:124
 msgid "Latest episode"
 msgstr ""
@@ -295,7 +296,7 @@ msgid "Edit episode"
 msgstr ""
 
 #: admin/views/dashboard.php:293
-#: includes/Admin.php:103
+#: includes/Admin.php:104
 #: includes/EpisodePostType.php:135
 msgid "View episode"
 msgstr ""
@@ -338,530 +339,606 @@ msgstr ""
 msgid "%1$s of %2$s checks complete"
 msgstr ""
 
-#: admin/views/design.php:33
-#: admin/views/design.php:46
-#: includes/Elementor/Widgets/WidgetHelpers.php:251
+#: admin/views/design.php:38
+#: admin/views/design.php:51
+#: includes/Elementor/Widgets/WidgetHelpers.php:427
 msgid "Rounded"
 msgstr ""
 
-#: admin/views/design.php:34
-#: includes/Elementor/Widgets/WidgetHelpers.php:252
+#: admin/views/design.php:39
+#: includes/Elementor/Widgets/WidgetHelpers.php:428
 msgid "Pill"
 msgstr ""
 
-#: admin/views/design.php:35
-#: includes/Elementor/Widgets/WidgetHelpers.php:253
+#: admin/views/design.php:40
+#: includes/Elementor/Widgets/WidgetHelpers.php:429
 msgid "Square"
 msgstr ""
 
-#: admin/views/design.php:38
-#: includes/Elementor/Widgets/EpisodeListWidget.php:176
+#: admin/views/design.php:43
+#: includes/Elementor/Widgets/EpisodeListWidget.php:183
 msgid "None"
 msgstr ""
 
-#: admin/views/design.php:39
+#: admin/views/design.php:44
 msgid "Soft"
 msgstr ""
 
-#: admin/views/design.php:40
+#: admin/views/design.php:45
 msgid "Lifted"
 msgstr ""
 
-#: admin/views/design.php:43
+#: admin/views/design.php:48
 msgid "Theme font"
 msgstr ""
 
-#: admin/views/design.php:44
+#: admin/views/design.php:49
 msgid "System"
 msgstr ""
 
-#: admin/views/design.php:45
+#: admin/views/design.php:50
 msgid "Serif"
 msgstr ""
 
-#: admin/views/design.php:47
+#: admin/views/design.php:52
 msgid "Monospace"
 msgstr ""
 
-#: admin/views/design.php:52
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:110
+#: admin/views/design.php:57
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:106
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:114
-#: includes/Presets.php:159
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:135
+#: includes/Presets.php:134
 msgid "Minimal"
 msgstr ""
 
-#: admin/views/design.php:53
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:111
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:115
+#: admin/views/design.php:58
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:136
 msgid "Compact"
 msgstr ""
 
-#: admin/views/design.php:54
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:112
+#: admin/views/design.php:59
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:105
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:116
-#: includes/Presets.php:195
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:137
+#: includes/Presets.php:174
 msgid "Editorial"
 msgstr ""
 
-#: admin/views/design.php:55
+#: admin/views/design.php:60
 #: admin/views/settings.php:133
-#: includes/Admin.php:1365
-#: includes/Admin.php:1401
+#: includes/Admin.php:1461
+#: includes/Details.php:165
 #: includes/Elementor/Widgets/EpisodeHeaderWidget.php:102
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:113
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:119
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:111
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:117
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:123
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:232
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:138
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:153
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:271
 #: includes/EpisodeMeta.php:288
 msgid "Artwork"
 msgstr ""
 
-#: admin/views/design.php:56
-#: includes/Admin.php:1543
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:114
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:118
+#: admin/views/design.php:61
+#: includes/Admin.php:1603
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:139
 msgid "Full"
 msgstr ""
 
-#: admin/views/design.php:60
-#: includes/Elementor/Widgets/EpisodeListWidget.php:187
-#: includes/Elementor/Widgets/EpisodeListWidget.php:199
-#: includes/Elementor/Widgets/EpisodeListWidget.php:243
+#: admin/views/design.php:65
+#: includes/Elementor/Widgets/EpisodeListWidget.php:194
+#: includes/Elementor/Widgets/EpisodeListWidget.php:202
+#: includes/Elementor/Widgets/EpisodeListWidget.php:247
 msgid "List"
 msgstr ""
 
-#: admin/views/design.php:61
+#: admin/views/design.php:66
 msgid "Editorial rows"
 msgstr ""
 
-#: admin/views/design.php:62
-#: includes/Elementor/Widgets/EpisodeListWidget.php:201
+#: admin/views/design.php:67
+#: includes/Elementor/Widgets/EpisodeListWidget.php:204
 msgid "Cards"
 msgstr ""
 
-#: admin/views/design.php:63
-#: includes/Elementor/Widgets/EpisodeListWidget.php:202
+#: admin/views/design.php:68
+#: includes/Elementor/Widgets/EpisodeListWidget.php:205
 msgid "Grid"
 msgstr ""
 
-#: admin/views/design.php:64
+#: admin/views/design.php:69
 msgid "Minimal list"
 msgstr ""
 
-#: admin/views/design.php:69
+#: admin/views/design.php:74
 msgid "Colors"
 msgstr ""
 
-#: admin/views/design.php:70
+#: admin/views/design.php:75
 msgid "Start with your site’s background, then pick text and accent colors that read well on it. The contrast check below updates as you go."
 msgstr ""
 
-#: admin/views/design.php:72
-#: includes/Elementor/Widgets/EpisodeListWidget.php:249
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:166
+#: admin/views/design.php:77
+#: includes/Elementor/Widgets/EpisodeListWidget.php:258
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:183
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:171
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:164
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:384
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:421
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:203
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:423
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:460
 msgid "Background"
 msgstr ""
 
-#: admin/views/design.php:72
+#: admin/views/design.php:77
 msgid "Players and the area around podcast components. Usually your site’s background color."
 msgstr ""
 
-#: admin/views/design.php:73
+#: admin/views/design.php:78
 msgid "Surface"
 msgstr ""
 
-#: admin/views/design.php:73
+#: admin/views/design.php:78
 msgid "Episode cards, the sticky player and error messages."
 msgstr ""
 
-#: admin/views/design.php:74
+#: admin/views/design.php:79
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:147
 #: includes/Elementor/Widgets/SubscribeLinksWidget.php:102
 msgid "Text"
 msgstr ""
 
-#: admin/views/design.php:74
+#: admin/views/design.php:79
 msgid "Titles and body text."
 msgstr ""
 
-#: admin/views/design.php:75
+#: admin/views/design.php:80
 msgid "Muted text"
 msgstr ""
 
-#: admin/views/design.php:75
+#: admin/views/design.php:80
 msgid "Dates, durations and other secondary details."
 msgstr ""
 
-#: admin/views/design.php:76
+#: admin/views/design.php:81
 msgid "Accent"
 msgstr ""
 
-#: admin/views/design.php:76
+#: admin/views/design.php:81
 msgid "Play buttons, links and the played part of timelines."
 msgstr ""
 
-#: admin/views/design.php:77
-#: includes/Admin.php:1218
+#: admin/views/design.php:82
+#: includes/Admin.php:1301
 msgid "Text on accent"
 msgstr ""
 
-#: admin/views/design.php:77
+#: admin/views/design.php:82
 msgid "Icons and text on accent-colored buttons."
 msgstr ""
 
-#: admin/views/design.php:78
+#: admin/views/design.php:83
 msgid "Borders"
 msgstr ""
 
-#: admin/views/design.php:78
+#: admin/views/design.php:83
 msgid "Dividers and outlines."
 msgstr ""
 
-#: admin/views/design.php:79
+#: admin/views/design.php:84
 msgid "Timeline track"
 msgstr ""
 
-#: admin/views/design.php:79
+#: admin/views/design.php:84
 msgid "The unplayed part of timelines. Leave it empty (Automatic) to use the muted text color."
 msgstr ""
 
-#: admin/views/design.php:83
+#: admin/views/design.php:88
 msgid "Shape and depth"
 msgstr ""
 
-#: admin/views/design.php:84
+#: admin/views/design.php:89
 msgid "Corners, button shapes and shadows. Softer shapes feel friendly, square ones precise."
 msgstr ""
 
-#: admin/views/design.php:86
+#: admin/views/design.php:91
 msgid "Corner radius"
 msgstr ""
 
-#: admin/views/design.php:86
+#: admin/views/design.php:91
 msgid "Rounds players, cards and the sticky player."
 msgstr ""
 
-#: admin/views/design.php:87
+#: admin/views/design.php:92
 msgid "Artwork corner radius"
 msgstr ""
 
-#: admin/views/design.php:87
+#: admin/views/design.php:92
 msgid "Rounds episode and podcast artwork."
 msgstr ""
 
-#: admin/views/design.php:88
+#: admin/views/design.php:93
 msgid "Button shape"
 msgstr ""
 
-#: admin/views/design.php:88
+#: admin/views/design.php:93
 msgid "Text buttons such as Play, playback speed and subscribe links. The round play button keeps its shape."
 msgstr ""
 
-#: admin/views/design.php:89
+#: admin/views/design.php:94
 msgid "Shadow"
 msgstr ""
 
-#: admin/views/design.php:89
+#: admin/views/design.php:94
 msgid "Depth for players, cards and the sticky player."
 msgstr ""
 
-#: admin/views/design.php:93
-#: includes/Elementor/Widgets/EpisodeListWidget.php:298
+#: admin/views/design.php:98
+#: includes/Elementor/Widgets/EpisodeListWidget.php:314
 msgid "Typography"
 msgstr ""
 
-#: admin/views/design.php:94
+#: admin/views/design.php:99
 msgid "Theme font keeps the fonts of your theme and Elementor. Pick another font only when podcast components should stand apart."
 msgstr ""
 
-#: admin/views/design.php:96
+#: admin/views/design.php:101
 msgid "Font"
 msgstr ""
 
-#: admin/views/design.php:96
+#: admin/views/design.php:101
 msgid "Uses fonts already on your visitors’ devices, so nothing extra loads."
 msgstr ""
 
-#: admin/views/design.php:97
+#: admin/views/design.php:102
 msgid "Player title size"
 msgstr ""
 
-#: admin/views/design.php:97
+#: admin/views/design.php:102
 msgid "Episode titles in players."
 msgstr ""
 
-#: admin/views/design.php:98
+#: admin/views/design.php:103
 msgid "Details size"
 msgstr ""
 
-#: admin/views/design.php:98
+#: admin/views/design.php:103
 msgid "Dates, durations and guest names."
 msgstr ""
 
-#: admin/views/design.php:102
+#: admin/views/design.php:107
 msgid "Layout defaults"
 msgstr ""
 
-#: admin/views/design.php:103
+#: admin/views/design.php:108
 msgid "Widgets and shortcodes use these unless you choose another layout for them."
 msgstr ""
 
-#: admin/views/design.php:105
+#: admin/views/design.php:110
 msgid "Spacing"
 msgstr ""
 
-#: admin/views/design.php:105
+#: admin/views/design.php:110
 msgid "Space between the parts of a component and between list items."
 msgstr ""
 
-#: admin/views/design.php:106
+#: admin/views/design.php:111
 msgid "Player layout"
 msgstr ""
 
-#: admin/views/design.php:106
+#: admin/views/design.php:111
 msgid "Minimal shows the essentials; Artwork and Full add large artwork and more controls."
 msgstr ""
 
-#: admin/views/design.php:107
+#: admin/views/design.php:112
 msgid "Episode list layout"
 msgstr ""
 
-#: admin/views/design.php:107
+#: admin/views/design.php:112
 msgid "Rows suit long archives; cards and grids suit shows with strong artwork."
 msgstr ""
 
-#: admin/views/design.php:125
-msgid "Details shown by default"
-msgstr ""
-
-#: admin/views/design.php:126
-msgid "Player controls"
-msgstr ""
-
-#: admin/views/design.php:127
-#: admin/views/design.php:489
-msgid "Episode list"
-msgstr ""
-
-#: admin/views/design.php:151
-#: includes/Admin.php:374
+#: admin/views/design.php:157
 #: includes/Admin.php:375
+#: includes/Admin.php:376
 msgid "Design"
 msgstr ""
 
-#: admin/views/design.php:153
+#: admin/views/design.php:159
 msgid "How the player, episode lists and subscribe links look on your site. Elementor widgets use these values unless you style a widget yourself."
 msgstr ""
 
 #. translators: %s: preset name
-#: admin/views/design.php:162
+#: admin/views/design.php:168
 #, php-format
 msgid "The %s preset is applied. Adjust any value below and save to make it your own."
 msgstr ""
 
-#: admin/views/design.php:169
+#: admin/views/design.php:175
 msgid "That preset is not available. Choose one of the presets below."
 msgstr ""
 
-#: admin/views/design.php:171
+#: admin/views/design.php:177
 msgid "Design imported. The preview shows the imported values."
 msgstr ""
 
-#: admin/views/design.php:192
+#: admin/views/design.php:179
+msgid "Details saved. Widgets and shortcodes that leave a detail on Default show it this way now."
+msgstr ""
+
+#: admin/views/design.php:181
+msgid "The suggested details are applied. You can change each of them below."
+msgstr ""
+
+#: admin/views/design.php:183
+msgid "Your site keeps its details. The suggestion is gone."
+msgstr ""
+
+#: admin/views/design.php:185
+msgid "Every widget and shortcode shows its built-in details again."
+msgstr ""
+
+#: admin/views/design.php:206
 msgid "Presets"
 msgstr ""
 
-#: admin/views/design.php:194
+#: admin/views/design.php:208
 msgid "A starting point for every value below. Select a preset to see it in the preview, then apply it. Presets never lock anything: you can change every value afterwards."
 msgstr ""
 
-#: admin/views/design.php:220
+#: admin/views/design.php:234
 msgid "In use"
 msgstr ""
 
-#: admin/views/design.php:229
-#: admin/views/design.php:239
+#: admin/views/design.php:243
+#: admin/views/design.php:257
 msgid "Apply preset"
 msgstr ""
 
-#: admin/views/design.php:230
+#: admin/views/design.php:244
 msgid "Applying replaces the values below."
 msgstr ""
 
-#: admin/views/design.php:234
+#: admin/views/design.php:248
 msgid "Apply this preset?"
 msgstr ""
 
-#: admin/views/design.php:235
-msgid "The preset replaces every color, shape, font and layout default on this screen, and which details players and lists show by default. Export your design first if you may want it back."
+#: admin/views/design.php:249
+msgid "The preset replaces every color, shape, font and layout default on this screen, and the details shown by default. Export your design first if you may want it back."
 msgstr ""
 
-#: admin/views/design.php:236
+#: admin/views/design.php:251
+msgid "Details that change:"
+msgstr ""
+
+#: admin/views/design.php:254
 msgid "Your unsaved changes on this screen are discarded as well."
 msgstr ""
 
-#: admin/views/design.php:238
+#: admin/views/design.php:256
 msgid "Cancel"
 msgstr ""
 
-#: admin/views/design.php:272
+#: admin/views/design.php:266
+msgid "Details your preset suggests"
+msgstr ""
+
+#: admin/views/design.php:267
+msgid "Your preset also chose which details players and lists show. Earlier versions stored that choice without using it, so your site still shows these details as before. Apply the preset’s choice, or keep your site as it is."
+msgstr ""
+
+#: admin/views/design.php:270
+msgid "What applying the suggested details changes"
+msgstr ""
+
+#: admin/views/design.php:273
+msgid "Detail"
+msgstr ""
+
+#: admin/views/design.php:274
+#: admin/views/design.php:283
+msgid "Where"
+msgstr ""
+
+#: admin/views/design.php:275
+#: admin/views/design.php:284
+msgid "Now"
+msgstr ""
+
+#: admin/views/design.php:276
+#: admin/views/design.php:285
+msgid "After applying"
+msgstr ""
+
+#: admin/views/design.php:284
+#: admin/views/design.php:285
+msgid "Shown"
+msgstr ""
+
+#: admin/views/design.php:284
+#: admin/views/design.php:285
+msgid "Hidden"
+msgstr ""
+
+#: admin/views/design.php:294
+msgid "Apply these details"
+msgstr ""
+
+#: admin/views/design.php:295
+msgid "Keep my site as it is"
+msgstr ""
+
+#: admin/views/design.php:327
 msgid "color picker"
 msgstr ""
 
-#: admin/views/design.php:277
+#: admin/views/design.php:332
 msgid "Automatic"
 msgstr ""
 
-#: admin/views/design.php:289
+#: admin/views/design.php:344
 msgctxt "pixels"
 msgid "px"
 msgstr ""
 
-#: admin/views/design.php:338
+#: admin/views/design.php:393
 msgid "Contrast check"
 msgstr ""
 
-#: admin/views/design.php:339
+#: admin/views/design.php:394
 msgid "Text needs a contrast ratio of at least 4.5:1 and the timeline track 3:1 (WCAG AA), on the background and on the surface of episode cards and the sticky player, so everyone can read and use them."
 msgstr ""
 
-#: admin/views/design.php:359
-#: admin/js/epm-design.js:303
+#: admin/views/design.php:414
+#: admin/js/epm-design.js:418
 msgid "Pass"
 msgstr ""
 
 #. translators: %s: required contrast ratio, e.g. 4.5
-#: admin/views/design.php:361
-#: admin/js/epm-design.js:305
+#: admin/views/design.php:416
+#: admin/js/epm-design.js:420
 #, php-format,js-format
 msgid "Too low, needs %s:1"
 msgstr ""
 
-#: admin/views/design.php:376
+#: admin/views/design.php:431
 msgid "Discard changes"
 msgstr ""
 
-#: admin/views/design.php:377
+#: admin/views/design.php:432
 msgid "Save design"
 msgstr ""
 
+#: admin/views/design.php:441
+#: admin/views/design.php:517
+msgid "Details shown by default"
+msgstr ""
+
+#: admin/views/design.php:442
+msgid "Which parts players and lists show where a widget or shortcode leaves the choice to the site. A widget set to Show or Hide, or a shortcode attribute, always wins. Colors, fonts and the styles above never change these."
+msgstr ""
+
+#: admin/views/design.php:472
+msgid "Save details"
+msgstr ""
+
+#: admin/views/design.php:475
+msgid "Use built-in details"
+msgstr ""
+
+#: admin/views/design.php:476
+msgid "Built-in details are what each widget and shortcode showed before you chose any here."
+msgstr ""
+
 #. translators: %s: preset name
-#: admin/views/design.php:388
+#: admin/views/design.php:489
 #, php-format
 msgid "Active preset: %s"
 msgstr ""
 
-#: admin/views/design.php:397
+#: admin/views/design.php:498
 msgid "No values changed"
 msgstr ""
 
 #. translators: %s: number of changed values
-#: admin/views/design.php:399
+#: admin/views/design.php:500
 #, php-format
 msgid "%s value changed"
 msgid_plural "%s values changed"
 msgstr[0] ""
 msgstr[1] ""
 
-#: admin/views/design.php:405
+#: admin/views/design.php:506
 msgid "Changed from the preset"
 msgstr ""
 
-#: admin/views/design.php:407
+#: admin/views/design.php:508
 msgid "Every value matches the preset."
 msgstr ""
 
-#: admin/views/design.php:416
-msgid "Shown by default"
+#: admin/views/design.php:521
+msgid "Built-in details: every widget and shortcode shows what it showed before."
 msgstr ""
 
-#: admin/views/design.php:417
-msgid "Installed by the preset. Widgets that use the global styles start with these details on or off."
+#. translators: %s: number of details
+#: admin/views/design.php:526
+#, php-format
+msgid "%s detail differs from the built-in details."
+msgid_plural "%s details differ from the built-in details."
+msgstr[0] ""
+msgstr[1] ""
+
+#: admin/views/design.php:532
+msgid "Review the details"
 msgstr ""
 
-#: admin/views/design.php:422
-msgid "The preset sets none: widgets use their own defaults."
-msgstr ""
-
-#: admin/views/design.php:428
-msgid "On"
-msgstr ""
-
-#: admin/views/design.php:428
-msgid "Off"
-msgstr ""
-
-#: admin/views/design.php:439
+#: admin/views/design.php:539
 msgid "Move this design to another site"
 msgstr ""
 
-#: admin/views/design.php:440
+#: admin/views/design.php:540
 msgid "The file holds design values only: no episodes, media, text or web addresses."
 msgstr ""
 
-#: admin/views/design.php:443
+#: admin/views/design.php:543
 msgid "Export"
 msgstr ""
 
-#: admin/views/design.php:444
+#: admin/views/design.php:544
 msgid "Downloads the saved design as a .json file."
 msgstr ""
 
-#: admin/views/design.php:447
+#: admin/views/design.php:547
 msgid "Export design file"
 msgstr ""
 
-#: admin/views/design.php:450
+#: admin/views/design.php:550
 msgid "Import"
 msgstr ""
 
-#: admin/views/design.php:453
+#: admin/views/design.php:553
 msgid "Design file (.json)"
 msgstr ""
 
-#: admin/views/design.php:455
+#: admin/views/design.php:555
 msgid "Replaces the current design. Export it first to keep a copy."
 msgstr ""
 
-#: admin/views/design.php:456
+#: admin/views/design.php:556
 msgid "Import design file"
 msgstr ""
 
-#: admin/views/design.php:466
+#: admin/views/design.php:566
 msgid "Preview"
 msgstr ""
 
-#: admin/views/design.php:468
-#: admin/js/epm-design.js:415
+#: admin/views/design.php:568
+#: admin/js/epm-design.js:530
 msgid "Your design"
 msgstr ""
 
-#: admin/views/design.php:471
+#: admin/views/design.php:571
 msgid "Show my design"
 msgstr ""
 
-#: admin/views/design.php:475
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:102
+#: admin/views/design.php:575
+#: includes/Details.php:198
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:103
 msgid "Player"
 msgstr ""
 
-#: admin/views/design.php:500
+#: admin/views/design.php:593
+msgid "Episode page"
+msgstr ""
+
+#: admin/views/design.php:601
+msgid "Episode list"
+msgstr ""
+
+#: admin/views/design.php:622
 msgid "Subscribe links"
 msgstr ""
 
-#: admin/views/design.php:508
+#: admin/views/design.php:630
 msgid "Sample episodes are shown until you publish one. The preview updates as you edit; save the design to use it on your site."
 msgstr ""
 
-#: admin/views/design.php:509
+#: admin/views/design.php:631
 msgid "Shows your latest episodes. The preview updates as you edit; save the design to use it on your site."
 msgstr ""
 
@@ -1264,8 +1341,8 @@ msgid "Enter the new feed address and keep the redirect on. This site then answe
 msgstr ""
 
 #: admin/views/settings.php:17
-#: includes/Admin.php:365
 #: includes/Admin.php:366
+#: includes/Admin.php:367
 msgid "Podcast settings"
 msgstr ""
 
@@ -1278,12 +1355,11 @@ msgstr ""
 
 #: admin/views/settings.php:31
 #: admin/views/setup.php:263
-#: includes/Admin.php:1371
+#: includes/Details.php:171
 #: includes/Elementor/Widgets/EpisodeHeaderWidget.php:103
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:121
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:113
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:211
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:129
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:159
 msgid "Description"
 msgstr ""
 
@@ -1338,8 +1414,8 @@ msgstr ""
 
 #: admin/views/settings.php:99
 #: admin/views/setup.php:315
-#: includes/Elementor/Widgets/ShowNotesWidget.php:135
-#: includes/Elementor/Widgets/TranscriptWidget.php:147
+#: includes/Elementor/Widgets/ShowNotesWidget.php:134
+#: includes/Elementor/Widgets/TranscriptWidget.php:146
 msgid "Content"
 msgstr ""
 
@@ -1350,9 +1426,9 @@ msgstr ""
 
 #: admin/views/settings.php:103
 #: admin/views/setup.php:317
-#: includes/Admin.php:1558
-#: includes/Admin.php:1598
-#: includes/Admin.php:1650
+#: includes/Admin.php:1618
+#: includes/Admin.php:1658
+#: includes/Admin.php:1710
 #: includes/EpisodeMeta.php:825
 msgid "Explicit"
 msgstr ""
@@ -1496,6 +1572,7 @@ msgid "Optional. Podcast apps that support Podcasting 2.0 show this as a support
 msgstr ""
 
 #: admin/views/settings.php:216
+#: includes/Details.php:182
 #: includes/PodcastSettings.php:177
 msgid "Platform links"
 msgstr ""
@@ -1510,7 +1587,8 @@ msgid "Social links"
 msgstr ""
 
 #: admin/views/settings.php:230
-#: includes/Elementor/Widgets/EpisodeListWidget.php:423
+#: includes/Details.php:201
+#: includes/Elementor/Widgets/EpisodeListWidget.php:496
 msgid "Episode pages"
 msgstr ""
 
@@ -1576,8 +1654,8 @@ msgstr ""
 
 #. translators: %s: number of episodes
 #: admin/views/setup.php:45
-#: includes/Admin.php:337
 #: includes/Admin.php:338
+#: includes/Admin.php:339
 #: includes/EpisodePostType.php:136
 #: includes/Readiness.php:372
 #: includes/Readiness.php:375
@@ -1913,51 +1991,51 @@ msgstr ""
 msgid "Go to the podcast dashboard"
 msgstr ""
 
-#: includes/Admin.php:107
+#: includes/Admin.php:108
 msgid "M j, Y @ H:i"
 msgstr ""
 
-#: includes/Admin.php:112
-#: includes/Admin.php:115
+#: includes/Admin.php:113
+#: includes/Admin.php:116
 msgid "Episode updated."
 msgstr ""
 
-#: includes/Admin.php:113
+#: includes/Admin.php:114
 msgid "Custom field updated."
 msgstr ""
 
-#: includes/Admin.php:114
+#: includes/Admin.php:115
 msgid "Custom field deleted."
 msgstr ""
 
-#: includes/Admin.php:116
+#: includes/Admin.php:117
 msgid "Episode restored from a revision."
 msgstr ""
 
-#: includes/Admin.php:117
+#: includes/Admin.php:118
 msgid "Episode published. It is now in the podcast feed if it has MP3 or M4A audio."
 msgstr ""
 
-#: includes/Admin.php:118
+#: includes/Admin.php:119
 msgid "Episode saved."
 msgstr ""
 
-#: includes/Admin.php:119
+#: includes/Admin.php:120
 msgid "Episode submitted for review."
 msgstr ""
 
 #. translators: %s: scheduled date
-#: includes/Admin.php:121
+#: includes/Admin.php:122
 #, php-format
 msgid "Episode scheduled for %s. It joins the podcast feed automatically at that time."
 msgstr ""
 
-#: includes/Admin.php:122
+#: includes/Admin.php:123
 msgid "Episode draft updated."
 msgstr ""
 
 #. translators: %s: number of episodes
-#: includes/Admin.php:138
+#: includes/Admin.php:139
 #, php-format
 msgid "%s episode updated."
 msgid_plural "%s episodes updated."
@@ -1965,7 +2043,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: number of episodes
-#: includes/Admin.php:140
+#: includes/Admin.php:141
 #, php-format
 msgid "%s episode not updated, somebody is editing it."
 msgid_plural "%s episodes not updated, somebody is editing them."
@@ -1973,7 +2051,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: number of episodes
-#: includes/Admin.php:142
+#: includes/Admin.php:143
 #, php-format
 msgid "%s episode permanently deleted."
 msgid_plural "%s episodes permanently deleted."
@@ -1981,7 +2059,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: number of episodes
-#: includes/Admin.php:144
+#: includes/Admin.php:145
 #, php-format
 msgid "%s episode moved to the Trash."
 msgid_plural "%s episodes moved to the Trash."
@@ -1989,243 +2067,244 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: number of episodes
-#: includes/Admin.php:146
+#: includes/Admin.php:147
 #, php-format
 msgid "%s episode restored from the Trash."
 msgid_plural "%s episodes restored from the Trash."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/Admin.php:265
+#: includes/Admin.php:266
 msgid "Choose audio file"
 msgstr ""
 
-#: includes/Admin.php:266
+#: includes/Admin.php:267
 msgid "Use this audio"
 msgstr ""
 
-#: includes/Admin.php:267
+#: includes/Admin.php:268
 #: includes/AdminPages.php:231
 msgid "Use this image"
 msgstr ""
 
-#: includes/Admin.php:269
+#: includes/Admin.php:270
 #: includes/EpisodeMeta.php:620
 msgid "Upload episode audio"
 msgstr ""
 
-#: includes/Admin.php:270
+#: includes/Admin.php:271
 #: includes/EpisodeMeta.php:620
 msgid "Replace audio"
 msgstr ""
 
-#: includes/Admin.php:271
+#: includes/Admin.php:272
 #: includes/EpisodeMeta.php:623
 msgid "Remove audio"
 msgstr ""
 
-#: includes/Admin.php:272
+#: includes/Admin.php:273
 #: includes/EpisodeMeta.php:765
 msgid "Drop an MP3 or M4A file here, or"
 msgstr ""
 
 #. translators: %s: file name
-#: includes/Admin.php:274
+#: includes/Admin.php:275
 #, php-format
 msgid "Uploading %s…"
 msgstr ""
 
-#: includes/Admin.php:275
+#: includes/Admin.php:276
 msgid "Uploading…"
 msgstr ""
 
-#: includes/Admin.php:276
+#: includes/Admin.php:277
 msgid "Reading the file details…"
 msgstr ""
 
-#: includes/Admin.php:277
+#: includes/Admin.php:278
 msgid "The upload failed. Check your connection and try again."
 msgstr ""
 
-#: includes/Admin.php:278
+#: includes/Admin.php:279
 msgid "The file details could not be read. Choose the file again."
 msgstr ""
 
-#: includes/Admin.php:279
+#: includes/Admin.php:280
 msgid "This file type can’t be used. Drop an MP3 or M4A file (WAV is kept for storage only)."
 msgstr ""
 
-#: includes/Admin.php:280
+#: includes/Admin.php:281
 #: includes/EpisodeMeta.php:728
 #: includes/EpisodeMeta.php:752
 msgid "Podcast apps won’t get this file. Replace it with an MP3 or M4A to include this episode in your feed."
 msgstr ""
 
 #. translators: %s: file name
-#: includes/Admin.php:282
+#: includes/Admin.php:283
 #, php-format
 msgid "Audio attached: %s"
 msgstr ""
 
-#: includes/Admin.php:283
+#: includes/Admin.php:284
 msgid "Audio removed."
 msgstr ""
 
-#: includes/Admin.php:284
-#: includes/Admin.php:1517
+#: includes/Admin.php:285
+#: includes/Admin.php:1577
 #: includes/EpisodeMeta.php:637
 #: includes/EpisodeMeta.php:744
 msgid "Audio URL"
 msgstr ""
 
-#: includes/Admin.php:285
+#: includes/Admin.php:286
 msgid "Checking the audio URL…"
 msgstr ""
 
 #. translators: %s: host name
-#: includes/Admin.php:287
+#: includes/Admin.php:288
 #, php-format
 msgid "Audio URL checked: %s"
 msgstr ""
 
-#: includes/Admin.php:288
+#: includes/Admin.php:289
 #: includes/EpisodeMeta.php:639
 #: includes/EpisodeMeta.php:1492
 #: includes/EpisodeMeta.php:1692
 msgid "Enter a web address that starts with https://, for example https://cdn.example.com/episode-12.mp3."
 msgstr ""
 
-#: includes/Admin.php:289
+#: includes/Admin.php:290
 msgid "The audio URL could not be checked. It will be checked again when you save."
 msgstr ""
 
 #. translators: %s: host name
-#: includes/Admin.php:291
+#: includes/Admin.php:292
 #: includes/EpisodeMeta.php:758
 #, php-format
 msgid "This file stays at %s. Keep it online at this address: the feed and the player load it from there."
 msgstr ""
 
-#: includes/Admin.php:292
+#: includes/Admin.php:293
 #: includes/EpisodeMeta.php:644
 msgid "Not used while a Media Library file is attached. Remove that file to use this address."
 msgstr ""
 
 #. translators: %s: detected duration
-#: includes/Admin.php:294
+#: includes/Admin.php:295
 #: includes/EpisodeMeta.php:602
 #, php-format
 msgid "Detected from the file: %s. Enter a duration only if this is wrong (mm:ss or hh:mm:ss)."
 msgstr ""
 
-#: includes/Admin.php:295
+#: includes/Admin.php:296
 #: includes/EpisodeMeta.php:604
 msgid "Enter the duration as mm:ss or hh:mm:ss. It can’t be read from an audio URL."
 msgstr ""
 
-#: includes/Admin.php:296
+#: includes/Admin.php:297
 #: includes/EpisodeMeta.php:606
 msgid "Detected automatically when you add audio. Enter it only if detection fails (mm:ss or hh:mm:ss)."
 msgstr ""
 
-#: includes/Admin.php:297
-#: includes/Admin.php:513
+#: includes/Admin.php:298
+#: includes/Admin.php:514
 #: includes/AdminPages.php:225
-#: includes/Renderer.php:788
+#: includes/Renderer.php:799
 msgid "Copied"
 msgstr ""
 
-#: includes/Admin.php:298
+#: includes/Admin.php:299
 msgid "Copied to the clipboard."
 msgstr ""
 
-#: includes/Admin.php:299
-msgid "Couldn’t copy automatically. The address is selected: press Ctrl+C (⌘C on a Mac) to copy it."
-msgstr ""
-
 #: includes/Admin.php:300
-#: includes/Admin.php:655
-msgid "Choose image"
+msgid "Couldn’t copy automatically. The address is selected: press Ctrl+C (⌘C on a Mac) to copy it."
 msgstr ""
 
 #: includes/Admin.php:301
 #: includes/Admin.php:656
-msgid "Replace image"
+msgid "Choose image"
 msgstr ""
 
 #: includes/Admin.php:302
-msgid "Image selected."
+#: includes/Admin.php:657
+msgid "Replace image"
 msgstr ""
 
 #: includes/Admin.php:303
-msgid "Image removed."
+msgid "Image selected."
 msgstr ""
 
 #: includes/Admin.php:304
-msgid "Fix the highlighted field, then save again."
+msgid "Image removed."
 msgstr ""
 
 #: includes/Admin.php:305
+msgid "Fix the highlighted field, then save again."
+msgstr ""
+
+#: includes/Admin.php:306
 msgid "Setup reminder hidden. You can start the setup assistant from the Podcast menu at any time."
 msgstr ""
 
-#: includes/Admin.php:328
 #: includes/Admin.php:329
+#: includes/Admin.php:330
 msgid "Dashboard"
 msgstr ""
 
-#: includes/Admin.php:356
 #: includes/Admin.php:357
-#: includes/Elementor/Widgets/EpisodeListWidget.php:223
+#: includes/Admin.php:358
+#: includes/Details.php:184
+#: includes/Elementor/Widgets/EpisodeListWidget.php:227
 #: includes/EpisodePostType.php:69
-#: includes/Renderer.php:959
+#: includes/Renderer.php:970
 msgid "Topics"
 msgstr ""
 
-#: includes/Admin.php:389
-#: includes/Admin.php:717
-#: includes/Admin.php:730
+#: includes/Admin.php:390
+#: includes/Admin.php:718
+#: includes/Admin.php:731
 #: includes/AdminPages.php:692
 msgid "You do not have permission to access this page."
 msgstr ""
 
-#: includes/Admin.php:475
+#: includes/Admin.php:476
 msgid "Missing audio"
 msgstr ""
 
-#: includes/Admin.php:476
+#: includes/Admin.php:477
 msgid "Add an MP3 or M4A file or an audio URL to include this episode in the feed."
 msgstr ""
 
-#: includes/Admin.php:483
+#: includes/Admin.php:484
 msgid "Not in feed"
 msgstr ""
 
-#: includes/Admin.php:484
+#: includes/Admin.php:485
 msgid "Only MP3 and M4A audio is included in the podcast feed."
 msgstr ""
 
-#: includes/Admin.php:490
+#: includes/Admin.php:491
 msgid "Ready"
 msgstr ""
 
-#: includes/Admin.php:576
+#: includes/Admin.php:577
 msgid "Move link up"
 msgstr ""
 
-#: includes/Admin.php:576
+#: includes/Admin.php:577
 msgid "Move link down"
 msgstr ""
 
-#: includes/Admin.php:578
+#: includes/Admin.php:579
 msgid "Platform"
 msgstr ""
 
-#: includes/Admin.php:586
+#: includes/Admin.php:587
 msgid "Button text"
 msgstr ""
 
-#: includes/Admin.php:586
+#: includes/Admin.php:587
 #: includes/EpisodeMeta.php:833
 #: includes/EpisodeMeta.php:921
 #: includes/EpisodeMeta.php:971
@@ -2235,322 +2314,258 @@ msgstr ""
 msgid "(optional)"
 msgstr ""
 
-#: includes/Admin.php:590
+#: includes/Admin.php:591
 msgid "URL"
 msgstr ""
 
-#: includes/Admin.php:591
+#: includes/Admin.php:592
 msgid "Add the link’s web address, starting with https://, or remove this row."
 msgstr ""
 
-#: includes/Admin.php:593
+#: includes/Admin.php:594
 msgid "Remove link"
 msgstr ""
 
-#: includes/Admin.php:612
+#: includes/Admin.php:613
 #: includes/EpisodeMeta.php:1081
 msgid "Link added."
 msgstr ""
 
-#: includes/Admin.php:612
+#: includes/Admin.php:613
 #: includes/EpisodeMeta.php:1081
 msgid "Link removed."
 msgstr ""
 
 #. translators: 1: new position, 2: number of links
-#: includes/Admin.php:612
+#: includes/Admin.php:613
 #: includes/EpisodeMeta.php:1081
 #, php-format
 msgid "Link moved to position %1$d of %2$d."
 msgstr ""
 
-#: includes/Admin.php:623
+#: includes/Admin.php:624
 msgid "Add link"
 msgstr ""
 
-#: includes/Admin.php:657
-#: includes/Admin.php:704
+#: includes/Admin.php:658
+#: includes/Admin.php:705
 msgid "Remove image"
 msgstr ""
 
-#: includes/Admin.php:779
+#: includes/Admin.php:808
 msgid "You do not have permission to export the design."
 msgstr ""
 
-#: includes/Admin.php:811
+#: includes/Admin.php:819
 msgid "The design could not be encoded."
 msgstr ""
 
-#: includes/Admin.php:846
+#: includes/Admin.php:854
 msgid "You do not have permission to import a design."
 msgstr ""
 
-#: includes/Admin.php:867
+#: includes/Admin.php:875
 msgid "Choose a design file (.json) to import."
 msgstr ""
 
-#: includes/Admin.php:871
+#: includes/Admin.php:879
 msgid "The file upload failed. Choose the file again."
 msgstr ""
 
-#: includes/Admin.php:876
+#: includes/Admin.php:884
 msgid "Choose a design file that ends in .json (exported from the Design screen)."
 msgstr ""
 
-#: includes/Admin.php:881
+#: includes/Admin.php:889
 msgid "The uploaded file could not be read. Choose the file again."
 msgstr ""
 
-#: includes/Admin.php:886
+#: includes/Admin.php:894
 msgid "The uploaded file is empty. Export the design again and import the new file."
 msgstr ""
 
-#: includes/Admin.php:890
+#: includes/Admin.php:898
 msgid "The file is too large to be a design export. Choose the .json file exported from the Design screen."
 msgstr ""
 
-#: includes/Admin.php:895
+#: includes/Admin.php:903
 msgid "The file is not valid JSON. Export the design again and import the new file."
 msgstr ""
 
-#: includes/Admin.php:929
+#: includes/Admin.php:943
 msgid "This file is not an Elementor Podcast Manager design export."
 msgstr ""
 
-#: includes/Admin.php:934
+#: includes/Admin.php:948
 msgid "The design file has no usable version number."
 msgstr ""
 
 #. translators: %d: file version
-#: includes/Admin.php:941
+#: includes/Admin.php:955
 #, php-format
 msgid "This design was exported with a newer format version (%d). Update the plugin on this site, then import it again."
 msgstr ""
 
-#: includes/Admin.php:948
+#: includes/Admin.php:962
 msgid "The design file contains no design values."
 msgstr ""
 
-#: includes/Admin.php:986
+#: includes/Admin.php:1000
+#: includes/Admin.php:1046
 msgid "You do not have permission to change the design."
 msgstr ""
 
-#: includes/Admin.php:1188
+#: includes/Admin.php:1271
 msgid "Text on background"
 msgstr ""
 
-#: includes/Admin.php:1194
+#: includes/Admin.php:1277
 msgid "Text on surface"
 msgstr ""
 
-#: includes/Admin.php:1200
+#: includes/Admin.php:1283
 msgid "Muted text on background"
 msgstr ""
 
-#: includes/Admin.php:1206
+#: includes/Admin.php:1289
 msgid "Muted text on surface"
 msgstr ""
 
-#: includes/Admin.php:1212
+#: includes/Admin.php:1295
 msgid "Accent text on background"
 msgstr ""
 
-#: includes/Admin.php:1224
+#: includes/Admin.php:1307
 msgid "Timeline track on background"
 msgstr ""
 
-#: includes/Admin.php:1230
+#: includes/Admin.php:1313
 msgid "Timeline track on surface"
 msgstr ""
 
-#: includes/Admin.php:1305
+#: includes/Admin.php:1388
 msgid "How we plan a new season"
 msgstr ""
 
-#: includes/Admin.php:1306
+#: includes/Admin.php:1389
 msgid "A sample episode that shows your design. Publish an episode to preview it with your own content."
 msgstr ""
 
 #. translators: sample guest name shown in the Design preview
-#: includes/Admin.php:1311
+#: includes/Admin.php:1394
 msgid "Jordan Lee"
 msgstr ""
 
-#: includes/Admin.php:1318
+#: includes/Admin.php:1401
 msgid "Listener questions, answered"
 msgstr ""
 
-#: includes/Admin.php:1319
+#: includes/Admin.php:1402
 msgid "The second sample episode, so the list shows more than one row."
 msgstr ""
 
-#: includes/Admin.php:1366
-msgid "Episode label"
+#: includes/Admin.php:1467
+#: includes/Admin.php:1642
+msgid "Episode #"
 msgstr ""
 
-#: includes/Admin.php:1367
-#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:99
-#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:135
-#: includes/Elementor/Widgets/EpisodeListWidget.php:137
-#: includes/Elementor/Widgets/EpisodeListWidget.php:214
-#: includes/Elementor/Widgets/EpisodeListWidget.php:309
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:120
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:183
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:112
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:201
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:125
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:292
-#: includes/EpisodeMeta.php:1056
-msgid "Title"
-msgstr ""
-
-#: includes/Admin.php:1368
-#: includes/EpisodeMeta.php:805
-msgid "Episode number"
-msgstr ""
-
-#: includes/Admin.php:1369
-#: includes/Admin.php:1586
-#: includes/Admin.php:1637
-#: includes/Elementor/Widgets/EpisodeListWidget.php:145
-#: includes/Elementor/Widgets/EpisodeMetadataWidget.php:105
-msgid "Season"
-msgstr ""
-
-#: includes/Admin.php:1370
-#: includes/Admin.php:1408
+#: includes/Admin.php:1468
+#: includes/Details.php:170
 #: includes/Elementor/Widgets/EpisodeHeaderWidget.php:100
-#: includes/Elementor/Widgets/EpisodeListWidget.php:218
+#: includes/Elementor/Widgets/EpisodeListWidget.php:221
 #: includes/Elementor/Widgets/EpisodeMetadataWidget.php:108
 #: includes/Elementor/Widgets/GuestWidget.php:90
 #: includes/Elementor/Widgets/GuestWidget.php:106
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:124
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:128
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:158
 #: includes/EpisodeMeta.php:324
-#: includes/EpisodeTemplate.php:256
+#: includes/EpisodeTemplate.php:299
 msgid "Guest"
 msgstr ""
 
-#: includes/Admin.php:1372
-#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:101
-#: includes/Elementor/Widgets/EpisodeListWidget.php:219
-#: includes/Elementor/Widgets/EpisodeMetadataWidget.php:106
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:122
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:130
-msgid "Date"
-msgstr ""
-
-#: includes/Admin.php:1373
-#: includes/Admin.php:1409
-#: includes/Elementor/Widgets/EpisodeListWidget.php:220
+#: includes/Admin.php:1469
+#: includes/Details.php:174
+#: includes/Elementor/Widgets/EpisodeListWidget.php:224
 #: includes/Elementor/Widgets/EpisodeMetadataWidget.php:107
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:123
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:131
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:161
 #: includes/EpisodeMeta.php:649
 msgid "Duration"
 msgstr ""
 
-#: includes/Admin.php:1374
-msgid "Playback speed button"
-msgstr ""
-
-#: includes/Admin.php:1375
-msgid "Skip back button"
-msgstr ""
-
-#: includes/Admin.php:1376
-msgid "Skip forward button"
-msgstr ""
-
-#: includes/Admin.php:1377
-msgid "Volume slider"
-msgstr ""
-
-#: includes/Admin.php:1378
-msgid "Download button"
-msgstr ""
-
-#: includes/Admin.php:1379
-#: includes/Elementor/Widgets/EpisodeListWidget.php:215
-msgid "Excerpt"
-msgstr ""
-
-#: includes/Admin.php:1380
-msgid "Play button"
-msgstr ""
-
-#: includes/Admin.php:1407
-#: includes/Admin.php:1582
-msgid "Episode #"
-msgstr ""
-
-#: includes/Admin.php:1410
+#: includes/Admin.php:1470
 #: includes/AdminPages.php:622
 msgid "Audio"
 msgstr ""
 
-#: includes/Admin.php:1415
+#: includes/Admin.php:1475
 msgid "Published"
 msgstr ""
 
-#: includes/Admin.php:1474
+#: includes/Admin.php:1534
 msgid "No artwork"
 msgstr ""
 
 #. translators: %s: season number (abbreviated, e.g. "S2")
-#: includes/Admin.php:1492
+#: includes/Admin.php:1552
 #, php-format
 msgid "S%s"
 msgstr ""
 
 #. translators: %s: season number
-#: includes/Admin.php:1495
+#: includes/Admin.php:1555
 #: includes/Renderer.php:304
-#: includes/Renderer.php:1303
+#: includes/Renderer.php:1319
 #, php-format
 msgid "Season %s"
 msgstr ""
 
-#: includes/Admin.php:1544
+#: includes/Admin.php:1604
 #: includes/Renderer.php:327
-#: includes/Renderer.php:1307
+#: includes/Renderer.php:1323
 msgid "Trailer"
 msgstr ""
 
-#: includes/Admin.php:1545
+#: includes/Admin.php:1605
 #: includes/Renderer.php:328
-#: includes/Renderer.php:1308
+#: includes/Renderer.php:1324
 msgid "Bonus"
 msgstr ""
 
-#: includes/Admin.php:1556
+#: includes/Admin.php:1616
 msgid "Inherit podcast setting"
 msgstr ""
 
-#: includes/Admin.php:1557
+#: includes/Admin.php:1617
 msgid "Clean"
 msgstr ""
 
-#: includes/Admin.php:1578
-#: includes/Admin.php:1629
+#: includes/Admin.php:1638
+#: includes/Admin.php:1689
 #: includes/EpisodeMeta.php:297
 msgid "Episode information"
 msgstr ""
 
-#: includes/Admin.php:1590
-#: includes/Admin.php:1641
+#: includes/Admin.php:1646
+#: includes/Admin.php:1697
+#: includes/Details.php:168
+#: includes/Elementor/Widgets/EpisodeListWidget.php:152
+#: includes/Elementor/Widgets/EpisodeMetadataWidget.php:105
+msgid "Season"
+msgstr ""
+
+#: includes/Admin.php:1650
+#: includes/Admin.php:1701
 msgid "Type"
 msgstr ""
 
-#: includes/Admin.php:1625
+#: includes/Admin.php:1685
 msgid "— No change —"
 msgstr ""
 
-#: includes/Admin.php:1633
+#: includes/Admin.php:1693
 msgid "Number from"
 msgstr ""
 
-#: includes/Admin.php:1659
+#: includes/Admin.php:1719
 msgid "Leave a field empty to keep each episode’s value. “Number from” numbers the selected episodes by publish date, oldest first."
 msgstr ""
 
@@ -2761,122 +2776,218 @@ msgstr ""
 msgid "The server ignores byte-range requests. Apple Podcasts rejects such shows. Ask your web host to enable range requests for audio files, or serve the audio from a CDN or storage bucket."
 msgstr ""
 
-#: includes/Assets.php:110
-#: includes/Assets.php:222
-#: includes/Assets.php:223
-#: includes/Renderer.php:1370
+#: includes/Assets.php:300
+#: includes/Assets.php:416
+#: includes/Assets.php:417
+#: includes/Renderer.php:1387
 msgid "Play"
 msgstr ""
 
-#: includes/Assets.php:111
-#: includes/Assets.php:224
-#: includes/Renderer.php:1371
+#: includes/Assets.php:301
+#: includes/Assets.php:418
+#: includes/Renderer.php:1388
 msgid "Pause"
 msgstr ""
 
-#: includes/Assets.php:112
-#: includes/Renderer.php:1160
-#: includes/Renderer.php:1161
+#: includes/Assets.php:302
+#: includes/Renderer.php:1174
+#: includes/Renderer.php:1175
 msgid "Play episode"
 msgstr ""
 
-#: includes/Assets.php:113
-#: includes/Renderer.php:1162
+#: includes/Assets.php:303
+#: includes/Renderer.php:1176
 msgid "Pause episode"
 msgstr ""
 
-#: includes/Assets.php:114
+#: includes/Assets.php:304
 msgid "Play or pause"
 msgstr ""
 
 #. translators: %s: episode title
-#: includes/Assets.php:117
-#: includes/Renderer.php:1364
+#: includes/Assets.php:307
+#: includes/Renderer.php:1381
 #, php-format
 msgid "Play %s"
 msgstr ""
 
 #. translators: %s: episode title
-#: includes/Assets.php:119
+#: includes/Assets.php:309
 #, php-format
 msgid "Pause %s"
 msgstr ""
 
 #. translators: %s: episode title
-#: includes/Assets.php:121
+#: includes/Assets.php:311
 #, php-format
 msgid "Retry %s"
 msgstr ""
 
-#: includes/Assets.php:122
+#: includes/Assets.php:312
 msgid "This audio could not be loaded. Check your connection and try again."
 msgstr ""
 
-#: includes/Assets.php:123
-#: includes/Assets.php:225
-#: includes/Renderer.php:1372
+#: includes/Assets.php:313
+#: includes/Assets.php:419
+#: includes/Renderer.php:1389
 msgid "Retry"
 msgstr ""
 
-#: includes/Assets.php:125
+#: includes/Assets.php:315
 msgid "This audio could not be loaded."
 msgstr ""
 
 #. translators: %s: playback speed, e.g. 1.5×
-#: includes/Assets.php:127
+#: includes/Assets.php:317
 #, php-format
 msgid "Playback speed: %s"
 msgstr ""
 
 #. translators: 1: elapsed time, e.g. 1:05, 2: total duration, e.g. 42:10
-#: includes/Assets.php:129
+#: includes/Assets.php:319
 #, php-format
 msgctxt "player position"
 msgid "%1$s of %2$s"
 msgstr ""
 
-#: includes/Assets.php:131
+#: includes/Assets.php:321
 msgid "Link copied"
 msgstr ""
 
 #. translators: %s: playback position, e.g. 12:34
-#: includes/Assets.php:133
+#: includes/Assets.php:323
 #, php-format
 msgid "Link at %s copied"
 msgstr ""
 
-#: includes/Assets.php:134
+#: includes/Assets.php:324
 msgid "Embed code copied"
 msgstr ""
 
 #. translators: %s: playback position, e.g. 12:34
-#: includes/Assets.php:136
+#: includes/Assets.php:326
 #, php-format
 msgid "Starts at %s"
 msgstr ""
 
 #. translators: %s: volume level in percent, e.g. 70
-#: includes/Assets.php:161
+#: includes/Assets.php:330
 #, php-format
 msgid "%s%%"
 msgstr ""
 
-#: includes/Assets.php:209
+#: includes/Assets.php:403
 msgid "Audio player"
 msgstr ""
 
-#: includes/Assets.php:215
-#: includes/Renderer.php:1183
+#: includes/Assets.php:409
+#: includes/Renderer.php:1197
 msgid "Seek"
 msgstr ""
 
-#: includes/Assets.php:229
-#: includes/Renderer.php:1199
+#: includes/Assets.php:423
+#: includes/Details.php:175
+#: includes/Renderer.php:1213
 msgid "Playback speed"
 msgstr ""
 
-#: includes/Assets.php:231
+#: includes/Assets.php:425
 msgid "Close player"
+msgstr ""
+
+#: includes/Details.php:166
+msgid "Episode label"
+msgstr ""
+
+#: includes/Details.php:167
+#: includes/EpisodeMeta.php:805
+msgid "Episode number"
+msgstr ""
+
+#: includes/Details.php:169
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:99
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:134
+#: includes/Elementor/Widgets/EpisodeListWidget.php:144
+#: includes/Elementor/Widgets/EpisodeListWidget.php:220
+#: includes/Elementor/Widgets/EpisodeListWidget.php:325
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:200
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:112
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:201
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:157
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:331
+#: includes/EpisodeMeta.php:1056
+msgid "Title"
+msgstr ""
+
+#: includes/Details.php:172
+#: includes/Elementor/Widgets/EpisodeListWidget.php:222
+msgid "Excerpt"
+msgstr ""
+
+#: includes/Details.php:173
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:101
+#: includes/Elementor/Widgets/EpisodeListWidget.php:223
+#: includes/Elementor/Widgets/EpisodeMetadataWidget.php:106
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:160
+msgid "Date"
+msgstr ""
+
+#: includes/Details.php:176
+#: includes/Renderer.php:1181
+msgid "Skip back 15 seconds"
+msgstr ""
+
+#: includes/Details.php:177
+#: includes/Renderer.php:1187
+msgid "Skip forward 30 seconds"
+msgstr ""
+
+#: includes/Details.php:178
+msgid "Volume slider"
+msgstr ""
+
+#: includes/Details.php:179
+msgid "Download button"
+msgstr ""
+
+#: includes/Details.php:180
+msgid "Share menu"
+msgstr ""
+
+#: includes/Details.php:181
+#: includes/Elementor/Widgets/ChaptersWidget.php:100
+#: includes/Elementor/Widgets/ChaptersWidget.php:110
+#: includes/Elementor/Widgets/ChaptersWidget.php:122
+#: includes/Elementor/Widgets/ChaptersWidget.php:145
+#: includes/EpisodeMeta.php:315
+#: includes/Renderer.php:454
+#: includes/Renderer.php:1248
+#: includes/Shortcodes.php:205
+msgid "Chapters"
+msgstr ""
+
+#: includes/Details.php:183
+msgid "Play button"
+msgstr ""
+
+#: includes/Details.php:200
+msgid "Episode lists"
+msgstr ""
+
+#: includes/Details.php:215
+msgid "Podcast Player widget and [podcast_player]."
+msgstr ""
+
+#: includes/Details.php:216
+msgid "Latest Episode widget and [podcast_latest]."
+msgstr ""
+
+#: includes/Details.php:217
+msgid "Episode List widget and [podcast_episodes]."
+msgstr ""
+
+#: includes/Details.php:218
+msgid "The player added to every episode page automatically."
 msgstr ""
 
 #: includes/Directories.php:41
@@ -3038,31 +3149,20 @@ msgstr ""
 msgid "Podcast Chapters"
 msgstr ""
 
-#: includes/Elementor/Widgets/ChaptersWidget.php:100
-#: includes/Elementor/Widgets/ChaptersWidget.php:110
-#: includes/Elementor/Widgets/ChaptersWidget.php:122
-#: includes/Elementor/Widgets/ChaptersWidget.php:145
-#: includes/EpisodeMeta.php:315
-#: includes/Renderer.php:451
-#: includes/Renderer.php:1232
-#: includes/Shortcodes.php:153
-msgid "Chapters"
-msgstr ""
-
 #: includes/Elementor/Widgets/ChaptersWidget.php:108
 #: includes/Elementor/Widgets/ChaptersWidget.php:135
 #: includes/Elementor/Widgets/ShowNotesWidget.php:98
-#: includes/Elementor/Widgets/ShowNotesWidget.php:125
+#: includes/Elementor/Widgets/ShowNotesWidget.php:124
 #: includes/Elementor/Widgets/TranscriptWidget.php:98
-#: includes/Elementor/Widgets/TranscriptWidget.php:137
+#: includes/Elementor/Widgets/TranscriptWidget.php:136
 msgid "Heading"
 msgstr ""
 
 #: includes/Elementor/Widgets/ChaptersWidget.php:128
 #: includes/Elementor/Widgets/EpisodeHeaderWidget.php:117
-#: includes/Elementor/Widgets/EpisodeListWidget.php:250
+#: includes/Elementor/Widgets/EpisodeListWidget.php:266
 #: includes/Elementor/Widgets/GuestWidget.php:112
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:174
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:191
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:179
 #: includes/Elementor/Widgets/ShowNotesWidget.php:118
 #: includes/Elementor/Widgets/SubscribeLinksWidget.php:122
@@ -3074,7 +3174,7 @@ msgstr ""
 msgid "Timestamp Color"
 msgstr ""
 
-#: includes/Elementor/Widgets/ChaptersWidget.php:179
+#: includes/Elementor/Widgets/ChaptersWidget.php:177
 msgid "This episode has no chapters yet."
 msgstr ""
 
@@ -3088,166 +3188,161 @@ msgid "Header"
 msgstr ""
 
 #: includes/Elementor/Widgets/EpisodeHeaderWidget.php:96
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:124
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:154
 msgid "Episode Label"
 msgstr ""
 
 #: includes/Elementor/Widgets/EpisodeHeaderWidget.php:97
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:126
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:155
 msgid "Episode Number in Label"
 msgstr ""
 
 #: includes/Elementor/Widgets/EpisodeHeaderWidget.php:98
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:127
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:156
 msgid "Season in Label"
 msgstr ""
 
 #: includes/Elementor/Widgets/EpisodeHeaderWidget.php:118
-#: includes/Elementor/Widgets/EpisodeListWidget.php:251
+#: includes/Elementor/Widgets/EpisodeListWidget.php:267
 #: includes/Elementor/Widgets/GuestWidget.php:113
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:175
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:192
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:180
-#: includes/Elementor/Widgets/ShowNotesWidget.php:119
-#: includes/Elementor/Widgets/TranscriptWidget.php:131
 msgid "Muted Text Color"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:119
-#: includes/Elementor/Widgets/EpisodeListWidget.php:252
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:176
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:181
-msgid "Accent Color"
-msgstr ""
-
-#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:125
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:269
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:124
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:308
 #: includes/Elementor/Widgets/SubscribeLinksWidget.php:155
 msgid "Label"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:145
-#: includes/Elementor/Widgets/EpisodeListWidget.php:319
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:144
+#: includes/Elementor/Widgets/EpisodeListWidget.php:335
 #: includes/Elementor/Widgets/EpisodeMetadataWidget.php:91
 #: includes/Elementor/Widgets/EpisodeMetadataWidget.php:130
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:193
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:315
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:210
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:354
 msgid "Metadata"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:42
+#: includes/Elementor/Widgets/EpisodeListWidget.php:49
 msgid "Episode List"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:99
+#: includes/Elementor/Widgets/EpisodeListWidget.php:106
 msgid "Query"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:107
+#: includes/Elementor/Widgets/EpisodeListWidget.php:114
 msgid "Number of Episodes"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:118
+#: includes/Elementor/Widgets/EpisodeListWidget.php:125
 msgid "Order"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:122
+#: includes/Elementor/Widgets/EpisodeListWidget.php:129
 msgid "Descending"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:123
+#: includes/Elementor/Widgets/EpisodeListWidget.php:130
 msgid "Ascending"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:131
+#: includes/Elementor/Widgets/EpisodeListWidget.php:138
 msgid "Order By"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:135
+#: includes/Elementor/Widgets/EpisodeListWidget.php:142
 msgid "Publish Date"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:136
-#: includes/Elementor/Widgets/EpisodeListWidget.php:216
+#: includes/Elementor/Widgets/EpisodeListWidget.php:143
+#: includes/Elementor/Widgets/EpisodeListWidget.php:219
 #: includes/Elementor/Widgets/EpisodeMetadataWidget.php:104
 msgid "Episode Number"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:146
+#: includes/Elementor/Widgets/EpisodeListWidget.php:153
 msgid "0 shows episodes from all seasons."
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:158
+#: includes/Elementor/Widgets/EpisodeListWidget.php:165
 msgid "Topic"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:159
+#: includes/Elementor/Widgets/EpisodeListWidget.php:166
 msgid "Shows episodes with any of the chosen topics. Leave empty for all topics."
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:172
+#: includes/Elementor/Widgets/EpisodeListWidget.php:179
 msgid "Pagination"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:177
+#: includes/Elementor/Widgets/EpisodeListWidget.php:184
 msgid "Numbered"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:195
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:98
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:110
-msgid "Layout"
-msgstr ""
-
-#: includes/Elementor/Widgets/EpisodeListWidget.php:200
+#: includes/Elementor/Widgets/EpisodeListWidget.php:203
 msgid "Editorial Rows"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:203
+#: includes/Elementor/Widgets/EpisodeListWidget.php:206
 msgid "Minimal List"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:210
+#: includes/Elementor/Widgets/EpisodeListWidget.php:208
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:98
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:111
+msgid "Layout"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:218
 msgid "Artwork (cards/grid only)"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:217
+#: includes/Elementor/Widgets/EpisodeListWidget.php:219
 msgid "Not shown in the Minimal List layout."
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:221
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:338
+#: includes/Elementor/Widgets/EpisodeListWidget.php:225
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:377
 msgid "Play Button"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:229
+#: includes/Elementor/Widgets/EpisodeListWidget.php:233
 msgid "Excerpt Length (words)"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:253
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:165
+#: includes/Elementor/Widgets/EpisodeListWidget.php:268
+msgid "Hover and Playing Color"
+msgstr ""
+
+#: includes/Elementor/Widgets/EpisodeListWidget.php:269
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:204
 msgid "Border Color"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:258
-#: includes/Elementor/Widgets/EpisodeVideoWidget.php:130
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:170
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:254
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:362
+#: includes/Elementor/Widgets/EpisodeListWidget.php:274
+#: includes/Elementor/Widgets/EpisodeVideoWidget.php:132
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:209
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:293
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:401
 msgid "Border Radius"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:270
+#: includes/Elementor/Widgets/EpisodeListWidget.php:286
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:186
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:208
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:247
 #: includes/Elementor/Widgets/SubscribeLinksWidget.php:140
 msgid "Gap"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:282
+#: includes/Elementor/Widgets/EpisodeListWidget.php:298
 msgid "Card Artwork Radius"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeListWidget.php:329
+#: includes/Elementor/Widgets/EpisodeListWidget.php:345
 msgid "Item Border"
 msgstr ""
 
@@ -3274,13 +3369,13 @@ msgid "Separator"
 msgstr ""
 
 #: includes/Elementor/Widgets/EpisodeMetadataWidget.php:136
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:275
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:298
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:321
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:314
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:337
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:360
 msgid "Color"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeMetadataWidget.php:191
+#: includes/Elementor/Widgets/EpisodeMetadataWidget.php:192
 msgid "None of the selected fields has a value for this episode."
 msgstr ""
 
@@ -3301,12 +3396,12 @@ msgstr ""
 msgid "Tells visitors which platform the video loads from once they play it."
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeVideoWidget.php:124
-msgid "Play Button Color"
+#: includes/Elementor/Widgets/EpisodeVideoWidget.php:126
+msgid "Play Button Hover Color"
 msgstr ""
 
-#: includes/Elementor/Widgets/EpisodeVideoWidget.php:125
-msgid "Play Icon Color"
+#: includes/Elementor/Widgets/EpisodeVideoWidget.php:127
+msgid "Play Icon Hover Color"
 msgstr ""
 
 #: includes/Elementor/Widgets/EpisodeVideoWidget.php:161
@@ -3341,52 +3436,87 @@ msgstr ""
 msgid "Role / Company"
 msgstr ""
 
-#: includes/Elementor/Widgets/GuestWidget.php:177
+#: includes/Elementor/Widgets/GuestWidget.php:175
 msgid "This episode has no guest. Add guest details in the episode editor."
 msgstr ""
 
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:41
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:98
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:154
-#: includes/Elementor/Widgets/WidgetHelpers.php:46
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:42
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:99
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:171
+#: includes/Elementor/Widgets/WidgetHelpers.php:47
 msgid "Latest Episode"
 msgstr ""
 
 #: includes/Elementor/Widgets/LatestEpisodeWidget.php:106
-msgid "Player Layout"
-msgstr ""
-
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:125
 msgid "Audio Player"
 msgstr ""
 
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:126
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:106
+msgid "Off shows a card with the artwork, title, details and description instead of the player."
+msgstr ""
+
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:109
+msgid "Player Layout"
+msgstr ""
+
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:122
+msgid "Not shown in the Minimal and Editorial player layouts."
+msgstr ""
+
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:124
+msgid "Not shown in the Minimal and Compact player layouts."
+msgstr ""
+
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:134
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:121
+msgid "Enable Sticky Player"
+msgstr ""
+
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:138
+msgid "Playback started here keeps its controls in a bar at the bottom of the screen."
+msgstr ""
+
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:143
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:115
 msgid "Call to Action"
 msgstr ""
 
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:131
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:143
+msgid "A button below the episode. Shown once it has a text and a link."
+msgstr ""
+
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:148
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:122
 msgid "CTA Text"
 msgstr ""
 
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:133
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:150
 msgid "Listen now"
 msgstr ""
 
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:141
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:158
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:132
 msgid "CTA URL"
 msgstr ""
 
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:143
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:160
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:134
 msgid "https://…"
 msgstr ""
 
-#: includes/Elementor/Widgets/LatestEpisodeWidget.php:214
-#: includes/Elementor/Widgets/WidgetHelpers.php:131
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:193
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:181
+msgid "Accent Color"
+msgstr ""
+
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:229
+#: includes/Elementor/Widgets/WidgetHelpers.php:132
 msgid "No published episode with audio yet."
+msgstr ""
+
+#: includes/Elementor/Widgets/LatestEpisodeWidget.php:304
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:291
+msgid "The call to action shows once it has a text and a link (CTA URL)."
 msgstr ""
 
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:42
@@ -3410,8 +3540,12 @@ msgstr ""
 msgid "Centered"
 msgstr ""
 
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:115
+msgid "A button next to the platform links. Shown once it has a text and a link."
+msgstr ""
+
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:116
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:138
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:169
 msgid "Platform Links"
 msgstr ""
 
@@ -3434,118 +3568,114 @@ msgstr ""
 msgid "Icons + Text"
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:43
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:44
 msgid "Podcast Player"
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:123
-msgid "Not shown in the Minimal and Editorial layouts."
-msgstr ""
-
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:129
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:132
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:135
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:136
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:150
 msgid "Not shown in the Minimal and Compact layouts."
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:132
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:153
+msgid "Not shown in the Minimal and Editorial layouts."
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:154
+msgid "A line above the title with the episode number and season (when shown below) and \"Bonus\" or \"Trailer\". Empty for a regular episode without number and season."
+msgstr ""
+
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:162
 msgid "Playback Speed"
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:133
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:163
 msgid "Skip Backward (−15s)"
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:134
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:164
 msgid "Skip Forward (+30s)"
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:135
-#: includes/Renderer.php:1203
-#: includes/Renderer.php:1204
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:165
+#: includes/Renderer.php:1220
 msgid "Volume"
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:136
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:166
 msgid "Download Button"
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:137
-msgid "Chapters Toggle"
-msgstr ""
-
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:139
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:167
 msgid "Share Menu"
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:139
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:167
 msgid "Copy link, link at the current position and embed code. Not shown in the Minimal and Compact layouts."
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:141
-msgid "Enable Sticky Player"
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:168
+msgid "Chapters Toggle"
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:158
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:197
 msgid "Container"
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:195
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:234
 msgid "Padding"
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:242
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:348
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:281
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:387
 msgid "Size"
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:376
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:415
 msgid "Normal"
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:393
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:430
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:432
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:469
 msgid "Icon Color"
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:413
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:452
 msgid "Hover"
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:446
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:485
 msgid "Timeline"
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:456
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:495
 msgid "Track Color"
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:467
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:506
 msgid "Played Color"
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:477
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:516
 msgid "Height"
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:492
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:531
 msgid "Time & Secondary Controls"
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:498
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:537
 msgid "Time Color"
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:512
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:551
 msgid "Secondary Icon Size"
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:526
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:565
 msgid "Secondary Color"
 msgstr ""
 
-#: includes/Elementor/Widgets/PodcastPlayerWidget.php:536
+#: includes/Elementor/Widgets/PodcastPlayerWidget.php:575
 msgid "Secondary Hover Color"
 msgstr ""
 
@@ -3560,12 +3690,12 @@ msgstr ""
 
 #: includes/Elementor/Widgets/ShowNotesWidget.php:100
 #: includes/EpisodeMeta.php:956
-#: includes/Renderer.php:542
-#: includes/Shortcodes.php:128
+#: includes/Renderer.php:553
+#: includes/Shortcodes.php:175
 msgid "Show notes"
 msgstr ""
 
-#: includes/Elementor/Widgets/ShowNotesWidget.php:169
+#: includes/Elementor/Widgets/ShowNotesWidget.php:166
 msgid "This episode has no show notes yet."
 msgstr ""
 
@@ -3590,7 +3720,7 @@ msgstr ""
 msgid "Icon Size"
 msgstr ""
 
-#: includes/Elementor/Widgets/SubscribeLinksWidget.php:183
+#: includes/Elementor/Widgets/SubscribeLinksWidget.php:181
 msgid "Add platform links under Podcast → Podcast settings → Platform links."
 msgstr ""
 
@@ -3602,9 +3732,9 @@ msgstr ""
 #: includes/Elementor/Widgets/TranscriptWidget.php:100
 #: includes/Elementor/Widgets/TranscriptWidget.php:124
 #: includes/EpisodeMeta.php:342
-#: includes/Renderer.php:497
-#: includes/Renderer.php:506
-#: includes/Shortcodes.php:179
+#: includes/Renderer.php:508
+#: includes/Renderer.php:517
+#: includes/Shortcodes.php:235
 msgid "Transcript"
 msgstr ""
 
@@ -3620,72 +3750,100 @@ msgstr ""
 msgid "No"
 msgstr ""
 
-#: includes/Elementor/Widgets/TranscriptWidget.php:182
+#: includes/Elementor/Widgets/TranscriptWidget.php:179
 msgid "This episode has no transcript yet."
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:32
-#: includes/Renderer.php:1298
+#: includes/Elementor/Widgets/WidgetHelpers.php:33
+#: includes/Renderer.php:1314
 msgid "Episode"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:40
+#: includes/Elementor/Widgets/WidgetHelpers.php:41
 msgid "Episode Source"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:44
+#: includes/Elementor/Widgets/WidgetHelpers.php:45
 msgid "Current Episode"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:45
+#: includes/Elementor/Widgets/WidgetHelpers.php:46
 msgid "Specific Episode"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:54
+#: includes/Elementor/Widgets/WidgetHelpers.php:55
 msgid "Choose Episode"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:127
+#: includes/Elementor/Widgets/WidgetHelpers.php:128
 msgid "Choose an episode in the widget settings."
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:134
+#: includes/Elementor/Widgets/WidgetHelpers.php:135
 msgid "Shows the current episode on episode pages. Publish an episode to preview it here."
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:153
+#: includes/Elementor/Widgets/WidgetHelpers.php:154
+#: includes/Elementor/Widgets/WidgetHelpers.php:257
 msgid "Show"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:154
+#: includes/Elementor/Widgets/WidgetHelpers.php:155
+#: includes/Elementor/Widgets/WidgetHelpers.php:258
 msgid "Hide"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:190
+#. translators: %s: layout name, e.g. Minimal
+#: includes/Elementor/Widgets/WidgetHelpers.php:224
+#, php-format
+msgid "Default (Podcast → Design: %s)"
+msgstr ""
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:255
+msgid "Default (shown)"
+msgstr ""
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:256
+msgid "Default (hidden)"
+msgstr ""
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:276
+msgid "Details"
+msgstr ""
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:278
+msgid "Use Podcast → Design defaults"
+msgstr ""
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:281
+msgid "Each detail below shows, hides or follows Podcast → Design → Details shown by default (\"Default\"). This button sets every detail of this widget to Default."
+msgstr ""
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:366
 msgid "Style Source"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:194
+#: includes/Elementor/Widgets/WidgetHelpers.php:370
 msgid "Use Podcast → Design styles"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:195
+#: includes/Elementor/Widgets/WidgetHelpers.php:371
 msgid "Custom"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:220
+#: includes/Elementor/Widgets/WidgetHelpers.php:396
 msgid "Heading Level"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:228
+#: includes/Elementor/Widgets/WidgetHelpers.php:404
 msgid "Pick the level that follows the heading above this widget, so screen reader users can navigate by headings."
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:246
+#: includes/Elementor/Widgets/WidgetHelpers.php:422
 msgid "Button Shape"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:250
+#: includes/Elementor/Widgets/WidgetHelpers.php:426
 msgid "Default"
 msgstr ""
 
@@ -3930,7 +4088,7 @@ msgid "Add a chapter title."
 msgstr ""
 
 #: includes/EpisodeMeta.php:1060
-#: includes/Renderer.php:469
+#: includes/Renderer.php:480
 msgid "Link"
 msgstr ""
 
@@ -4444,83 +4602,83 @@ msgid_plural "%1$s: only the first 20 links are kept, so %2$d links were removed
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/Presets.php:106
+#: includes/Presets.php:98
 msgid "Neutral"
 msgstr ""
 
-#: includes/Presets.php:107
+#: includes/Presets.php:99
 msgid "Clean, brand-independent defaults."
 msgstr ""
 
-#: includes/Presets.php:160
+#: includes/Presets.php:135
 msgid "Monochrome and compact."
 msgstr ""
 
-#: includes/Presets.php:196
+#: includes/Presets.php:175
 msgid "Large typography, separated metadata, generous whitespace."
 msgstr ""
 
-#: includes/Presets.php:230
+#: includes/Presets.php:208
 msgid "Card"
 msgstr ""
 
-#: includes/Presets.php:231
+#: includes/Presets.php:209
 msgid "Rounded cards with large artwork."
 msgstr ""
 
-#: includes/Presets.php:271
+#: includes/Presets.php:248
 msgid "Business Tuning"
 msgstr ""
 
-#: includes/Presets.php:272
+#: includes/Presets.php:249
 msgid "Dark editorial player with a lime accent and numbered episode rows."
 msgstr ""
 
-#: includes/Presets.php:337
+#: includes/Presets.php:310
 msgid "Clean light"
 msgstr ""
 
-#: includes/Presets.php:338
+#: includes/Presets.php:311
 msgid "Bright white canvas, one blue accent and pill buttons. Calm, artwork-first and free of shadows."
 msgstr ""
 
-#: includes/Presets.php:375
+#: includes/Presets.php:347
 msgid "Soft voice"
 msgstr ""
 
-#: includes/Presets.php:376
+#: includes/Presets.php:348
 msgid "Off-white canvas, white cards with a soft shadow and near-black ink buttons. Quiet and editorial."
 msgstr ""
 
-#: includes/Presets.php:414
+#: includes/Presets.php:385
 msgid "Warm paper"
 msgstr ""
 
-#: includes/Presets.php:415
+#: includes/Presets.php:386
 msgid "Cream paper tones, a terracotta accent and serif type. Warm, literary and unhurried."
 msgstr ""
 
-#: includes/Presets.php:455
+#: includes/Presets.php:425
 msgid "Ink mono"
 msgstr ""
 
-#: includes/Presets.php:456
+#: includes/Presets.php:426
 msgid "Black ink on white, monospaced type and square buttons. Technical, compact and precise."
 msgstr ""
 
-#: includes/Presets.php:493
+#: includes/Presets.php:462
 msgid "Night studio"
 msgstr ""
 
-#: includes/Presets.php:494
+#: includes/Presets.php:463
 msgid "Near-black surfaces, a vivid green accent and pill buttons. The artwork brings the color."
 msgstr ""
 
-#: includes/Presets.php:531
+#: includes/Presets.php:499
 msgid "Midnight"
 msgstr ""
 
-#: includes/Presets.php:532
+#: includes/Presets.php:500
 msgid "Blue-black canvas, a soft violet accent and dense rows. Made for long episode lists."
 msgstr ""
 
@@ -4907,93 +5065,85 @@ msgstr ""
 msgid "Full episode"
 msgstr ""
 
-#: includes/Renderer.php:592
+#: includes/Renderer.php:603
 msgid "Listen to the latest episode"
 msgstr ""
 
-#: includes/Renderer.php:617
+#: includes/Renderer.php:628
 msgid "RSS feed"
 msgstr ""
 
 #. translators: %s: playback position, e.g. 12:34
-#: includes/Renderer.php:776
+#: includes/Renderer.php:787
 #, php-format
 msgid "Copy link at %s"
 msgstr ""
 
-#: includes/Renderer.php:787
+#: includes/Renderer.php:798
 msgid "Share"
 msgstr ""
 
-#: includes/Renderer.php:792
+#: includes/Renderer.php:803
 msgid "Share this episode"
 msgstr ""
 
-#: includes/Renderer.php:793
+#: includes/Renderer.php:804
 msgid "Copy link"
 msgstr ""
 
-#: includes/Renderer.php:797
+#: includes/Renderer.php:808
 msgid "Share…"
 msgstr ""
 
-#: includes/Renderer.php:799
+#: includes/Renderer.php:810
 msgid "Copy embed code"
 msgstr ""
 
-#: includes/Renderer.php:805
+#: includes/Renderer.php:816
 msgid "Your browser blocked copying. Select the text and copy it."
 msgstr ""
 
 #. translators: %s: episode title
-#: includes/Renderer.php:902
+#: includes/Renderer.php:913
 #, php-format
 msgid "Watch the video of %s"
 msgstr ""
 
 #. translators: %s: episode title
-#: includes/Renderer.php:909
+#: includes/Renderer.php:920
 #, php-format
 msgid "Video: %s"
 msgstr ""
 
 #. translators: %s: episode title
-#: includes/Renderer.php:920
+#: includes/Renderer.php:931
 #, php-format
 msgid "Play video: %s"
 msgstr ""
 
 #. translators: %s: video platform, e.g. YouTube
-#: includes/Renderer.php:934
+#: includes/Renderer.php:945
 #, php-format
 msgid "The video loads from %s when you play it."
 msgstr ""
 
-#: includes/Renderer.php:1020
+#: includes/Renderer.php:1031
 msgid "Audio is not available for this episode yet."
 msgstr ""
 
-#: includes/Renderer.php:1167
-msgid "Skip back 15 seconds"
-msgstr ""
-
-#: includes/Renderer.php:1173
-msgid "Skip forward 30 seconds"
-msgstr ""
-
-#: includes/Renderer.php:1207
+#: includes/Renderer.php:1223
 msgid "Download episode"
 msgstr ""
 
-#: includes/Renderer.php:1586
+#: includes/Renderer.php:1606
 msgid "No episodes in this selection yet."
 msgstr ""
 
-#: includes/Renderer.php:1587
+#: includes/Renderer.php:1607
 msgid "No episodes yet. New episodes will appear here."
 msgstr ""
 
-#: includes/Renderer.php:1591
+#: includes/Renderer.php:1611
 msgid "Browse all episodes"
 msgstr ""
 
@@ -5092,50 +5242,72 @@ msgstr ""
 msgid "The reminder could not be hidden. Reload the page and try again."
 msgstr ""
 
+#. translators: 1: detail, e.g. Volume slider, 2: where, e.g. Player and Episode pages
+#: admin/js/epm-design.js:316
+#, js-format
+msgid "%1$s shown: %2$s"
+msgstr ""
+
+#. translators: 1: detail, e.g. Volume slider, 2: where, e.g. Player and Episode pages
+#: admin/js/epm-design.js:319
+#, js-format
+msgid "%1$s hidden: %2$s"
+msgstr ""
+
 #. translators: 1: color pair, e.g. "Text on background", 2: contrast ratio
-#: admin/js/epm-design.js:313
+#: admin/js/epm-design.js:428
 #, js-format
 msgid "%1$s: contrast %2$s:1 passes."
 msgstr ""
 
 #. translators: 1: color pair, 2: contrast ratio, 3: required ratio
-#: admin/js/epm-design.js:320
+#: admin/js/epm-design.js:435
 #, js-format
 msgid "%1$s: contrast %2$s:1 is too low. It needs at least %3$s:1."
 msgstr ""
 
-#: admin/js/epm-design.js:376
+#: admin/js/epm-design.js:491
 msgid "Enter a color as # and six characters from 0–9 and a–f, for example #1d4ed8."
 msgstr ""
 
 #. translators: 1: lowest value, 2: highest value
-#: admin/js/epm-design.js:380
+#: admin/js/epm-design.js:495
 #, js-format
 msgid "Enter a whole number from %1$d to %2$d."
 msgstr ""
 
-#: admin/js/epm-design.js:393
+#: admin/js/epm-design.js:508
 msgid "Unsaved changes"
 msgstr ""
 
 #. translators: %s: preset name
-#: admin/js/epm-design.js:433
+#: admin/js/epm-design.js:549
 #, js-format
 msgid "Previewing “%s”. It is not applied yet: apply the preset to use it."
 msgstr ""
 
+#. translators: %s: list of detail changes, e.g. "Volume slider hidden: Player"
+#: admin/js/epm-design.js:553
+#, js-format
+msgid "Details it changes on your site: %s."
+msgstr ""
+
 #. translators: %s: preset name
-#: admin/js/epm-design.js:438
+#: admin/js/epm-design.js:562
 #, js-format
 msgid "Preset preview: %s"
 msgstr ""
 
-#: admin/js/epm-design.js:573
+#: admin/js/epm-design.js:697
 msgid "Changes discarded. The saved design is shown again."
 msgstr ""
 
+#: admin/js/epm-design.js:736
+msgid "Unsaved changes. Save the details to see them in the preview and on your site."
+msgstr ""
+
 #. translators: %s: preset name
-#: admin/js/epm-design.js:636
+#: admin/js/epm-design.js:780
 #, js-format
 msgid "Apply “%s”?"
 msgstr ""
