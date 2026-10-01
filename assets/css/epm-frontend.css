@@ -503,6 +503,11 @@ body.epm-custom-font :where(.epm-player, .epm-episode-list, .epm-podcast-hero, .
 	align-items: center;
 }
 
+/* Hidden where the device owns the volume (iOS): the slider would do nothing. */
+.epm-player__volume[hidden] {
+	display: none;
+}
+
 .epm-player__volume input {
 	width: 80px;
 	accent-color: var(--epm-accent, #1d4ed8);
@@ -2053,6 +2058,23 @@ body:has(.epm-sticky:not([hidden])) {
 
 	.epm-share__item:not(#epm) {
 		min-height: 44px;
+	}
+
+	/*
+	 * The seek and volume sliders take touches across 28px (WCAG 2.5.8
+	 * asks for 24px) while their visible track keeps its size: the seek
+	 * slider's hit area grows past its box without moving the layout, the
+	 * volume input's box grows inside the 44px secondary row.
+	 */
+	.epm-player__timeline::before {
+		content: "";
+		position: absolute;
+		inset-inline: 0;
+		inset-block: -4px;
+	}
+
+	.epm-player__volume input {
+		height: 28px;
 	}
 
 	/* iOS zooms into fields under 16px. */

@@ -134,6 +134,10 @@ final class Assets {
 					'embedCopied'  => __( 'Embed code copied', 'elementor-podcast-manager' ),
 					/* translators: %s: playback position, e.g. 12:34 */
 					'startsAt'     => __( 'Starts at %s', 'elementor-podcast-manager' ),
+					// Spoken value of the volume slider ("70%"). The engine
+					// fills %s; %% is a literal percent sign.
+					/* translators: %s: volume level in percent, e.g. 70 */
+					'volumeValue'  => sprintf( __( '%s%%', 'elementor-podcast-manager' ), '%s' ),
 				],
 			]
 		);

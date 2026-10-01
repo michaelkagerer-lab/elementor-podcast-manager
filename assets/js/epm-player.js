@@ -34,7 +34,9 @@
  *     [data-epm-speed]           speed cycle button; the value is written into
  *                                its [data-epm-speed-value] child (the rest of
  *                                the accessible name stays)
- *     [data-epm-volume]          volume range input
+ *     [data-epm-volume]          volume range input (one volume for the page;
+ *                                spoken as a percentage; its label is hidden
+ *                                where the device owns the volume, iOS)
  *   [data-epm-card-play="{id}"]  card/row play buttons (data-epm-src, data-epm-title);
  *                                .epm-list-play__label holds all three words
  *                                (Play/Pause/Retry); CSS shows one from the
@@ -81,7 +83,8 @@
 		linkCopied: '',
 		linkAtCopied: '',
 		embedCopied: '',
-		startsAt: ''
+		startsAt: '',
+		volumeValue: ''
 	};
 
 	var CONFIG = {
@@ -106,6 +109,22 @@
 	} catch (e) { /* localization is optional */ }
 
 	var SPEEDS = [1, 1.25, 1.5, 2, 0.75];
+
+	/**
+	 * Whether the device owns the volume: on iOS and iPadOS setting
+	 * audio.volume has no effect (it always reads 1), so a volume slider
+	 * would do nothing. Probed once on an element without a source (no
+	 * request).
+	 */
+	var VOLUME_FIXED = (function () {
+		try {
+			var probe = document.createElement('audio');
+			probe.volume = 0.5;
+			return Math.abs(probe.volume - 0.5) > 0.01;
+		} catch (e) {
+			return false;
+		}
+	})();
 
 	/* ------------------------------------------------------------------ */
 	/* Per-visitor memory: resume position per episode, preferred speed.   */
@@ -399,6 +418,7 @@
 			audio.playbackRate = SPEEDS[this.speedIndex];
 		} catch (e) { /* rate is best-effort */ }
 		this._attachAudioEvents(audio);
+		this._applyVolume();
 		// Metadata may already be loaded (preload="metadata", audio on this
 		// site). Audio on another host is preload="none": the position is
 		// restored on "loaded", after the first press.
@@ -579,6 +599,17 @@
 				self._emit('error', { kind: 'media' });
 			}
 		});
+		audio.addEventListener('volumechange', function () {
+			if (audio !== self.audio) {
+				return;
+			}
+			// Changed outside the player (the browser's own controls,
+			// another script): the page's volume follows it.
+			if (!VOLUME_FIXED && (audio.volume !== Registry.volume || audio.muted !== Registry.muted)) {
+				Registry.setVolume(audio.volume, audio.muted);
+			}
+			self._emit('volume');
+		});
 	};
 
 	/**
@@ -756,12 +787,35 @@
 		this._emit('speed');
 	};
 
+	/**
+	 * Set the page's volume (0–1). Above 0 it also unmutes, so moving a
+	 * slider always makes the change audible.
+	 */
 	PlaybackController.prototype.setVolume = function (value) {
 		var v = parseFloat(value);
 		if (!isFinite(v)) {
 			return;
 		}
-		this.audio.volume = Math.min(1, Math.max(0, v));
+		v = Math.min(1, Math.max(0, v));
+		Registry.setVolume(v, v > 0 ? false : Registry.muted);
+	};
+
+	/**
+	 * Give this controller's element the page's volume. Setting the same
+	 * value fires no "volumechange", so views and controllers never loop.
+	 */
+	PlaybackController.prototype._applyVolume = function () {
+		if (VOLUME_FIXED) {
+			return;
+		}
+		try {
+			if (this.audio.volume !== Registry.volume) {
+				this.audio.volume = Registry.volume;
+			}
+			if (this.audio.muted !== Registry.muted) {
+				this.audio.muted = Registry.muted;
+			}
+		} catch (e) { /* volume is best-effort */ }
 	};
 
 	PlaybackController.prototype.getDuration = function () {
@@ -793,6 +847,18 @@
 	var Registry = {
 		controllers: {},
 		active: null,
+		// One volume for the page: every episode's audio and every slider.
+		volume: 1,
+		muted: false,
+
+		setVolume: function (level, muted) {
+			var self = this;
+			this.volume = level;
+			this.muted = !!muted;
+			Object.keys(this.controllers).forEach(function (id) {
+				self.controllers[id]._applyVolume();
+			});
+		},
 
 		get: function (episodeId) {
 			var id = String(episodeId || '');
@@ -1047,6 +1113,18 @@
 			setSpeedLabel(refs.speed, controller.getSpeedLabel());
 		}
 
+		// Every slider shows the audio's volume (0 while muted), spoken as
+		// a percentage. Setting value programmatically fires no "input", so
+		// this cannot loop back into setVolume().
+		if (refs.volume && (eventName === 'volume' || eventName === 'init' || eventName === 'source')) {
+			var level = controller.audio.muted ? 0 : controller.audio.volume;
+			var value = String(Math.round(level * 100) / 100);
+			if (refs.volume.value !== value) {
+				refs.volume.value = value;
+			}
+			setLabel(refs.volume, 'aria-valuetext', fill(STR.volumeValue, String(Math.round(level * 100))));
+		}
+
 		// The alert appears when loading fails (or when this view binds to
 		// a failed source) and goes as soon as the source works, also when
 		// another view retried or a fixed file took over.
@@ -1223,11 +1301,17 @@
 				});
 			}
 
+			if (refs.volume && VOLUME_FIXED) {
+				// The device's buttons set the volume; a slider would do
+				// nothing.
+				(refs.volume.closest('.epm-player__volume') || refs.volume).hidden = true;
+				root.classList.add('epm-player--device-volume');
+				refs.volume = null;
+			}
 			if (refs.volume) {
 				refs.volume.addEventListener('input', function () {
 					ctl().setVolume(refs.volume.value);
 				});
-				refs.volume.value = String(bound.audio.volume);
 			}
 
 			bound.subscribe(view);
