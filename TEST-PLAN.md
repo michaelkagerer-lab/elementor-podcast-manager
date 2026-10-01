@@ -175,6 +175,25 @@ Scope: `assets/js/epm-player.js`, `assets/css/epm-frontend.css`,
     the bar's artwork and close button stay clear of the notch and the
     rounded corners; the bottom stays above the home indicator.
 
+## D1 — Details shown by default (design package)
+
+Automated in `tests/integration/design.php`, `widgets.php` and
+`tests/e2e/design.mjs`, `widgets.mjs`. Manual checks on a copy of a
+real site:
+
+1. Update a 1.3.0 site without touching anything: episode pages, widget
+   pages and shortcode pages show the same details and layouts as before.
+2. A site that applied a preset in 1.1–1.3: Podcast → Design shows
+   *Suggested details*; the frontend is unchanged until *Apply
+   suggestions*, which lists each change first.
+3. Apply *Minimal*: new Player widgets and shortcodes without `show_*`
+   lose artwork; a widget set to *Show* keeps it; the automatic episode
+   page keeps the full player.
+4. Open a 1.3.0 page in Elementor: every *Show …* shows Show or Hide (not
+   Default); *Use Podcast → Design defaults* switches them to Default.
+5. Lists in a 320 px column, a sidebar and a row container: titles
+   readable, no horizontal scroll; two paginated lists page separately.
+
 ## Asset lifecycle notes for the verifier
 
 - Text-only Elementor widgets call `\EPM\Assets::enqueue_style()` and

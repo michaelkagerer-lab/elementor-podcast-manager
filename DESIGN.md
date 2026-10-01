@@ -289,15 +289,16 @@ Dark presets (background luminance below 0.2): `business-tuning`,
   radii, spacing, type scale, button shape, font family and elevation)
   and carry generic names. They contain no brand names, logos, copy or
   proprietary fonts; the font choice maps to a generic stack.
-- Presets also set behavior maps. `visibility` (`show_artwork`,
-  `show_episode_label`, `show_title`, `show_episode_number`,
-  `show_season`, `show_guest`, `show_description`, `show_date`,
-  `show_duration`), `player` (`show_playback_speed`,
-  `show_skip_backward`, `show_skip_forward`, `show_volume`,
-  `show_download`) and `episodeList` (empty in every shipped preset).
-  Differences from Neutral: `minimal` hides artwork; `business-tuning`,
-  `soft-voice` and `warm-paper` show the description; `business-tuning`
-  hides the volume slider.
+- Presets set looks (tokens) and, when applied, the site's *Details
+  shown by default* (`details`, per place: `player`, `latest`, `list`,
+  `episode_page`; `includes/Details.php`). Differences from Neutral:
+  `minimal` hides artwork; `business-tuning`, `soft-voice` and
+  `warm-paper` show the description; `business-tuning` hides the volume
+  slider. A widget or shortcode that names a detail wins; otherwise the
+  site setting; otherwise the 1.3.0 default (`Details::neutral()`).
+  Style Source and tokens never change which details render. A new
+  preset adds `details` only for what differs from Neutral; a `layout`
+  key sets the player layout when its tokens name none.
 
 ### Admin colors
 
@@ -690,9 +691,10 @@ frontend components (`epm-frontend.css`) in its preview.
 | `.epm-chip` | Choice chips for button shape, shadow and font: 44px high, at least 92px wide, 8px radius, each showing a sample of the choice |
 | `.epm-color__control` | Native color picker plus a hex field; the timeline track also has *Automatic* |
 | `.epm-contrast-list`, `.epm-contrast-item`, `.epm-contrast-badge` | Eight pairs, each with a sample, the ratio and a pill badge (ok or error color, icon plus text: pass/fail never by color alone) |
-| `.epm-design-preview` | Status line ("Your design" / the previewed preset), *Show my design*, and a canvas (20px padding, the design background) with a player, an episode list and subscribe links; every `--epm-*` variable is set inline on the canvas from `Admin::design_css_vars()` |
+| `.epm-design-preview` | Status line ("Your design" / the previewed preset), *Show my design*, and a canvas (20px padding, the design background) with the player, the episode page player, the episode list in every layout (current first) and subscribe links, rendered with the same markup and details as the site; every `--epm-*` variable is set inline on the canvas from `Admin::design_css_vars()` |
 | `.epm-design__savebar` | Sticky at the bottom of the form: unsaved-changes note (warn color), *Discard changes*, *Save*; the page keeps 96px (112px on small screens) of scroll padding so focused fields stay above it |
-| `.epm-design-summary` | What differs from the preset and which details the preset shows by default (On/Off badges) |
+| `.epm-design-summary` | What differs from the preset and which details the site shows by default per place (On/Off badges) |
+| `#epm-details` | *Details shown by default*: one fieldset per place, checkbox grid labelled by detail and place; *Suggested details* card above it lists each change before *Apply suggestions* |
 
 ## 5. Layout Principles
 
@@ -715,7 +717,7 @@ Fixed micro spacing for small elements: 2, 4, 6, 8, 10, 12 and 16px.
 | Element | Radius |
 |---|---|
 | Containers (player, cards, video frame, hero/latest/section surfaces) | `--epm-radius` (12px) |
-| Artwork | `--epm-artwork-radius` (8px) |
+| Artwork | `--epm-artwork-radius` (8px); the rules use the container's class (0,2,0) so Elementor's `.elementor img { border-radius: 0 }` (0,1,1) cannot reset it; guest photos stay round the same way |
 | Card artwork | `--epm-card-artwork-radius` (0) |
 | Text buttons (list play, speed, share toggle, subscribe chips, calls to action, retry) | `--epm-button-radius`: 8px rounded, 999px pill, 2px square |
 | Main play button, video play button, guest image | 50% |
@@ -831,6 +833,9 @@ Design screen's save bar adds a 1px line ring and an upward shadow
 | Trigger | Change |
 |---|---|
 | Player main column ≤ 440px (container query) | The timeline moves to its own full-width row; controls wrap (the embed card keeps one row) |
+| Episode list ≤ 560px (container query `epm-list`) | Row meta and play button move under the text, aligned with the title |
+| Episode list ≤ 300px (container query) | Numbered rows: the number sits above the title |
+| Elementor row container | Player, Latest Episode, Episode List and Episode Video widgets take the free space (`--container-widget-width` / `--container-widget-flex-grow`, as Elementor's own video widget); a width set on the widget wins |
 | Viewport ≤ 768px | Artwork and Full players stack (artwork full width up to 320px); episode rows wrap and their aside becomes a left-aligned row; the hero stacks (artwork up to 280px); the volume slider shrinks to 56px |
 | Viewport ≤ 520px | Embed card: 96px artwork, skip buttons and metadata hidden |
 | Viewport ≤ 480px | Sticky bar: 12px side padding (or the safe-area inset, when larger), title over time, the timeline along the top edge |

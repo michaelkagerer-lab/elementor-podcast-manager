@@ -225,7 +225,8 @@ Twelve widgets (`includes/Elementor/Widgets.php`): Podcast Player · Episode Lis
   - *Current Episode* resolves to the loop's episode (Loop Grid, related-episode loops) or the episode page.
   - *Latest Episode* is the newest episode with audio.
   - *Specific Episode* uses a searchable picker that reaches the whole catalog and marks drafts/scheduled/private episodes (private ones only for users who may read them).
-- **Style Source:** *Use Global Podcast Styles* emits no overrides and hides the per-widget style sections. *Custom* reveals Elementor controls that set `--epm-*` variables. Global Colors/Fonts, responsive values and hover states are supported. A *Background* on the Podcast Hero or Latest Episode widget also adds inner padding.
+- **Details:** Podcast Player, Latest Episode and Episode List set each detail to *Default* (follows Podcast → Design → *Details shown by default*), *Show* or *Hide*; *Layout* offers *Default (Podcast → Design: …)*. *Use Podcast → Design defaults* sets every detail of the widget to *Default*. Widgets saved with 1.3.0 or earlier keep what they showed until switched. The Latest Episode widget has its own *Enable Sticky Player* (off).
+- **Style Source** (looks only, never which details show): *Use Global Podcast Styles* emits no overrides and hides the per-widget style sections. *Custom* reveals Elementor controls that set `--epm-*` variables. Global Colors/Fonts, responsive values and hover states are supported. A *Background* on the Podcast Hero or Latest Episode widget also adds inner padding.
 - **Episode List** filters by season and topics and can show topic chips; **Podcast Player** has a *Share Menu* toggle.
 - **Editor placeholders** explain widgets that currently render nothing (e.g. no guest on this episode). Visitors never see them.
 - Widgets declare dynamic content, so Elementor's element cache never serves a stale episode list.
@@ -234,13 +235,13 @@ Twelve widgets (`includes/Elementor/Widgets.php`): Podcast Player · Episode Lis
 
 ## Shortcodes
 
-Episode components default to the current episode (the loop's episode or the episode page); `id="123"` picks a specific episode and `source="latest"` the newest episode with audio. Yes/no attributes accept `yes`, `no`, `1`, `0`, `true`, `on`.
+Episode components default to the current episode (the loop's episode or the episode page); `id="123"` picks a specific episode and `source="latest"` the newest episode with audio. Yes/no attributes accept `yes`, `no`, `1`, `0`, `true`, `on`. A `show_*` or `layout` attribute that is present is explicit; without it, Podcast → Design → *Details shown by default* decides.
 
 | Shortcode | Attributes (default) | Output |
 |---|---|---|
 | `[podcast_player]` | `id`, `source` (`current`), `layout` (design default; `minimal`, `compact`, `editorial`, `artwork`, `full`), `sticky` (`no`), `download` (`no`), `share` (`yes`) | The player |
-| `[podcast_latest]` | `layout` (design default) | Player of the newest episode with audio, with artwork and description |
-| `[podcast_episodes]` | `limit` (`10`, 1–100), `layout` (design default; `list`, `editorial-rows`, `cards`, `grid`, `minimal`), `orderby` (`date`; any `WP_Query` order or `episode_number`), `order` (`DESC`), `season`, `topic` (comma-separated slugs), `show_topics` (`no`) | Episode list |
+| `[podcast_latest]` | `layout` (design default), `sticky` (`no`), `show_*` (site details) | Player of the newest episode with audio, with artwork and description by default |
+| `[podcast_episodes]` | `limit` (`10`, 1–100), `layout` (design default; `list`, `editorial-rows`, `cards`, `grid`, `minimal`), `orderby` (`date`; any `WP_Query` order or `episode_number`), `order` (`DESC`), `season`, `topic` (comma-separated slugs), `show_topics` (`no`), `show_*` (site details) | Episode list (by `episode_number`, episodes without a number follow the numbered ones) |
 | `[podcast_video]` | `id`, `source` (`current`), `note` (`yes`: "The video loads from … when you play it") | Click-to-load video |
 | `[podcast_subscribe]` | `display` (`icon-text`, `icon`, `text`), `rss` (`yes`) | Platform links + RSS (the public feed) |
 | `[podcast_guest]` | `id`, `source`, `bio` (`yes`) | Guest block |
@@ -268,15 +269,16 @@ Episode components default to the current episode (the loop's episode or the epi
 
 - **Preset gallery:** keyboard-accessible tiles with live swatches. Selecting a tile shows the preset in the preview; *Apply preset* asks for confirmation (a native dialog that also warns about unsaved changes) and then fills every value.
 - **Fields** in four groups: *Colors* (background, surface, text, muted text, accent, text on accent, borders, timeline track — empty means automatic, from the muted color), *Shape and depth* (corner radius, artwork corner radius, button shape `rounded`/`pill`/`square`, shadow `none`/`soft`/`lifted`), *Typography* (font `inherit`/`system`/`serif`/`rounded`/`mono`, player title size, details size), *Layout defaults* (spacing, player layout, episode list layout).
-- **Live preview** of the real player, episode list and subscribe links; every `--epm-*` variable updates as you type (from a table built in PHP that matches the site's token output).
+- **Details shown by default** per place (player, latest episode, episode lists, episode page). Widgets and shortcodes that name a detail win; otherwise this setting; otherwise the 1.3.0 default. Maps stored by 1.1–1.3 appear as *Suggested details* with *Apply suggestions* (lists every change) and *Dismiss*.
+- **Live preview** of the real player, the episode page player, the episode list in every layout and subscribe links, rendered like the site; every `--epm-*` variable updates as you type (from a table built in PHP that matches the site's token output).
 - **Contrast check** of eight pairs with pass/fail badges: text, muted text on background and surface (4.5:1), accent text on background (4.5:1), text on accent (4.5:1), timeline track on background and surface (3:1).
-- A sticky save bar, *Discard changes*, and a warning before leaving with unsaved changes; a summary of what differs from the preset and which details it shows by default.
+- A sticky save bar, *Discard changes*, and a warning before leaving with unsaved changes; a summary of what differs from the preset and which details the site shows by default.
 
 The values are printed once as `:root` custom properties (`--epm-accent`, `--epm-radius`, `--epm-gap`, `--epm-button-radius`, `--epm-font`, `--epm-shadow`, `--epm-track` …); the stylesheet's fallbacks use `:where(:root)` (specificity 0), so Global Podcast Styles win regardless of load order. `font_family: inherit` keeps the theme's and Elementor's fonts. On a dark background the plugin also prints a white image outline, a lighter error red and, so light text stays readable on a light theme page, a design-colored surface with padding for sections that have none of their own (`epm_dark_section_surface` turns that off).
 
-**Presets** (`epm_presets` filter), eleven in total: `neutral`, `minimal`, `editorial`, `card`, `business-tuning`, and six presets whose values are derived from the DESIGN.md files of the [awesome-design-md](https://github.com/VoltAgent/awesome-design-md) collection (MIT): `clean-light`, `soft-voice`, `warm-paper`, `ink-mono`, `night-studio`, `midnight`. Those six take design values only (colors, radii, spacing, type scale, button shape, font stack, shadow) and carry generic names; they use no brand names, logos, copy or proprietary fonts. Every preset meets text ≥ 7:1, muted ≥ 4.5:1, on-accent ≥ 4.5:1, accent ≥ 4.5:1 and track ≥ 3:1 (measured). Applying a preset fills tokens and visibility/player/list defaults; nothing is locked. Designs saved before 1.3.0 keep pill-shaped text buttons; new designs default to rounded.
+**Presets** (`epm_presets` filter), eleven in total: `neutral`, `minimal`, `editorial`, `card`, `business-tuning`, and six presets whose values are derived from the DESIGN.md files of the [awesome-design-md](https://github.com/VoltAgent/awesome-design-md) collection (MIT): `clean-light`, `soft-voice`, `warm-paper`, `ink-mono`, `night-studio`, `midnight`. Those six take design values only (colors, radii, spacing, type scale, button shape, font stack, shadow) and carry generic names; they use no brand names, logos, copy or proprietary fonts. Every preset meets text ≥ 7:1, muted ≥ 4.5:1, on-accent ≥ 4.5:1, accent ≥ 4.5:1 and track ≥ 3:1 (measured). Applying a preset fills its tokens and sets *Details shown by default* (the confirmation lists the changes); nothing is locked, and widgets or shortcodes that name a detail keep it. Designs saved before 1.3.0 keep pill-shaped text buttons; new designs default to rounded.
 
-**Export/Import** moves a design between sites as versioned JSON with visual tokens only (no IDs, URLs or content); the import accepts only known keys and allowed values.
+**Export/Import** moves a design between sites as versioned JSON (format 2: tokens and details; no IDs, URLs or content); the import accepts only known keys and allowed values, and a 1.x export's details arrive as suggestions.
 
 Precedence: theme / Elementor Site Settings → Global Podcast Styles → preset (applied into global styles) → widget overrides.
 
@@ -398,7 +400,9 @@ All hooks are filters.
 | `epm_player_preload` | `preload` of the player's audio: `metadata` on this site, `none` on another host (1.3.0) |
 | `epm_sticky_player_for_lists` | list play buttons and chapter lists bring the sticky player, default on (1.3.0) |
 | `epm_episode_metadata` | custom metadata fields |
-| `epm_presets` | register presets |
+| `epm_presets` | register presets (`tokens`, optional `details` per place) |
+| `epm_details` | details a player, list or episode page shows: `( $details, $context, $explicit, $consumer )` |
+| `epm_dequeue_unused_player` | drop the player script on pages without podcast markup, default on |
 | `epm_dark_section_surface` | design surface and padding for sections on dark designs, default on (1.3.0) |
 | `epm_hosting_providers` | podcast host registry (1.3.0) |
 | `epm_directories` | distribution platforms (1.3.0) |
@@ -433,9 +437,10 @@ JavaScript: `window.epmPlayerEngine.init(element)` initializes players, buttons,
 | Integration | `tests/integration/run.php` | feed, capabilities, visibility, rendering, widgets |
 | | `tests/integration/hosting.php` | parser against 26 real feeds, import, sync, moves, transcript files, setup and distribution |
 | | `tests/integration/admin.php` | topics, menu, list columns, next number, transcript files, Quick/Bulk Edit, design export/import, Design screen tokens and contrast |
+| | `tests/integration/design.php`, `widgets.php` | details shown by default (1.3.0 snapshot, explicit > site > neutral, migration into suggestions, export format 2), 1.3.0 Elementor widgets, artwork radius, paginated lists, order by number |
 | | `tests/integration/frontend.php` | timestamp links, share menu, embeds, video facade, topic filters, audio preloading, sticky player for lists, dark designs |
 | HTTP | `tests/http/run.sh` | feed URLs, conditional GET, endpoints, pages, REST, byte ranges, the external-mode redirect |
-| Browser (Playwright) | `tests/e2e/run.mjs`, `setup.mjs`, `admin.mjs`, `frontend.mjs`, `player.mjs` | player, Elementor editor, episode admin, setup assistant, Hosting & import, Distribution, Design screen, editor speed-ups, share menu, embeds, video, sticky bar, design on real pages |
+| Browser (Playwright) | `tests/e2e/run.mjs`, `setup.mjs`, `admin.mjs`, `design.mjs`, `frontend.mjs`, `player.mjs`, `style-audit.mjs`, `widgets.mjs` | player, Elementor editor, episode admin, setup assistant, Hosting & import, Distribution, Design screen, editor speed-ups, share menu, embeds, video, sticky bar, design on real pages |
 
 It fails on any PHP notice from the plugin. CI runs lint on PHP 8.1–8.4, the integration and HTTP suites on PHP 8.1 and 8.4, and the browser suites. See [tests/README.md](tests/README.md) for exactly what each suite covers, and [docs/VERIFICATION-1.3.0.md](docs/VERIFICATION-1.3.0.md) for the latest results.
 
