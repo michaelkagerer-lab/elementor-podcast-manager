@@ -234,6 +234,20 @@ body.epm-custom-font :where(.epm-player, .epm-episode-list, .epm-podcast-hero, .
 	display: block;
 }
 
+/*
+ * Elementor resets every image in its widgets (".elementor img
+ * { border-radius: 0 }", 0,1,1). The artwork and guest photo rules carry
+ * their container's class (0,2,0), so the design's radius and the round
+ * guest photo hold inside Elementor too; a widget's own radius control
+ * still wins through the variables.
+ */
+.epm-player__artwork .epm-player__artwork-img,
+.epm-episode-header__artwork .epm-episode-header__artwork-img,
+.epm-latest__artwork .epm-latest__artwork-img,
+.epm-podcast-hero__artwork .epm-podcast-hero__artwork-img {
+	border-radius: var(--epm-artwork-radius, 8px);
+}
+
 .epm-player__main {
 	flex: 1 1 auto;
 	min-width: 0;
@@ -269,6 +283,12 @@ body.epm-custom-font :where(.epm-player, .epm-episode-list, .epm-podcast-hero, .
 .epm-meta__sep {
 	margin: 0 0.5em;
 	opacity: 0.6;
+}
+
+/* The Episode Metadata widget prints its separator exactly as typed. */
+.epm-meta--standalone .epm-meta__sep {
+	margin: 0;
+	white-space: pre;
 }
 
 /*
@@ -682,9 +702,28 @@ body.epm-custom-font :where(.epm-player, .epm-episode-list, .epm-podcast-hero, .
 
 /* ---------- Episode list ---------- */
 
+/*
+ * Lists are size containers: a list in a narrow column (a sidebar, one of
+ * three columns, the Design preview) stacks its rows like a phone screen
+ * does, whatever the viewport.
+ */
 .epm-episode-list {
 	display: flex;
 	flex-direction: column;
+	container: epm-list / inline-size;
+	/* A size container has no content width of its own: where its parent
+	   sizes it by content (an Elementor row container), it asks for this
+	   much and shrinks from there. */
+	contain-intrinsic-inline-size: 40rem;
+}
+
+/*
+ * Elementor row containers size widgets by their content and do not let
+ * them shrink below it. Podcast widgets may shrink (their lists and
+ * players adapt to their own width).
+ */
+.elementor-widget[data-widget_type^="epm-"] {
+	min-inline-size: 0;
 }
 
 .epm-episode-list--grid {
@@ -889,7 +928,7 @@ body.epm-custom-font :where(.epm-player, .epm-episode-list, .epm-podcast-hero, .
 	display: block;
 }
 
-.epm-episode-card__artwork-img {
+.epm-episode-card__artwork .epm-episode-card__artwork-img {
 	border-radius: var(--epm-card-artwork-radius, 0);
 	aspect-ratio: 16 / 10;
 }
@@ -924,7 +963,7 @@ body.epm-custom-font :where(.epm-player, .epm-episode-list, .epm-podcast-hero, .
 }
 
 /* Stacked on narrow cards: a band no taller than the side-by-side square. */
-.epm-episode-list--cards .epm-episode-card__artwork-img {
+.epm-episode-list--cards .epm-episode-card__artwork .epm-episode-card__artwork-img {
 	aspect-ratio: 1 / 1;
 	max-block-size: 240px;
 }
@@ -1044,6 +1083,10 @@ body.epm-custom-font :where(.epm-player, .epm-episode-list, .epm-podcast-hero, .
 	display: block;
 }
 
+.epm-podcast-hero__artwork .epm-artwork {
+	aspect-ratio: auto;
+}
+
 .epm-podcast-hero__content {
 	flex: 1 1 auto;
 	min-width: 0;
@@ -1094,7 +1137,8 @@ body.epm-custom-font :where(.epm-player, .epm-episode-list, .epm-podcast-hero, .
 	gap: 2px;
 }
 
-.epm-guest__image {
+/* (0,2,0): round inside Elementor widgets too (see the artwork rules). */
+.epm-guest .epm-guest__image {
 	width: var(--epm-guest-image-size, 72px);
 	height: var(--epm-guest-image-size, 72px);
 	border-radius: 50%;
@@ -1326,7 +1370,7 @@ body.epm-custom-font :where(.epm-player, .epm-episode-list, .epm-podcast-hero, .
 	align-items: center;
 	gap: 8px;
 	min-height: 44px;
-	color: var(--epm-text-muted, #6b7280);
+	color: var(--epm-subscribe-color, var(--epm-text-muted, #6b7280));
 	text-decoration: none;
 	border: 1px solid var(--epm-border, #e5e7eb);
 	border-radius: var(--epm-button-radius, 8px);
@@ -1799,6 +1843,54 @@ body:has(.epm-sticky:not([hidden])) {
 }
 
 /*
+ * Narrow lists (sidebars, one of three columns, the Design preview,
+ * phones): after the viewport rules above, so a list's own width decides.
+ */
+@container epm-list (max-width: 560px) {
+	.epm-episode-row {
+		column-gap: calc(var(--epm-gap, 24px) / 2);
+	}
+
+	.epm-episode-list--numbered .epm-episode-row {
+		grid-template-columns: calc(var(--epm-title-size, 22px) * 1.6) minmax(0, 1fr);
+	}
+
+	/* Meta and play move under the text, aligned with the title. */
+	.epm-episode-row__aside {
+		grid-column: 1 / -1;
+		align-self: start;
+		flex-wrap: wrap;
+		column-gap: 16px;
+		row-gap: 8px;
+		text-align: start;
+	}
+
+	.epm-episode-row__aside .epm-meta {
+		white-space: normal;
+	}
+
+	.epm-episode-list--numbered .epm-episode-row__aside {
+		grid-column: 2 / -1;
+	}
+}
+
+@container epm-list (max-width: 300px) {
+	/* Too narrow for a number column: the number sits above the title. */
+	.epm-episode-list--numbered .epm-episode-row {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.epm-episode-list--numbered .epm-episode-row__content,
+	.epm-episode-list--numbered .epm-episode-row__aside {
+		grid-column: 1;
+	}
+
+	.epm-episode-row__number {
+		font-size: var(--epm-meta-size, 14px);
+	}
+}
+
+/*
  * Narrow players (phones, narrow Elementor columns, sidebars): the
  * timeline moves to its own full-width row so it stays usable. Based on
  * the player's own width, not the viewport.
@@ -1806,6 +1898,9 @@ body:has(.epm-sticky:not([hidden])) {
 .epm-player__main {
 	container-type: inline-size;
 	container-name: epm-player-main;
+	/* Content width where the parent sizes the player by content (see the
+	   episode list). */
+	contain-intrinsic-inline-size: 24rem;
 }
 
 @container epm-player-main (max-width: 440px) {
@@ -2264,6 +2359,21 @@ body:has(.epm-sticky:not([hidden])) {
 :where(.epm-show-notes, .epm-chapters, .epm-transcript, .epm-guest-block, .epm-guest:not(.epm-guest-block > .epm-guest), .epm-episode-header, .epm-latest__header, .epm-subscribe, .epm-episode-list--list, .epm-episode-list--editorial-rows, .epm-episode-list--minimal, .epm-episode-list__empty, .epm-pagination, .epm-episode-page > .epm-topics, .epm-meta--standalone, .epm-video):not(.epm-player *, .epm-podcast-hero *) {
 	background-color: var(--epm-section-background, transparent);
 	padding: var(--epm-section-padding, 0);
+	border-radius: var(--epm-radius, 12px);
+}
+
+/*
+ * The Episode List widget's Background (--epm-list-background, with inner
+ * padding) wins over the section surface; card lists get it too.
+ */
+:where(.epm-episode-list--list, .epm-episode-list--editorial-rows, .epm-episode-list--minimal):not(.epm-player *, .epm-podcast-hero *) {
+	background-color: var(--epm-list-background, var(--epm-section-background, transparent));
+	padding: var(--epm-list-padding, var(--epm-section-padding, 0));
+}
+
+:where(.epm-episode-list--cards, .epm-episode-list--grid) {
+	background-color: var(--epm-list-background, transparent);
+	padding: var(--epm-list-padding, 0);
 	border-radius: var(--epm-radius, 12px);
 }
 

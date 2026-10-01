@@ -153,8 +153,6 @@ final class GuestWidget extends Widget_Base {
 	 * @return void
 	 */
 	protected function render(): void {
-		\EPM\Assets::enqueue_style();
-
 		$settings = $this->get_settings_for_display();
 		$episode  = $this->resolve_widget_episode( $settings );
 
@@ -177,6 +175,8 @@ final class GuestWidget extends Widget_Base {
 			$this->editor_placeholder( __( 'This episode has no guest. Add guest details in the episode editor.', 'elementor-podcast-manager' ) );
 			return;
 		}
+
+		\EPM\Assets::enqueue_style();
 
 		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the renderer.
 	}

@@ -119,7 +119,7 @@ final class SubscribeLinksWidget extends Widget_Base {
 		);
 
 		$this->add_style_source_control();
-		$this->add_token_color( 'subscribe_text', __( 'Text Color', 'elementor-podcast-manager' ), '--epm-text', '{{WRAPPER}} .epm-subscribe' );
+		$this->add_token_color( 'subscribe_text', __( 'Text Color', 'elementor-podcast-manager' ), '--epm-subscribe-color', '{{WRAPPER}} .epm-subscribe' );
 		$this->add_token_color( 'subscribe_accent', __( 'Hover Color', 'elementor-podcast-manager' ), '--epm-subscribe-hover', '{{WRAPPER}} .epm-subscribe' );
 
 		$this->add_responsive_control(
@@ -167,8 +167,6 @@ final class SubscribeLinksWidget extends Widget_Base {
 	 * @return void
 	 */
 	protected function render(): void {
-		\EPM\Assets::enqueue_style();
-
 		$settings = $this->get_settings_for_display();
 
 		$html = epm()->renderer->subscribe_links(
@@ -183,6 +181,8 @@ final class SubscribeLinksWidget extends Widget_Base {
 			$this->editor_placeholder( __( 'Add platform links under Podcast → Podcast settings → Platform links.', 'elementor-podcast-manager' ) );
 			return;
 		}
+
+		\EPM\Assets::enqueue_style();
 
 		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the renderer.
 	}

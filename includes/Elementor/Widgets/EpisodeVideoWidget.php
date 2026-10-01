@@ -121,8 +121,10 @@ final class EpisodeVideoWidget extends Widget_Base {
 		);
 
 		$this->add_style_source_control();
-		$this->add_token_color( 'video_accent', __( 'Play Button Color', 'elementor-podcast-manager' ), '--epm-accent', '{{WRAPPER}} .epm-video' );
-		$this->add_token_color( 'video_on_accent', __( 'Play Icon Color', 'elementor-podcast-manager' ), '--epm-on-accent', '{{WRAPPER}} .epm-video' );
+		// At rest the play button is neutral glass, readable on any artwork;
+		// these colors show while the pointer is over the video.
+		$this->add_token_color( 'video_accent', __( 'Play Button Hover Color', 'elementor-podcast-manager' ), '--epm-accent', '{{WRAPPER}} .epm-video' );
+		$this->add_token_color( 'video_on_accent', __( 'Play Icon Hover Color', 'elementor-podcast-manager' ), '--epm-on-accent', '{{WRAPPER}} .epm-video' );
 
 		$this->add_responsive_control(
 			'video_radius',
@@ -145,8 +147,6 @@ final class EpisodeVideoWidget extends Widget_Base {
 	 * @return void
 	 */
 	protected function render(): void {
-		\EPM\Assets::enqueue();
-
 		$settings = $this->get_settings_for_display();
 		$episode  = $this->resolve_widget_episode( $settings );
 
@@ -161,6 +161,8 @@ final class EpisodeVideoWidget extends Widget_Base {
 			$this->editor_placeholder( __( 'This episode has no video. Add a YouTube or video address in the episode editor.', 'elementor-podcast-manager' ) );
 			return;
 		}
+
+		\EPM\Assets::enqueue();
 
 		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the renderer.
 	}

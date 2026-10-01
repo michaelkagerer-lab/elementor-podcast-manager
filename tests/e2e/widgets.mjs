@@ -89,6 +89,25 @@ try {
 			await page.locator('.elementor-element-n000001').screenshot({ path: `screenshots/widgets-narrow-${width}.png` });
 			await page.context().close();
 		}
+		// A row container sizes widgets by their content: lists and players
+		// (size containers) must not collapse to nothing there.
+		const [rowId, rowUrl] = elementorPage('epm-widgets-row', [
+			container('w000001', { flex_direction: 'row' }, [
+				widget('w000002', 'epm-episode-list', { number: 3 }),
+				widget('w000003', 'text-editor', { editor: 'Hello world' }),
+				widget('w000004', 'epm-podcast-player', { source: 'specific', episode_id: String(fx.ep1), layout: 'full' }),
+			]),
+		]);
+		created.push(rowId);
+		const rowPage = await newPage(browser, { width: 1280, height: 900 });
+		await rowPage.goto(rowUrl);
+		const widths = await rowPage.evaluate(() => ['w000002', 'w000004'].map((id) => Math.round(document.querySelector(`.elementor-element-${id}`).getBoundingClientRect().width)));
+		assert(widths[0] >= 300 && widths[1] >= 300, `in a row container the list and the player keep a usable width (${widths.join(' / ')} px)`);
+		const rowRows = await rowProblems(rowPage, '.elementor-element-w000002');
+		assert(rowRows.narrow.length === 0 && rowRows.outside.length === 0, `and the list's titles keep their row (${JSON.stringify(rowRows).slice(0, 160)})`);
+		await rowPage.screenshot({ path: 'screenshots/widgets-row-container.png' });
+		await rowPage.context().close();
+
 		const admin = await newPage(browser, { width: 1280, height: 900 });
 		await login(admin);
 		await admin.goto(`${BASE}/wp-admin/admin.php?page=epm-design`);

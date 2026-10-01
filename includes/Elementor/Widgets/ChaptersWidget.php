@@ -157,8 +157,6 @@ final class ChaptersWidget extends Widget_Base {
 	 * @return void
 	 */
 	protected function render(): void {
-		\EPM\Assets::enqueue();
-
 		$settings = $this->get_settings_for_display();
 		$episode  = $this->resolve_widget_episode( $settings );
 
@@ -179,6 +177,8 @@ final class ChaptersWidget extends Widget_Base {
 			$this->editor_placeholder( __( 'This episode has no chapters yet.', 'elementor-podcast-manager' ) );
 			return;
 		}
+
+		\EPM\Assets::enqueue();
 
 		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the renderer.
 	}
