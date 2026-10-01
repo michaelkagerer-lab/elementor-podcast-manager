@@ -435,7 +435,9 @@ final class ImportJob {
 			return self::running_error();
 		}
 
+		// Leftovers: data of no current job, files 1.3.0 kept in uploads.
 		self::sweep();
+		self::cleanup_legacy_folder();
 
 		$located = Hosting::locate( $url );
 		if ( is_wp_error( $located ) ) {

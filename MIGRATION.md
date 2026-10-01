@@ -12,8 +12,8 @@ lives in non-autoloaded rows of the options table named
 `epm_import_chunk_<key>_<id>` (at most 512 KB each), written and read
 directly, never through an options cache.
 
-On the first request after the update (and on admin requests while the
-folder exists):
+On the first request after the update (and on admin requests and feed
+checks while the folder exists):
 
 - an import 1.3.0 was **running** continues: its next step moves the
   file's items into the database and deletes the file, then carries on
