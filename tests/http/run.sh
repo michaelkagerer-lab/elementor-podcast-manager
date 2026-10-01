@@ -74,6 +74,29 @@ if [ -n "$(fx elementor_page)" ]; then
 	check "Elementor page renders all widgets" '[ "$(curl -s "$URL/epm-elementor/" | grep -o "data-widget_type=\"epm-" | wc -l)" -eq 11 ]'
 fi
 
+echo "Stylesheet placement (WID-N4) and pages without podcast content (WID-N9)"
+# Line of the first match of a pattern in a page (empty when absent).
+line_of() { grep -n -m1 -- "$2" "$1" | cut -d: -f1; }
+in_head() {
+	local file="$1" css head
+	css=$(line_of "$file" "epm-frontend.css")
+	head=$(line_of "$file" "</head>")
+	[ -n "$css" ] && [ -n "$head" ] && [ "$css" -lt "$head" ]
+}
+curl -s "$URL/epm-shortcodes/" -o "$TMP/shortcodes.html"
+check "automatic episode page: stylesheet in <head>" 'in_head "$TMP/episode.html"'
+check "automatic episode page: tokens in <head>" '[ "$(line_of "$TMP/episode.html" "epm-design-tokens")" -lt "$(line_of "$TMP/episode.html" "</head>")" ]'
+check "shortcode page: stylesheet in <head>" 'in_head "$TMP/shortcodes.html"'
+check "shortcode page: stylesheet loaded once" '[ "$(grep -o "epm-frontend-css" "$TMP/shortcodes.html" | wc -l)" -eq 1 ]'
+PLAIN_ID=$($WP post create --post_type=page --post_status=publish --post_title="EPM plain page" --post_content="Nothing about podcasts." --porcelain 2>/dev/null | grep -E '^[0-9]+$' | head -1)
+NOTHING_ID=$($WP post create --post_type=page --post_status=publish --post_title="EPM nothing to show" --post_content='[podcast_player source="current"] [podcast_chapters] [podcast_video]' --porcelain 2>/dev/null | grep -E '^[0-9]+$' | head -1)
+curl -sL "$URL/?page_id=$PLAIN_ID" -o "$TMP/plain.html"
+curl -sL "$URL/?page_id=$NOTHING_ID" -o "$TMP/nothing.html"
+check "a page without podcast content prints no tokens" '! grep -q "epm-design-tokens" "$TMP/plain.html"'
+check "and loads no podcast assets" '! grep -Eq "epm-frontend|epm-player\.js" "$TMP/plain.html"'
+check "shortcodes that render nothing load no assets and no tokens" '! grep -Eq "epm-frontend|epm-player\.js|epm-design-tokens" "$TMP/nothing.html"'
+$WP post delete "$PLAIN_ID" "$NOTHING_ID" --force > /dev/null 2>&1
+
 echo "REST"
 check "episode meta exposed in REST" 'curl -s "$URL/wp-json/wp/v2/podcast_episode/$EP1" | grep -q "\"_epm_episode_number\":1"'
 check "password-protected episode meta hidden in REST" 'curl -s "$URL/wp-json/wp/v2/podcast_episode/$PASSWORD" | php -r "\$d = json_decode(stream_get_contents(STDIN), true); exit(empty(\$d[\"meta\"]) ? 0 : 1);"'

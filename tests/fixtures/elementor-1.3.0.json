@@ -1,0 +1,44 @@
+[
+	{
+		"id": "p130001",
+		"widgetType": "epm-podcast-player",
+		"settings": {
+			"source": "specific",
+			"episode_id": "%ep1%",
+			"layout": "full",
+			"show_date": "yes",
+			"show_volume": "",
+			"show_download": "yes"
+		}
+	},
+	{
+		"id": "p130002",
+		"widgetType": "epm-podcast-player",
+		"settings": {
+			"source": "specific",
+			"episode_id": "%ep1%",
+			"show_description": "yes",
+			"show_share": ""
+		}
+	},
+	{
+		"id": "l130003",
+		"widgetType": "epm-latest-episode",
+		"settings": {
+			"layout": "artwork",
+			"show_description": "",
+			"show_guest": "",
+			"cta_text": "Listen now"
+		}
+	},
+	{
+		"id": "e130004",
+		"widgetType": "epm-episode-list",
+		"settings": {
+			"number": 3,
+			"layout": "cards",
+			"show_excerpt": "",
+			"show_episode_number": ""
+		}
+	}
+]

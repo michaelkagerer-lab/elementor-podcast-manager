@@ -44,41 +44,6 @@ add_action(
 );
 
 /**
- * Run a callback as if the request were the single page (or embed) of an
- * episode, then restore the previous query.
- *
- * @param int      $post_id Episode ID.
- * @param callable $fn      Callback.
- * @param bool     $embed   Pretend to be /podcast/{slug}/embed/.
- * @return mixed Callback result.
- */
-function epm_test_as_episode_page( int $post_id, callable $fn, bool $embed = false ) {
-	global $wp_query, $wp_the_query, $post;
-
-	$saved = [ $wp_query, $wp_the_query, $post ];
-
-	$wp_query = new WP_Query( // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-		[
-			'p'         => $post_id,
-			'post_type' => EpisodePostType::CPT,
-		]
-	);
-	if ( $embed ) {
-		$wp_query->is_embed = true;
-	}
-	$wp_the_query = $wp_query; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-	$post         = get_post( $post_id ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-	setup_postdata( $post );
-
-	try {
-		return $fn();
-	} finally {
-		[ $wp_query, $wp_the_query, $post ] = $saved; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-		wp_reset_postdata();
-	}
-}
-
-/**
  * Every src/srcset/poster URL in a piece of markup points to this site.
  *
  * @param string $html Markup.
