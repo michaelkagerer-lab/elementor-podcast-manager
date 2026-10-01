@@ -79,7 +79,7 @@ final class EpisodeTemplate {
 	 * @param \WP_Post $post Episode.
 	 * @return bool
 	 */
-	private function is_designed_with_elementor( \WP_Post $post ): bool {
+	private static function is_designed_with_elementor( \WP_Post $post ): bool {
 		// Elementor Pro Theme Builder single template is rendering…
 		if ( did_action( 'elementor/theme/before_do_single' ) ) {
 			return true;
@@ -122,6 +122,26 @@ final class EpisodeTemplate {
 	}
 
 	/**
+	 * Whether the episode page of this episode gets the podcast components
+	 * (also asked early, in wp_enqueue_scripts, so the stylesheet goes into
+	 * <head>: see Assets::enqueue_early()).
+	 *
+	 * @param \WP_Post $post Episode.
+	 * @return bool
+	 */
+	public static function embeds( \WP_Post $post ): bool {
+		$enabled = ! empty( epm()->settings->get( 'auto_embed' ) ) && ! self::is_designed_with_elementor( $post );
+
+		/**
+		 * Whether to add the player and episode details to the episode page.
+		 *
+		 * @param bool     $enabled Default decision.
+		 * @param \WP_Post $post    Episode.
+		 */
+		return (bool) apply_filters( 'epm_auto_embed', $enabled, $post );
+	}
+
+	/**
 	 * Resolve episode data for the page being viewed.
 	 *
 	 * The page is already visible to this visitor (WordPress resolved it),
@@ -131,7 +151,7 @@ final class EpisodeTemplate {
 	 * @param \WP_Post $post Episode.
 	 * @return array<string, mixed>|null
 	 */
-	private function episode_data( \WP_Post $post ): ?array {
+	private static function episode_data( \WP_Post $post ): ?array {
 		if ( post_password_required( $post ) ) {
 			return null;
 		}
@@ -143,6 +163,17 @@ final class EpisodeTemplate {
 		}
 
 		return $data;
+	}
+
+	/**
+	 * Whether the visitor gets the podcast components on this episode's
+	 * page now (the components are on, and the episode is visible to them).
+	 *
+	 * @param \WP_Post $post Episode.
+	 * @return bool
+	 */
+	public static function will_render( \WP_Post $post ): bool {
+		return self::embeds( $post ) && null !== self::episode_data( $post );
 	}
 
 	/**
@@ -214,19 +245,11 @@ final class EpisodeTemplate {
 			return $content;
 		}
 
-		$enabled = ! empty( epm()->settings->get( 'auto_embed' ) ) && ! $this->is_designed_with_elementor( $post );
-
-		/**
-		 * Whether to add the player and episode details to the episode page.
-		 *
-		 * @param bool     $enabled Default decision.
-		 * @param \WP_Post $post    Episode.
-		 */
-		if ( ! apply_filters( 'epm_auto_embed', $enabled, $post ) ) {
+		if ( ! self::embeds( $post ) ) {
 			return $content;
 		}
 
-		$episode = $this->episode_data( $post );
+		$episode = self::episode_data( $post );
 		if ( ! $episode ) {
 			return $content;
 		}

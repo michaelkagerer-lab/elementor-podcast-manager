@@ -651,7 +651,8 @@ final class DesignSettings {
 	/**
 	 * Output the design tokens as CSS custom properties on :root.
 	 *
-	 * Printed once per request (wp_head, or wp_footer as a fallback). The
+	 * Printed once per request (wp_head, or wp_footer as a fallback), and
+	 * only on pages that use podcast styles. The
 	 * static fallback in epm-frontend.css is :where(:root) with specificity
 	 * 0, so these tokens win regardless of document order. Specificity
 	 * stays low (:root); widget overrides on {{WRAPPER}} win by specificity.
@@ -660,6 +661,14 @@ final class DesignSettings {
 	 */
 	public function output_tokens(): void {
 		if ( $this->tokens_printed ) {
+			return;
+		}
+
+		// Only where podcast styles are used: enqueued for <head> (Elementor
+		// widgets, the episode page, shortcodes in the content), or used by
+		// something rendered so far (footer fallback, before the late
+		// stylesheet).
+		if ( ! Assets::is_used() && ! wp_style_is( 'epm-frontend', 'enqueued' ) && ! wp_style_is( 'epm-frontend', 'done' ) ) {
 			return;
 		}
 		$this->tokens_printed = true;

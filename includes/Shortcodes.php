@@ -125,15 +125,20 @@ final class Shortcodes {
 			$display = 'icon-text';
 		}
 
-		Assets::enqueue_style();
-
-		return epm()->renderer->subscribe_links(
+		$html = epm()->renderer->subscribe_links(
 			(array) epm()->settings->get( 'platform_links' ),
 			[
 				'display'  => $display,
 				'show_rss' => $this->is_on( $atts['rss'] ),
 			]
 		);
+
+		// Nothing to show: nothing to load either.
+		if ( '' !== $html ) {
+			Assets::enqueue_style();
+		}
+
+		return $html;
 	}
 
 	/**
@@ -150,9 +155,14 @@ final class Shortcodes {
 			return '';
 		}
 
-		Assets::enqueue_style();
+		$html = epm()->renderer->guest( $episode, [ 'show_bio' => $this->is_on( $atts['bio'] ) ] );
 
-		return epm()->renderer->guest( $episode, [ 'show_bio' => $this->is_on( $atts['bio'] ) ] );
+		// Nothing to show: nothing to load either.
+		if ( '' !== $html ) {
+			Assets::enqueue_style();
+		}
+
+		return $html;
 	}
 
 	/**
@@ -169,15 +179,20 @@ final class Shortcodes {
 			return '';
 		}
 
-		Assets::enqueue_style();
-
-		return epm()->renderer->show_notes(
+		$html = epm()->renderer->show_notes(
 			$episode,
 			[
 				'heading'     => sanitize_text_field( $atts['heading'] ),
 				'heading_tag' => sanitize_key( $atts['heading_tag'] ),
 			]
 		);
+
+		// Nothing to show: nothing to load either.
+		if ( '' !== $html ) {
+			Assets::enqueue_style();
+		}
+
+		return $html;
 	}
 
 	/**
@@ -194,16 +209,20 @@ final class Shortcodes {
 			return '';
 		}
 
-		// Chapters seek the episode's audio: needs the player engine.
-		Assets::enqueue();
-
-		return epm()->renderer->chapters(
+		$html = epm()->renderer->chapters(
 			$episode,
 			[
 				'heading'     => sanitize_text_field( $atts['heading'] ),
 				'heading_tag' => sanitize_key( $atts['heading_tag'] ),
 			]
 		);
+
+		// Chapters seek the episode's audio: they need the player engine.
+		if ( '' !== $html ) {
+			Assets::enqueue();
+		}
+
+		return $html;
 	}
 
 	/**
@@ -220,9 +239,7 @@ final class Shortcodes {
 			return '';
 		}
 
-		Assets::enqueue_style();
-
-		return epm()->renderer->transcript(
+		$html = epm()->renderer->transcript(
 			$episode,
 			[
 				'heading'     => sanitize_text_field( $atts['heading'] ),
@@ -230,6 +247,13 @@ final class Shortcodes {
 				'collapsible' => $this->is_on( $atts['collapsible'] ),
 			]
 		);
+
+		// Nothing to show: nothing to load either.
+		if ( '' !== $html ) {
+			Assets::enqueue_style();
+		}
+
+		return $html;
 	}
 
 	/**
@@ -351,9 +375,14 @@ final class Shortcodes {
 			return '';
 		}
 
-		Assets::enqueue();
+		$html = epm()->renderer->video( $episode, [ 'show_note' => $this->is_on( $atts['note'] ) ] );
 
-		return epm()->renderer->video( $episode, [ 'show_note' => $this->is_on( $atts['note'] ) ] );
+		// Nothing to show: nothing to load either.
+		if ( '' !== $html ) {
+			Assets::enqueue();
+		}
+
+		return $html;
 	}
 
 	/**
@@ -431,12 +460,17 @@ final class Shortcodes {
 			'podcast_latest_cta'
 		);
 
-		Assets::enqueue_style();
-
-		return epm()->renderer->latest_cta(
+		$html = epm()->renderer->latest_cta(
 			[
 				'label' => sanitize_text_field( $atts['label'] ),
 			]
 		);
+
+		// Nothing to show: nothing to load either.
+		if ( '' !== $html ) {
+			Assets::enqueue_style();
+		}
+
+		return $html;
 	}
 }
