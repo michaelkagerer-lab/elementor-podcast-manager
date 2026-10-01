@@ -528,7 +528,20 @@ final class ImportJob {
 			return $loaded;
 		}
 
-		return self::summary( self::get() );
+		return self::own_summary( (string) $saved['token'] );
+	}
+
+	/**
+	 * Summary of the job with this token (an error when another preview
+	 * replaced it meanwhile, never the other job's summary).
+	 *
+	 * @param string $token Job token.
+	 * @return array<string, mixed>|\WP_Error
+	 */
+	private static function own_summary( string $token ) {
+		$job = self::get();
+
+		return ( $job['token'] ?? '' ) === $token ? self::summary( $job ) : self::replaced_error();
 	}
 
 	/**
@@ -572,7 +585,7 @@ final class ImportJob {
 			return $loaded;
 		}
 
-		return self::summary( self::get() );
+		return self::own_summary( $token );
 	}
 
 	/**
@@ -700,7 +713,7 @@ final class ImportJob {
 		$store = (string) $job['store'];
 		$seen  = self::seen( $store, (array) $job['catalog']['segments'] );
 		if ( is_wp_error( $seen ) ) {
-			return $seen;
+			return self::storage_error( $token, $seen );
 		}
 
 		// Episodes already on this site (one query per page).
@@ -750,7 +763,7 @@ final class ImportJob {
 
 		$stored = ImportStore::put_page( $store, $unique, $hashes );
 		if ( is_wp_error( $stored ) ) {
-			return $stored;
+			return self::storage_error( $token, $stored );
 		}
 
 		$base   = '' !== $final ? $final : $requested;
@@ -855,7 +868,7 @@ final class ImportJob {
 
 		$sorted = ImportStore::sort( (string) $job['store'], (array) $job['catalog']['segments'] );
 		if ( is_wp_error( $sorted ) ) {
-			return $sorted;
+			return self::storage_error( $token, $sorted );
 		}
 
 		$version = (int) ( $job['version'] ?? 0 );
@@ -1048,6 +1061,23 @@ final class ImportJob {
 			ImportStore::purge( (string) $job['store'] );
 		}
 		self::delete_legacy_file( (string) ( $job['file'] ?? '' ) );
+	}
+
+	/**
+	 * A storage error while reading a feed: when another preview replaced
+	 * (and removed) this job meanwhile, that is the reason to report.
+	 *
+	 * @param string    $token Job token.
+	 * @param \WP_Error $error Storage error.
+	 * @return \WP_Error
+	 */
+	private static function storage_error( string $token, \WP_Error $error ): \WP_Error {
+		$job = self::get();
+		if ( ( $job['token'] ?? '' ) !== $token ) {
+			return self::replaced_error();
+		}
+
+		return 'cancelled' === ( $job['status'] ?? '' ) ? new \WP_Error( 'epm_import_cancelled', __( 'This feed check was cancelled.', 'elementor-podcast-manager' ) ) : $error;
 	}
 
 	/**

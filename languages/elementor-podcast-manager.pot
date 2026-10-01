@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-01T05:59:10+00:00\n"
+"POT-Creation-Date: 2026-10-01T06:16:52+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: elementor-podcast-manager\n"
@@ -44,7 +44,7 @@ msgstr ""
 #. translators: %s: human time difference, e.g. "5 mins"
 #: admin/views/dashboard.php:50
 #: admin/views/hosting.php:33
-#: includes/ImportJob.php:1909
+#: includes/ImportJob.php:1941
 #, php-format
 msgid "%s ago"
 msgstr ""
@@ -2648,7 +2648,7 @@ msgid "Check the hosting settings"
 msgstr ""
 
 #: includes/AdminPages.php:314
-#: includes/ImportJob.php:1783
+#: includes/ImportJob.php:1815
 msgid "Your session expired. Reload the page and try again."
 msgstr ""
 
@@ -4423,12 +4423,12 @@ msgstr ""
 msgid "Only WebVTT (.vtt) and SRT (.srt) transcript files are copied."
 msgstr ""
 
-#: includes/ImportJob.php:607
+#: includes/ImportJob.php:622
 msgid "The feed links to its next page with an address that is not a web address."
 msgstr ""
 
 #. translators: 1: number of the feed page being read, 2: number of episodes found so far
-#: includes/ImportJob.php:983
+#: includes/ImportJob.php:998
 #, php-format
 msgid "Reading page %1$s of the feed… %2$s episode found so far."
 msgid_plural "Reading page %1$s of the feed… %2$s episodes found so far."
@@ -4436,7 +4436,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: number of feed pages
-#: includes/ImportJob.php:993
+#: includes/ImportJob.php:1008
 #, php-format
 msgid "All %s page of the feed was read."
 msgid_plural "All %s pages of the feed were read."
@@ -4444,7 +4444,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: 1: page number, 2: page address, 3: error message, 4: number of episodes found
-#: includes/ImportJob.php:1002
+#: includes/ImportJob.php:1017
 #, php-format
 msgid "Page %1$s of the feed (%2$s) could not be read: %3$s Only %4$s episode was found on the pages before it. The episodes on that page and any later pages are missing."
 msgid_plural "Page %1$s of the feed (%2$s) could not be read: %3$s Only %4$s episodes were found on the pages before it. The episodes on that page and any later pages are missing."
@@ -4452,7 +4452,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: 1: page number, 2: page address, 3: number of episodes found
-#: includes/ImportJob.php:1012
+#: includes/ImportJob.php:1027
 #, php-format
 msgid "Page %1$s of the feed (%2$s) lists no episodes but links to further pages. Only %3$s episode was found on the pages before it; later episodes may be missing."
 msgid_plural "Page %1$s of the feed (%2$s) lists no episodes but links to further pages. Only %3$s episodes were found on the pages before it; later episodes may be missing."
@@ -4460,7 +4460,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: 1: maximum number of pages, 2: number of episodes found
-#: includes/ImportJob.php:1021
+#: includes/ImportJob.php:1036
 #, php-format
 msgid "The feed has more than %1$s pages, and the import reads at most %1$s. Only the %2$s episode on those pages was found; the episodes on later pages are missing."
 msgid_plural "The feed has more than %1$s pages, and the import reads at most %1$s. Only the %2$s episodes on those pages were found; the episodes on later pages are missing."
@@ -4468,43 +4468,47 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: 1: size limit, e.g. "200 MB", 2: number of episodes found
-#: includes/ImportJob.php:1029
+#: includes/ImportJob.php:1044
 #, php-format
 msgid "The feed is larger than the import reads (%1$s). Only %2$s episode was found; the episodes on later pages are missing."
 msgid_plural "The feed is larger than the import reads (%1$s). Only %2$s episodes were found; the episodes on later pages are missing."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/ImportJob.php:1057
+#: includes/ImportJob.php:1080
+msgid "This feed check was cancelled."
+msgstr ""
+
+#: includes/ImportJob.php:1089
 msgid "An import is already running. Wait for it to finish or cancel it first."
 msgstr ""
 
-#: includes/ImportJob.php:1066
-#: includes/ImportJob.php:1348
-#: includes/ImportJob.php:1381
+#: includes/ImportJob.php:1098
+#: includes/ImportJob.php:1380
+#: includes/ImportJob.php:1413
 msgid "This import expired. Check the feed again to start a new one."
 msgstr ""
 
-#: includes/ImportJob.php:1075
+#: includes/ImportJob.php:1107
 msgid "Another feed check (in another tab or by another administrator) replaced this one. Check the feed again."
 msgstr ""
 
-#: includes/ImportJob.php:1254
-#: includes/ImportJob.php:1295
-#: includes/ImportJob.php:1488
+#: includes/ImportJob.php:1286
+#: includes/ImportJob.php:1327
+#: includes/ImportJob.php:1520
 #: includes/ImportStore.php:466
 msgid "The stored feed data is missing. Check the feed again to restart the import."
 msgstr ""
 
-#: includes/ImportJob.php:1354
+#: includes/ImportJob.php:1386
 msgid "This feed is locked against moving to another platform. If it is your show, confirm that you own it, or unlock the feed at your current host first (the setting is often called “Lock feed”)."
 msgstr ""
 
-#: includes/ImportJob.php:1362
+#: includes/ImportJob.php:1394
 msgid "The feed could not be read completely, so moving it now would leave episodes behind. Try reading the rest of the feed again, or confirm that you want to move only the episodes that were found."
 msgstr ""
 
-#: includes/ImportJob.php:1787
+#: includes/ImportJob.php:1819
 msgid "You do not have permission to import episodes."
 msgstr ""
 

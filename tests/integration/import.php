@@ -710,7 +710,7 @@ $t->test(
 		$first = epm_i_preview( $a );
 		$job   = ImportJob::get();
 		$t->assert( is_array( $other ) && ( $job['token'] ?? '' ) === ( $other['token'] ?? '' ), 'the preview that finished last is the job' );
-		$t->assert( is_wp_error( $first ) || ( $first['token'] ?? '' ) !== ( $job['token'] ?? '' ), 'the replaced preview says so' );
+		$t->same( 'epm_import_replaced', is_wp_error( $first ) ? $first->get_error_code() : 'a summary', 'the replaced preview says so' );
 		$t->same( 1, count( epm_i_stored() ), 'exactly one stored job' );
 		$t->same( [], glob( wp_upload_dir( null, false )['basedir'] . '/epm-import/job-*' ) ?: [], 'no job files' );
 		ImportJob::cancel();
