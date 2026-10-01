@@ -95,7 +95,23 @@ curl -sL "$URL/?page_id=$NOTHING_ID" -o "$TMP/nothing.html"
 check "a page without podcast content prints no tokens" '! grep -q "epm-design-tokens" "$TMP/plain.html"'
 check "and loads no podcast assets" '! grep -Eq "epm-frontend|epm-player\.js" "$TMP/plain.html"'
 check "shortcodes that render nothing load no assets and no tokens" '! grep -Eq "epm-frontend|epm-player\.js|epm-design-tokens" "$TMP/nothing.html"'
-$WP post delete "$PLAIN_ID" "$NOTHING_ID" --force > /dev/null 2>&1
+# An Elementor page whose only widget shows nothing (a "current episode"
+# player on a page that is not an episode): Elementor still prints the
+# widget's stylesheet in <head> (its page-asset list does not know what a
+# widget will show), and the tokens come with it; the player script goes.
+EMPTY_EL_ID=$($WP eval '
+	$id = wp_insert_post( [ "post_type" => "page", "post_status" => "publish", "post_title" => "EPM empty widget" ] );
+	update_post_meta( $id, "_elementor_edit_mode", "builder" );
+	update_post_meta( $id, "_elementor_template_type", "wp-page" );
+	update_post_meta( $id, "_elementor_version", ELEMENTOR_VERSION );
+	update_post_meta( $id, "_elementor_data", wp_slash( wp_json_encode( [ [ "id" => "ee00001", "elType" => "container", "settings" => [], "isInner" => false, "elements" => [ [ "id" => "ee00002", "elType" => "widget", "widgetType" => "epm-podcast-player", "settings" => [ "source" => "current" ], "elements" => [] ] ] ] ] ) ) );
+	echo "EPMID:" . $id . "\n";' 2>/dev/null | grep '^EPMID:' | cut -d: -f2)
+# Twice: the first view builds Elementor's page-asset list.
+curl -sL "$URL/?page_id=$EMPTY_EL_ID" -o "$TMP/empty-widget.html"
+curl -sL "$URL/?page_id=$EMPTY_EL_ID" -o "$TMP/empty-widget.html"
+check "Elementor page whose podcast widget shows nothing: no player script" '! grep -q "epm-player\.js" "$TMP/empty-widget.html" && grep -q "elementor-element-ee00001" "$TMP/empty-widget.html"'
+check "tokens only together with Elementor's stylesheet (Elementor keeps a widget's stylesheet: known limit)" '! grep -q "epm-design-tokens" "$TMP/empty-widget.html" || grep -q "epm-frontend-css" "$TMP/empty-widget.html"'
+$WP post delete "$PLAIN_ID" "$NOTHING_ID" "$EMPTY_EL_ID" --force > /dev/null 2>&1
 
 echo "REST"
 check "episode meta exposed in REST" 'curl -s "$URL/wp-json/wp/v2/podcast_episode/$EP1" | grep -q "\"_epm_episode_number\":1"'
