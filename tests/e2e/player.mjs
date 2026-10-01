@@ -646,6 +646,8 @@ try {
 		const sliderA = page.locator('[data-epm-player] [data-epm-volume]').nth(0);
 		await sliderA.focus();
 		await page.keyboard.press('ArrowLeft');
+		// Views follow the audio's "volumechange", which is dispatched as a task.
+		await page.waitForTimeout(150);
 		let v = await volume();
 		assert(v.text[0] === '95%' && v.text[1] === '95%', `the volume is spoken as a percentage (${v.text.join(', ')})`);
 		for (let i = 0; i < 5; i++) {
@@ -816,9 +818,10 @@ try {
 
 		for (const selector of ['[data-epm-player] [data-epm-timeline]', '[data-epm-sticky] [data-epm-timeline]']) {
 			// Mid-page, so an arrow key the slider does not handle scrolls.
-			const keys = await page.evaluate((selector) => {
+			const keys = await page.evaluate(async (selector) => {
 				document.querySelector(selector).focus({ preventScroll: true });
-				window.scrollTo(0, 300);
+				window.scrollTo({ top: 300, behavior: 'instant' });
+				await new Promise((r) => setTimeout(r, 200));
 				return window.scrollY;
 			}, selector);
 			const t0 = Number(await page.getAttribute(selector, 'aria-valuenow'));
@@ -827,8 +830,9 @@ try {
 			await page.keyboard.press('ArrowDown');
 			await page.keyboard.press('ArrowDown');
 			const down = Number(await page.getAttribute(selector, 'aria-valuenow'));
+			await page.waitForTimeout(400);
 			const y = await page.evaluate(() => window.scrollY);
-			assert(up === t0 + 5 && down === t0 - 5 && y === keys, `${selector.split(' ')[0]} timeline: ArrowUp/ArrowDown seek ±5 s and do not scroll (${t0} → ${up} → ${down}, scroll ${keys} → ${y})`);
+			assert(keys > 0 && up === t0 + 5 && down === t0 - 5 && y === keys, `${selector.split(' ')[0]} timeline: ArrowUp/ArrowDown seek ±5 s and do not scroll (${t0} → ${up} → ${down}, scroll ${keys} → ${y})`);
 		}
 		await noProblems(page);
 	}

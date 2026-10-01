@@ -110,6 +110,10 @@
 
 	var SPEEDS = [1, 1.25, 1.5, 2, 0.75];
 
+	// Longest timestamp a link may cue (24 hours): longer values are typos
+	// or junk, never a position in an episode.
+	var CUE_LIMIT = 86400;
+
 	/**
 	 * Whether the device owns the volume: on iOS and iPadOS setting
 	 * audio.volume has no effect (it always reads 1), so a volume slider
@@ -323,9 +327,9 @@
 	/* Methods: play, pause, toggle, seekRelative, seekAbsolute,           */
 	/*   seekRatio, cycleSpeed, setVolume, getDuration, getSpeedLabel,     */
 	/*   isPlaying, subscribe, unsubscribe, adopt, release.                */
-	/* Events: play, pause, time, ended, error, speed, loaded, source      */
-	/*   (another file took over), meta (title, artwork or duration        */
-	/*   changed).                                                         */
+	/* Events: play, pause, time, ended, error, speed, loaded, seeked,     */
+	/*   volume, source (another file took over), meta (title, artwork or  */
+	/*   duration changed).                                                */
 	/*                                                                     */
 	/* Source identity: a controller plays one file (this.src). A view     */
 	/* that names another file for the same episode (the episode's audio   */
@@ -391,32 +395,22 @@
 		this.src = absoluteUrl(info.src);
 		this.audio = null;
 		this.meta = { title: '', artwork: '', duration: 0 };
-		this.speedIndex = 0;
 		this.views = [];
 		this._restored = false;
+		this._played = false;
 		this._lastSaved = 0;
 		this._pendingSeek = 0;
 		this.mergeMeta(info);
-
-		// Preferred speed carries over between episodes and visits.
-		var index = SPEEDS.indexOf(parseFloat(Store.get('speed')));
-		if (index > 0) {
-			this.speedIndex = index;
-		}
-
 		this._setAudio(audioFor(info.src, rendered));
 	}
 
 	/**
-	 * Play this element from now on: listeners, speed, and the remembered
-	 * position once its metadata is known.
+	 * Play this element from now on: listeners, speed, volume, and the
+	 * remembered position once its metadata is known.
 	 */
 	PlaybackController.prototype._setAudio = function (audio) {
 		this.audio = audio;
-		try {
-			audio.defaultPlaybackRate = SPEEDS[this.speedIndex];
-			audio.playbackRate = SPEEDS[this.speedIndex];
-		} catch (e) { /* rate is best-effort */ }
+		this._applySpeed();
 		this._attachAudioEvents(audio);
 		this._applyVolume();
 		// Metadata may already be loaded (preload="metadata", audio on this
@@ -441,6 +435,7 @@
 			this._pendingSeek = 0;
 			this._lastSaved = 0;
 			this._restored = false;
+			this._played = false;
 			// The old element's late events are ignored from here on.
 			this._setAudio(audioFor(info.src, rendered));
 			emptyAudio(old);
@@ -541,6 +536,11 @@
 		}
 	};
 
+	/**
+	 * Remember the position, but only once this file has actually played
+	 * here: opening a ?t= link, the restored position itself or seeking
+	 * before the first press must not replace where the visitor stopped.
+	 */
 	PlaybackController.prototype._remember = function (eventName) {
 		if (!CONFIG.resume) {
 			return;
@@ -549,8 +549,15 @@
 			this._restorePosition();
 			return;
 		}
+		if (eventName === 'play') {
+			this._played = true;
+			return;
+		}
 		if (eventName === 'ended') {
 			Store.set('pos:' + this.episodeId, null);
+			return;
+		}
+		if (!this._played) {
 			return;
 		}
 		var t = this.audio.currentTime || 0;
@@ -573,9 +580,15 @@
 				return;
 			}
 			if (self._pendingSeek > 0) {
-				try {
-					audio.currentTime = self._pendingSeek;
-				} catch (e) { /* seeking is best-effort */ }
+				var d = audio.duration;
+				// A position past the end of the file (a timestamp link when
+				// the duration was not known) starts at 0 instead of ending
+				// at once.
+				if (!(isFinite(d) && d > 0 && self._pendingSeek >= Math.floor(d))) {
+					try {
+						audio.currentTime = self._pendingSeek;
+					} catch (e) { /* seeking is best-effort */ }
+				}
 				self._pendingSeek = 0;
 			}
 		});
@@ -585,7 +598,8 @@
 			['timeupdate', 'time'],
 			['ended', 'ended'],
 			['loadedmetadata', 'loaded'],
-			['durationchange', 'loaded']
+			['durationchange', 'loaded'],
+			['seeked', 'seeked']
 		];
 		map.forEach(function (pair) {
 			audio.addEventListener(pair[0], function () {
@@ -616,21 +630,26 @@
 	 * Place the playhead without playing (a ?t= link). Before the audio's
 	 * metadata is known the position is kept and applied on load; the views
 	 * show it right away, and the first press plays from there.
+	 *
+	 * A position at or past the end (when the duration is known) or beyond
+	 * CUE_LIMIT is not a place in this episode: it is ignored and playback
+	 * starts at 0. Returns whether the position was taken.
 	 */
 	PlaybackController.prototype.cue = function (seconds) {
-		var t = Math.max(0, Math.floor(seconds || 0));
+		var t = Math.floor(seconds || 0);
 		var d = this.getDuration();
-		if (d > 0) {
-			t = Math.min(t, Math.max(0, Math.floor(d) - 1));
+		if (!(t > 0) || t > CUE_LIMIT || (d > 0 && t >= Math.floor(d))) {
+			return false;
 		}
 		// A shared position wins over the remembered one.
 		this._restored = true;
 		if (this.audio.readyState >= 1) {
 			this.seekAbsolute(t);
-			return;
+			return true;
 		}
 		this._pendingSeek = t;
 		this._emit('time');
+		return true;
 	};
 
 	/**
@@ -779,12 +798,20 @@
 		this.seekAbsolute(ratio * this.getDuration());
 	};
 
+	/**
+	 * Next speed. The speed is the visitor's preference, not an episode's:
+	 * it applies to every episode on the page at once and is remembered.
+	 */
 	PlaybackController.prototype.cycleSpeed = function () {
-		this.speedIndex = (this.speedIndex + 1) % SPEEDS.length;
-		this.audio.defaultPlaybackRate = SPEEDS[this.speedIndex];
-		this.audio.playbackRate = SPEEDS[this.speedIndex];
-		Store.set('speed', SPEEDS[this.speedIndex]);
-		this._emit('speed');
+		Registry.setSpeed((Registry.speedIndex + 1) % SPEEDS.length);
+		announce(fill(STR.speedChanged, this.getSpeedLabel()));
+	};
+
+	PlaybackController.prototype._applySpeed = function () {
+		try {
+			this.audio.defaultPlaybackRate = SPEEDS[Registry.speedIndex];
+			this.audio.playbackRate = SPEEDS[Registry.speedIndex];
+		} catch (e) { /* rate is best-effort */ }
 	};
 
 	/**
@@ -828,7 +855,7 @@
 	};
 
 	PlaybackController.prototype.getSpeedLabel = function () {
-		var s = SPEEDS[this.speedIndex];
+		var s = SPEEDS[Registry.speedIndex];
 		return (s === 1 ? '1' : String(s)) + '×';
 	};
 
@@ -850,6 +877,18 @@
 		// One volume for the page: every episode's audio and every slider.
 		volume: 1,
 		muted: false,
+		// The preferred speed carries over between episodes and visits.
+		speedIndex: Math.max(0, SPEEDS.indexOf(parseFloat(Store.get('speed')))),
+
+		setSpeed: function (index) {
+			var self = this;
+			this.speedIndex = index;
+			Store.set('speed', SPEEDS[index]);
+			Object.keys(this.controllers).forEach(function (id) {
+				self.controllers[id]._applySpeed();
+				self.controllers[id]._emit('speed');
+			});
+		},
 
 		setVolume: function (level, muted) {
 			var self = this;
@@ -973,16 +1012,54 @@
 				if (eventName === 'play' || eventName === 'pause' || eventName === 'ended' || eventName === 'error' || eventName === 'source') {
 					navigator.mediaSession.playbackState = controller.isPlaying() ? 'playing' : 'paused';
 				}
-				var d = controller.getDuration();
-				if (d > 0 && typeof navigator.mediaSession.setPositionState === 'function' &&
-					(eventName === 'loaded' || eventName === 'speed' || eventName === 'play' || eventName === 'pause')) {
-					navigator.mediaSession.setPositionState({
-						duration: d,
-						playbackRate: controller.audio.playbackRate || 1,
-						position: Math.min(d, controller.audio.currentTime || 0)
-					});
+				if (eventName === 'seeked') {
+					this.seeked();
+				} else if (eventName === 'loaded' || eventName === 'speed' || eventName === 'play' || eventName === 'pause' || eventName === 'source') {
+					this.position(controller);
 				}
 			} catch (e) { /* media session is best-effort */ }
+		},
+
+		positionAt: 0,
+		positionTimer: 0,
+
+		/**
+		 * The lock screen's elapsed time, as of now (it extrapolates from
+		 * the playback rate in between).
+		 */
+		position: function (controller) {
+			var d = controller ? controller.getDuration() : 0;
+			if (!(d > 0) || typeof navigator.mediaSession.setPositionState !== 'function') {
+				return;
+			}
+			this.positionAt = Date.now();
+			try {
+				navigator.mediaSession.setPositionState({
+					duration: d,
+					playbackRate: controller.audio.playbackRate || 1,
+					position: Math.min(d, controller.audio.currentTime || 0)
+				});
+			} catch (e) { /* media session is best-effort */ }
+		},
+
+		/**
+		 * After a seek (timeline, chapters, keys, the media keys
+		 * themselves): at most every 250 ms, as dragging seeks many times;
+		 * the last seek always lands.
+		 */
+		seeked: function () {
+			var self = this;
+			var wait = this.positionAt + 250 - Date.now();
+			if (wait <= 0) {
+				this.position(Registry.active);
+				return;
+			}
+			if (!this.positionTimer) {
+				this.positionTimer = window.setTimeout(function () {
+					self.positionTimer = 0;
+					self.position(Registry.active);
+				}, wait);
+			}
 		}
 	};
 
@@ -1005,11 +1082,14 @@
 
 	function sliderKeys(e, controller) {
 		var handled = true;
+		// WAI-ARIA slider pattern: Up/Right increase, Down/Left decrease.
 		switch (e.key) {
 			case 'ArrowLeft':
+			case 'ArrowDown':
 				controller.seekRelative(-5);
 				break;
 			case 'ArrowRight':
+			case 'ArrowUp':
 				controller.seekRelative(5);
 				break;
 			case 'PageDown':
@@ -1134,10 +1214,6 @@
 			}
 		} else {
 			hidePlayerError(root, refs);
-		}
-
-		if (eventName === 'speed') {
-			announce(fill(STR.speedChanged, controller.getSpeedLabel()));
 		}
 	}
 
@@ -1716,9 +1792,6 @@
 			if (eventName === 'meta' || eventName === 'source') {
 				this.showArtwork(controller);
 			}
-			if (eventName === 'speed') {
-				announce(fill(STR.speedChanged, controller.getSpeedLabel()));
-			}
 		}
 	};
 
@@ -2038,8 +2111,10 @@
 		var controller = root ? Registry.get(root.dataset.epmEpisodeId || '') : null;
 		if (controller) {
 			startApplied = true;
-			controller.cue(seconds);
-			cueHint(root, controller);
+			// Out of range: no cue, no hint; playback starts at 0.
+			if (controller.cue(seconds)) {
+				cueHint(root, controller);
+			}
 		}
 	}
 
@@ -2059,13 +2134,19 @@
 			play.setAttribute('aria-label', play.dataset.labelPlay);
 		}
 		var done = false;
-		// Subscribed after the player view, so on "play" this runs last.
+		// Subscribed after the player view, so this runs last. The hint
+		// ends with the first play, or when the file turns out to be
+		// shorter than the position (it then starts at 0).
 		controller.subscribe({
 			el: play,
 			onEvent: function (c, eventName) {
-				if (!done && eventName === 'play') {
-					done = true;
-					play.dataset.labelPlay = base;
+				if (done || !(eventName === 'play' || (eventName === 'loaded' && c.getTime() < 1))) {
+					return;
+				}
+				done = true;
+				play.dataset.labelPlay = base;
+				if (!c.isPlaying()) {
+					play.setAttribute('aria-label', base);
 				}
 			}
 		});
