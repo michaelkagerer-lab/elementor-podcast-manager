@@ -74,6 +74,45 @@ if [ -n "$(fx elementor_page)" ]; then
 	check "Elementor page renders all widgets" '[ "$(curl -s "$URL/epm-elementor/" | grep -o "data-widget_type=\"epm-" | wc -l)" -eq 11 ]'
 fi
 
+echo "Stylesheet placement (WID-N4) and pages without podcast content (WID-N9)"
+# Line of the first match of a pattern in a page (empty when absent).
+line_of() { grep -n -m1 -- "$2" "$1" | cut -d: -f1; }
+in_head() {
+	local file="$1" css head
+	css=$(line_of "$file" "epm-frontend.css")
+	head=$(line_of "$file" "</head>")
+	[ -n "$css" ] && [ -n "$head" ] && [ "$css" -lt "$head" ]
+}
+curl -s "$URL/epm-shortcodes/" -o "$TMP/shortcodes.html"
+check "automatic episode page: stylesheet in <head>" 'in_head "$TMP/episode.html"'
+check "automatic episode page: tokens in <head>" '[ "$(line_of "$TMP/episode.html" "epm-design-tokens")" -lt "$(line_of "$TMP/episode.html" "</head>")" ]'
+check "shortcode page: stylesheet in <head>" 'in_head "$TMP/shortcodes.html"'
+check "shortcode page: stylesheet loaded once" '[ "$(grep -o "epm-frontend-css" "$TMP/shortcodes.html" | wc -l)" -eq 1 ]'
+PLAIN_ID=$($WP post create --post_type=page --post_status=publish --post_title="EPM plain page" --post_content="Nothing about podcasts." --porcelain 2>/dev/null | grep -E '^[0-9]+$' | head -1)
+NOTHING_ID=$($WP post create --post_type=page --post_status=publish --post_title="EPM nothing to show" --post_content='[podcast_player source="current"] [podcast_chapters] [podcast_video]' --porcelain 2>/dev/null | grep -E '^[0-9]+$' | head -1)
+curl -sL "$URL/?page_id=$PLAIN_ID" -o "$TMP/plain.html"
+curl -sL "$URL/?page_id=$NOTHING_ID" -o "$TMP/nothing.html"
+check "a page without podcast content prints no tokens" '! grep -q "epm-design-tokens" "$TMP/plain.html"'
+check "and loads no podcast assets" '! grep -Eq "epm-frontend|epm-player\.js" "$TMP/plain.html"'
+check "shortcodes that render nothing load no assets and no tokens" '! grep -Eq "epm-frontend|epm-player\.js|epm-design-tokens" "$TMP/nothing.html"'
+# An Elementor page whose only widget shows nothing (a "current episode"
+# player on a page that is not an episode): Elementor still prints the
+# widget's stylesheet in <head> (its page-asset list does not know what a
+# widget will show), and the tokens come with it; the player script goes.
+EMPTY_EL_ID=$($WP eval '
+	$id = wp_insert_post( [ "post_type" => "page", "post_status" => "publish", "post_title" => "EPM empty widget" ] );
+	update_post_meta( $id, "_elementor_edit_mode", "builder" );
+	update_post_meta( $id, "_elementor_template_type", "wp-page" );
+	update_post_meta( $id, "_elementor_version", ELEMENTOR_VERSION );
+	update_post_meta( $id, "_elementor_data", wp_slash( wp_json_encode( [ [ "id" => "ee00001", "elType" => "container", "settings" => [], "isInner" => false, "elements" => [ [ "id" => "ee00002", "elType" => "widget", "widgetType" => "epm-podcast-player", "settings" => [ "source" => "current" ], "elements" => [] ] ] ] ] ) ) );
+	echo "EPMID:" . $id . "\n";' 2>/dev/null | grep '^EPMID:' | cut -d: -f2)
+# Twice: the first view builds Elementor's page-asset list.
+curl -sL "$URL/?page_id=$EMPTY_EL_ID" -o "$TMP/empty-widget.html"
+curl -sL "$URL/?page_id=$EMPTY_EL_ID" -o "$TMP/empty-widget.html"
+check "Elementor page whose podcast widget shows nothing: no player script" '! grep -q "epm-player\.js" "$TMP/empty-widget.html" && grep -q "elementor-element-ee00001" "$TMP/empty-widget.html"'
+check "tokens only together with Elementor's stylesheet (Elementor keeps a widget's stylesheet: known limit)" '! grep -q "epm-design-tokens" "$TMP/empty-widget.html" || grep -q "epm-frontend-css" "$TMP/empty-widget.html"'
+$WP post delete "$PLAIN_ID" "$NOTHING_ID" "$EMPTY_EL_ID" --force > /dev/null 2>&1
+
 echo "REST"
 check "episode meta exposed in REST" 'curl -s "$URL/wp-json/wp/v2/podcast_episode/$EP1" | grep -q "\"_epm_episode_number\":1"'
 check "password-protected episode meta hidden in REST" 'curl -s "$URL/wp-json/wp/v2/podcast_episode/$PASSWORD" | php -r "\$d = json_decode(stream_get_contents(STDIN), true); exit(empty(\$d[\"meta\"]) ? 0 : 1);"'

@@ -569,11 +569,27 @@ $t->test(
 $t->test(
 	'the latest-episode CTA shortcode loads the stylesheet but not the player script',
 	static function ( EPM_Test_Runner $t ) {
+		$option  = \EPM\PodcastSettings::OPTION;
+		$enabled = static function ( $value ) {
+			$value                       = is_array( $value ) ? $value : [];
+			$value['latest_cta_enabled'] = true;
+			return $value;
+		};
 		wp_dequeue_script( 'epm-player' );
 		wp_dequeue_style( 'epm-frontend' );
+		// Disabled (the default): nothing renders, nothing loads (WID-N9).
 		do_shortcode( '[podcast_latest_cta]' );
-		$t->assert( wp_style_is( 'epm-frontend', 'enqueued' ), 'stylesheet enqueued' );
-		$t->assert( ! wp_script_is( 'epm-player', 'enqueued' ), 'player script not enqueued' );
+		$t->assert( ! wp_style_is( 'epm-frontend', 'enqueued' ), 'disabled: no stylesheet' );
+		add_filter( 'option_' . $option, $enabled );
+		add_filter( 'default_option_' . $option, $enabled );
+		try {
+			$t->assert( '' !== do_shortcode( '[podcast_latest_cta]' ), 'enabled: the button renders' );
+			$t->assert( wp_style_is( 'epm-frontend', 'enqueued' ), 'stylesheet enqueued' );
+			$t->assert( ! wp_script_is( 'epm-player', 'enqueued' ), 'player script not enqueued' );
+		} finally {
+			remove_filter( 'option_' . $option, $enabled );
+			remove_filter( 'default_option_' . $option, $enabled );
+		}
 	}
 );
 

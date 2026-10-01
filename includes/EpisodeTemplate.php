@@ -79,7 +79,7 @@ final class EpisodeTemplate {
 	 * @param \WP_Post $post Episode.
 	 * @return bool
 	 */
-	private function is_designed_with_elementor( \WP_Post $post ): bool {
+	private static function is_designed_with_elementor( \WP_Post $post ): bool {
 		// Elementor Pro Theme Builder single template is rendering…
 		if ( did_action( 'elementor/theme/before_do_single' ) ) {
 			return true;
@@ -122,6 +122,26 @@ final class EpisodeTemplate {
 	}
 
 	/**
+	 * Whether the episode page of this episode gets the podcast components
+	 * (also asked early, in wp_enqueue_scripts, so the stylesheet goes into
+	 * <head>: see Assets::enqueue_early()).
+	 *
+	 * @param \WP_Post $post Episode.
+	 * @return bool
+	 */
+	public static function embeds( \WP_Post $post ): bool {
+		$enabled = ! empty( epm()->settings->get( 'auto_embed' ) ) && ! self::is_designed_with_elementor( $post );
+
+		/**
+		 * Whether to add the player and episode details to the episode page.
+		 *
+		 * @param bool     $enabled Default decision.
+		 * @param \WP_Post $post    Episode.
+		 */
+		return (bool) apply_filters( 'epm_auto_embed', $enabled, $post );
+	}
+
+	/**
 	 * Resolve episode data for the page being viewed.
 	 *
 	 * The page is already visible to this visitor (WordPress resolved it),
@@ -131,7 +151,7 @@ final class EpisodeTemplate {
 	 * @param \WP_Post $post Episode.
 	 * @return array<string, mixed>|null
 	 */
-	private function episode_data( \WP_Post $post ): ?array {
+	private static function episode_data( \WP_Post $post ): ?array {
 		if ( post_password_required( $post ) ) {
 			return null;
 		}
@@ -146,37 +166,68 @@ final class EpisodeTemplate {
 	}
 
 	/**
+	 * Whether the visitor gets the podcast components on this episode's
+	 * page now (the components are on, and the episode is visible to them).
+	 *
+	 * @param \WP_Post $post Episode.
+	 * @return bool
+	 */
+	public static function will_render( \WP_Post $post ): bool {
+		return self::embeds( $post ) && null !== self::episode_data( $post );
+	}
+
+	/**
 	 * Player configuration for the episode page.
 	 *
-	 * Uses the site's default player layout (Podcast → Design), except that
-	 * the Minimal and Compact layouts — which hide speed and volume — are
-	 * upgraded to Full: on the episode page listeners need every control.
+	 * Details: Podcast → Design → Details shown by default → Episode pages,
+	 * else the built-in defaults (Details::neutral( 'episode_page' )). The
+	 * title is never shown: the theme prints it as the page heading.
+	 *
+	 * Layout: the site's default player layout (Podcast → Design), except
+	 * that Minimal and Compact — which hide speed, volume, download, share
+	 * and the description — become Full, so listeners get every control.
+	 * When the details hide all of those, there is nothing to make room
+	 * for and the chosen layout stays.
+	 *
+	 * The epm_auto_embed_player_args filter runs last and can change
+	 * anything (layout, details, sticky).
 	 *
 	 * @param array<string, mixed> $episode Episode data.
 	 * @return array<string, mixed>
 	 */
-	private function player_args( array $episode ): array {
+	public static function player_args( array $episode ): array {
+		$args = Details::resolve( 'episode_page' );
+
 		$layout = (string) epm()->design->get( 'default_player_layout' );
 		if ( in_array( $layout, [ 'minimal', 'compact' ], true ) ) {
-			$layout = 'full';
+			$hidden_by_layout = [ 'show_playback_speed', 'show_volume', 'show_download', 'show_share', 'show_description' ];
+			foreach ( $hidden_by_layout as $flag ) {
+				if ( ! empty( $args[ $flag ] ) ) {
+					$layout = 'full';
+					break;
+				}
+			}
 		}
 
-		$args = [
-			'layout'              => $layout,
-			// The theme already prints the episode title as the page heading.
-			'show_title'          => false,
-			'show_episode_number' => true,
-			'show_date'           => true,
-			'show_description'    => false,
-			'show_chapters_link'  => false,
-			'show_download'       => true,
-			// Copy link, copy link at the current position, embed code.
-			'show_share'          => true,
-			// Pause and seek stay at hand while reading the show notes
-			// and transcript below (hidden until something plays).
-			'sticky'              => true,
-		];
+		$args = array_merge(
+			$args,
+			[
+				'layout'             => $layout,
+				// The theme already prints the episode title as the page heading.
+				'show_title'         => false,
+				// Pause and seek stay at hand while reading the show notes
+				// and transcript below (hidden until something plays).
+				'sticky'             => true,
+			]
+		);
 
+		/**
+		 * Player arguments of the automatic episode page, after the
+		 * details were resolved (see Renderer::player()).
+		 *
+		 * @param array $args    Player arguments.
+		 * @param array $episode Episode data.
+		 */
 		return (array) apply_filters( 'epm_auto_embed_player_args', $args, $episode );
 	}
 
@@ -194,19 +245,11 @@ final class EpisodeTemplate {
 			return $content;
 		}
 
-		$enabled = ! empty( epm()->settings->get( 'auto_embed' ) ) && ! $this->is_designed_with_elementor( $post );
-
-		/**
-		 * Whether to add the player and episode details to the episode page.
-		 *
-		 * @param bool     $enabled Default decision.
-		 * @param \WP_Post $post    Episode.
-		 */
-		if ( ! apply_filters( 'epm_auto_embed', $enabled, $post ) ) {
+		if ( ! self::embeds( $post ) ) {
 			return $content;
 		}
 
-		$episode = $this->episode_data( $post );
+		$episode = self::episode_data( $post );
 		if ( ! $episode ) {
 			return $content;
 		}
@@ -236,7 +279,7 @@ final class EpisodeTemplate {
 		foreach ( $parts as $part ) {
 			switch ( $part ) {
 				case 'player':
-					$html .= $renderer->player( $episode, $this->player_args( $episode ) );
+					$html .= $renderer->player( $episode, self::player_args( $episode ) );
 					break;
 				case 'video':
 					// Click-to-load: nothing loads from the platform before play.

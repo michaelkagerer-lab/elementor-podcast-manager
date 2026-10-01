@@ -289,15 +289,16 @@ Dark presets (background luminance below 0.2): `business-tuning`,
   radii, spacing, type scale, button shape, font family and elevation)
   and carry generic names. They contain no brand names, logos, copy or
   proprietary fonts; the font choice maps to a generic stack.
-- Presets also set behavior maps. `visibility` (`show_artwork`,
-  `show_episode_label`, `show_title`, `show_episode_number`,
-  `show_season`, `show_guest`, `show_description`, `show_date`,
-  `show_duration`), `player` (`show_playback_speed`,
-  `show_skip_backward`, `show_skip_forward`, `show_volume`,
-  `show_download`) and `episodeList` (empty in every shipped preset).
-  Differences from Neutral: `minimal` hides artwork; `business-tuning`,
-  `soft-voice` and `warm-paper` show the description; `business-tuning`
-  hides the volume slider.
+- Presets set looks (tokens) and, when applied, the site's *Details
+  shown by default* (`details`, per place: `player`, `latest`, `list`,
+  `episode_page`; `includes/Details.php`). Differences from Neutral:
+  `minimal` hides artwork; `business-tuning`, `soft-voice` and
+  `warm-paper` show the description; `business-tuning` hides the volume
+  slider. A widget or shortcode that names a detail wins; otherwise the
+  site setting; otherwise the 1.3.0 default (`Details::neutral()`).
+  Style Source and tokens never change which details render. A new
+  preset adds `details` only for what differs from Neutral; a `layout`
+  key sets the player layout when its tokens name none.
 
 ### Admin colors
 
@@ -416,16 +417,22 @@ chapters, platform links).
 - **Skip buttons** (−15 s, +30 s): transparent, muted, 20px icon plus a
   12px number, 44px minimum height. Hover: text color.
 - **Timeline:** a 20px-tall hit area (`role="slider"`) around a track of
-  `--epm-progress-height` (4px) with fully rounded ends. The unplayed
-  part uses the track color, the played part the accent, and a 14px
-  accent handle marks the position. The value is announced as "1:05 of
-  42:10". Transport and timeline stay left to right on right-to-left
-  pages.
+  `--epm-progress-height` (4px) with fully rounded ends; on coarse
+  pointers the hit area extends to 28px (a pseudo-element, so the layout
+  does not move). The unplayed part uses the track color, the played
+  part the accent, and a 14px accent handle marks the position. The
+  value is announced as "1:05 of 42:10". Transport and timeline stay
+  left to right on right-to-left pages.
 - **Secondary row:** speed (a text button with a 1px track-colored
   border, 13px tabular value, button shape, 32px high, 44px on touch
-  screens), volume (native range input with `accent-color`), download
-  link, and the share menu at the trailing end. Icons 20px
+  screens), volume (native range input with `accent-color`, 28px high on
+  touch screens; hidden where the device owns the volume, as on iOS),
+  download link, and the share menu at the trailing end. Icons 20px
   (`--epm-secondary-icon-size`).
+- **Shared settings:** speed and volume belong to the visitor, not to an
+  episode: changing them on one player changes every player and episode
+  on the page (the speed is also remembered). Raising the volume
+  unmutes; while muted the sliders show 0.
 - **Layouts** are configurations of the same markup:
 
 | Layout | Artwork | Differences |
@@ -441,7 +448,7 @@ States:
 | State | Treatment |
 |---|---|
 | Idle | Play glyph |
-| Cued (`?t=` link) | Timeline and time show the start position; the play button's name adds "Starts at 1:05" until the first press |
+| Cued (`?t=` link) | Timeline and time show the start position; the play button's name adds "Starts at 1:05" until the first press. A position at or past the end (or beyond 24 hours) is ignored: no hint, playback starts at 0 |
 | Playing | `.is-playing` on the player and on every play button of that episode (full player, sticky bar, card and row buttons); pause glyph |
 | Hover (fine pointers) | Play button `filter: brightness(1.08)`; secondary controls switch from muted to text color |
 | Focus | 2px solid accent outline, 2px offset, on `:focus-visible` only; never transitioned |
@@ -482,7 +489,9 @@ viewport has no room below (`.epm-share--up`).
 
 A bar docked to the bottom edge (`position: fixed`, `z-index: 9990`),
 `role="region"` labelled "Audio player". Surface background, 1px top
-hairline, `--epm-shadow`, 10px × 20px padding plus the safe-area inset.
+hairline, `--epm-shadow`, 10px × 20px padding; the bottom safe-area
+inset adds to the padding, the left and right insets replace the 20px
+when they are larger (landscape phones with a notch).
 Artwork 44px with 8px radius; title 14px on one line with ellipsis
 (danger color on error); time 12px tabular; a 24px-tall timeline around a
 4px track with a 12px handle; controls (play, speed, close) with 44px
@@ -492,8 +501,15 @@ height (`--epm-sticky-height`, measured by the engine) as bottom padding
 and scroll padding, so it never covers the last content or a focused
 element. At 480px and below the timeline runs along its top edge.
 
-It is requested by players with *sticky*, by the automatic episode page,
-and by list play buttons and chapter lists (`epm_sticky_player_for_lists`).
+Its (hidden) shell is printed when players with *sticky*, the automatic
+episode page, list play buttons or chapter lists
+(`epm_sticky_player_for_lists`) are on the page, and always in the
+Elementor editor's preview. It opens only for playback started from a
+view that asks for it: each player, list play button and chapter list
+carries `data-epm-sticky-player` ("1" or "0"; chapters inside a player
+follow the player). An open bar that shows the playing episode stays;
+when a player without *sticky* starts another episode, an open bar
+closes (with its leave transition) instead of showing it.
 
 ### Episode lists
 
@@ -675,9 +691,10 @@ frontend components (`epm-frontend.css`) in its preview.
 | `.epm-chip` | Choice chips for button shape, shadow and font: 44px high, at least 92px wide, 8px radius, each showing a sample of the choice |
 | `.epm-color__control` | Native color picker plus a hex field; the timeline track also has *Automatic* |
 | `.epm-contrast-list`, `.epm-contrast-item`, `.epm-contrast-badge` | Eight pairs, each with a sample, the ratio and a pill badge (ok or error color, icon plus text: pass/fail never by color alone) |
-| `.epm-design-preview` | Status line ("Your design" / the previewed preset), *Show my design*, and a canvas (20px padding, the design background) with a player, an episode list and subscribe links; every `--epm-*` variable is set inline on the canvas from `Admin::design_css_vars()` |
+| `.epm-design-preview` | Status line ("Your design" / the previewed preset), *Show my design*, and a canvas (20px padding, the design background) with the player, the episode page player, the episode list in every layout (current first) and subscribe links, rendered with the same markup and details as the site; every `--epm-*` variable is set inline on the canvas from `Admin::design_css_vars()` |
 | `.epm-design__savebar` | Sticky at the bottom of the form: unsaved-changes note (warn color), *Discard changes*, *Save*; the page keeps 96px (112px on small screens) of scroll padding so focused fields stay above it |
-| `.epm-design-summary` | What differs from the preset and which details the preset shows by default (On/Off badges) |
+| `.epm-design-summary` | What differs from the preset and which details the site shows by default per place (On/Off badges) |
+| `#epm-details` | *Details shown by default*: one fieldset per place, checkbox grid labelled by detail and place; *Suggested details* card above it lists each change before *Apply suggestions* |
 
 ## 5. Layout Principles
 
@@ -700,7 +717,7 @@ Fixed micro spacing for small elements: 2, 4, 6, 8, 10, 12 and 16px.
 | Element | Radius |
 |---|---|
 | Containers (player, cards, video frame, hero/latest/section surfaces) | `--epm-radius` (12px) |
-| Artwork | `--epm-artwork-radius` (8px) |
+| Artwork | `--epm-artwork-radius` (8px); the rules use the container's class (0,2,0) so Elementor's `.elementor img { border-radius: 0 }` (0,1,1) cannot reset it; guest photos stay round the same way |
 | Card artwork | `--epm-card-artwork-radius` (0) |
 | Text buttons (list play, speed, share toggle, subscribe chips, calls to action, retry) | `--epm-button-radius`: 8px rounded, 999px pill, 2px square |
 | Main play button, video play button, guest image | 50% |
@@ -816,11 +833,14 @@ Design screen's save bar adds a 1px line ring and an upward shadow
 | Trigger | Change |
 |---|---|
 | Player main column ≤ 440px (container query) | The timeline moves to its own full-width row; controls wrap (the embed card keeps one row) |
+| Episode list ≤ 560px (container query `epm-list`) | Row meta and play button move under the text, aligned with the title |
+| Episode list ≤ 300px (container query) | Numbered rows: the number sits above the title |
+| Elementor row container | Player, Latest Episode, Episode List and Episode Video widgets take the free space (`--container-widget-width` / `--container-widget-flex-grow`, as Elementor's own video widget); a width set on the widget wins |
 | Viewport ≤ 768px | Artwork and Full players stack (artwork full width up to 320px); episode rows wrap and their aside becomes a left-aligned row; the hero stacks (artwork up to 280px); the volume slider shrinks to 56px |
 | Viewport ≤ 520px | Embed card: 96px artwork, skip buttons and metadata hidden |
-| Viewport ≤ 480px | Sticky bar: 12px side padding, title over time, the timeline along the top edge |
+| Viewport ≤ 480px | Sticky bar: 12px side padding (or the safe-area inset, when larger), title over time, the timeline along the top edge |
 | Viewport ≤ 340px | Embed card: artwork hidden |
-| Coarse pointers | Share toggle, speed button and share items grow to 44px; the manual-copy field uses 16px text |
+| Coarse pointers | Share toggle, speed button and share items grow to 44px; the seek and volume sliders take touches across 28px; the manual-copy field uses 16px text |
 | Grid list | `auto-fill` columns of at least 260px |
 | Admin ≤ 600px | Distribution rows drop the action column under the text |
 | Admin ≤ 480px | Key-value lists and the artwork picker become one column; feed preview artwork 64px |
@@ -828,8 +848,10 @@ Design screen's save bar adds a 1px line ring and an upward shadow
 | Design screen container ≥ 1000px | Two columns with a sticky preview |
 | Admin ≥ 1200px | Hosting & import shows two columns |
 
-Touch: all playback controls keep 44px targets at every width; hover
-styles apply only on devices with a fine pointer. No component may cause
+Touch: all playback buttons keep 44px targets at every width; the seek
+and volume sliders take touches across 28px (WCAG 2.5.8 asks for 24px)
+without changing their visible track; hover styles apply only on devices
+with a fine pointer. No component may cause
 horizontal scrolling at 320px.
 
 ### Motion and reduced motion
@@ -875,8 +897,10 @@ Easing tokens (frontend `:where(:root)`, admin `:root`):
   `aria-label` with the episode title where it helps ("Play Episode
   Two"). Visible labels are part of the name.
 - The timeline is a `role="slider"` with `aria-valuetext` ("1:05 of
-  42:10") and keyboard support: arrows ±5 s, PageUp/PageDown ±30 s,
-  Home/End.
+  42:10") and keyboard support (WAI-ARIA slider): Right/Up +5 s,
+  Left/Down −5 s, PageUp/PageDown ±30 s, Home/End; handled keys never
+  scroll the page.
+- The volume slider is spoken as a percentage ("70%").
 - The share toggle uses `aria-haspopup="menu"` and `aria-expanded`; items
   are `role="menuitem"` with roving focus.
 - The sticky bar is a labelled region; the page reserves its height so it

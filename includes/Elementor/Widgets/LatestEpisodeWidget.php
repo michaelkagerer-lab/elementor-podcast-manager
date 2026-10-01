@@ -4,7 +4,8 @@
  *
  * Source is fixed to "latest". Reuses the single player engine for the
  * player part; a lightweight header card is composed from renderer
- * primitives when the player is hidden.
+ * primitives when the player is hidden. Layout and details default to
+ * Podcast → Design ("Default"); see WidgetHelpers.
  *
  * @package EPM
  */
@@ -100,30 +101,46 @@ final class LatestEpisodeWidget extends Widget_Base {
 			]
 		);
 
-		$this->add_control(
-			'layout',
+		$this->add_schema_control();
+
+		$this->add_toggle( 'show_player', __( 'Audio Player', 'elementor-podcast-manager' ), true, [ 'description' => __( 'Off shows a card with the artwork, title, details and description instead of the player.', 'elementor-podcast-manager' ) ] );
+
+		$this->add_layout_control(
+			__( 'Player Layout', 'elementor-podcast-manager' ),
+			PodcastPlayerWidget::layouts(),
+			'default_player_layout',
+			[ 'condition' => [ 'show_player' => 'yes' ] ]
+		);
+
+		$this->add_details_defaults_control();
+		// The card (player off) shows artwork, title, guest, date, duration
+		// and description; everything else belongs to the player.
+		$card = [ 'show_artwork', 'show_title', 'show_guest', 'show_description', 'show_date', 'show_duration' ];
+		foreach ( PodcastPlayerWidget::detail_controls() as $id => [ $label, $description ] ) {
+			$extra = '' !== $description ? [ 'description' => $description ] : [];
+			if ( 'show_artwork' === $id ) {
+				$extra['description'] = __( 'Not shown in the Minimal and Editorial player layouts.', 'elementor-podcast-manager' );
+			} elseif ( 'show_description' === $id ) {
+				$extra['description'] = __( 'Not shown in the Minimal and Compact player layouts.', 'elementor-podcast-manager' );
+			}
+			if ( ! in_array( $id, $card, true ) ) {
+				$extra['condition'] = [ 'show_player' => 'yes' ];
+			}
+			$this->add_detail_control( $id, $label, 'latest', $extra );
+		}
+
+		$this->add_toggle(
+			'sticky',
+			__( 'Enable Sticky Player', 'elementor-podcast-manager' ),
+			false,
 			[
-				'label'   => __( 'Player Layout', 'elementor-podcast-manager' ),
-				'type'    => Controls_Manager::SELECT,
-				'default' => (string) epm()->design->get( 'default_player_layout' ),
-				'options' => [
-					'minimal'   => __( 'Minimal', 'elementor-podcast-manager' ),
-					'compact'   => __( 'Compact', 'elementor-podcast-manager' ),
-					'editorial' => __( 'Editorial', 'elementor-podcast-manager' ),
-					'artwork'   => __( 'Artwork', 'elementor-podcast-manager' ),
-					'full'      => __( 'Full', 'elementor-podcast-manager' ),
-				],
+				'separator'   => 'before',
+				'description' => __( 'Playback started here keeps its controls in a bar at the bottom of the screen.', 'elementor-podcast-manager' ),
+				'condition'   => [ 'show_player' => 'yes' ],
 			]
 		);
 
-		$this->add_toggle( 'show_artwork', __( 'Artwork', 'elementor-podcast-manager' ), true );
-		$this->add_toggle( 'show_title', __( 'Title', 'elementor-podcast-manager' ), true );
-		$this->add_toggle( 'show_description', __( 'Description', 'elementor-podcast-manager' ), true );
-		$this->add_toggle( 'show_date', __( 'Date', 'elementor-podcast-manager' ), true );
-		$this->add_toggle( 'show_duration', __( 'Duration', 'elementor-podcast-manager' ), true );
-		$this->add_toggle( 'show_guest', __( 'Guest', 'elementor-podcast-manager' ), true );
-		$this->add_toggle( 'show_player', __( 'Audio Player', 'elementor-podcast-manager' ), true );
-		$this->add_toggle( 'show_cta', __( 'Call to Action', 'elementor-podcast-manager' ), false );
+		$this->add_toggle( 'show_cta', __( 'Call to Action', 'elementor-podcast-manager' ), false, [ 'description' => __( 'A button below the episode. Shown once it has a text and a link.', 'elementor-podcast-manager' ) ] );
 
 		$this->add_control(
 			'cta_text',
@@ -205,8 +222,6 @@ final class LatestEpisodeWidget extends Widget_Base {
 	 * @return void
 	 */
 	protected function render(): void {
-		\EPM\Assets::enqueue();
-
 		$settings = $this->get_settings_for_display();
 		$episode  = epm()->renderer->resolve_episode( 'latest' );
 
@@ -216,27 +231,27 @@ final class LatestEpisodeWidget extends Widget_Base {
 		}
 
 		$renderer = epm()->renderer;
+		$details  = \EPM\Details::resolve( 'latest', $this->detail_values( 'latest' ) );
+		$player   = $this->toggle_on( $settings, 'show_player', true );
+
+		if ( $player ) {
+			\EPM\Assets::enqueue();
+		} else {
+			\EPM\Assets::enqueue_style();
+		}
 
 		echo '<div class="epm-latest">';
 
-		if ( $this->toggle_on( $settings, 'show_player', true ) ) {
-			echo $renderer->player(
-				$episode,
-				[
-					'layout'           => sanitize_key( $settings['layout'] ?? '' ),
-					'show_artwork'     => $this->toggle_on( $settings, 'show_artwork', true ),
-					'show_title'       => $this->toggle_on( $settings, 'show_title', true ),
-					'show_description' => $this->toggle_on( $settings, 'show_description', true ),
-					'show_date'        => $this->toggle_on( $settings, 'show_date', true ),
-					'show_duration'    => $this->toggle_on( $settings, 'show_duration', true ),
-					'show_guest'       => $this->toggle_on( $settings, 'show_guest', true ),
-				]
-			);
+		if ( $player ) {
+			$args           = $details;
+			$args['layout'] = sanitize_key( $settings['layout'] ?? '' );
+			$args['sticky'] = $this->toggle_on( $settings, 'sticky', false );
+			echo $renderer->player( $episode, $args ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the renderer.
 		} else {
 			// Header card without player, composed from renderer primitives.
 			echo '<div class="epm-latest__header">';
 
-			if ( $this->toggle_on( $settings, 'show_artwork', true ) ) {
+			if ( $details['show_artwork'] ) {
 				$art = $renderer->artwork( $episode, 'medium', 'epm-latest__artwork-img' );
 				if ( '' !== $art ) {
 					echo '<div class="epm-latest__artwork">' . $art . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
@@ -245,25 +260,25 @@ final class LatestEpisodeWidget extends Widget_Base {
 
 			echo '<div class="epm-latest__info">';
 
-			if ( $this->toggle_on( $settings, 'show_title', true ) ) {
+			if ( $details['show_title'] ) {
 				echo '<h3 class="epm-latest__title">' . esc_html( (string) $episode['title'] ) . '</h3>';
 			}
 
 			$meta_fields = [];
-			if ( $this->toggle_on( $settings, 'show_guest', true ) ) {
+			if ( $details['show_guest'] ) {
 				$meta_fields[] = 'guest';
 			}
-			if ( $this->toggle_on( $settings, 'show_date', true ) ) {
+			if ( $details['show_date'] ) {
 				$meta_fields[] = 'date';
 			}
-			if ( $this->toggle_on( $settings, 'show_duration', true ) ) {
+			if ( $details['show_duration'] ) {
 				$meta_fields[] = 'duration';
 			}
 			if ( ! empty( $meta_fields ) ) {
 				echo $renderer->metadata( $episode, $meta_fields ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			}
 
-			if ( $this->toggle_on( $settings, 'show_description', true ) ) {
+			if ( $details['show_description'] ) {
 				$desc = '' !== (string) ( $episode['short_description'] ?? '' )
 					? (string) $episode['short_description']
 					: wp_trim_words( wp_strip_all_tags( (string) ( $episode['description'] ?? '' ) ), 40 );
@@ -285,9 +300,25 @@ final class LatestEpisodeWidget extends Widget_Base {
 				$rel    = ! empty( $cta_url['nofollow'] ) ? ' rel="nofollow"' : '';
 
 				echo '<div class="epm-latest__cta-wrap"><a class="epm-latest__cta" href="' . esc_url( $url ) . '"' . $target . $rel . '>' . esc_html( $text ) . '</a></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- target/rel are hardcoded attribute strings.
+			} else {
+				$this->editor_placeholder( __( 'The call to action shows once it has a text and a link (CTA URL).', 'elementor-podcast-manager' ) );
 			}
 		}
 
 		echo '</div>';
+	}
+
+	/**
+	 * Raw data for the editor and for saving: a widget saved by 1.3.0
+	 * gets its details made explicit (it renders the same).
+	 *
+	 * @param bool $with_html_content With the rendered HTML.
+	 * @return array
+	 */
+	public function get_raw_data( $with_html_content = false ) {
+		$data             = parent::get_raw_data( $with_html_content );
+		$data['settings'] = $this->explicit_details( (array) ( $data['settings'] ?? [] ), 'latest' );
+
+		return $data;
 	}
 }

@@ -116,7 +116,6 @@ final class EpisodeHeaderWidget extends Widget_Base {
 		$this->add_style_source_control();
 		$this->add_token_color( 'header_text', __( 'Text Color', 'elementor-podcast-manager' ), '--epm-text', '{{WRAPPER}} .epm-episode-header' );
 		$this->add_token_color( 'header_muted', __( 'Muted Text Color', 'elementor-podcast-manager' ), '--epm-text-muted', '{{WRAPPER}} .epm-episode-header' );
-		$this->add_token_color( 'header_accent', __( 'Accent Color', 'elementor-podcast-manager' ), '--epm-accent', '{{WRAPPER}} .epm-episode-header' );
 
 		$this->add_group_control(
 			Group_Control_Typography::get_type(),
@@ -157,8 +156,6 @@ final class EpisodeHeaderWidget extends Widget_Base {
 	 * @return void
 	 */
 	protected function render(): void {
-		\EPM\Assets::enqueue_style();
-
 		$settings = $this->get_settings_for_display();
 		$episode  = $this->resolve_widget_episode( $settings );
 
@@ -166,6 +163,8 @@ final class EpisodeHeaderWidget extends Widget_Base {
 			$this->editor_placeholder( $this->no_episode_message( $settings ) );
 			return;
 		}
+
+		\EPM\Assets::enqueue_style();
 
 		$renderer = epm()->renderer;
 

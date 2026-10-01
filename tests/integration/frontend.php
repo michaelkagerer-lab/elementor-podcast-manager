@@ -44,41 +44,6 @@ add_action(
 );
 
 /**
- * Run a callback as if the request were the single page (or embed) of an
- * episode, then restore the previous query.
- *
- * @param int      $post_id Episode ID.
- * @param callable $fn      Callback.
- * @param bool     $embed   Pretend to be /podcast/{slug}/embed/.
- * @return mixed Callback result.
- */
-function epm_test_as_episode_page( int $post_id, callable $fn, bool $embed = false ) {
-	global $wp_query, $wp_the_query, $post;
-
-	$saved = [ $wp_query, $wp_the_query, $post ];
-
-	$wp_query = new WP_Query( // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-		[
-			'p'         => $post_id,
-			'post_type' => EpisodePostType::CPT,
-		]
-	);
-	if ( $embed ) {
-		$wp_query->is_embed = true;
-	}
-	$wp_the_query = $wp_query; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-	$post         = get_post( $post_id ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-	setup_postdata( $post );
-
-	try {
-		return $fn();
-	} finally {
-		[ $wp_query, $wp_the_query, $post ] = $saved; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-		wp_reset_postdata();
-	}
-}
-
-/**
  * Every src/srcset/poster URL in a piece of markup points to this site.
  *
  * @param string $html Markup.
@@ -501,9 +466,20 @@ $t->test(
 			);
 			$t->assert( $page && true === ( $args['sticky'] ?? null ), 'automatic episode page player is sticky' );
 
+			// The shell may be on the page for one view and not another:
+			// each view says whether playback started there opens the bar.
+			$t->assert( false !== strpos( $renderer->player( $ep1 ), 'data-epm-sticky-player="0"' ), 'a player without sticky: its playback leaves the bar closed' );
+			$t->assert( false !== strpos( $renderer->player( $ep1, [ 'sticky' => true ] ), 'data-epm-sticky-player="1"' ), 'a sticky player opens it' );
+			$t->assert( false !== strpos( $renderer->episode_row( $ep1 ), 'data-epm-sticky-player="1"' ), 'a row button opens it' );
+			$t->assert( false !== strpos( $renderer->chapters( $ep1 ), 'data-epm-sticky-player="1"' ), 'a chapter list opens it' );
+			$inside = $renderer->player( $ep1, [ 'show_chapters_link' => true ] );
+			$t->assert( 1 === substr_count( $inside, 'data-epm-sticky-player=' ), 'chapters inside a player follow the player' );
+
 			add_filter( 'epm_sticky_player_for_lists', '__return_false' );
 			$t->assert( ! $requests( static fn() => $renderer->episode_row( $ep1 ) ), 'filter: rows opt out' );
 			$t->assert( ! $requests( static fn() => $renderer->chapters( $ep1 ) ), 'filter: chapters opt out' );
+			$t->assert( false !== strpos( $renderer->episode_row( $ep1 ), 'data-epm-sticky-player="0"' ), 'filter: a row button leaves the bar closed' );
+			$t->assert( false !== strpos( $renderer->chapters( $ep1 ), 'data-epm-sticky-player="0"' ), 'filter: a chapter list leaves it closed' );
 		} finally {
 			remove_filter( 'epm_auto_embed_player_args', $capture );
 			remove_filter( 'epm_sticky_player_for_lists', '__return_false' );
@@ -545,6 +521,8 @@ $t->test(
 $t->test(
 	'dark designs give standalone sections the design background and padding',
 	static function ( EPM_Test_Runner $t ) {
+		// Tokens are printed only where podcast styles are used (WID-N9).
+		\EPM\Assets::mark_player_used();
 		$tokens = static function ( string $preset ): string {
 			$values = array_merge( DesignSettings::defaults(), (array) ( epm()->presets->get( $preset )['tokens'] ?? [] ) );
 			$filter = static function () use ( $values ) {

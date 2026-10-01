@@ -47,21 +47,29 @@
 	order: 1;
 }
 
-.epm-design__preview {
+.epm-design__suggested {
 	order: 2;
+}
+
+.epm-design__preview {
+	order: 3;
 	min-inline-size: 0;
 }
 
 .epm-design__form {
-	order: 3;
-}
-
-.epm-design-summary {
 	order: 4;
 }
 
-.epm-design__io {
+.epm-design__details {
 	order: 5;
+}
+
+.epm-design-summary {
+	order: 6;
+}
+
+.epm-design__io {
+	order: 7;
 }
 
 @container epm-design (min-width: 1000px) {
@@ -621,6 +629,164 @@ html:has(.epm-design__savebar) {
 	margin: 0;
 }
 
+/* ---------- Details shown by default ---------- */
+
+/* One group per context; the groups sit side by side where they fit. */
+.epm-details {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+	gap: 16px 24px;
+	align-items: start;
+}
+
+.epm-details__group {
+	min-inline-size: 0;
+	margin: 0;
+	padding: 16px;
+	border: 1px solid var(--epm-app-line);
+	border-radius: var(--epm-app-radius-sm, 4px);
+}
+
+.epm-details__legend {
+	padding: 0 4px;
+	margin-inline-start: -4px;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.epm-details__help {
+	margin: 0 0 8px;
+	text-wrap: pretty;
+}
+
+/* Two columns of checkboxes where a group is wide enough. */
+.epm-details__list {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
+	gap: 0 16px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.epm-details__list li {
+	margin: 0;
+}
+
+.epm-details__list .epm-check {
+	min-block-size: 32px;
+	align-items: center;
+	overflow-wrap: anywhere;
+	hyphens: auto;
+}
+
+.epm-details__list .epm-check input[type="checkbox"] {
+	margin-block-start: 0;
+}
+
+.epm-details__dirty {
+	margin-inline: 0;
+}
+
+/* Suggested details (from a preset of 1.1–1.3). */
+.epm-design__suggested {
+	border-inline-start: 4px solid var(--epm-app-accent);
+}
+
+.epm-suggested__table-wrap {
+	overflow-x: auto;
+	margin-block-end: 16px;
+	container: epm-suggested / inline-size;
+}
+
+.epm-suggested__table {
+	inline-size: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+}
+
+.epm-suggested__table th,
+.epm-suggested__table td {
+	padding: 8px 12px 8px 0;
+	border-block-end: 1px solid var(--epm-app-line);
+	text-align: start;
+	vertical-align: top;
+}
+
+.epm-suggested__table thead th {
+	color: var(--epm-app-muted);
+	font-weight: 600;
+}
+
+.epm-suggested__table tbody th {
+	font-weight: 600;
+}
+
+/* Narrow: one block per change, each value with its column name. */
+@container epm-suggested (max-width: 520px) {
+	.epm-suggested__table thead {
+		position: absolute;
+		inline-size: 1px;
+		block-size: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	.epm-suggested__table,
+	.epm-suggested__table tbody,
+	.epm-suggested__table tr,
+	.epm-suggested__table th,
+	.epm-suggested__table td {
+		display: block;
+	}
+
+	.epm-suggested__table tr {
+		padding-block: 8px;
+		border-block-end: 1px solid var(--epm-app-line);
+	}
+
+	.epm-suggested__table th,
+	.epm-suggested__table td {
+		padding: 2px 0;
+		border: 0;
+	}
+
+	.epm-suggested__table td {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px 8px;
+	}
+
+	.epm-suggested__table td::before {
+		content: attr(data-label);
+		min-inline-size: 9em;
+		color: var(--epm-app-muted);
+	}
+}
+
+.epm-suggested__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.epm-suggested__actions .button {
+	margin: 0;
+}
+
+/* Details a preset changes, in the confirmation dialog. */
+.epm-dialog__list {
+	margin: 0 0 16px;
+	padding-inline-start: 20px;
+	list-style: disc;
+}
+
+.epm-dialog__list li {
+	margin: 0 0 4px;
+	text-wrap: pretty;
+}
+
 /* Summary of changes and behavior defaults. */
 .epm-design-summary > summary {
 	display: flex;
@@ -695,25 +861,6 @@ html:has(.epm-design__savebar) {
 	background: var(--epm-app-warn-soft);
 	color: var(--epm-app-warn);
 	font-weight: 600;
-}
-
-.epm-design-flags {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
-	gap: 0 24px;
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
-.epm-design-flags li {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 12px;
-	margin: 0;
-	padding: 6px 0;
-	border-block-end: 1px solid var(--epm-app-line);
 }
 
 /* Export / import. */

@@ -1,0 +1,431 @@
+{
+    "player widget": [
+        {
+            "type": "player",
+            "layout": "minimal",
+            "parts": [
+                "artwork",
+                "title",
+                "skip_back",
+                "skip_fwd",
+                "speed",
+                "volume",
+                "share"
+            ],
+            "meta": [
+                "guest",
+                "duration"
+            ],
+            "label": "",
+            "sticky": "0"
+        }
+    ],
+    "player widget, full": [
+        {
+            "type": "player",
+            "layout": "full",
+            "parts": [
+                "artwork",
+                "title",
+                "skip_back",
+                "skip_fwd",
+                "speed",
+                "volume",
+                "share"
+            ],
+            "meta": [
+                "guest",
+                "duration"
+            ],
+            "label": "",
+            "sticky": "0"
+        }
+    ],
+    "latest widget": [
+        {
+            "type": "player",
+            "layout": "minimal",
+            "parts": [
+                "artwork",
+                "title",
+                "skip_back",
+                "skip_fwd",
+                "speed",
+                "volume",
+                "share"
+            ],
+            "meta": [
+                "date",
+                "duration"
+            ],
+            "label": "",
+            "sticky": "0"
+        }
+    ],
+    "latest widget, full": [
+        {
+            "type": "player",
+            "layout": "full",
+            "parts": [
+                "artwork",
+                "title",
+                "skip_back",
+                "skip_fwd",
+                "speed",
+                "volume",
+                "share"
+            ],
+            "meta": [
+                "date",
+                "duration"
+            ],
+            "label": "",
+            "sticky": "0"
+        }
+    ],
+    "latest widget, no player": [
+        {
+            "type": "latest-card",
+            "parts": [
+                "artwork",
+                "title"
+            ],
+            "meta": [
+                "date",
+                "duration"
+            ]
+        }
+    ],
+    "list widget": [
+        {
+            "type": "list",
+            "layout": "list",
+            "numbered": true,
+            "items": [
+                "title,play,meta:date,meta:duration",
+                "title,meta:date",
+                "number,title,excerpt,play,meta:date,meta:duration"
+            ]
+        }
+    ],
+    "list widget, cards": [
+        {
+            "type": "list",
+            "layout": "cards",
+            "numbered": false,
+            "items": [
+                "artwork,title,play,meta:date,meta:duration",
+                "artwork,title,meta:date",
+                "artwork,label,title,excerpt,play,meta:date,meta:duration"
+            ]
+        }
+    ],
+    "list widget, editorial rows": [
+        {
+            "type": "list",
+            "layout": "editorial-rows",
+            "numbered": true,
+            "items": [
+                "title,play,meta:date,meta:duration",
+                "title,meta:date",
+                "number,title,excerpt,play,meta:date,meta:duration"
+            ]
+        }
+    ],
+    "[podcast_player id]": [
+        {
+            "type": "player",
+            "layout": "minimal",
+            "parts": [
+                "artwork",
+                "title",
+                "skip_back",
+                "skip_fwd",
+                "speed",
+                "volume",
+                "share"
+            ],
+            "meta": [
+                "guest",
+                "duration"
+            ],
+            "label": "",
+            "sticky": "0"
+        }
+    ],
+    "[podcast_player id layout=full]": [
+        {
+            "type": "player",
+            "layout": "full",
+            "parts": [
+                "artwork",
+                "title",
+                "skip_back",
+                "skip_fwd",
+                "speed",
+                "volume",
+                "share"
+            ],
+            "meta": [
+                "guest",
+                "duration"
+            ],
+            "label": "",
+            "sticky": "0"
+        }
+    ],
+    "[podcast_latest]": [
+        {
+            "type": "player",
+            "layout": "minimal",
+            "parts": [
+                "artwork",
+                "title",
+                "skip_back",
+                "skip_fwd",
+                "speed",
+                "volume",
+                "share"
+            ],
+            "meta": [
+                "duration"
+            ],
+            "label": "",
+            "sticky": "0"
+        }
+    ],
+    "[podcast_latest layout=full]": [
+        {
+            "type": "player",
+            "layout": "full",
+            "parts": [
+                "artwork",
+                "title",
+                "skip_back",
+                "skip_fwd",
+                "speed",
+                "volume",
+                "share"
+            ],
+            "meta": [
+                "duration"
+            ],
+            "label": "",
+            "sticky": "0"
+        }
+    ],
+    "[podcast_episodes]": [
+        {
+            "type": "list",
+            "layout": "list",
+            "numbered": true,
+            "items": [
+                "title,play,meta:date,meta:duration",
+                "title,meta:date",
+                "number,title,play,meta:date,meta:duration"
+            ]
+        }
+    ],
+    "[podcast_episodes layout=cards]": [
+        {
+            "type": "list",
+            "layout": "cards",
+            "numbered": false,
+            "items": [
+                "artwork,title,play,meta:date,meta:duration",
+                "artwork,title,meta:date",
+                "artwork,label,title,excerpt,play,meta:date,meta:duration"
+            ]
+        }
+    ],
+    "[podcast_episodes layout=editorial-rows]": [
+        {
+            "type": "list",
+            "layout": "editorial-rows",
+            "numbered": true,
+            "items": [
+                "title,play,meta:date,meta:duration",
+                "title,meta:date",
+                "number,title,play,meta:date,meta:duration"
+            ]
+        }
+    ],
+    "episode page": [
+        {
+            "type": "player",
+            "layout": "full",
+            "parts": [
+                "artwork",
+                "label",
+                "skip_back",
+                "skip_fwd",
+                "speed",
+                "volume",
+                "download",
+                "share"
+            ],
+            "meta": [
+                "guest",
+                "date",
+                "duration"
+            ],
+            "label": "01 / Episode",
+            "sticky": "1"
+        }
+    ],
+    "episode page, bonus episode": [
+        {
+            "type": "player",
+            "layout": "full",
+            "parts": [
+                "artwork",
+                "label",
+                "skip_back",
+                "skip_fwd",
+                "speed",
+                "volume",
+                "download",
+                "share"
+            ],
+            "meta": [
+                "date",
+                "duration"
+            ],
+            "label": "03 / Episode · Bonus",
+            "sticky": "1"
+        }
+    ],
+    "new player widget": [
+        {
+            "type": "player",
+            "layout": "minimal",
+            "parts": [
+                "artwork",
+                "title",
+                "skip_back",
+                "skip_fwd",
+                "speed",
+                "volume",
+                "share"
+            ],
+            "meta": [
+                "guest",
+                "duration"
+            ],
+            "label": "",
+            "sticky": "0"
+        }
+    ],
+    "new player widget, full": [
+        {
+            "type": "player",
+            "layout": "full",
+            "parts": [
+                "artwork",
+                "title",
+                "skip_back",
+                "skip_fwd",
+                "speed",
+                "volume",
+                "share"
+            ],
+            "meta": [
+                "guest",
+                "duration"
+            ],
+            "label": "",
+            "sticky": "0"
+        }
+    ],
+    "new latest widget": [
+        {
+            "type": "player",
+            "layout": "minimal",
+            "parts": [
+                "artwork",
+                "title",
+                "skip_back",
+                "skip_fwd",
+                "speed",
+                "volume",
+                "share"
+            ],
+            "meta": [
+                "date",
+                "duration"
+            ],
+            "label": "",
+            "sticky": "0"
+        }
+    ],
+    "new latest widget, full": [
+        {
+            "type": "player",
+            "layout": "full",
+            "parts": [
+                "artwork",
+                "title",
+                "skip_back",
+                "skip_fwd",
+                "speed",
+                "volume",
+                "share"
+            ],
+            "meta": [
+                "date",
+                "duration"
+            ],
+            "label": "",
+            "sticky": "0"
+        }
+    ],
+    "new latest widget, no player": [
+        {
+            "type": "latest-card",
+            "parts": [
+                "artwork",
+                "title"
+            ],
+            "meta": [
+                "date",
+                "duration"
+            ]
+        }
+    ],
+    "new list widget": [
+        {
+            "type": "list",
+            "layout": "list",
+            "numbered": true,
+            "items": [
+                "title,play,meta:date,meta:duration",
+                "title,meta:date",
+                "number,title,excerpt,play,meta:date,meta:duration"
+            ]
+        }
+    ],
+    "new list widget, cards": [
+        {
+            "type": "list",
+            "layout": "cards",
+            "numbered": false,
+            "items": [
+                "artwork,title,play,meta:date,meta:duration",
+                "artwork,title,meta:date",
+                "artwork,label,title,excerpt,play,meta:date,meta:duration"
+            ]
+        }
+    ],
+    "new list widget, editorial rows": [
+        {
+            "type": "list",
+            "layout": "editorial-rows",
+            "numbered": true,
+            "items": [
+                "title,play,meta:date,meta:duration",
+                "title,meta:date",
+                "number,title,excerpt,play,meta:date,meta:duration"
+            ]
+        }
+    ]
+}

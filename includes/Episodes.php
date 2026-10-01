@@ -37,6 +37,42 @@ final class Episodes {
 	public function init(): void {
 		add_action( 'init', [ EpisodePostType::class, 'register' ], 5 );
 		add_action( 'init', [ $this, 'maybe_migrate_guids' ], 20 );
+		add_filter( 'posts_clauses', [ $this, 'order_by_number_clauses' ], 10, 2 );
+	}
+
+	/**
+	 * Order by episode number without losing episodes that have none.
+	 *
+	 * A plain meta_key ordering joins the meta table with an INNER JOIN, so
+	 * trailers, bonus episodes and imported episodes without a number
+	 * disappeared from the list. Here the number is joined optionally:
+	 * numbered episodes come first in the requested order, the others
+	 * after them, by date in the same direction.
+	 *
+	 * @param array<string, string> $clauses Query clauses.
+	 * @param \WP_Query            $query   Query.
+	 * @return array<string, string>
+	 */
+	public function order_by_number_clauses( $clauses, $query ) {
+		if ( ! $query instanceof \WP_Query || ! is_array( $clauses ) ) {
+			return $clauses;
+		}
+
+		$order = (string) $query->get( 'epm_order_by_number' );
+		if ( '' === $order ) {
+			return $clauses;
+		}
+
+		global $wpdb;
+		$order = 'ASC' === strtoupper( $order ) ? 'ASC' : 'DESC';
+
+		$clauses['join'] .= $wpdb->prepare(
+			" LEFT JOIN {$wpdb->postmeta} AS epm_number ON ( epm_number.post_id = {$wpdb->posts}.ID AND epm_number.meta_key = %s )",
+			self::META_PREFIX . 'episode_number'
+		);
+		$clauses['orderby'] = "CASE WHEN epm_number.meta_value IS NULL OR epm_number.meta_value = '' THEN 1 ELSE 0 END ASC, epm_number.meta_value+0 {$order}, {$wpdb->posts}.post_date {$order}, {$wpdb->posts}.ID {$order}";
+
+		return $clauses;
 	}
 
 	/**
@@ -225,8 +261,9 @@ final class Episodes {
 		$query_args = wp_parse_args( $args, $defaults );
 
 		if ( 'episode_number' === ( $query_args['orderby'] ?? '' ) ) {
-			$query_args['meta_key'] = self::META_PREFIX . 'episode_number';
-			$query_args['orderby']  = 'meta_value_num';
+			// See order_by_number_clauses(): episodes without a number stay.
+			$query_args['epm_order_by_number'] = 'ASC' === strtoupper( (string) ( $query_args['order'] ?? 'DESC' ) ) ? 'ASC' : 'DESC';
+			$query_args['orderby']             = 'date';
 		}
 
 		if ( ! empty( $args['season'] ) ) {

@@ -435,8 +435,11 @@ console.log('Remote audio');
 		await page.goto(permalink(fixtures.ep2));
 		await page.waitForTimeout(800);
 		const audio = await page.evaluate(() => {
-			const el = document.querySelector('[data-epm-player] audio');
-			return { preload: el.getAttribute('preload'), src: el.getAttribute('src'), total: document.querySelector('[data-epm-player] [data-epm-total]').textContent };
+			// The element that plays: the player's own <audio>, which the
+			// engine keeps outside the player's DOM once bound.
+			const player = document.querySelector('[data-epm-player]');
+			const el = window.epmPlayerEngine.getController(player.dataset.epmEpisodeId).audio;
+			return { preload: el.getAttribute('preload'), src: el.getAttribute('src'), total: player.querySelector('[data-epm-total]').textContent };
 		});
 		assert(audio.src === remote && audio.preload === 'none', `remote audio is preload="none" (${JSON.stringify(audio)})`);
 		assert(!page.thirdParty.some((u) => u.includes('podtrac')), `no request to the host or tracking prefix before play (${page.thirdParty.join(', ')})`);

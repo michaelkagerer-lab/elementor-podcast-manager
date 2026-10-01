@@ -789,6 +789,8 @@ $t->test(
 $t->test(
 	'the Design preview table produces the same variables as the site for every preset',
 	static function ( EPM_Test_Runner $t ) {
+		// Tokens are printed only where podcast styles are used (WID-N9).
+		\EPM\Assets::mark_player_used();
 		foreach ( epm()->presets->all() as $id => $preset ) {
 			$values = epm()->design->sanitize( array_merge( DesignSettings::defaults(), (array) $preset['tokens'] ) );
 			$filter = static function () use ( $values ) {

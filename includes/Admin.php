@@ -34,6 +34,7 @@ final class Admin {
 		add_action( 'admin_post_epm_design_export', [ $this, 'handle_design_export' ] );
 		add_action( 'admin_post_epm_design_import', [ $this, 'handle_design_import' ] );
 		add_action( 'admin_post_epm_design_preset', [ $this, 'handle_design_preset' ] );
+		add_action( 'admin_post_epm_design_details', [ $this, 'handle_design_details' ] );
 
 		// Quick Edit and Bulk Edit in the episode list.
 		add_action( 'quick_edit_custom_box', [ $this, 'quick_edit_box' ], 10, 2 );
@@ -738,11 +739,11 @@ final class Admin {
 	 *
 	 * EXPORT ALLOWLIST — the design option holds visual tokens ONLY:
 	 * colors, sizes, layout names, shape/font/shadow choices, the preset id,
-	 * and the preset's visibility/player/episodeList flag maps. It never
+	 * and the site's details (which parts show, see Details). It never
 	 * holds attachment IDs, post IDs, URLs, or content (artwork and links
 	 * live in the podcast settings option, which is deliberately NOT
-	 * exported). The list below is the complete set of exported keys, so no
-	 * environment-specific value can leak into a design file.
+	 * exported). The list below is the complete set of exported token keys,
+	 * so no environment-specific value can leak into a design file.
 	 *
 	 * @return string[]
 	 */
@@ -770,17 +771,11 @@ final class Admin {
 	}
 
 	/**
-	 * Export the effective client design as a versioned JSON download.
+	 * The design file (format 2): the saved tokens and the site's details.
 	 *
-	 * @return void
+	 * @return array<string, mixed>
 	 */
-	public function handle_design_export(): void {
-		if ( ! Capabilities::can_manage_podcast() ) {
-			wp_die( esc_html__( 'You do not have permission to export the design.', 'elementor-podcast-manager' ) );
-		}
-
-		check_admin_referer( 'epm_design_export' );
-
+	public static function design_export_payload(): array {
 		$design = epm()->design;
 
 		// Explicit allowlist: scalar visual tokens only.
@@ -792,18 +787,31 @@ final class Admin {
 			}
 		}
 
-		$payload = [
+		return [
 			'format'   => 'epm-design',
 			'version'  => DesignSettings::EXPORT_VERSION,
 			'exported' => gmdate( 'c' ),
 			'preset'   => (string) $design->get( 'preset' ),
 			'design'   => $tokens,
-			'preset_extras' => [
-				'visibility'  => $design->get( 'preset_visibility' ),
-				'player'      => $design->get( 'preset_player' ),
-				'episodeList' => $design->get( 'preset_episode_list' ),
-			],
+			// Only the details the site set; the rest are built-in defaults.
+			'details'  => Details::sanitize_map( $design->get( 'details' ) ),
 		];
+	}
+
+	/**
+	 * Export the effective client design as a versioned JSON download.
+	 *
+	 * @return void
+	 */
+	public function handle_design_export(): void {
+		if ( ! Capabilities::can_manage_podcast() ) {
+			wp_die( esc_html__( 'You do not have permission to export the design.', 'elementor-podcast-manager' ) );
+		}
+
+		check_admin_referer( 'epm_design_export' );
+
+		$design  = epm()->design;
+		$payload = self::design_export_payload();
 
 		$json = wp_json_encode( $payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
 
@@ -921,6 +929,12 @@ final class Admin {
 	 * the track color is a hex value or '' (automatic). Keys a file does not
 	 * carry (older exports) keep their stored values.
 	 *
+	 * Details: a format-2 file replaces the site's details with its own
+	 * (known contexts and details, scalar values only). A format-1 file
+	 * (1.1–1.3) carried the preset maps in preset_extras, which were never
+	 * applied anywhere: they become suggestions (Details::from_legacy_maps())
+	 * and the site's details stay as they are.
+	 *
 	 * @param array<string, mixed> $data Decoded JSON.
 	 * @return array<string, mixed>|\WP_Error Sanitized option value.
 	 */
@@ -959,21 +973,67 @@ final class Admin {
 		$input['preset'] = is_scalar( $data['preset'] ?? null ) ? (string) $data['preset'] : '';
 		$sanitized       = $design->sanitize( $input );
 
-		// Preset behavior maps: sanitized the same way as on apply.
-		// Keys missing from the payload keep their stored values.
-		$extras     = is_array( $data['preset_extras'] ?? null ) ? $data['preset_extras'] : [];
-		$extras_map = [
-			'visibility'  => 'preset_visibility',
-			'player'      => 'preset_player',
-			'episodeList' => 'preset_episode_list',
-		];
-		foreach ( $extras_map as $payload_key => $option_key ) {
-			if ( array_key_exists( $payload_key, $extras ) ) {
-				$sanitized[ $option_key ] = $design->sanitize_flag_map( $extras[ $payload_key ] );
+		if ( $version >= 2 ) {
+			if ( array_key_exists( 'details', $data ) ) {
+				$sanitized['details'] = Details::sanitize_map( is_array( $data['details'] ) ? $data['details'] : [] );
+			}
+			$sanitized['details_suggested'] = [];
+		} else {
+			$extras = is_array( $data['preset_extras'] ?? null ) ? $data['preset_extras'] : [];
+			if ( ! empty( $extras ) ) {
+				$sanitized['details_suggested'] = Details::from_legacy_maps( $extras['visibility'] ?? [], $extras['player'] ?? [], $extras['episodeList'] ?? [] );
 			}
 		}
+		$sanitized['details_version'] = 1;
 
 		return $sanitized;
+	}
+
+	/**
+	 * Save the details form, apply or dismiss suggested details, or go back
+	 * to the built-in details (POST from the Design screen).
+	 *
+	 * @return void
+	 */
+	public function handle_design_details(): void {
+		if ( ! Capabilities::can_manage_podcast() ) {
+			wp_die( esc_html__( 'You do not have permission to change the design.', 'elementor-podcast-manager' ) );
+		}
+
+		check_admin_referer( 'epm_design_details' );
+
+		$design = epm()->design;
+		$do     = isset( $_POST['epm_details_action'] ) && is_string( $_POST['epm_details_action'] ) ? sanitize_key( wp_unslash( $_POST['epm_details_action'] ) ) : 'save';
+
+		switch ( $do ) {
+			case 'apply':
+				$design->apply_suggested_details();
+				$status = 'details-applied';
+				break;
+			case 'dismiss':
+				$design->dismiss_suggested_details();
+				$status = 'details-dismissed';
+				break;
+			case 'reset':
+				$design->reset_details();
+				$status = 'details-reset';
+				break;
+			default:
+				// Checkboxes: present = shown. Every detail of every context
+				// is in the form, so a missing one is unchecked.
+				$posted    = isset( $_POST['epm_details'] ) && is_array( $_POST['epm_details'] ) ? wp_unslash( $_POST['epm_details'] ) : []; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- reduced to booleans below.
+				$submitted = [];
+				foreach ( Details::CONTEXTS as $context ) {
+					foreach ( Details::flags( $context ) as $flag ) {
+						$submitted[ $context ][ $flag ] = ! empty( $posted[ $context ][ $flag ] );
+					}
+				}
+				$design->update_details( $submitted, true );
+				$status = 'details-saved';
+		}
+
+		wp_safe_redirect( add_query_arg( 'epm_design', $status, admin_url( 'admin.php?page=epm-design' ) ) . '#epm-details' );
+		exit;
 	}
 
 	/**
@@ -1109,9 +1169,21 @@ final class Admin {
 
 		foreach ( epm()->presets->all() as $id => $preset ) {
 			$presets[ (string) $id ] = [
-				'name'   => (string) ( $preset['name'] ?? $id ),
-				'values' => self::preset_values( (array) $preset ),
+				'name'    => (string) ( $preset['name'] ?? $id ),
+				'values'  => self::preset_values( (array) $preset ),
+				'details' => (object) Presets::details( (array) $preset ),
 			];
+		}
+
+		$neutral = [];
+		$labels  = [];
+		$places  = [];
+		foreach ( Details::CONTEXTS as $context ) {
+			$neutral[ $context ] = Details::neutral( $context );
+			$places[ $context ]  = Details::context_label( $context );
+			foreach ( Details::flags( $context ) as $flag ) {
+				$labels[ $flag ] = Details::label( $flag );
+			}
 		}
 
 		$map = [];
@@ -1138,6 +1210,17 @@ final class Admin {
 			// Card layouts render cards; every other layout renders rows.
 			'cardLayouts'     => [ 'cards', 'grid' ],
 			'numberedLayouts' => [ 'list', 'editorial-rows' ],
+			// Details shown by default: the built-in defaults per context,
+			// the site's choices, and the names of details and contexts.
+			'details'         => [
+				'neutral' => $neutral,
+				'site'    => (object) Details::sanitize_map( $design->get( 'details' ) ),
+				'labels'  => $labels,
+				'places'  => $places,
+			],
+			// The episode page turns Minimal/Compact into Full while one of
+			// these is shown (EpisodeTemplate::player_args()).
+			'episodePageFull' => [ 'show_playback_speed', 'show_volume', 'show_download', 'show_share', 'show_description' ],
 		];
 	}
 
@@ -1355,36 +1438,13 @@ final class Admin {
 	}
 
 	/**
-	 * Human label of a preset behavior flag (visibility, player, list).
+	 * Human label of a detail (show_volume → "Volume slider").
 	 *
-	 * @param string $flag Flag key, e.g. show_artwork.
+	 * @param string $flag Detail key, e.g. show_artwork.
 	 * @return string
 	 */
 	public static function design_flag_label( string $flag ): string {
-		$labels = [
-			'show_artwork'        => __( 'Artwork', 'elementor-podcast-manager' ),
-			'show_episode_label'  => __( 'Episode label', 'elementor-podcast-manager' ),
-			'show_title'          => __( 'Title', 'elementor-podcast-manager' ),
-			'show_episode_number' => __( 'Episode number', 'elementor-podcast-manager' ),
-			'show_season'         => __( 'Season', 'elementor-podcast-manager' ),
-			'show_guest'          => __( 'Guest', 'elementor-podcast-manager' ),
-			'show_description'    => __( 'Description', 'elementor-podcast-manager' ),
-			'show_date'           => __( 'Date', 'elementor-podcast-manager' ),
-			'show_duration'       => __( 'Duration', 'elementor-podcast-manager' ),
-			'show_playback_speed' => __( 'Playback speed button', 'elementor-podcast-manager' ),
-			'show_skip_backward'  => __( 'Skip back button', 'elementor-podcast-manager' ),
-			'show_skip_forward'   => __( 'Skip forward button', 'elementor-podcast-manager' ),
-			'show_volume'         => __( 'Volume slider', 'elementor-podcast-manager' ),
-			'show_download'       => __( 'Download button', 'elementor-podcast-manager' ),
-			'show_excerpt'        => __( 'Excerpt', 'elementor-podcast-manager' ),
-			'show_play_button'    => __( 'Play button', 'elementor-podcast-manager' ),
-		];
-
-		if ( isset( $labels[ $flag ] ) ) {
-			return $labels[ $flag ];
-		}
-
-		return ucfirst( trim( str_replace( '_', ' ', preg_replace( '/^show_/', '', $flag ) ) ) );
+		return Details::label( $flag );
 	}
 
 	/**

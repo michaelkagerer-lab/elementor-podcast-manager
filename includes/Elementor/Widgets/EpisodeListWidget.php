@@ -25,6 +25,13 @@ final class EpisodeListWidget extends Widget_Base {
 	use WidgetHelpers;
 
 	/**
+	 * Paginated lists rendered on this request (see render()).
+	 *
+	 * @var int
+	 */
+	private static int $paginated = 0;
+
+	/**
 	 * Widget slug.
 	 *
 	 * @return string
@@ -189,38 +196,35 @@ final class EpisodeListWidget extends Widget_Base {
 			]
 		);
 
-		$this->add_control(
-			'layout',
-			[
-				'label'   => __( 'Layout', 'elementor-podcast-manager' ),
-				'type'    => Controls_Manager::SELECT,
-				'default' => (string) epm()->design->get( 'default_episode_layout' ),
-				'options' => [
-					'list'           => __( 'List', 'elementor-podcast-manager' ),
-					'editorial-rows' => __( 'Editorial Rows', 'elementor-podcast-manager' ),
-					'cards'          => __( 'Cards', 'elementor-podcast-manager' ),
-					'grid'           => __( 'Grid', 'elementor-podcast-manager' ),
-					'minimal'        => __( 'Minimal List', 'elementor-podcast-manager' ),
-				],
-			]
-		);
+		$this->add_schema_control();
 
-		$this->add_toggle(
-			'show_artwork',
-			__( 'Artwork (cards/grid only)', 'elementor-podcast-manager' ),
-			true,
-			[ 'condition' => [ 'layout' => [ 'cards', 'grid' ] ] ]
-		);
-		$this->add_toggle( 'show_title', __( 'Title', 'elementor-podcast-manager' ), true );
-		$this->add_toggle( 'show_excerpt', __( 'Excerpt', 'elementor-podcast-manager' ), true );
-		$this->add_toggle( 'show_episode_number', __( 'Episode Number', 'elementor-podcast-manager' ), true,
-			[ 'description' => __( 'Not shown in the Minimal List layout.', 'elementor-podcast-manager' ) ] );
-		$this->add_toggle( 'show_guest', __( 'Guest', 'elementor-podcast-manager' ), true );
-		$this->add_toggle( 'show_date', __( 'Date', 'elementor-podcast-manager' ), true );
-		$this->add_toggle( 'show_duration', __( 'Duration', 'elementor-podcast-manager' ), true );
-		$this->add_toggle( 'show_play_button', __( 'Play Button', 'elementor-podcast-manager' ), true );
+		$layouts = [
+			'list'           => __( 'List', 'elementor-podcast-manager' ),
+			'editorial-rows' => __( 'Editorial Rows', 'elementor-podcast-manager' ),
+			'cards'          => __( 'Cards', 'elementor-podcast-manager' ),
+			'grid'           => __( 'Grid', 'elementor-podcast-manager' ),
+			'minimal'        => __( 'Minimal List', 'elementor-podcast-manager' ),
+		];
+		$this->add_layout_control( __( 'Layout', 'elementor-podcast-manager' ), $layouts, 'default_episode_layout' );
+
+		// Artwork only exists on cards: offer it for card layouts, and for
+		// Default while Podcast → Design uses a card layout.
+		$card_layouts = [ 'cards', 'grid' ];
+		if ( in_array( (string) epm()->design->get( 'default_episode_layout' ), $card_layouts, true ) ) {
+			$card_layouts[] = '';
+		}
+
+		$this->add_details_defaults_control();
+		$this->add_detail_control( 'show_artwork', __( 'Artwork (cards/grid only)', 'elementor-podcast-manager' ), 'list', [ 'condition' => [ 'layout' => $card_layouts ] ] );
+		$this->add_detail_control( 'show_episode_number', __( 'Episode Number', 'elementor-podcast-manager' ), 'list', [ 'description' => __( 'Not shown in the Minimal List layout.', 'elementor-podcast-manager' ) ] );
+		$this->add_detail_control( 'show_title', __( 'Title', 'elementor-podcast-manager' ), 'list' );
+		$this->add_detail_control( 'show_guest', __( 'Guest', 'elementor-podcast-manager' ), 'list' );
+		$this->add_detail_control( 'show_excerpt', __( 'Excerpt', 'elementor-podcast-manager' ), 'list' );
+		$this->add_detail_control( 'show_date', __( 'Date', 'elementor-podcast-manager' ), 'list' );
+		$this->add_detail_control( 'show_duration', __( 'Duration', 'elementor-podcast-manager' ), 'list' );
+		$this->add_detail_control( 'show_play_button', __( 'Play Button', 'elementor-podcast-manager' ), 'list' );
 		if ( taxonomy_exists( \EPM\Renderer::TOPIC_TAXONOMY ) ) {
-			$this->add_toggle( 'show_topics', __( 'Topics', 'elementor-podcast-manager' ), false );
+			$this->add_detail_control( 'show_topics', __( 'Topics', 'elementor-podcast-manager' ), 'list' );
 		}
 
 		$this->add_control(
@@ -246,10 +250,22 @@ final class EpisodeListWidget extends Widget_Base {
 		);
 
 		$this->add_style_source_control();
-		$this->add_token_color( 'list_background', __( 'Background', 'elementor-podcast-manager' ), '--epm-background', '{{WRAPPER}} .epm-episode-list' );
+		// A background also brings inner padding, so rows and cards do not
+		// sit on the colored edge (Elementor prints it only when a color is set).
+		$this->add_control(
+			'list_background',
+			[
+				'label'     => __( 'Background', 'elementor-podcast-manager' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => [
+					'{{WRAPPER}} .epm-episode-list' => '--epm-list-background: {{VALUE}}; --epm-list-padding: var(--epm-gap, 24px);',
+				],
+				'condition' => $this->custom_condition(),
+			]
+		);
 		$this->add_token_color( 'list_text', __( 'Text Color', 'elementor-podcast-manager' ), '--epm-text', '{{WRAPPER}} .epm-episode-list' );
 		$this->add_token_color( 'list_muted', __( 'Muted Text Color', 'elementor-podcast-manager' ), '--epm-text-muted', '{{WRAPPER}} .epm-episode-list' );
-		$this->add_token_color( 'list_accent', __( 'Accent Color', 'elementor-podcast-manager' ), '--epm-accent', '{{WRAPPER}} .epm-episode-list' );
+		$this->add_token_color( 'list_accent', __( 'Hover and Playing Color', 'elementor-podcast-manager' ), '--epm-accent', '{{WRAPPER}} .epm-episode-list' );
 		$this->add_token_color( 'list_border', __( 'Border Color', 'elementor-podcast-manager' ), '--epm-border', '{{WRAPPER}} .epm-episode-list' );
 
 		$this->add_responsive_control(
@@ -336,6 +352,62 @@ final class EpisodeListWidget extends Widget_Base {
 	}
 
 	/**
+	 * Whether this is the first Episode List with numbered pagination in
+	 * its Elementor document (in document order, so rendering twice, as
+	 * some SEO plugins do, cannot change it). Without a document: the
+	 * first one rendered on this request.
+	 *
+	 * @return bool
+	 */
+	private function is_first_paginated_list(): bool {
+		$document = class_exists( '\\Elementor\\Plugin' ) && isset( \Elementor\Plugin::$instance->documents ) ? \Elementor\Plugin::$instance->documents->get_current() : null;
+		$first    = $document ? self::first_paginated_list( (array) $document->get_elements_data() ) : null;
+
+		if ( null === $first ) {
+			return 0 === self::$paginated++;
+		}
+
+		return (string) $this->get_id() === $first;
+	}
+
+	/**
+	 * ID of the first paginated Episode List in element data.
+	 *
+	 * @param array $elements Elements data.
+	 * @return string|null Null when the data holds none (or not this widget).
+	 */
+	private static function first_paginated_list( array $elements ): ?string {
+		foreach ( $elements as $element ) {
+			if ( ! is_array( $element ) ) {
+				continue;
+			}
+			if ( 'epm-episode-list' === ( $element['widgetType'] ?? '' ) && 'numbered' === ( $element['settings']['pagination'] ?? '' ) ) {
+				return (string) ( $element['id'] ?? '' );
+			}
+			$found = self::first_paginated_list( (array) ( $element['elements'] ?? [] ) );
+			if ( null !== $found ) {
+				return $found;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Raw data for the editor and for saving: a widget saved by 1.3.0
+	 * gets its details made explicit (it renders the same).
+	 *
+	 * @param bool $with_html_content With the rendered HTML.
+	 * @return array
+	 */
+	public function get_raw_data( $with_html_content = false ) {
+		$data             = parent::get_raw_data( $with_html_content );
+		$data['settings'] = $this->explicit_details( (array) ( $data['settings'] ?? [] ), 'list' );
+
+		return $data;
+	}
+
+	/**
 	 * Topic choices for the Topic control (slug => name).
 	 *
 	 * @return array<string, string>
@@ -386,38 +458,39 @@ final class EpisodeListWidget extends Widget_Base {
 		$topic_args = \EPM\Renderer::topic_query_args( \EPM\Renderer::topic_slugs( $settings['topics'] ?? [] ) );
 		$query_args = array_merge( $query_args, $topic_args );
 
-		$args = [
-			'layout'            => sanitize_key( $settings['layout'] ?? '' ),
-			'show_artwork'      => $this->toggle_on( $settings, 'show_artwork', true ),
-			'show_title'        => $this->toggle_on( $settings, 'show_title', true ),
-			'show_excerpt'      => $this->toggle_on( $settings, 'show_excerpt', true ),
-			'show_episode_number' => $this->toggle_on( $settings, 'show_episode_number', true ),
-			'show_guest'        => $this->toggle_on( $settings, 'show_guest', true ),
-			'show_date'         => $this->toggle_on( $settings, 'show_date', true ),
-			'show_duration'     => $this->toggle_on( $settings, 'show_duration', true ),
-			'show_play_button'  => $this->toggle_on( $settings, 'show_play_button', true ),
-			'show_topics'       => $this->toggle_on( $settings, 'show_topics', false ),
-			'excerpt_length'    => max( 0, (int) ( $settings['excerpt_length'] ?? 20 ) ),
-			// Empty season/topic → "No episodes in this selection" + link to all.
-			'filtered'          => $season > 0 || ! empty( $topic_args ),
-		];
+		$args                   = \EPM\Details::resolve( 'list', $this->detail_values( 'list' ) );
+		$args['layout']         = sanitize_key( $settings['layout'] ?? '' );
+		$args['excerpt_length'] = max( 0, (int) ( $settings['excerpt_length'] ?? 20 ) );
+		// Empty season/topic → "No episodes in this selection" + link to all.
+		$args['filtered'] = $season > 0 || ! empty( $topic_args );
 
 		if ( 'numbered' === ( $settings['pagination'] ?? 'none' ) ) {
-			// Static front pages paginate with "page", archives with "paged".
-			$paged                = max( 1, (int) get_query_var( 'paged' ), (int) get_query_var( 'page' ) );
-			$query_args['paged']  = $paged;
-			$query                = epm()->episodes->query( $query_args );
+			// The first paginated list of a page pages with /page/N/ (static
+			// front pages with "page", archives with "paged"); every further
+			// list has its own ?epm-page-<id>=N, so lists page on their own.
+			$own   = ! $this->is_first_paginated_list();
+			$param = 'epm-page-' . sanitize_key( (string) $this->get_id() );
+			if ( $own ) {
+				$paged = isset( $_GET[ $param ] ) ? max( 1, absint( wp_unslash( $_GET[ $param ] ) ) ) : 1; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- a page number.
+			} else {
+				$paged = max( 1, (int) get_query_var( 'paged' ), (int) get_query_var( 'page' ) );
+			}
+			$query_args['paged'] = $paged;
+			$query               = epm()->episodes->query( $query_args );
 
-			echo epm()->renderer->episode_list( $query->posts, $args );
+			echo epm()->renderer->episode_list( $query->posts, $args ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the renderer.
 
 			if ( $query->max_num_pages > 1 ) {
-				$links = paginate_links(
-					[
-						'total'   => (int) $query->max_num_pages,
-						'current' => $paged,
-						'type'    => 'list',
-					]
-				);
+				$pagination = [
+					'total'   => (int) $query->max_num_pages,
+					'current' => $paged,
+					'type'    => 'list',
+				];
+				if ( $own ) {
+					$pagination['base']   = esc_url_raw( add_query_arg( $param, '%#%', remove_query_arg( $param ) ) );
+					$pagination['format'] = '';
+				}
+				$links = paginate_links( $pagination );
 
 				if ( $links ) {
 					echo '<nav class="epm-pagination" aria-label="' . esc_attr__( 'Episode pages', 'elementor-podcast-manager' ) . '">' . $links . '</nav>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped

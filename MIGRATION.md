@@ -139,6 +139,119 @@ DELETE FROM wp_options WHERE option_name LIKE 'epm\_import\_chunk\_%';
 
 ---
 
+# Migration notes — Unreleased (design defaults and widgets)
+
+Nothing to do for existing sites: pages look as before. What changes in
+the data:
+
+## Stored design option (`epm_design_settings`)
+
+- On the first request after the update (`init`, priority 20,
+  `DesignSettings::maybe_migrate()`), an option without
+  `details_version` gets:
+  - `details` — the site's *Details shown by default*: empty (every
+    place uses the 1.3.0 default);
+  - `details_suggested` — the 1.1–1.3 maps `preset_visibility`,
+    `preset_player` and `preset_episode_list` converted per place
+    (player, latest, list; the episode page takes neither description
+    nor download from them), kept only where they differ from the
+    1.3.0 default;
+  - `details_version` = 1.
+  The old maps were never read by widgets or shortcodes; they are not
+  applied. They stay in the option unchanged (rollback). Sites without
+  the option are not touched.
+- *Apply suggestions* (Podcast → Design) copies `details_suggested` into
+  `details` and clears it; *Dismiss* clears it. Both show the changes
+  first.
+- Applying a preset after the update writes its `details` (all places)
+  and clears the suggestions.
+- Exports are `format: 2` with a `details` array. A 1.x export imports
+  its tokens as before; its maps go to `details_suggested`.
+
+## Elementor widgets
+
+- Podcast Player, Latest Episode and Episode List store
+  `epm_schema = "2"` (hidden control, saved even though it is the
+  default). Widgets without it are read as 1.3.0 widgets
+  (`get_raw_data()`): every *Show …* switch gets the value it had in
+  1.3.0 (`yes`/`no`, including Elementor's stripped defaults) and the
+  layout the 1.3.0 default. This happens in the editor, on template
+  insert and on render, so existing widgets keep what they showed. The
+  next save in Elementor writes the converted values and the marker.
+- *Use Podcast → Design defaults* (Details section) sets every *Show …*
+  of that widget to *Default*.
+- A widget layout chosen explicitly in 1.3.0 that equalled the old
+  default (`full` for the player, `cards` for the list) was never saved
+  by Elementor (it strips default values); it is indistinguishable from
+  "not chosen" and is read as that value, not as *Default*. Nothing can
+  recover the difference.
+- Removed controls: Episode Header *Accent* (`header_accent`), Show
+  Notes and Transcript *Muted color* (`show_notes_muted`,
+  `transcript_muted`). Stored values stay in the post meta and are
+  ignored; they never had a visible effect.
+
+## Shortcodes
+
+`[podcast_player]`, `[podcast_latest]` and `[podcast_episodes]` without
+`show_*` attributes follow *Details shown by default*: identical to
+1.3.0 until a preset is applied or the setting is saved. Pin a detail
+with its attribute (`show_description="no"`).
+
+## For developers
+
+- New filter `epm_details( $details, $context, $explicit, $consumer )`;
+  helper `EPM\Details::resolve()`.
+- New filter `epm_dequeue_unused_player` (return false to keep the
+  player script on pages without podcast markup).
+- `Presets::import()` and `Presets::export()` are gone; presets accept
+  `details`, and a `layout` key sets the player layout when the tokens
+  name none.
+- `DesignSettings::get_preset_value()` is deprecated (it had no caller).
+
+## Rollback
+
+Restoring 1.3.0 (or the player package) needs no data step: the old maps
+and every token are still in the option, and 1.3.0 ignores `details`,
+`details_suggested`, `details_version` and `epm_schema`. Widgets saved
+after the update keep explicit `yes`/`no` values, which 1.3.0 reads; a
+detail or layout left on *Default* is not stored (Elementor strips the
+`''` default), so 1.3.0 uses its own default there, not the site
+setting.
+To run the migration again after a rollback, remove `details_version`
+from the option (`wp option patch delete epm_design_settings
+details_version`).
+
+# Migration notes — Unreleased (player and sticky bar)
+
+Nothing to do for existing sites. Behavior changes to review:
+
+- **Sticky bar.** A player with *Enable Sticky Player* off no longer opens
+  the bar, even when an episode list or chapter list on the page printed
+  it; the Latest Episode widget's player (no sticky option) does not open
+  it either. Turn the option on where the bar is wanted. Lists and
+  chapter lists open it as before (`epm_sticky_player_for_lists`).
+- **Speed and volume** are page-wide: changing them on one player changes
+  every player on the page. On iOS the volume slider is hidden (the
+  device buttons set the volume there).
+- **Timestamp links** at or past the episode's end, or beyond 24 hours,
+  are ignored (playback starts at 0).
+
+For integrations working with the player markup:
+
+- Once bound, a player's `<audio>` element is no longer inside
+  `[data-epm-player]`: the engine keeps the element it plays outside the
+  player (re-rendering the player must not stop it) and empties other
+  copies. Read it with
+  `window.epmPlayerEngine.getController( id ).audio`.
+- The `data-epm-card-bound`, `data-epm-chapters-bound`,
+  `data-epm-share-bound` and `data-epm-video-bound` attributes are gone;
+  bindings are kept in memory. `data-epm-initialized` stays on players as
+  a debugging marker only (copied markup carries it but is bound anyway).
+- New attribute `data-epm-sticky-player="1|0"` on players, card/row play
+  buttons and chapter lists: whether playback started there opens the
+  sticky bar. Custom markup without it keeps opening the bar.
+- The chapter list carries `data-epm-artwork` and `data-epm-duration`.
+
 # Migration notes — 1.2.0 → 1.3.0
 
 ## Nothing to do for existing sites
