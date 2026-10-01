@@ -72,18 +72,21 @@ delete_option( 'epm_removed_guid_rows' );
 register_taxonomy( 'podcast_topic', 'podcast_episode' );
 
 // Delete episode posts and their meta.
-$epm_episodes = get_posts(
-	[
-		'post_type'      => 'podcast_episode',
-		'post_status'    => 'any',
-		'posts_per_page' => -1,
-		'fields'         => 'ids',
-	]
-);
-
-foreach ( $epm_episodes as $epm_episode_id ) {
-	wp_delete_post( $epm_episode_id, true );
-}
+$epm_statuses = array_values( get_post_stati() );
+do {
+	$epm_episodes = get_posts(
+		[
+			'post_type'      => 'podcast_episode',
+			'post_status'    => $epm_statuses,
+			'posts_per_page' => 100,
+			'fields'         => 'ids',
+			'no_found_rows'  => true,
+		]
+	);
+	foreach ( $epm_episodes as $epm_episode_id ) {
+		wp_delete_post( (int) $epm_episode_id, true );
+	}
+} while ( count( $epm_episodes ) === 100 );
 
 // Then the topics themselves.
 $epm_terms = get_terms(

@@ -30,6 +30,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class Importer {
+	/**
+	 * Default post author for non-interactive imports.
+	 *
+	 * @return int
+	 */
+	private static function default_author(): int {
+		$users = get_users( [ 'role' => 'administrator', 'number' => 1, 'fields' => 'ID', 'orderby' => 'ID', 'order' => 'ASC' ] );
+		return ! empty( $users ) ? (int) $users[0] : 1;
+	}
+
+	/**
+	 * Normalize volatile URL parameters used by signed media URLs.
+	 *
+	 * @param string $url Media URL.
+	 * @return string
+	 */
+	private static function stable_media_url( string $url ): string {
+		$parts = wp_parse_url( $url );
+		if ( ! is_array( $parts ) || empty( $parts['query'] ) ) {
+			return $url;
+		}
+		parse_str( (string) $parts['query'], $query );
+		foreach ( array_keys( $query ) as $key ) {
+			if ( preg_match( '/^(?:x-amz-|x-goog-|expires$|signature$|sig$|token$|auth$|key-pair-id$|policy$|hdnts$)/i', (string) $key ) ) {
+				unset( $query[ $key ] );
+			}
+		}
+		$clean = (string) ( $parts['scheme'] ?? 'https' ) . '://' . (string) ( $parts['host'] ?? '' ) . (string) ( isset( $parts['port'] ) ? ':' . (int) $parts['port'] : '' ) . (string) ( $parts['path'] ?? '' );
+		$query_string = http_build_query( $query );
+		return '' !== $query_string ? $clean . '?' . $query_string : $clean;
+	}
 
 	/**
 	 * Options.
@@ -44,6 +75,7 @@ final class Importer {
 	 * @var array<string, int>|null
 	 */
 	private ?array $guid_map = null;
+	private bool $guid_map_loaded = false;
 
 	/**
 	 * Constructor.
@@ -55,12 +87,14 @@ final class Importer {
 	 *                                      default time per request).
 	 */
 	public function __construct( array $options = [] ) {
+		$source_feed = (string) ( $options['feed_url'] ?? '' );
 		$this->options = [
-			'feed_url'       => (string) ( $options['feed_url'] ?? '' ),
+			'feed_url'       => Hosting::has_url_secret( $source_feed ) ? 'private:' . hash( 'sha256', $source_feed ) : $source_feed,
 			'status'         => 'draft' === ( $options['status'] ?? '' ) ? 'draft' : 'publish',
 			'download_media' => ! empty( $options['download_media'] ),
 			'fetch_extras'   => ! isset( $options['fetch_extras'] ) || ! empty( $options['fetch_extras'] ),
 			'deadline'       => (float) ( $options['deadline'] ?? 0 ),
+			'author'         => max( 0, (int) ( $options['author'] ?? 0 ) ),
 		];
 	}
 
@@ -71,7 +105,12 @@ final class Importer {
 	 * @return array<string, int>
 	 */
 	public function guid_map(): array {
-		if ( null !== $this->guid_map ) {
+		if ( $this->guid_map_loaded ) {
+			return $this->guid_map;
+		}
+		$this->guid_map_loaded = true;
+		if ( isset( $GLOBALS['epm_import_guid_map'] ) && is_array( $GLOBALS['epm_import_guid_map'] ) ) {
+			$this->guid_map = $GLOBALS['epm_import_guid_map'];
 			return $this->guid_map;
 		}
 
@@ -92,6 +131,9 @@ final class Importer {
 		}
 
 		$this->guid_map = $map;
+		if ( ! empty( $GLOBALS['epm_import_step_active'] ) ) {
+			$GLOBALS['epm_import_guid_map'] = $map;
+		}
 
 		return $map;
 	}
@@ -211,7 +253,9 @@ final class Importer {
 
 		$map         = $this->guid_map();
 		$post_id     = $map[ $guid ] ?? 0;
-		$fingerprint = md5( (string) wp_json_encode( $item ) );
+		$fingerprint_item = $item;
+		$fingerprint_item['audio_url'] = self::stable_media_url( (string) ( $item['audio_url'] ?? '' ) );
+		$fingerprint = md5( (string) wp_json_encode( $fingerprint_item ) );
 
 		// The list was read when this run started: another request may
 		// have created the episode since. Ask the database right before
@@ -262,6 +306,9 @@ final class Importer {
 			$this->write( $post_id, $item, true );
 			update_post_meta( $post_id, Episodes::META_PREFIX . 'import_fingerprint', $fingerprint );
 			$this->guid_map[ $guid ] = $post_id;
+			if ( ! empty( $GLOBALS['epm_import_step_active'] ) ) {
+				$GLOBALS['epm_import_guid_map'] = $this->guid_map;
+			}
 			$action                  = 'created';
 		}
 
@@ -358,6 +405,7 @@ final class Importer {
 			'post_title'   => $title,
 			'post_content' => self::content_html( (string) ( $item['html'] ?? '' ) ),
 			'post_status'  => $status,
+			'post_author'  => $this->options['author'] > 0 ? $this->options['author'] : self::default_author(),
 			'meta_input'   => [
 				// Identity first: the GUID must exist before anything
 				// (save_post handlers) could generate a new one.
@@ -407,6 +455,7 @@ final class Importer {
 	private function values( array $item ): array {
 		$explicit = (string) ( $item['explicit'] ?? '' );
 		$seconds  = (int) ( $item['duration'] ?? 0 );
+		$date     = (int) ( $item['pub_date'] ?? 0 );
 
 		$values = [
 			'post_title'        => sanitize_text_field( (string) ( $item['title'] ?? '' ) ),
@@ -423,6 +472,7 @@ final class Importer {
 			'artwork_url'       => esc_url_raw( (string) ( $item['image'] ?? '' ) ),
 			'source_link'       => esc_url_raw( (string) ( $item['link'] ?? '' ) ),
 			'guest_name'        => self::first_person( (array) ( $item['persons'] ?? [] ), 'guest' ),
+			'post_date'         => $date > 0 ? get_date_from_gmt( gmdate( 'Y-m-d H:i:s', $date ) ) : '',
 		];
 
 		if ( '' === $values['post_title'] ) {
@@ -510,6 +560,12 @@ final class Importer {
 			$value = (string) preg_replace( '/\s+/', ' ', $value );
 			$value = trim( (string) preg_replace( '#\s*(</?(?:p|br|ul|ol|li|h[1-6]|blockquote|div|pre|table|tr|td|th)\b[^>]*>)\s*#i', '$1', $value ) );
 		}
+		if ( 'audio_url' === $field ) {
+			$value = self::stable_media_url( (string) $value );
+		}
+		if ( 'post_date' === $field ) {
+			$value = str_replace( ' ', 'T', (string) $value );
+		}
 
 		return md5( $value );
 	}
@@ -554,16 +610,34 @@ final class Importer {
 				$untouched = isset( $hashes[ $field ] )
 					? in_array( $hashes[ $field ], [ self::hash( $current, $field ), self::legacy_hash( $current ) ], true )
 					: ( '' === $current || null === $current || false === $current );
+				// Import hashes account for the site's timezone conversion.
+				if ( 'post_date' === $field && isset( $hashes[ $field ] ) && self::hash( $current, $field ) === $hashes[ $field ] ) {
+					$untouched = true;
+				}
 
 				if ( ! $untouched ) {
 					continue; // Edited on this site: keep it.
 				}
 			}
 
+			// A published import whose host date changes must move between
+			// published and scheduled status along with its managed date.
+			if ( ! $is_new && 'post_date' === $field && '' !== $value && ! isset( $post_update['post_status'] ) ) {
+				$timestamp = strtotime( (string) $value );
+				if ( $timestamp && in_array( get_post_status( $post_id ), [ 'publish', 'future' ], true ) ) {
+					$post_update['post_status'] = $timestamp > current_time( 'timestamp' ) ? 'future' : 'publish';
+				}
+			}
+
 			if ( 0 === strpos( $field, 'post_' ) ) {
 				// The post was created with these values; only updates write.
-				if ( ! $is_new ) {
-					$post_update[ $field ] = $value;
+				if ( ! $is_new && ( '' !== $value || 'post_date' === $field ) ) {
+					if ( 'post_date' === $field ) {
+						$post_update['post_date']     = $value;
+						$post_update['post_date_gmt'] = get_gmt_from_date( $value );
+					} else {
+						$post_update[ $field ] = $value;
+					}
 				}
 			} elseif ( '' === $value ) {
 				delete_post_meta( $post_id, Episodes::META_PREFIX . $field );
@@ -605,7 +679,7 @@ final class Importer {
 	 * @param int                 $oldest Oldest item date in the feed.
 	 * @return int Episodes moved to drafts.
 	 */
-	public function draft_missing( array $guids, int $oldest ): int {
+	public function draft_missing( array $guids, int $oldest, bool $future_only = false ): int {
 		if ( '' === $this->options['feed_url'] || empty( $guids ) ) {
 			return 0;
 		}
@@ -613,7 +687,7 @@ final class Importer {
 		$ids = get_posts(
 			[
 				'post_type'      => EpisodePostType::CPT,
-				'post_status'    => 'publish',
+			'post_status'    => [ 'publish', 'future' ],
 				'posts_per_page' => -1,
 				'fields'         => 'ids',
 				'no_found_rows'  => true,
@@ -628,11 +702,15 @@ final class Importer {
 
 		$count = 0;
 		foreach ( $ids as $id ) {
+			$is_future = 'future' === get_post_status( (int) $id );
+			if ( $future_only && ! $is_future ) {
+				continue;
+			}
 			$guid = (string) get_post_meta( (int) $id, Episodes::META_PREFIX . 'guid', true );
 			if ( '' === $guid || isset( $guids[ $guid ] ) ) {
 				continue;
 			}
-			if ( $oldest > 0 && (int) get_post_time( 'U', true, (int) $id ) < $oldest ) {
+			if ( ! $is_future && $oldest > 0 && (int) get_post_time( 'U', true, (int) $id ) < $oldest ) {
 				continue;
 			}
 			// Only after it stayed missing for a day: a host's hiccup or a

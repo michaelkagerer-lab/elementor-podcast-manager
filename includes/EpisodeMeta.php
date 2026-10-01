@@ -1320,8 +1320,21 @@ final class EpisodeMeta {
 			$this->save_audio_url( $post_id, (string) $input['audio_url'], $new_audio_id > 0 );
 		}
 
-		update_post_meta( $post_id, $p . 'artwork_id', absint( $input['artwork_id'] ?? 0 ) );
-		update_post_meta( $post_id, $p . 'guest_image_id', absint( $input['guest_image_id'] ?? 0 ) );
+		$old_artwork = (int) get_post_meta( $post_id, $p . 'artwork_id', true );
+		$new_artwork = absint( $input['artwork_id'] ?? 0 );
+		if ( $new_artwork > 0 && ( ! self::is_image_attachment( $new_artwork ) || ( $new_artwork !== $old_artwork && ! current_user_can( 'read_post', $new_artwork ) ) ) ) {
+			self::add_notice( __( 'The selected artwork must be an image you may use. The previous artwork was kept.', 'elementor-podcast-manager' ), 'error', 'epm-artwork', __( 'Go to the artwork', 'elementor-podcast-manager' ) );
+			$new_artwork = $old_artwork;
+		}
+		update_post_meta( $post_id, $p . 'artwork_id', $new_artwork );
+
+		$old_guest_image = (int) get_post_meta( $post_id, $p . 'guest_image_id', true );
+		$new_guest_image = absint( $input['guest_image_id'] ?? 0 );
+		if ( $new_guest_image > 0 && ( ! self::is_image_attachment( $new_guest_image ) || ( $new_guest_image !== $old_guest_image && ! current_user_can( 'read_post', $new_guest_image ) ) ) ) {
+			self::add_notice( __( 'The selected guest photo must be an image you may use. The previous photo was kept.', 'elementor-podcast-manager' ), 'error', 'epm-guest-image', __( 'Go to the guest photo', 'elementor-podcast-manager' ) );
+			$new_guest_image = $old_guest_image;
+		}
+		update_post_meta( $post_id, $p . 'guest_image_id', $new_guest_image );
 
 		update_post_meta( $post_id, $p . 'short_description', sanitize_textarea_field( $input['short_description'] ?? '' ) );
 		update_post_meta( $post_id, $p . 'show_notes', wp_kses_post( $input['show_notes'] ?? '' ) );
@@ -1454,6 +1467,27 @@ final class EpisodeMeta {
 
 		// Persist any queued notices across the save redirect.
 		self::persist_notices( $post_id );
+	}
+
+	/**
+	 * Whether an ID names an image attachment.
+	 *
+	 * @param int $attachment_id Attachment ID.
+	 * @return bool
+	 */
+	public static function is_image_attachment( int $attachment_id ): bool {
+		return $attachment_id > 0 && 'attachment' === get_post_type( $attachment_id ) && 0 === strpos( (string) get_post_mime_type( $attachment_id ), 'image/' );
+	}
+
+	/**
+	 * REST sanitizer for image attachment IDs.
+	 *
+	 * @param mixed $value Submitted ID.
+	 * @return int
+	 */
+	public static function sanitize_image_id( $value ): int {
+		$id = absint( $value );
+		return self::is_image_attachment( $id ) ? $id : 0;
 	}
 
 	/**

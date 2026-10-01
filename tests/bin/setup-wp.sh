@@ -25,6 +25,7 @@ WP_PORT="${WP_PORT:-8889}"
 WP_VERSION="${WP_VERSION:-latest}"
 ELEMENTOR_VERSION="${ELEMENTOR_VERSION:-latest-stable}"
 WP_DB="${WP_DB:-sqlite}"
+PHP_BIN="${PHP_BIN:-php}"
 SITE="$WP_DIR/site"
 URL="http://localhost:$WP_PORT"
 
@@ -45,6 +46,14 @@ esac
 mkdir -p "$WP_DIR"
 cd "$WP_DIR"
 
+# Refuse to mark an existing WordPress installation as disposable just
+# because the test setup script was pointed at it.
+if [ -f "$SITE/wp-config.php" ] && [ ! -f "$WP_DIR/.epm-test-site" ]; then
+	echo "Refusing to provision unmarked WordPress site at $SITE. Use a fresh WP_DIR or mark a disposable test directory explicitly." >&2
+	exit 2
+fi
+touch "$WP_DIR/.epm-test-site"
+
 # Downloads are retried: large transfers occasionally get cut off.
 retry() {
 	local attempt
@@ -62,7 +71,7 @@ fi
 
 cat > wp <<EOF
 #!/usr/bin/env bash
-exec php -d memory_limit=512M "$WP_DIR/wp-cli.phar" --path="$SITE" --allow-root "\$@"
+exec "$PHP_BIN" -d memory_limit=512M "$WP_DIR/wp-cli.phar" --path="$SITE" --allow-root "\$@"
 EOF
 chmod +x wp
 WP="$WP_DIR/wp"
@@ -86,7 +95,7 @@ fi
 
 # MySQL/MariaDB: create the database when it is missing.
 if [ "$WP_DB" = mysql ]; then
-	DB_NAME="$DB_NAME" DB_USER="$DB_USER" DB_PASSWORD="$DB_PASSWORD" DB_HOST="$DB_HOST" php -r '
+	DB_NAME="$DB_NAME" DB_USER="$DB_USER" DB_PASSWORD="$DB_PASSWORD" DB_HOST="$DB_HOST" "$PHP_BIN" -r '
 		$host = getenv( "DB_HOST" );
 		$port = null;
 		$socket = null;
@@ -229,7 +238,7 @@ return true;
 PHP
 
 if ! curl -fs -o /dev/null "$URL/wp-login.php"; then
-	EPM_WP_SITE="$SITE" PHP_CLI_SERVER_WORKERS=4 nohup php -d memory_limit=512M -d upload_max_filesize=64M -d post_max_size=64M \
+	EPM_WP_SITE="$SITE" PHP_CLI_SERVER_WORKERS=4 nohup "$PHP_BIN" -d memory_limit=512M -d upload_max_filesize=64M -d post_max_size=64M \
 		-S "localhost:$WP_PORT" -t "$SITE" "$WP_DIR/router.php" > "$WP_DIR/server.log" 2>&1 &
 	echo $! > "$WP_DIR/server.pid"
 	for _ in $(seq 1 30); do

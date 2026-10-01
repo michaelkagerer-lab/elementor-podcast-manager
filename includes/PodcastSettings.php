@@ -152,8 +152,8 @@ final class PodcastSettings {
 		$out['description']       = wp_kses_post( $input['description'] ?? '' );
 		$out['short_description'] = sanitize_textarea_field( $input['short_description'] ?? '' );
 		$out['website_url']       = esc_url_raw( $input['website_url'] ?? '' );
-		$out['artwork_id']        = absint( $input['artwork_id'] ?? 0 );
-		$out['default_artwork_id'] = absint( $input['default_artwork_id'] ?? 0 );
+		$out['artwork_id']        = self::valid_image_id( absint( $input['artwork_id'] ?? 0 ) );
+		$out['default_artwork_id'] = self::valid_image_id( absint( $input['default_artwork_id'] ?? 0 ) );
 
 		$explicit = $input['explicit'] ?? 'clean';
 		$out['explicit'] = in_array( $explicit, [ 'clean', 'explicit' ], true ) ? $explicit : 'clean';
@@ -181,6 +181,16 @@ final class PodcastSettings {
 		$out['platform_links'] = $this->sanitize_links( $input['platform_links'] ?? [], __( 'Platform links', 'elementor-podcast-manager' ) );
 
 		return $out;
+	}
+
+	/**
+	 * Keep only IDs that identify image attachments.
+	 *
+	 * @param int $id Attachment ID.
+	 * @return int
+	 */
+	private static function valid_image_id( int $id ): int {
+		return $id > 0 && 'attachment' === get_post_type( $id ) && 0 === strpos( (string) get_post_mime_type( $id ), 'image/' ) ? $id : 0;
 	}
 
 	/**

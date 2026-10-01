@@ -99,6 +99,19 @@ $new_player = static function ( array $settings = [] ) use ( $ep1 ): string {
 WP_CLI::log( 'An untouched site renders what 1.3.0 rendered' );
 
 $t->test(
+	'Design screen has no duplicate HTML IDs',
+	static function ( EPM_Test_Runner $t ) {
+		ob_start();
+		( new Admin() )->render_design();
+		$html = (string) ob_get_clean();
+		preg_match_all( '~\\bid=["\']([^"\']+)["\']~', $html, $matches );
+		$counts = array_count_values( $matches[1] );
+		$duplicates = array_keys( array_filter( $counts, static fn ( int $count ): bool => $count > 1 ) );
+		$t->same( [], $duplicates, 'all IDs are unique' );
+	}
+);
+
+$t->test(
 	'every consumer shows the same details as 1.3.0 (normalized markup)',
 	static function ( EPM_Test_Runner $t ) use ( $fx ) {
 		$expected = json_decode( (string) file_get_contents( dirname( __DIR__ ) . '/fixtures/details-1.3.0.json' ), true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents

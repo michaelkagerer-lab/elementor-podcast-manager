@@ -361,14 +361,14 @@ final class Readiness {
 			return $checks;
 		}
 
-		$add( 'ok', __( 'Host feed', 'elementor-podcast-manager' ), $feed );
+		$add( 'ok', __( 'Host feed', 'elementor-podcast-manager' ), Hosting::has_url_secret( $feed ) ? __( 'A private feed address is configured and is not shown here.', 'elementor-podcast-manager' ) : $feed );
 
 		if ( ! Hosting::get( 'sync' ) ) {
 			$add( 'warning', __( 'Automatic sync', 'elementor-podcast-manager' ), __( 'Off. New episodes from your host only appear here after “Sync now”.', 'elementor-podcast-manager' ), $hosting_url, $hosting_fix );
 		}
 
-		if ( 'error' === $state['status'] ) {
-			$add( 'error', __( 'Last sync', 'elementor-podcast-manager' ), (string) $state['message'], $hosting_url, __( 'Check hosting settings', 'elementor-podcast-manager' ) );
+		if ( in_array( $state['status'], [ 'error', 'partial' ], true ) ) {
+			$add( 'error' === $state['status'] ? 'error' : 'warning', __( 'Last sync', 'elementor-podcast-manager' ), (string) $state['message'], $hosting_url, __( 'Check hosting settings', 'elementor-podcast-manager' ) );
 		} elseif ( (int) $state['last_success'] > 0 ) {
 			$add(
 				'ok',
@@ -381,7 +381,9 @@ final class Readiness {
 				)
 			);
 		} else {
-			$add( 'warning', __( 'Last sync', 'elementor-podcast-manager' ), __( 'Not synced yet. Run “Sync now” or import the show.', 'elementor-podcast-manager' ), $hosting_url, $hosting_fix );
+			$job = ImportJob::get();
+			$mirrored = 'done' === ( $job['status'] ?? '' ) && 'mirror' === ( $job['options']['purpose'] ?? '' );
+			$add( 'warning', __( 'Last sync', 'elementor-podcast-manager' ), $mirrored ? __( 'Connected. The first automatic sync runs within the hour.', 'elementor-podcast-manager' ) : __( 'Not synced yet. Run “Sync now” or import the show.', 'elementor-podcast-manager' ), $hosting_url, $hosting_fix );
 		}
 
 		if ( ! Hosting::get( 'redirect' ) ) {
@@ -400,7 +402,21 @@ final class Readiness {
 
 		// A move into this site that is not finished yet.
 		if ( ImportJob::move_unfinished() ) {
-			self::old_host_checks( $add, self::old_host( epm()->episodes->get_episodes( [ 'posts_per_page' => -1 ] ) ) );
+			self::old_host_checks( $add, self::old_host( Episodes::each_public() ) );
+		}
+		if ( Hosting::sync_enabled() ) {
+			$state = Hosting::state();
+			$intervals = [ 'hourly' => HOUR_IN_SECONDS, 'twicedaily' => 12 * HOUR_IN_SECONDS, 'daily' => DAY_IN_SECONDS ];
+			$interval = (int) ( $intervals[ (string) Hosting::get( 'interval' ) ] ?? HOUR_IN_SECONDS );
+			$last_success = (int) ( $state['last_success'] ?? 0 );
+			$next_sync = wp_next_scheduled( Hosting::CRON_HOOK );
+			if ( ( $last_success > 0 && time() - $last_success > 2 * $interval ) || ( false !== $next_sync && time() - $next_sync > $interval ) ) {
+				$add( 'warning', __( 'Automatic sync', 'elementor-podcast-manager' ), __( 'The scheduled sync is overdue. Check WP-Cron or set up a server cron to request wp-cron.php regularly.', 'elementor-podcast-manager' ), $hosting_url, $hosting_fix );
+			}
+		}
+		$state = ImportJob::get();
+		if ( 'move' === ( $state['options']['purpose'] ?? '' ) && in_array( $state['status'] ?? '', [ 'cancelled', 'failed', 'running', 'waiting' ], true ) ) {
+			$add( 'error', __( 'Move not finished', 'elementor-podcast-manager' ), sprintf( __( '%1$d of %2$d episodes have been imported. Resume the move before changing the feed redirect.', 'elementor-podcast-manager' ), (int) ( $state['position'] ?? 0 ), (int) ( $state['total'] ?? 0 ) ), $hosting_url, __( 'Resume the move', 'elementor-podcast-manager' ) );
 		}
 
 		return $checks;
@@ -621,7 +637,9 @@ final class Readiness {
 		$out  = '<div class="epm-readiness">';
 		$out .= '<p class="epm-readiness__summary">';
 		if ( $report['ready'] ) {
-			$out .= '<span class="epm-badge epm-badge--ok"><span class="epm-badge__dot" aria-hidden="true"></span>' . esc_html( Hosting::is_external() ? __( 'In sync', 'elementor-podcast-manager' ) : __( 'Ready for distribution', 'elementor-podcast-manager' ) ) . '</span>';
+			$sync_state = Hosting::is_external() ? Hosting::state() : [];
+			$badge = Hosting::is_external() ? ( empty( $sync_state['last_success'] ) ? __( 'Connected', 'elementor-podcast-manager' ) : __( 'In sync', 'elementor-podcast-manager' ) ) : __( 'Ready for distribution', 'elementor-podcast-manager' );
+			$out .= '<span class="epm-badge epm-badge--ok"><span class="epm-badge__dot" aria-hidden="true"></span>' . esc_html( $badge ) . '</span>';
 		} else {
 			$out .= '<span class="epm-badge epm-badge--error"><span class="epm-badge__dot" aria-hidden="true"></span>' . esc_html__( 'Not ready', 'elementor-podcast-manager' ) . '</span>';
 		}

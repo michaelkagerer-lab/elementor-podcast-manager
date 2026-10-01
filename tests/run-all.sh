@@ -23,9 +23,17 @@ export WP_DIR="${WP_DIR:-/tmp/epm-wp}"
 export WP_PORT="${WP_PORT:-8889}"
 export WP_URL="http://localhost:$WP_PORT"
 export WP_CLI="$WP_DIR/wp"
+export PHP_BIN="${PHP_BIN:-php}"
+export NODE_BIN="${NODE_BIN:-node}"
 DEBUG_LOG="$WP_DIR/site/wp-content/debug.log"
 
 FAILED=()
+
+if [ -d "$WP_DIR/site" ] && [ ! -f "$WP_DIR/.epm-test-site" ]; then
+	echo "Refusing to run against unmarked WP_DIR=$WP_DIR. Use a fresh disposable directory; tests delete episodes and alter site settings." >&2
+	exit 2
+fi
+export EPM_TEST_SITE=1
 
 # Seed the fixtures (deletes every episode on the test site).
 seed() {

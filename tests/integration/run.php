@@ -21,6 +21,7 @@ use EPM\EpisodePostType;
 use EPM\Episodes;
 use EPM\Feed;
 use EPM\PodcastSettings;
+use EPM\Plugin;
 use EPM\Readiness;
 
 require_once __DIR__ . '/lib.php';
@@ -211,6 +212,16 @@ $t->test(
 		$t->same( '', $clean['subcategory'] );
 		$clean = epm()->settings->sanitize( [ 'category' => 'Legacy Free Text' ] );
 		$t->same( 'Legacy Free Text', $clean['category'], 'legacy values are kept' );
+		$clean = epm()->settings->sanitize( [ 'artwork_id' => 99999999, 'default_artwork_id' => 99999999 ] );
+		$t->same( [ 0, 0 ], [ $clean['artwork_id'], $clean['default_artwork_id'] ], 'non-attachment artwork IDs are rejected' );
+	}
+);
+
+$t->test(
+	'REST structured meta sanitizers reject unsafe links, markup and malformed chapters',
+	static function ( EPM_Test_Runner $t ) {
+		$t->same( [ [ 'time' => '01:02', 'title' => 'Chapter', 'url' => '' ] ], Plugin::sanitize_rest_chapters( [ [ 'time' => 'bad', 'title' => 'Bad' ], [ 'time' => '01:02', 'title' => '<b>Chapter</b>', 'url' => 'javascript:alert(1)' ] ] ) );
+		$t->same( [], Plugin::sanitize_rest_platform_urls( [ [ 'service' => 'custom', 'label' => '<script>x</script>', 'url' => 'javascript:alert(1)' ] ] ) );
 	}
 );
 

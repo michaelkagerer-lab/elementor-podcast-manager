@@ -241,6 +241,9 @@ final class AdminPages {
 				/* translators: 1: episodes done, 2: total episodes */
 				'progress'    => __( '%1$s of %2$s episodes', 'elementor-podcast-manager' ),
 				'leaveImport' => __( 'The import continues in the background if you leave this page.', 'elementor-podcast-manager' ),
+				'interrupted' => __( 'The connection was interrupted. The import may still be running on the server. Retry to check its progress.', 'elementor-podcast-manager' ),
+				/* translators: 1: imported episodes, 2: total episodes */
+				'stopped'     => __( 'Import stopped: %1$s of %2$s episodes are here. You can resume or run it again.', 'elementor-podcast-manager' ),
 			],
 		];
 	}
@@ -322,7 +325,8 @@ final class AdminPages {
 		}
 
 		$state = Hosting::state();
-		if ( Hosting::sync_enabled() && (int) $state['failures'] >= 3 && ( $ours || 'dashboard' === $id ) ) {
+		$stale_sync = Hosting::sync_enabled() && ( (int) $state['last_success'] > 0 && time() - (int) $state['last_success'] > 2 * HOUR_IN_SECONDS || ( $next = wp_next_scheduled( Hosting::CRON_HOOK ) ) && time() - $next > HOUR_IN_SECONDS );
+		if ( Hosting::sync_enabled() && ( (int) $state['failures'] >= 1 || $stale_sync ) && ( $ours || 'dashboard' === $id ) ) {
 			printf(
 				'<div class="notice notice-error"><p><strong>%1$s</strong> %2$s</p><p><a href="%3$s">%4$s</a></p></div>',
 				esc_html__( 'Episodes are not syncing from your podcast host.', 'elementor-podcast-manager' ),
@@ -434,6 +438,18 @@ final class AdminPages {
 				// The chosen path decides: keep the host, or move away from it.
 				$hosting['mode'] = 'external' === self::setup_state()['path'] ? 'external' : 'self';
 				$hosting         = Hosting::sanitize( $hosting );
+				if ( 'external' === $hosting['mode'] && $hosting['feed_url'] !== Hosting::get( 'feed_url' ) ) {
+					$verified = Hosting::fetch( (string) $hosting['feed_url'] );
+					$parsed   = is_wp_error( $verified ) || 200 !== (int) ( $verified['status'] ?? 0 )
+						? new \WP_Error( 'epm_setup_feed_unverified', __( 'The host feed could not be verified. Check its address before switching hosting.', 'elementor-podcast-manager' ) )
+						: ( new FeedParser() )->parse( (string) $verified['body'] );
+					if ( is_wp_error( $parsed ) || empty( $parsed['items'] ) ) {
+						return new \WP_Error( 'epm_setup_feed_unverified', is_wp_error( $parsed ) ? $parsed->get_error_message() : __( 'The address does not contain podcast episodes. Hosting was not changed.', 'elementor-podcast-manager' ) );
+					}
+				}
+				if ( Hosting::has_url_secret( (string) $hosting['feed_url'] ) ) {
+					$hosting['redirect'] = false;
+				}
 				update_option( Hosting::OPTION, $hosting );
 				return [ 'hosting' => $hosting ];
 
@@ -475,6 +491,10 @@ final class AdminPages {
 				return $out;
 
 			case 'finish':
+				$job = ImportJob::get();
+				if ( 'move' === self::setup_state()['path'] && ! in_array( $job['status'] ?? '', [ 'done', 'done_with_problems' ], true ) ) {
+					return new \WP_Error( 'epm_setup_move_incomplete', sprintf( __( 'The move has not finished: %1$d of %2$d episodes are here. Resume the import before proceeding to the redirect instructions.', 'elementor-podcast-manager' ), (int) ( $job['position'] ?? 0 ), (int) ( $job['total'] ?? 0 ) ) );
+				}
 				self::update_setup_state( [ 'done' => true ] );
 				return [
 					'done'      => true,

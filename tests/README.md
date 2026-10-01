@@ -90,6 +90,9 @@ Browser screenshots land in `e2e/screenshots/` (not tracked).
 | `SKIP_E2E` | — | skip the browser suites |
 
 Several sites can run side by side with their own `WP_DIR` and `WP_PORT`.
+The runner refuses an existing `WP_DIR/site` unless setup created the
+`.epm-test-site` marker there. This protects an unrelated WordPress site
+from fixture seeding, which deletes episodes and changes site settings.
 A site keeps the database type it was installed with; use another
 `WP_DIR` to switch.
 

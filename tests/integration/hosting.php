@@ -519,6 +519,43 @@ $t->test(
 );
 
 $t->test(
+	'parser preserves a literal less-than sign in plain feed text',
+	static function ( EPM_Test_Runner $t ) {
+		$xml = '<?xml version="1.0"?><rss version="2.0"><channel><title>Rock &lt; roll</title><description>For listeners under 18</description><item><title>Use C &lt; 3 for speed</title><guid>literal-lt</guid><pubDate>Wed, 03 Jun 2026 08:00:00 +0000</pubDate><enclosure url="https://cdn.example.test/a.mp3" type="audio/mpeg"/></item></channel></rss>';
+		$parsed = ( new FeedParser() )->parse( $xml );
+		$t->assert( ! is_wp_error( $parsed ), is_wp_error( $parsed ) ? $parsed->get_error_message() : 'parsed' );
+		if ( ! is_wp_error( $parsed ) ) {
+			$t->same( 'Rock < roll', $parsed['channel']['title'] );
+			$t->same( 'Use C < 3 for speed', $parsed['items'][0]['title'] ?? '' );
+		}
+	}
+);
+
+$t->test(
+	'parser rejects internal DTD entities before XML expansion',
+	static function ( EPM_Test_Runner $t ) {
+		$xml = '<!DOCTYPE rss [<!ENTITY a "1234567890"><!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">]><rss version="2.0"><channel><title>&b;</title></channel></rss>';
+		$parsed = ( new FeedParser() )->parse( $xml );
+		$t->assert( is_wp_error( $parsed ), 'entity declaration is rejected' );
+		$t->same( 'epm_feed_entities', is_wp_error( $parsed ) ? $parsed->get_error_code() : '', 'specific error code' );
+	}
+);
+
+$t->test(
+	'parser refuses feeds over the configured maximum size',
+	static function ( EPM_Test_Runner $t ) {
+		$filter = static function () { return 1024; };
+		add_filter( 'epm_feed_max_bytes', $filter );
+		try {
+			$parsed = ( new FeedParser() )->parse( '<rss><channel><title>Large</title></channel></rss>' . str_repeat( ' ', 1024 ) );
+			$t->same( 'epm_feed_too_large', is_wp_error( $parsed ) ? $parsed->get_error_code() : '' );
+		} finally {
+			remove_filter( 'epm_feed_max_bytes', $filter );
+		}
+	}
+);
+
+$t->test(
 	'durations: seconds, MM:SS, H:MM:SS, fractions and stray spaces',
 	static function ( EPM_Test_Runner $t ) {
 		$cases = [
@@ -693,6 +730,7 @@ $t->test(
 			'example.com/feed.xml'            => 'https://example.com/feed.xml',
 			'  https://example.com/a?b=1  '   => 'https://example.com/a?b=1',
 			'http://example.com/feed/'        => 'http://example.com/feed/',
+			'https://user:secret@example.com/feed.xml' => 'https://user:secret@example.com/feed.xml',
 			'example.com:8080/feed'           => 'https://example.com:8080/feed',
 			''                                => '',
 			'https://'                        => '',
@@ -704,6 +742,10 @@ $t->test(
 		foreach ( $cases as $in => $out ) {
 			$t->same( $out, Hosting::sanitize_feed_url( (string) $in ), var_export( (string) $in, true ) );
 		}
+		$private_url = 'https://user:secret@example.com/feed.xml?show=1&token=abc';
+		$t->assert( Hosting::has_url_secret( $private_url ), 'credentials are recognized and withheld from public metadata' );
+		$t->same( '', Hosting::public_safe_url( $private_url ), 'private feeds do not produce a public URL' );
+		$t->same( 'self', Hosting::sanitize( [ 'mode' => 'external', 'feed_url' => Feed::url(), 'redirect' => true ] )['mode'], 'cannot configure a redirect back to this site' );
 	}
 );
 
@@ -762,6 +804,15 @@ $t->test(
 		$t->same( 'draft', $clean['missing'] );
 		$t->same( true, $clean['sync'] );
 		$t->same( false, $clean['redirect'], 'unchecked box' );
+		$old = [ 'mode' => 'self', 'feed_url' => '' ];
+		$invalid = Hosting::validate_settings_save( [ 'mode' => 'external', 'feed_url' => 'https://feeds.example.test/invalid.xml', 'redirect' => true ], $old );
+		$t->same( $old, $invalid, 'unverified external feed leaves old mode and redirect settings untouched' );
+		$private = Hosting::sanitize( [ 'mode' => 'external', 'feed_url' => 'https://feeds.example.test/private.xml?token=secret', 'redirect' => 1 ] );
+		$t->same( false, $private['redirect'], 'private source cannot be made public by redirect' );
+		$previous = Hosting::all();
+		update_option( Hosting::OPTION, array_merge( $previous, $private ) );
+		$t->same( '', Hosting::feed_redirect_target(), 'private source is never a public redirect target' );
+		update_option( Hosting::OPTION, $previous );
 		$t->same( 'other', Hosting::sanitize( [ 'provider' => 'made-up-host' ] )['provider'] );
 		$t->same( 'other', Hosting::sanitize( [ 'feed_url' => 'https://example.com/feed' ] )['provider'] );
 		$t->same( 'self', Hosting::sanitize( [ 'mode' => 'something' ] )['mode'] );
@@ -1022,6 +1073,7 @@ $t->test(
 		$t->same( 'Episode 1: HTML transcript', get_the_title( $ep1 ), 'the first of two items with one GUID wins' );
 		$t->same( '2026-06-03 08:00:00', get_post_field( 'post_date_gmt', $ep3 ) );
 		$t->same( '2026-06-02 08:00:00', get_post_field( 'post_date_gmt', $ep2 ) );
+		$t->assert( (int) get_post_field( 'post_author', $ep1 ) > 0, 'sync-created episodes have a real author' );
 		$t->same( [ 'publish', 'publish', 'publish', 'draft', 'draft' ], array_map( 'get_post_status', [ $ep3, $ep2, $ep1, $blocked, $undated ] ), 'itunes:block and undated items become drafts' );
 		$t->same( 'import', get_post_meta( $ep2, '_epm_source', true ) );
 		$t->same( $epm_h_show, get_post_meta( $ep2, '_epm_source_feed', true ) );
@@ -1729,6 +1781,29 @@ $t->test(
 );
 
 $t->test(
+	'signed enclosure URL rotation does not update an episode each sync',
+	static function ( EPM_Test_Runner $t ) {
+		$url = epm_h_url( 'signed.xml' );
+		$signature = 'one';
+		$make = static function () use ( &$signature ) {
+			return str_replace( 'https://feeds.example.test/media/sync-1.mp3', 'https://cdn.example.test/sync-1.mp3?X-Amz-Signature=' . $signature . '&X-Amz-Expires=60', epm_h_sync_feed( [ 1 ] ) );
+		};
+		$route = static function () use ( $make ) { return EPM_Test_HTTP::response( 200, $make(), [ 'content-type' => 'application/rss+xml' ] ); };
+		EPM_Test_HTTP::$routes[ $url ] = $route;
+		epm_h_hosting( [ 'feed_url' => $url, 'mode' => 'external' ] );
+		Hosting::sync( true );
+		$id = epm_h_id( 'sync-1' );
+		$modified = get_post_modified_time( 'U', true, $id );
+		$signature = 'two';
+		$result = Hosting::sync( true );
+		$t->same( 0, $result['updated'], $result['message'] );
+		$t->same( $modified, get_post_modified_time( 'U', true, $id ), 'post timestamp remains unchanged' );
+		unset( EPM_Test_HTTP::$routes[ $url ] );
+		unset( EPM_Test_HTTP::$routes[ $url ] );
+	}
+);
+
+$t->test(
 	'a title edited here survives a sync while fields untouched here follow the host',
 	static function ( EPM_Test_Runner $t ) {
 		$ep5 = epm_h_id( 'sync-5' );
@@ -1857,10 +1932,16 @@ $t->test(
 $t->test(
 	'the sync follows a feed that announces a new address or moved permanently, never to this site\'s own feed',
 	static function ( EPM_Test_Runner $t ) use ( $epm_h_sync ) {
+		EPM_Test_HTTP::$routes[ epm_h_url( 'sync-moved.xml' ) ] = static function () {
+			$s = $GLOBALS['epm_h_sync'];
+			return EPM_Test_HTTP::response( 200, epm_h_sync_feed( $s['numbers'], $s['changes'] ), [ 'content-type' => 'application/rss+xml' ] );
+		};
 		$GLOBALS['epm_h_sync']['extra'] = '<itunes:new-feed-url>https://feeds.example.test/sync-moved.xml</itunes:new-feed-url>';
 		$result                         = Hosting::sync();
 		$t->same( 'ok', $result['status'], $result['message'] );
 		$t->same( 'https://feeds.example.test/sync-moved.xml', Hosting::get( 'feed_url' ) );
+		$t->assert( false !== strpos( $result['message'], 'verified as this show' ), 'verified move is reported' );
+		unset( EPM_Test_HTTP::$routes[ epm_h_url( 'sync-moved.xml' ) ] );
 
 		// The host sends apps here (this site's feed, with or without the
 		// trailing slash): the show moved here, so hosting switches to this
@@ -1898,6 +1979,25 @@ $t->test(
 			$t->same( epm_h_url( $expected ), Hosting::get( 'feed_url' ), $hops[0] . ' (' . $result['message'] . ')' );
 		}
 		epm_h_hosting( [ 'feed_url' => $epm_h_sync ] );
+	}
+);
+
+$t->test(
+	'sync rejects an announced feed address that cannot be fetched before adopting it',
+	static function ( EPM_Test_Runner $t ) use ( $epm_h_sync ) {
+		$bad = epm_h_url( 'not-a-feed.xml' );
+		$bad_feed = '<html>not a feed</html>';
+		$GLOBALS['epm_h_sync']['extra'] = '<itunes:new-feed-url>' . esc_xml( $bad ) . '</itunes:new-feed-url>';
+		EPM_Test_HTTP::$routes[ $bad ] = static fn () => EPM_Test_HTTP::response( 200, $bad_feed, [ 'content-type' => 'application/rss+xml' ] );
+		$before = Hosting::get( 'feed_url' );
+		$start   = count( EPM_Test_HTTP::$log );
+		$result = Hosting::sync();
+		$t->same( 'ok', $result['status'], $result['message'] );
+		$t->same( $before, Hosting::get( 'feed_url' ), 'an address containing no episodes is not adopted' );
+		$t->assert( false !== strpos( $result['message'], 'current address was kept' ), 'rejected move is explained' );
+		$t->assert( in_array( $bad, array_column( array_slice( EPM_Test_HTTP::$log, $start ), 'url' ), true ), 'candidate address is fetched before adoption' );
+		unset( EPM_Test_HTTP::$routes[ $bad ] );
+		$GLOBALS['epm_h_sync']['extra'] = '';
 	}
 );
 
@@ -2753,6 +2853,7 @@ $t->test(
 			);
 			$pages->save_step( 'path', [ 'path' => 'move' ] );
 			$t->same( [ 'move', 'external' ], [ AdminPages::setup_state()['path'], Hosting::get( 'mode' ) ], 'move chosen: unchanged until the host step' );
+			EPM_Test_HTTP::$routes['https://feeds.example.test/old.xml'] = static fn () => EPM_Test_HTTP::response( 200, epm_h_sync_feed( [ 1 ] ), [ 'content-type' => 'application/rss+xml' ] );
 			$pages->save_step( 'hosting', [ 'feed_url' => 'https://feeds.example.test/old.xml', 'provider' => 'buzzsprout', 'mode' => 'external' ] );
 			$t->same( 'self', Hosting::get( 'mode' ), 'moving: the host step keeps the show here' );
 			epm_h_hosting( [ 'mode' => 'external' ] );
@@ -2760,6 +2861,10 @@ $t->test(
 			$t->same( [ 'new', 'self' ], [ AdminPages::setup_state()['path'], Hosting::get( 'mode' ) ], 'new: hosted here' );
 
 			$pages->save_step( 'path', [ 'path' => 'external' ] );
+			EPM_Test_HTTP::$routes['https://feeds.example.test/x.xml'] = static fn () => EPM_Test_HTTP::response( 200, epm_h_sync_feed( [ 1 ] ), [ 'content-type' => 'application/rss+xml' ] );
+			EPM_Test_HTTP::$routes['https://feeds.example.test/bad.xml'] = static fn () => EPM_Test_HTTP::response( 200, '<html>not a feed</html>', [ 'content-type' => 'text/html' ] );
+			$rejected = $pages->save_step( 'hosting', [ 'feed_url' => 'https://feeds.example.test/bad.xml', 'provider' => 'buzzsprout', 'mode' => 'external' ] );
+			$t->assert( is_wp_error( $rejected ), 'an unparseable feed cannot switch hosting' );
 			$saved = $pages->save_step(
 				'hosting',
 				[
@@ -2776,6 +2881,7 @@ $t->test(
 			$t->same( [ 'external', 'https://feeds.example.test/x.xml', 'buzzsprout', true, false, 'draft' ], [ $hosting['mode'], $hosting['feed_url'], $hosting['provider'], $hosting['sync'], $hosting['redirect'], $hosting['new_status'] ] );
 			$t->assert( ! isset( get_option( Hosting::OPTION )['unknown'] ), 'unknown keys dropped' );
 			$t->same( $hosting, $saved['hosting'] ?? null );
+			unset( EPM_Test_HTTP::$routes['https://feeds.example.test/old.xml'], EPM_Test_HTTP::$routes['https://feeds.example.test/x.xml'], EPM_Test_HTTP::$routes['https://feeds.example.test/bad.xml'] );
 
 			$links = epm()->settings->get( 'platform_links' );
 			$show  = $pages->save_step(
@@ -2930,6 +3036,31 @@ $t->test(
 );
 
 $t->test(
+	'credentialed feed URLs are never stored on imported episodes',
+	static function ( EPM_Test_Runner $t ) {
+		$url = 'https://user:secret@feeds.example.test/private.xml?token=top-secret';
+		$importer = new Importer( [ 'feed_url' => $url ] );
+		$outcome = $importer->import_item(
+			[
+				'guid' => 'private-source-probe',
+				'title' => 'Private source probe',
+				'pub_date' => time() - HOUR_IN_SECONDS,
+				'html' => '',
+				'audio_url' => 'https://media.example.test/private.mp3',
+				'audio_type' => 'audio/mpeg',
+			]
+		);
+		$id = (int) ( $outcome['id'] ?? 0 );
+		$t->assert( $id > 0, 'episode imported' );
+		$source = (string) get_post_meta( $id, Episodes::META_PREFIX . 'source_feed', true );
+		$t->assert( '' !== $source && false === strpos( $source, 'secret' ) && false === strpos( $source, 'token' ), 'metadata contains no URL secrets' );
+		$t->same( 'private:' . hash( 'sha256', $url ), $source, 'stable private feed identifier' );
+		$t->same( 0, $importer->draft_missing( [ 'private-source-probe' => true ], 0 ), 'private source episodes remain discoverable without the URL' );
+		wp_delete_post( $id, true );
+	}
+);
+
+$t->test(
 	'uninstalling with data deletion removes the topics and their relationships (the plugin is not loaded then)',
 	static function ( EPM_Test_Runner $t ) {
 		global $wpdb;
@@ -2941,6 +3072,7 @@ $t->test(
 				'post_title'  => 'Uninstall probe',
 			]
 		);
+		wp_trash_post( $episode );
 		$term    = wp_insert_term( 'Uninstall probe ' . wp_generate_password( 6, false ), EpisodePostType::TOPIC );
 		$term_id = is_wp_error( $term ) ? 0 : (int) $term['term_id'];
 		$tt_id   = is_wp_error( $term ) ? 0 : (int) $term['term_taxonomy_id'];
@@ -2951,7 +3083,7 @@ $t->test(
 		// the probe episode and topic are offered to it.
 		$options = $wpdb->get_results( "SELECT option_name, option_value, autoload FROM {$wpdb->options} WHERE option_name LIKE 'epm%'", ARRAY_A );
 		$posts   = static function ( $pre, $query ) use ( $episode ) {
-			return EpisodePostType::CPT === $query->get( 'post_type' ) ? [ $episode ] : $pre;
+			return EpisodePostType::CPT === $query->get( 'post_type' ) && get_post( $episode ) ? [ $episode ] : $pre;
 		};
 		// Only the "all topics" query (not term lookups WordPress makes).
 		$terms   = static function ( $pre, $query ) use ( $term_id ) {

@@ -843,6 +843,10 @@ final class Feed {
 	 * @return void
 	 */
 	public function maybe_flush_for_post( $post_id ): void {
+		if ( ! empty( $GLOBALS['epm_import_step_active'] ) ) {
+			$GLOBALS['epm_import_step_dirty'] = true;
+			return;
+		}
 		$type = get_post_type( (int) $post_id );
 
 		if ( EpisodePostType::CPT === $type || 'attachment' === $type ) {
@@ -860,6 +864,10 @@ final class Feed {
 	 * @return void
 	 */
 	public function maybe_flush_on_transition( $new_status, $old_status, $post ): void {
+		if ( ! empty( $GLOBALS['epm_import_step_active'] ) ) {
+			$GLOBALS['epm_import_step_dirty'] = true;
+			return;
+		}
 		if ( $post instanceof \WP_Post && EpisodePostType::CPT === $post->post_type ) {
 			self::flush_cache();
 		}
@@ -876,6 +884,10 @@ final class Feed {
 	 * @return void
 	 */
 	public function maybe_flush_on_meta( $meta_id, $object_id, $meta_key = '' ): void {
+		if ( ! empty( $GLOBALS['epm_import_step_active'] ) ) {
+			$GLOBALS['epm_import_step_dirty'] = true;
+			return;
+		}
 		$meta_key = (string) $meta_key;
 
 		// A media file replaced in place (a new file, new length or

@@ -459,6 +459,7 @@ console.log('Remote audio');
 console.log('Design system on the page');
 {
 	const listPage = createPage('EPM Row List', '[podcast_episodes limit="10" layout="list"]\n\n[podcast_episodes topic="epm-no-such-topic"]');
+	const germanList = createPage('EPM German Row List', '[podcast_episodes limit="10" layout="editorial-rows" show_episode_number="yes"]');
 	try {
 		const page = await newPage({ width: 1280, height: 900 });
 
@@ -553,6 +554,28 @@ console.log('Design system on the page');
 		assert(empty === 'underline', `the empty-state link is underlined, not marked by color alone (${empty})`);
 		await page.setViewportSize({ width: 390, height: 844 });
 		assert(await noOverflow(page), 'the row list fits 390px');
+		const originalTitle = wp(['post', 'get', String(fixtures.ep1), '--field=post_title']).trim();
+		try {
+			wp(['post', 'update', String(fixtures.ep1), '--post_title=Folge 12: Nachhaltigkeit und Digitalisierung im Mittelstand']);
+			wp(['post', 'meta', 'update', String(fixtures.ep1), '_epm_episode_number', '12']);
+			for (const preset of ['business-tuning', 'editorial', 'warm-paper', 'neutral']) {
+				wp(['eval', `epm()->design->apply_preset( "${preset}" );`]);
+				await page.setViewportSize({ width: 320, height: 740 });
+				await page.goto(permalink(germanList));
+				const phoneRows = await page.evaluate(() => [...document.querySelectorAll('.epm-episode-row')].map((row) => {
+					const title = row.querySelector('.epm-episode-row__title');
+					const content = row.querySelector('.epm-episode-row__content');
+					return { width: content.clientWidth, height: title.clientHeight, title: title.innerText };
+				}));
+				assert(phoneRows.every((row) => row.width >= 150 && row.height > 0) && await noOverflow(page), `${preset} numbered German rows keep a usable full-width title at 320px (${JSON.stringify(phoneRows)})`);
+				await page.setViewportSize({ width: 390, height: 844 });
+				assert(await noOverflow(page), `${preset} numbered rows fit 390px`);
+			}
+		} finally {
+			wp(['post', 'update', String(fixtures.ep1), `--post_title=${originalTitle}`]);
+			wp(['post', 'meta', 'update', String(fixtures.ep1), '_epm_episode_number', '1']);
+		}
+		wp(['option', 'delete', 'epm_design_settings']);
 		await page.setViewportSize({ width: 1280, height: 900 });
 
 		// Dark design on the light theme page: sections get the design surface.
@@ -580,6 +603,7 @@ console.log('Design system on the page');
 		await page.context().close();
 	} finally {
 		wp(['post', 'delete', String(listPage), '--force']);
+		wp(['post', 'delete', String(germanList), '--force']);
 	}
 }
 

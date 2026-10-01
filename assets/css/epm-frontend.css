@@ -1860,7 +1860,20 @@ body:has(.epm-sticky:not([hidden])) {
 	}
 
 	.epm-episode-list--numbered .epm-episode-row {
-		grid-template-columns: calc(var(--epm-title-size, 22px) * 1.6) minmax(0, 1fr);
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.epm-episode-list--numbered .epm-episode-row__number {
+		font-size: var(--epm-meta-size, 14px);
+	}
+
+	.epm-episode-list--numbered .epm-episode-row__content,
+	.epm-episode-list--numbered .epm-episode-row__aside {
+		grid-column: 1;
+	}
+
+	.epm-episode-list--numbered .epm-episode-row .epm-episode-row__title {
+		font-size: clamp(18px, 5.5cqi, var(--epm-title-size, 22px));
 	}
 
 	/* Meta and play move under the text, aligned with the title. */
@@ -1879,22 +1892,6 @@ body:has(.epm-sticky:not([hidden])) {
 
 	.epm-episode-list--numbered .epm-episode-row__aside {
 		grid-column: 2 / -1;
-	}
-}
-
-@container epm-list (max-width: 300px) {
-	/* Too narrow for a number column: the number sits above the title. */
-	.epm-episode-list--numbered .epm-episode-row {
-		grid-template-columns: minmax(0, 1fr);
-	}
-
-	.epm-episode-list--numbered .epm-episode-row__content,
-	.epm-episode-list--numbered .epm-episode-row__aside {
-		grid-column: 1;
-	}
-
-	.epm-episode-row__number {
-		font-size: var(--epm-meta-size, 14px);
 	}
 }
 

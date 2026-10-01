@@ -384,6 +384,23 @@ $t->test(
 	}
 );
 
+$t->test(
+	'episode and guest artwork must be a readable image attachment',
+	static function ( EPM_Test_Runner $t ) use ( $make_episode, $make_file, $make_user ) {
+		$id = $make_episode();
+		$foreign = $make_file( 'private-artwork.png', "\x89PNG\r\n\x1a\n", 'image/png' );
+		$plain = $make_file( 'not-artwork.txt', 'text', 'text/plain' );
+		$editor = $make_user( 'editor' );
+		wp_set_current_user( $editor );
+		$_POST['epm_episode_meta_nonce'] = wp_create_nonce( 'epm_episode_meta' );
+		$_POST['epm'] = [ 'artwork_id' => $foreign, 'guest_image_id' => $plain ];
+		( new EpisodeMeta() )->save( $id, get_post( $id ) );
+		$t->same( [ 0, 0 ], [ (int) get_post_meta( $id, '_epm_artwork_id', true ), (int) get_post_meta( $id, '_epm_guest_image_id', true ) ] );
+		wp_set_current_user( 1 );
+		unset( $_POST['epm_episode_meta_nonce'], $_POST['epm'] );
+	}
+);
+
 /**
  * Save an episode through the editor's save handler.
  *

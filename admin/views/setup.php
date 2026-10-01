@@ -238,7 +238,8 @@ $epm_steps = [
 			</div>
 		</div>
 
-		<div class="epm-callout epm-callout--error" data-import-error hidden><p></p></div>
+		<div class="epm-callout epm-callout--error" data-import-error role="alert" hidden><p></p></div>
+		<button type="button" class="button" data-action="retry-import" hidden><?php esc_html_e( 'Retry progress check', 'elementor-podcast-manager' ); ?></button>
 		<div class="epm-callout epm-callout--warn" data-import-incomplete hidden><p></p></div>
 
 		<?php require EPM_PATH . 'admin/views/partials/import-result.php'; ?>

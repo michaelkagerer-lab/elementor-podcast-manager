@@ -723,6 +723,7 @@
 
 		var error = $( '[data-import-error]', importPanel );
 		error.hidden = ! job.error;
+		$( '[data-action="retry-import"]', importPanel ).hidden = ! job.error;
 		if ( job.error ) {
 			$( 'p', error ).textContent = job.error;
 		}
@@ -744,6 +745,12 @@
 		var finished = job.status === 'done' || job.status === 'cancelled' || job.status === 'failed';
 		$( '[data-import-continue]', importPanel ).disabled = ! finished;
 		$( '[data-action="cancel-import"]', importPanel ).hidden = ! importResult.active( job );
+		if ( job.status === 'cancelled' || job.status === 'failed' ) {
+			$( '[data-import-lede]', importPanel ).textContent = format( app.strings.stopped, done, total );
+			announce( format( app.strings.stopped, done, total ) );
+		} else {
+			$( '[data-import-lede]', importPanel ).textContent = app.strings.leaveImport;
+		}
 
 		if ( job.status === 'done' || job.status === 'done_with_problems' || job.status === 'waiting' ) {
 			announce( format( app.strings.progress, done, total ) + ( media ? ' ' + media : '' ) + ( incomplete ? ' ' + $( 'p', partial ).textContent : '' ) );
@@ -816,8 +823,10 @@
 					state.stepping = false;
 					var box = $( '[data-import-error]', importPanel );
 					box.hidden = false;
-					$( 'p', box ).textContent = error.message + ' ' + app.strings.leaveImport;
-					$( '[data-import-continue]', importPanel ).disabled = false;
+					$( 'p', box ).textContent = app.strings.interrupted;
+					$( '[data-action="retry-import"]', importPanel ).hidden = false;
+					announce( app.strings.interrupted );
+					$( '[data-import-continue]', importPanel ).disabled = true;
 				} );
 		}
 
@@ -969,6 +978,12 @@
 	/* ---------- step 6: done ---------- */
 
 	function finish() {
+		var currentJob = app.job || {};
+		if ( state.path === 'move' && currentJob.status !== 'done' && currentJob.status !== 'done_with_problems' ) {
+			go( 'import' );
+			renderJob( currentJob );
+			return;
+		}
 		var provider = app.providers[ ( app.hosting && app.hosting.provider ) || '' ] || null;
 		var connectProvider = app.providers[ selectedProvider() ] || provider || app.providers.other;
 		var help = $( '[data-redirect-help]' );
@@ -1123,6 +1138,9 @@
 					.then( function () {
 						busy( target, false );
 					} );
+				break;
+			case 'retry-import':
+				stepImport();
 				break;
 			case 'choose-artwork':
 				chooseArtwork( target );

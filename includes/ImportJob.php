@@ -470,6 +470,7 @@ final class ImportJob {
 
 		$job = [
 			'token'    => wp_generate_password( 24, false ),
+			'user'     => get_current_user_id(),
 			'status'   => 'loading',
 			'feed_url' => $feed_url,
 			'provider' => $provider,
@@ -1567,8 +1568,11 @@ final class ImportJob {
 					// Media downloads of this request end by then; a file that
 					// takes longer is continued by the next request.
 					'deadline'       => $started + min( $budget, MediaDownload::request_seconds() ),
+					'author'         => (int) ( $job['user'] ?? 0 ),
 				]
 			);
+			$GLOBALS['epm_import_step_active'] = true;
+			$GLOBALS['epm_import_step_dirty'] = false;
 
 			if ( $download ) {
 				// Download files of requests that died (never the one this job continues).
@@ -1675,10 +1679,19 @@ final class ImportJob {
 			}
 
 			if ( $lost ) {
+				$GLOBALS['epm_import_step_active'] = false;
+				if ( ! empty( $GLOBALS['epm_import_step_dirty'] ) ) {
+					Feed::flush_cache();
+				}
 				$state         = self::client_state( self::get() );
 				$state['busy'] = self::is_active( self::get() );
 				return $state;
 			}
+			$GLOBALS['epm_import_step_active'] = false;
+			if ( ! empty( $GLOBALS['epm_import_step_dirty'] ) ) {
+				Feed::flush_cache();
+			}
+			unset( $GLOBALS['epm_import_step_active'], $GLOBALS['epm_import_step_dirty'], $GLOBALS['epm_import_guid_map'] );
 
 			if ( 'waiting' === ( $job['status'] ?? '' ) ) {
 				// The background run takes over at the time the host named.
@@ -1692,6 +1705,7 @@ final class ImportJob {
 
 			return self::client_state( self::get() );
 		} finally {
+			unset( $GLOBALS['epm_import_step_active'], $GLOBALS['epm_import_step_dirty'] );
 			self::release_lock();
 		}
 	}
@@ -2197,7 +2211,7 @@ final class ImportJob {
 
 		self::schedule_continuation();
 
-		return self::client_state( $job );
+			return self::client_state( $job );
 	}
 
 	/**
@@ -2312,6 +2326,10 @@ final class ImportJob {
 	 */
 	public static function client_state( array $job ): array {
 		$log = [];
+		$log_ids = array_slice( array_values( array_unique( array_map( static function ( $entry ) { return (int) ( $entry['id'] ?? 0 ); }, (array) ( $job['log'] ?? [] ) ) ) ), 0, 50 );
+		if ( ! empty( $log_ids ) ) {
+			_prime_post_caches( $log_ids, false, false );
+		}
 		foreach ( (array) ( $job['log'] ?? [] ) as $entry ) {
 			$id    = (int) ( $entry['id'] ?? 0 );
 			$log[] = [
@@ -2350,6 +2368,7 @@ final class ImportJob {
 			'remaining'    => self::remaining( $job ),
 			'copied'       => array_map( 'intval', (array) ( $job['media']['copied'] ?? [] ) ),
 			'log'          => $log,
+			'user'         => (int) ( $job['user'] ?? 0 ),
 			'feed_url'     => (string) ( $job['feed_url'] ?? '' ),
 			'title'        => (string) ( $job['channel']['title'] ?? '' ),
 			'error'        => (string) ( $job['error'] ?? '' ),

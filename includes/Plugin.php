@@ -123,6 +123,7 @@ final class Plugin {
 		// One-time upgrade tasks after a plugin update (cheap; per-episode
 		// work is queued, see Upgrade).
 		add_action( 'init', [ $this, 'maybe_upgrade' ], 99 );
+		add_action( 'init', [ $this, 'resume_interrupted_import' ], 2 );
 
 		// Canonical URL behavior: an explicit per-episode canonical URL wins.
 		add_filter( 'get_canonical_url', [ $this, 'filter_canonical_url' ], 10, 2 );
@@ -148,6 +149,21 @@ final class Plugin {
 			},
 			0
 		);
+	}
+
+	/**
+	 * Resume an import left active when the plugin was deactivated.
+	 *
+	 * @return void
+	 */
+	public function resume_interrupted_import(): void {
+		$job = ImportJob::get();
+		if ( ! is_array( $job ) || 'running' !== ( $job['status'] ?? '' ) || ! empty( $job['cancelled'] ) ) {
+			return;
+		}
+		if ( ! wp_next_scheduled( ImportJob::CRON_HOOK ) ) {
+			wp_schedule_single_event( time() + MINUTE_IN_SECONDS, ImportJob::CRON_HOOK );
+		}
 	}
 
 	/**
@@ -265,8 +281,8 @@ final class Plugin {
 		$fields = [
 			// key => [ REST type, sanitize callback, editable via REST ].
 			'audio_id'          => [ 'integer', 'absint', true ],
-			'artwork_id'        => [ 'integer', 'absint', true ],
-			'guest_image_id'    => [ 'integer', 'absint', true ],
+			'artwork_id'        => [ 'integer', [ EpisodeMeta::class, 'sanitize_image_id' ], true ],
+			'guest_image_id'    => [ 'integer', [ EpisodeMeta::class, 'sanitize_image_id' ], true ],
 			'audio_size'        => [ 'integer', 'absint', false ],
 			'duration_seconds'  => [ 'integer', 'absint', false ],
 			'episode_number'    => [ 'integer', $int_or_empty, true ],
@@ -327,9 +343,10 @@ final class Plugin {
 				EpisodePostType::CPT,
 				Episodes::META_PREFIX . $key,
 				[
-					'type'          => 'array',
-					'single'        => true,
-					'show_in_rest'  => [
+					'type'              => 'array',
+					'single'            => true,
+					'sanitize_callback' => 'chapters' === $key ? [ self::class, 'sanitize_rest_chapters' ] : [ self::class, 'sanitize_rest_platform_urls' ],
+					'show_in_rest'      => [
 						'schema' => [
 							'type'  => 'array',
 							'items' => [
@@ -338,7 +355,7 @@ final class Plugin {
 							],
 						],
 					],
-					'auth_callback' => [ $this, 'meta_auth' ],
+					'auth_callback'     => [ $this, 'meta_auth' ],
 				]
 			);
 		}
@@ -348,6 +365,49 @@ final class Plugin {
 
 		// Audio and transcript files set through REST must be readable media.
 		add_filter( 'rest_pre_insert_' . EpisodePostType::CPT, [ $this, 'rest_check_attachment_meta' ], 10, 2 );
+	}
+
+	/**
+	 * Sanitize structured episode chapters before REST storage.
+	 *
+	 * @param mixed $value Submitted value.
+	 * @return array<int, array{time: string, title: string, url: string}>
+	 */
+	public static function sanitize_rest_chapters( $value ): array {
+		$out = [];
+		foreach ( is_array( $value ) ? array_slice( $value, 0, 200 ) : [] as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$time = sanitize_text_field( $row['time'] ?? '' );
+			$title = sanitize_text_field( $row['title'] ?? '' );
+			if ( '' === $time || '' === $title || ! preg_match( '/^(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\.\d{1,3})?$/', $time ) ) {
+				continue;
+			}
+			$out[] = [ 'time' => $time, 'title' => $title, 'url' => esc_url_raw( $row['url'] ?? '', [ 'http', 'https' ] ) ];
+		}
+		return $out;
+	}
+
+	/**
+	 * Sanitize structured platform links before REST storage.
+	 *
+	 * @param mixed $value Submitted value.
+	 * @return array<int, array{service: string, label: string, url: string}>
+	 */
+	public static function sanitize_rest_platform_urls( $value ): array {
+		$out = [];
+		foreach ( is_array( $value ) ? array_slice( $value, 0, 20 ) : [] as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$url = esc_url_raw( $row['url'] ?? '', [ 'http', 'https' ] );
+			if ( '' === $url ) {
+				continue;
+			}
+			$out[] = [ 'service' => sanitize_key( $row['service'] ?? 'custom' ), 'label' => sanitize_text_field( $row['label'] ?? '' ), 'url' => $url ];
+		}
+		return $out;
 	}
 
 	/**
@@ -386,6 +446,8 @@ final class Plugin {
 		$checks  = [
 			'audio_id'           => [ AudioMetadata::class, 'is_valid_audio_attachment' ],
 			'transcript_file_id' => [ EpisodeMeta::class, 'is_transcript_attachment' ],
+			'artwork_id'         => [ EpisodeMeta::class, 'is_image_attachment' ],
+			'guest_image_id'     => [ EpisodeMeta::class, 'is_image_attachment' ],
 		];
 
 		foreach ( $checks as $key => $is_valid ) {
@@ -421,7 +483,7 @@ final class Plugin {
 	 */
 	public function protect_rest_meta( $response, $post ) {
 		if ( $response instanceof \WP_REST_Response && $post instanceof \WP_Post
-			&& post_password_required( $post ) && ! current_user_can( 'edit_post', $post->ID ) ) {
+			&& post_password_required( $post ) && ! $this->request_unlocked( $post ) && ! current_user_can( 'edit_post', $post->ID ) ) {
 			$data = $response->get_data();
 			if ( isset( $data['meta'] ) ) {
 				$data['meta'] = [];
@@ -430,6 +492,21 @@ final class Plugin {
 		}
 
 		return $response;
+	}
+
+	/**
+	 * Whether this REST request supplied the episode's correct password.
+	 *
+	 * @param \WP_Post $post Episode.
+	 * @return bool
+	 */
+	private function request_unlocked( \WP_Post $post ): bool {
+		$request = rest_get_server()->get_current_request();
+		if ( ! $request instanceof \WP_REST_Request ) {
+			return false;
+		}
+		$password = (string) $request->get_param( 'password' );
+		return '' !== $password && hash_equals( (string) $post->post_password, $password );
 	}
 
 	/**

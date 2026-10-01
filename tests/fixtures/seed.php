@@ -88,7 +88,7 @@ if ( 'production' === wp_get_environment_type() && ! getenv( 'EPM_ALLOW_TEST_SEE
 	WP_CLI::error( 'Refusing to reset episodes on a production site. Set WP_ENVIRONMENT_TYPE to "local" (or EPM_ALLOW_TEST_SEED=1) on a disposable test install.' );
 }
 
-foreach ( get_posts( [ 'post_type' => 'podcast_episode', 'post_status' => 'any', 'posts_per_page' => -1, 'fields' => 'ids' ] ) as $episode_id ) {
+foreach ( get_posts( [ 'post_type' => 'podcast_episode', 'post_status' => array_values( get_post_stati() ), 'posts_per_page' => -1, 'fields' => 'ids', 'suppress_filters' => true ] ) as $episode_id ) {
 	wp_delete_post( $episode_id, true );
 }
 
