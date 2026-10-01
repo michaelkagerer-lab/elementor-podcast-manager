@@ -9,8 +9,9 @@
 #   Content-Length), a stalled host (low-speed limit), a slow file continued
 #   with Range requests over several steps (byte-identical), a host without
 #   Range support, wrong content, HTTP errors, a move from a slow host;
-# - a 60 MB audio file copied under a 128M memory limit (PERF: peak memory
-#   and time); MEDIA_HEAVY=1 adds a 300 MB file;
+# - a 60 MB MP3 (an ID3 tag and silent frames without a newline byte, which
+#   getimagesize() read into memory whole) copied under a 128M memory limit
+#   (PERF: peak memory and time); MEDIA_HEAVY=1 adds a 300 MB file;
 # - when run as root with tmpfs: a temp folder and an uploads folder that
 #   are too small (otherwise skipped, and said so).
 #

@@ -475,7 +475,7 @@ never keeps another from being copied.
   says what the host returned. Images and transcript files are checked
   the same way. Audio is stored without WordPress's image probe, which
   used to read the whole file into memory: a 300 MB file was copied
-  with less than 20 MB of memory.
+  with less than 26 MB of memory.
 - **A host that asks to wait.** HTTP 429 (or 503 with `Retry-After`)
   puts the import in the state *waiting* until the time the host names
   (at most six hours, `epm_media_max_wait`); nothing is requested before

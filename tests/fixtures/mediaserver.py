@@ -7,10 +7,13 @@ Prints "listening on 127.0.0.1:<port>" once it accepts connections.
 Every body is a deterministic sequence of 144-byte silent MPEG-1 Layer III
 frames whose padding carries the frame number, so a file put together from
 the wrong pieces is never byte-identical to the original
-(frames(offset, length) in tests/media/lib.php builds the same bytes).
+(epm_md_frames() in tests/media/downloads.php builds the same bytes).
 
 Endpoints (GET and HEAD):
   /len/<bytes>/<name>              200 with Content-Length; Range -> 206
+  /id3/<bytes>/<name>              like /len, but an ID3v2 tag and silent frames
+                                   without a single newline byte (what made
+                                   getimagesize() read a whole MP3 into memory)
   /chunked/<bytes>/<name>          200, Transfer-Encoding: chunked, no length
   /slow/<bytes_per_s>/<bytes>/<name>  like /len, throttled; Range -> 206
   /norange/<bytes_per_s>/<bytes>/<name>  throttled, ignores Range (always 200)
@@ -48,6 +51,24 @@ def frames(offset, length):
     return bytes(out[start:start + length])
 
 
+ID3 = b"ID3\x03\x00\x00\x00\x00\x00\x10" + b"\x00" * 16
+SILENT = b"\xff\xfb\x18\xc0" + b"\x00" * (FRAME - 4)
+
+
+def id3(offset, length):
+    """Bytes [offset, offset+length) of an ID3 tag followed by silent frames."""
+    out = bytearray()
+    if offset < len(ID3):
+        out += ID3[offset:offset + length]
+    pos = max(0, offset - len(ID3))
+    while len(out) < length:
+        start = pos % FRAME
+        piece = SILENT[start:start + length - len(out)]
+        out += piece
+        pos += len(piece)
+    return bytes(out)
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
@@ -73,7 +94,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.handle_request(head=False)
 
-    def body(self, total, offset, bps, chunked, head, started, status):
+    def body(self, total, offset, bps, chunked, head, started, status, source=frames):
         """Send bytes [offset, total) of the sequence."""
         sent = 0
         length = total - offset
@@ -83,7 +104,7 @@ class Handler(BaseHTTPRequestHandler):
                 begin = time.time()
                 while sent < length:
                     n = min(block, length - sent)
-                    data = frames(offset + sent, n)
+                    data = source(offset + sent, n)
                     if chunked:
                         self.wfile.write(b"%x\r\n" % len(data) + data + b"\r\n")
                     else:
@@ -105,8 +126,8 @@ class Handler(BaseHTTPRequestHandler):
         parts = self.path.split("?")[0].strip("/").split("/")
         kind = parts[0] if parts else ""
         try:
-            if kind in ("len", "slow", "norange"):
-                if kind == "len":
+            if kind in ("len", "id3", "slow", "norange"):
+                if kind in ("len", "id3"):
                     bps, total = 0, int(parts[1])
                 else:
                     bps, total = int(parts[1]), int(parts[2])
@@ -130,7 +151,7 @@ class Handler(BaseHTTPRequestHandler):
                 if status == 206:
                     self.send_header("Content-Range", "bytes %d-%d/%d" % (offset, total - 1, total))
                 self.end_headers()
-                self.body(total, offset, bps, False, head, started, status)
+                self.body(total, offset, bps, False, head, started, status, id3 if kind == "id3" else frames)
             elif kind == "chunked":
                 total = int(parts[1])
                 self.send_response(200)

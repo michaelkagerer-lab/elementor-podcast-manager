@@ -125,13 +125,16 @@
   byte-identical; a stalled host is reported after 3 steps of 8.1 s.
 - Copying long audio ran out of memory (IMPB-N1): WordPress's
   `media_handle_sideload()` probes every file with `getimagesize()`,
-  which read a 100 MB MP3 into memory (a fatal error at 128M, 240 MB at
-  256M); the job stayed stuck with the lock held, and every retry left
-  another full-size file in uploads (`m100.mp3`, `m100-1.mp3`). Audio is
-  now stored without the image probe (audio metadata only): through
+  whose XBM check reads the file line by line, so an MP3 without a
+  newline byte (an ID3 tag and silent frames) is read into memory whole
+  (59.6 MB for a 60 MB file): a fatal error at 128M already for 60 MB;
+  the job stayed stuck with the lock held, and every retry left another
+  full-size file in uploads (`m100.mp3`, `m100-1.mp3`). Audio is now
+  stored without the image probe (audio metadata only): through
   admin-ajax at 128M a 100 MB file took 0.4 s and a 300 MB file 1.3 s,
-  each request at 22 MB; the test suite copies 60 MB and 300 MB with a
-  peak of 18.7 MB above the booted site. A request that dies during a
+  each request at 22 MB; the test suite copies such an MP3 of 60 MB
+  (and 300 MB) in a process with a 128M limit at a peak of 25.7 MB above
+  the booted site, the same for every size. A request that dies during a
   copy (memory or time limit, a killed process) removes its download and
   any file not yet in the Media Library, counts the attempt with its
   reason, releases the lock and lets the import continue in the

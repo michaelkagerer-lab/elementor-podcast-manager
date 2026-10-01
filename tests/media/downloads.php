@@ -239,7 +239,7 @@ if ( 'memory' === $epm_md_mode ) {
 	);
 	epm_md_delete();
 	$name  = 'memory-' . $bytes;
-	$state = epm_md_start( epm_md_feed( $name, epm_md_url( '/len/' . $bytes . '/' . $name . '.mp3' ), $bytes ) );
+	$state = epm_md_start( epm_md_feed( $name, epm_md_url( '/id3/' . $bytes . '/' . $name . '.mp3' ), $bytes ) );
 	gc_collect_cycles();
 	$before = memory_get_usage();
 	if ( function_exists( 'memory_reset_peak_usage' ) ) {
