@@ -81,6 +81,13 @@ final class MediaWatch {
 	private $handle = null;
 
 	/**
+	 * When the request started.
+	 *
+	 * @var float
+	 */
+	private float $started;
+
+	/**
 	 * Start of the current low-speed window.
 	 *
 	 * @var float
@@ -126,7 +133,8 @@ final class MediaWatch {
 		private array $slow,
 		private int $expected
 	) {
-		$this->window_start = microtime( true );
+		$this->started      = microtime( true );
+		$this->window_start = $this->started;
 	}
 
 	/**
@@ -140,6 +148,18 @@ final class MediaWatch {
 		curl_setopt( $handle, CURLOPT_NOPROGRESS, false );
 		// PHP 8.2 has the newer name; both call back with the same arguments.
 		curl_setopt( $handle, defined( 'CURLOPT_XFERINFOFUNCTION' ) ? CURLOPT_XFERINFOFUNCTION : CURLOPT_PROGRESSFUNCTION, [ $this, 'progress' ] );
+	}
+
+	/**
+	 * Whether this request received less than the low-speed limit on
+	 * average (a request that ran out of time was a stall, not progress).
+	 *
+	 * @return bool
+	 */
+	public function too_slow(): bool {
+		$elapsed = microtime( true ) - $this->started;
+
+		return $elapsed >= 1.0 && $this->received < $this->slow['bytes'] * $elapsed;
 	}
 
 	/**

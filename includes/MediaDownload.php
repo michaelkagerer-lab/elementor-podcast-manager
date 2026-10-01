@@ -331,6 +331,10 @@ final class MediaDownload {
 
 			case 'budget':
 				if ( $data && $written > 0 && self::keep( $d, $watch, $target, $written, $resume ) ) {
+					// Hardly anything arrived in all that time: a stall.
+					if ( $watch->too_slow() ) {
+						return self::attempt( $d, 'stalled', self::stalled_message() );
+					}
 					// A host without Range support sends the file from the
 					// start every time: it never gets further than one
 					// request's worth.
@@ -817,11 +821,7 @@ final class MediaDownload {
 	 * @return string
 	 */
 	private static function no_range_message(): string {
-		return sprintf(
-			/* translators: %d: seconds */
-			__( 'The host cannot continue an interrupted download (no HTTP Range support), and the file did not arrive within %d seconds.', 'elementor-podcast-manager' ),
-			(int) self::request_seconds()
-		);
+		return __( 'The host cannot continue an interrupted download (no HTTP Range support), and the file did not arrive within one request.', 'elementor-podcast-manager' );
 	}
 
 	/**
@@ -830,13 +830,10 @@ final class MediaDownload {
 	 * @return string
 	 */
 	private static function stalled_message(): string {
-		$limit = self::low_speed();
-
 		return sprintf(
-			/* translators: 1: speed, e.g. "1 KB", 2: seconds */
-			__( 'The host stopped sending the file (less than %1$s per second for %2$d seconds).', 'elementor-podcast-manager' ),
-			size_format( $limit['bytes'] ),
-			$limit['seconds']
+			/* translators: %s: speed, e.g. "1 KB" */
+			__( 'The host stopped sending the file (less than %s per second).', 'elementor-podcast-manager' ),
+			size_format( self::low_speed()['bytes'] )
 		);
 	}
 }

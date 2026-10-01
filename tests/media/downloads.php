@@ -377,6 +377,19 @@ $t->test(
 );
 
 $t->test(
+	'a stall is reported as one also when each step is shorter than the low-speed window (the import screen\'s short steps)',
+	static function ( EPM_Test_Runner $t ) {
+		epm_md_delete();
+		$result = epm_md_steps( epm_md_start( epm_md_feed( 'stall-short', epm_md_url( '/stall/stall-short.mp3' ) ) ), 4.0 );
+		$t->same( 0, epm_md_audio( 'stall-short' ), 'not stored' );
+		$t->assert( false !== stripos( epm_md_reason( $result['state'] ), 'stopped sending' ), 'reported as a stall: ' . epm_md_reason( $result['state'] ) );
+		$t->assert( count( $result['steps'] ) <= 4 && max( $result['steps'] ) < 5.5, 'within a few 4-second steps: ' . wp_json_encode( $result['steps'] ) );
+		$t->same( [], epm_md_temp(), 'no temp files' );
+		epm_md_delete();
+	}
+);
+
+$t->test(
 	'a slow file larger than one request continues with Range requests over several steps and arrives byte-identical; a host without Range support is reported',
 	static function ( EPM_Test_Runner $t ) {
 		$short = static function () {
