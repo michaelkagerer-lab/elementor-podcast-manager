@@ -361,7 +361,7 @@ final class Plugin {
 		}
 
 		// Password-protected episodes keep their metadata private in REST.
-		add_filter( 'rest_prepare_' . EpisodePostType::CPT, [ $this, 'protect_rest_meta' ], 10, 2 );
+		add_filter( 'rest_prepare_' . EpisodePostType::CPT, [ $this, 'protect_rest_meta' ], 10, 3 );
 
 		// Audio and transcript files set through REST must be readable media.
 		add_filter( 'rest_pre_insert_' . EpisodePostType::CPT, [ $this, 'rest_check_attachment_meta' ], 10, 2 );
@@ -479,11 +479,12 @@ final class Plugin {
 	 *
 	 * @param \WP_REST_Response $response Response.
 	 * @param \WP_Post          $post     Post.
+	 * @param \WP_REST_Request  $request  Request.
 	 * @return \WP_REST_Response
 	 */
-	public function protect_rest_meta( $response, $post ) {
+	public function protect_rest_meta( $response, $post, $request ) {
 		if ( $response instanceof \WP_REST_Response && $post instanceof \WP_Post
-			&& post_password_required( $post ) && ! $this->request_unlocked( $post ) && ! current_user_can( 'edit_post', $post->ID ) ) {
+			&& post_password_required( $post ) && ! $this->request_unlocked( $post, $request ) && ! current_user_can( 'edit_post', $post->ID ) ) {
 			$data = $response->get_data();
 			if ( isset( $data['meta'] ) ) {
 				$data['meta'] = [];
@@ -497,11 +498,11 @@ final class Plugin {
 	/**
 	 * Whether this REST request supplied the episode's correct password.
 	 *
-	 * @param \WP_Post $post Episode.
+	 * @param \WP_Post         $post    Episode.
+	 * @param \WP_REST_Request $request Request.
 	 * @return bool
 	 */
-	private function request_unlocked( \WP_Post $post ): bool {
-		$request = rest_get_server()->get_current_request();
+	private function request_unlocked( \WP_Post $post, $request ): bool {
 		if ( ! $request instanceof \WP_REST_Request ) {
 			return false;
 		}

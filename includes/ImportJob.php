@@ -646,7 +646,10 @@ final class ImportJob {
 
 			$page = Hosting::fetch( $next );
 			if ( is_wp_error( $page ) ) {
-				$reason = in_array( $page->get_error_code(), [ 'epm_feed_http', 'epm_feed_blocked' ], true ) ? 'http_error' : ( 'epm_feed_url' === $page->get_error_code() ? 'parse_error' : 'transport_error' );
+				$error_code = $page->get_error_code();
+				$reason     = ( 'epm_feed_http' === $error_code || 0 === strpos( $error_code, 'epm_feed_http_' ) || 'epm_feed_blocked' === $error_code )
+					? 'http_error'
+					: ( 'epm_feed_url' === $error_code ? 'parse_error' : 'transport_error' );
 				return self::finish_loading( $token, $reason, $page->get_error_message(), $next );
 			}
 

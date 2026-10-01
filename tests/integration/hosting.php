@@ -949,7 +949,7 @@ $t->test(
 		$result = Hosting::locate( epm_h_url( 'challenge-200' ) );
 		$t->same( 'epm_feed_blocked', is_wp_error( $result ) ? $result->get_error_code() : 'found', 'challenge served with 200' );
 		$missing = Hosting::locate( epm_h_url( 'does-not-exist.xml' ) );
-		$t->same( 'epm_feed_http', is_wp_error( $missing ) ? $missing->get_error_code() : 'found', '404' );
+		$t->same( 'epm_feed_http_address', is_wp_error( $missing ) ? $missing->get_error_code() : 'found', '404' );
 		$empty = Hosting::locate( 'https://' );
 		$t->same( 'epm_feed_url', is_wp_error( $empty ) ? $empty->get_error_code() : 'found', 'no address' );
 		unset( EPM_Test_HTTP::$routes[ epm_h_url( 'challenge-200' ) ] );
@@ -1798,7 +1798,6 @@ $t->test(
 		$result = Hosting::sync( true );
 		$t->same( 0, $result['updated'], $result['message'] );
 		$t->same( $modified, get_post_modified_time( 'U', true, $id ), 'post timestamp remains unchanged' );
-		unset( EPM_Test_HTTP::$routes[ $url ] );
 		unset( EPM_Test_HTTP::$routes[ $url ] );
 	}
 );

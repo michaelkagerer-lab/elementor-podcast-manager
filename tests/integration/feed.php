@@ -282,7 +282,9 @@ $t->test(
 			wp_cache_flush();
 			gc_collect_cycles();
 			$before = memory_get_usage();
-			memory_reset_peak_usage();
+			if ( function_exists( 'memory_reset_peak_usage' ) ) {
+				memory_reset_peak_usage();
+			}
 			$served = epm_f_serve();
 			$peak   = ( memory_get_peak_usage() - $before ) / MB_IN_BYTES;
 			$items  = substr_count( $served['body'], '<item>' );

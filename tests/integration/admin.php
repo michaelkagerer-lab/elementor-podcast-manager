@@ -391,6 +391,7 @@ $t->test(
 		$foreign = $make_file( 'private-artwork.png', "\x89PNG\r\n\x1a\n", 'image/png' );
 		$plain = $make_file( 'not-artwork.txt', 'text', 'text/plain' );
 		$editor = $make_user( 'editor' );
+		wp_update_post( [ 'ID' => $foreign, 'post_author' => $editor ] );
 		wp_set_current_user( $editor );
 		$_POST['epm_episode_meta_nonce'] = wp_create_nonce( 'epm_episode_meta' );
 		$_POST['epm'] = [ 'artwork_id' => $foreign, 'guest_image_id' => $plain ];
