@@ -2,11 +2,28 @@
 /**
  * Brand preset system (Layer 2).
  *
- * A preset defines visual defaults ONLY: layout, tokens, visibility,
- * player options. Never content, episode IDs or client data.
- * Selecting a preset initializes styling — it never locks it.
+ * A preset is a set of values ONLY: design tokens (colors, sizes, shape,
+ * font, shadow, layout defaults) and the details it shows or hides where
+ * it differs from the built-in defaults. Never content, episode IDs or
+ * client data. Applying a preset fills Podcast → Design; it never locks
+ * anything.
  *
- * Structure is JSON-portable so presets can later be exported/imported.
+ * Preset structure (also for presets added with the epm_presets filter):
+ *   name, description  Shown on the Design screen.
+ *   tokens             DesignSettings token keys => values.
+ *   details            Optional. [ context => [ detail => bool ] ] for the
+ *                      contexts of Details (player, latest, list,
+ *                      episode_page); only what differs from the built-in
+ *                      defaults is needed.
+ *   layout             Optional, from 1.1–1.3: the player layout when
+ *                      tokens has no default_player_layout.
+ *   visibility, player, episodeList
+ *                      Optional, from 1.1–1.3: used as details (see
+ *                      Details::from_legacy_maps()) when 'details' is
+ *                      missing.
+ *
+ * A design moves between sites with the Design screen's export/import
+ * (Admin::design_export_payload(), Admin::design_from_payload()).
  *
  * @package EPM
  */
@@ -55,45 +72,20 @@ final class Presets {
 	}
 
 	/**
-	 * Export a preset as JSON (portability).
+	 * The details a preset applies: its 'details' map, or for presets
+	 * written for 1.1–1.3 their visibility/player/episodeList maps. Only
+	 * details that differ from the built-in defaults are kept, so applying
+	 * a preset never changes what it does not mention.
 	 *
-	 * @param string $id Preset ID.
-	 * @return string JSON string, empty on failure.
+	 * @param array<string, mixed> $preset Preset.
+	 * @return array<string, array<string, bool>>
 	 */
-	public function export( string $id ): string {
-		$preset = $this->get( $id );
-
-		if ( ! $preset ) {
-			return '';
+	public static function details( array $preset ): array {
+		if ( isset( $preset['details'] ) && is_array( $preset['details'] ) ) {
+			return Details::sparse( $preset['details'] );
 		}
 
-		$json = wp_json_encode( $preset, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
-
-		return is_string( $json ) ? $json : '';
-	}
-
-	/**
-	 * Import a preset from JSON. Validates structure; design values only.
-	 *
-	 * @param string $json JSON string.
-	 * @return array<string, mixed>|null
-	 */
-	public function import( string $json ): ?array {
-		$data = json_decode( $json, true );
-
-		if ( ! is_array( $data ) || empty( $data['name'] ) || ! is_array( $data['tokens'] ?? null ) ) {
-			return null;
-		}
-
-		return [
-			'name'        => sanitize_text_field( $data['name'] ),
-			'description' => sanitize_text_field( $data['description'] ?? '' ),
-			'layout'      => sanitize_key( $data['layout'] ?? 'minimal' ),
-			'tokens'      => $data['tokens'],
-			'visibility'  => is_array( $data['visibility'] ?? null ) ? $data['visibility'] : [],
-			'player'      => is_array( $data['player'] ?? null ) ? $data['player'] : [],
-			'episodeList' => is_array( $data['episodeList'] ?? null ) ? $data['episodeList'] : [],
-		];
+		return Details::sparse( Details::from_legacy_maps( $preset['visibility'] ?? [], $preset['player'] ?? [], $preset['episodeList'] ?? [] ) );
 	}
 
 	/**
@@ -105,7 +97,6 @@ final class Presets {
 		return [
 			'name'        => __( 'Neutral', 'elementor-podcast-manager' ),
 			'description' => __( 'Clean, brand-independent defaults.', 'elementor-podcast-manager' ),
-			'layout'      => 'minimal',
 			'tokens'      => [
 				'accent'                 => '#1d4ed8',
 				'on_accent'              => '#ffffff',
@@ -126,25 +117,9 @@ final class Presets {
 				'shadow'                 => 'none',
 				'track_color'            => '',
 			],
-			'visibility'  => [
-				'show_artwork'       => true,
-				'show_episode_label' => true,
-				'show_title'         => true,
-				'show_episode_number' => true,
-				'show_season'        => false,
-				'show_guest'         => true,
-				'show_description'   => false,
-				'show_date'          => true,
-				'show_duration'      => true,
-			],
-			'player'      => [
-				'show_playback_speed' => true,
-				'show_skip_backward'  => true,
-				'show_skip_forward'   => true,
-				'show_volume'         => true,
-				'show_download'       => false,
-			],
-			'episodeList' => [],
+			// The built-in defaults: every widget and shortcode shows what it
+			// shows on a site that never chose details.
+			'details'     => [],
 		];
 	}
 
@@ -158,7 +133,6 @@ final class Presets {
 
 		$preset['name']        = __( 'Minimal', 'elementor-podcast-manager' );
 		$preset['description'] = __( 'Monochrome and compact.', 'elementor-podcast-manager' );
-		$preset['layout']      = 'minimal';
 		$preset['tokens']      = array_merge(
 			$preset['tokens'],
 			[
@@ -179,7 +153,12 @@ final class Presets {
 				'button_shape'           => 'pill',
 			]
 		);
-		$preset['visibility']['show_artwork'] = false;
+		$preset['details'] = [
+			'player'       => [ 'show_artwork' => false ],
+			'latest'       => [ 'show_artwork' => false ],
+			'list'         => [ 'show_artwork' => false ],
+			'episode_page' => [ 'show_artwork' => false ],
+		];
 
 		return $preset;
 	}
@@ -194,7 +173,6 @@ final class Presets {
 
 		$preset['name']        = __( 'Editorial', 'elementor-podcast-manager' );
 		$preset['description'] = __( 'Large typography, separated metadata, generous whitespace.', 'elementor-podcast-manager' );
-		$preset['layout']      = 'editorial';
 		$preset['tokens']      = array_merge(
 			$preset['tokens'],
 			[
@@ -229,7 +207,6 @@ final class Presets {
 
 		$preset['name']        = __( 'Card', 'elementor-podcast-manager' );
 		$preset['description'] = __( 'Rounded cards with large artwork.', 'elementor-podcast-manager' );
-		$preset['layout']      = 'artwork';
 		$preset['tokens']      = array_merge(
 			$preset['tokens'],
 			[
@@ -270,7 +247,6 @@ final class Presets {
 
 		$preset['name']        = __( 'Business Tuning', 'elementor-podcast-manager' );
 		$preset['description'] = __( 'Dark editorial player with a lime accent and numbered episode rows.', 'elementor-podcast-manager' );
-		$preset['layout']      = 'editorial';
 		$preset['tokens']      = array_merge(
 			$preset['tokens'],
 			[
@@ -292,23 +268,20 @@ final class Presets {
 				'button_shape'           => 'pill',
 			]
 		);
-		$preset['visibility']  = array_merge(
-			$preset['visibility'],
-			[
-				'show_episode_label'  => true,
+		// Numbered, dated episodes with their summary; no volume slider
+		// (visitors use their device's volume).
+		$preset['details'] = [
+			'player'       => [
 				'show_episode_number' => true,
-				'show_guest'          => true,
 				'show_description'    => true,
 				'show_date'           => true,
-				'show_duration'       => true,
-			]
-		);
-		$preset['player']      = [
-			'show_playback_speed' => true,
-			'show_skip_backward'  => true,
-			'show_skip_forward'   => true,
-			'show_volume'         => false,
-			'show_download'       => false,
+				'show_volume'         => false,
+			],
+			'latest'       => [
+				'show_episode_number' => true,
+				'show_volume'         => false,
+			],
+			'episode_page' => [ 'show_volume' => false ],
 		];
 
 		return $preset;
@@ -336,7 +309,6 @@ final class Presets {
 
 		$preset['name']        = __( 'Clean light', 'elementor-podcast-manager' );
 		$preset['description'] = __( 'Bright white canvas, one blue accent and pill buttons. Calm, artwork-first and free of shadows.', 'elementor-podcast-manager' );
-		$preset['layout']      = 'artwork';
 		$preset['tokens']      = array_merge(
 			$preset['tokens'],
 			[
@@ -374,7 +346,6 @@ final class Presets {
 
 		$preset['name']        = __( 'Soft voice', 'elementor-podcast-manager' );
 		$preset['description'] = __( 'Off-white canvas, white cards with a soft shadow and near-black ink buttons. Quiet and editorial.', 'elementor-podcast-manager' );
-		$preset['layout']      = 'full';
 		$preset['tokens']      = array_merge(
 			$preset['tokens'],
 			[
@@ -398,7 +369,7 @@ final class Presets {
 				'track_color'            => '#8c867e', // 3.31:1 / 3.60:1.
 			]
 		);
-		$preset['visibility']['show_description'] = true;
+		$preset['details'] = [ 'player' => [ 'show_description' => true ] ];
 
 		return $preset;
 	}
@@ -413,7 +384,6 @@ final class Presets {
 
 		$preset['name']        = __( 'Warm paper', 'elementor-podcast-manager' );
 		$preset['description'] = __( 'Cream paper tones, a terracotta accent and serif type. Warm, literary and unhurried.', 'elementor-podcast-manager' );
-		$preset['layout']      = 'editorial';
 		$preset['tokens']      = array_merge(
 			$preset['tokens'],
 			[
@@ -439,7 +409,7 @@ final class Presets {
 				'track_color'            => '#878175', // 3.67:1 / 3.26:1.
 			]
 		);
-		$preset['visibility']['show_description'] = true;
+		$preset['details'] = [ 'player' => [ 'show_description' => true ] ];
 
 		return $preset;
 	}
@@ -454,7 +424,6 @@ final class Presets {
 
 		$preset['name']        = __( 'Ink mono', 'elementor-podcast-manager' );
 		$preset['description'] = __( 'Black ink on white, monospaced type and square buttons. Technical, compact and precise.', 'elementor-podcast-manager' );
-		$preset['layout']      = 'minimal';
 		$preset['tokens']      = array_merge(
 			$preset['tokens'],
 			[
@@ -492,7 +461,6 @@ final class Presets {
 
 		$preset['name']        = __( 'Night studio', 'elementor-podcast-manager' );
 		$preset['description'] = __( 'Near-black surfaces, a vivid green accent and pill buttons. The artwork brings the color.', 'elementor-podcast-manager' );
-		$preset['layout']      = 'artwork';
 		$preset['tokens']      = array_merge(
 			$preset['tokens'],
 			[
@@ -530,7 +498,6 @@ final class Presets {
 
 		$preset['name']        = __( 'Midnight', 'elementor-podcast-manager' );
 		$preset['description'] = __( 'Blue-black canvas, a soft violet accent and dense rows. Made for long episode lists.', 'elementor-podcast-manager' );
-		$preset['layout']      = 'compact';
 		$preset['tokens']      = array_merge(
 			$preset['tokens'],
 			[
