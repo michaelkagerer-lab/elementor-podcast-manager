@@ -24,6 +24,10 @@ if ( 'die-after-move' === $epm_child_mode ) {
 		'wp_handle_upload',
 		static function ( $upload ) {
 			if ( false !== strpos( (string) ( $upload['file'] ?? '' ), 'half-moved-2' ) ) {
+				// Print the fatal error on stderr whatever php.ini says: with a
+				// production php.ini (CI) PHP shows nothing, and WordPress only its
+				// generic "critical error" message.
+				ini_set( 'display_errors', 'stderr' ); // phpcs:ignore WordPress.PHP.IniSet.display_errors_Disallowed
 				ini_set( 'memory_limit', (string) ( memory_get_usage() + 16 * MB_IN_BYTES ) ); // phpcs:ignore WordPress.PHP.IniSet.memory_limit_Disallowed
 				$GLOBALS['epm_child_hog'] = str_repeat( 'x', 512 * MB_IN_BYTES );
 			}
