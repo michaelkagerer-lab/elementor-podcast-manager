@@ -57,7 +57,7 @@ The admin screens (setup assistant, Hosting & import, Distribution, dashboard, D
    - **Podcast → Add episode:** title → drop the MP3/M4A onto *Episode Audio* → description → Publish.
    - **Podcast → Distribution:** copy the feed address and submit it to the directories.
 
-Updating in place is safe: on the first request after an update the plugin re-flushes its rewrite rules (which also registers the topic archives), rebuilds the feed cache and regenerates Elementor's widget CSS. The setup assistant does not open on sites that already have a podcast. Details: [MIGRATION.md](MIGRATION.md).
+Updating in place is safe: the first request after an update stores the new version first and only does quick work (rewrite rules, which also register the topic archives; the feed cache; Elementor's widget CSS). Work on every episode (durations in seconds, duplicate GUID rows) is queued and done in batches by WP-Cron, a little on each admin page load, or at once with `wp podcast upgrade`, so a large catalog never makes the first request run out of memory. The setup assistant does not open on sites that already have a podcast. Details: [MIGRATION.md](MIGRATION.md).
 
 ## Setup assistant
 
@@ -122,14 +122,14 @@ The complete procedures, including what to do when a host cannot redirect: [docs
 
 ## Distribution center
 
-Podcast → Distribution (`admin.php?page=epm-distribution`). Shows the feed address to submit (the host's feed in external mode), validator links, readiness errors that directories would reject, a *Test feed and audio delivery* check (feed status and format, HTTPS, `HEAD` and byte-range answers for the newest episode's audio), and the platforms in order:
+Podcast → Distribution (`admin.php?page=epm-distribution`). Shows the feed address to submit (the host's feed in external mode), validator links, readiness errors that directories would reject, a *Test feed and audio delivery* check (feed status and format, HTTPS; then the audio of the first episode in the feed at the address the feed gives, download-statistics prefix included and redirects followed: `HEAD` with its size and type, and a byte-range request whose `Content-Range` and size must match the feed), and the platforms in order:
 
-- **Start here:** Apple Podcasts, Spotify, YouTube & YouTube Music, Amazon Music & Audible, Podcast Index
-- **Recommended:** iHeartRadio, Pocket Casts, Deezer, Podcast Addict
+- **Start here:** Apple Podcasts, Spotify, Amazon Music & Audible, Podcast Index
+- **Recommended:** YouTube & YouTube Music (select countries and regions; no advertisements in the episodes, no `<`/`>` in titles and descriptions), iHeartRadio, Pocket Casts, Deezer, Podcast Addict
 - **More platforms:** Pandora & SiriusXM (United States), TuneIn, podcast.de, Listen Notes
 - **Listed automatically:** Overcast, Castro, Castbox, Goodpods, Player FM (from Apple Podcasts), Fountain (from Podcast Index)
 
-Each platform has submission steps, requirements (most send a verification code to the feed's owner email) and progress tracking (*Submitted* / *Listed*). The header counts the essential platforms submitted, and the *Submit* button of the next essential platform is the primary one. A listing address saved there is added to the podcast's platform links, so the subscribe buttons fill themselves as the show gets listed. Registry: `includes/Directories.php`, filter `epm_directories`. Details: [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md).
+Each platform has submission steps, requirements (most send a verification code to the feed's owner email) and progress tracking (*Submitted* / *Listed*). The header counts the essential platforms submitted, and the *Submit* button of the next essential platform is the primary one. A listing address saved there must be a public link on that platform (a dashboard link or another platform's link is refused with a message) and is added to the podcast's platform links, so the subscribe buttons fill themselves as the show gets listed. Registry: `includes/Directories.php`, filter `epm_directories`. Details: [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md).
 
 ## Publishing episodes
 
@@ -154,7 +154,9 @@ The episode screen puts the audio upload directly under the title (the classic e
 
 ## RSS feed
 
-`/podcast/feed/` (or `/?epm_podcast_feed=1` with plain permalinks; `/podcast/rss2/` and other archive feed URLs serve the same feed). In external mode with the redirect on, all of these answer with a 301 to the host's feed.
+`/podcast/feed/` (or `/?epm_podcast_feed=1` with plain permalinks; `/podcast/rss2/` and other archive feed URLs serve the same feed, with the plugin's own `ETag`/`Last-Modified`). In external mode with the redirect on, all of these answer with a 301 to the host's feed. Under plain permalinks `/podcast/feed/` still serves the feed where the web server passes that address to WordPress (nginx with `try_files`; not Apache without rewrite rules), and the Distribution screen, the dashboard, the Permalinks screen and the readiness report say when the feed address changed after it was shown for submission.
+
+**Previous address of a WordPress podcast plugin:** a show that moved here from PowerPress or Seriously Simple Podcasting on the same site can turn on *Previous feed address* (Podcast settings → Feed status; offered by the setup assistant when those plugins left settings): `/feed/podcast/` and `/?feed=podcast` then answer with a permanent redirect to the feed. Turn it on after the old plugin is deactivated.
 
 **Channel tags:**
 - `title`, `link`, `description`, `language`, `copyright`
@@ -184,9 +186,9 @@ Control characters pasted into any field are removed, so one stray character can
 
 **Eligibility and window:** only published, non-password episodes with distributable audio (a Media Library file or an audio URL of a distributed type), filtered *before* the "Feed episode limit" window (default 500, 0 = unlimited). The window always keeps the newest episodes. Episodic feeds are newest-first; serial feeds list those episodes oldest-first.
 
-**GUIDs:** immutable per episode. Episodes created before 1.1.0 keep their issued GUIDs; newer ones get `urn:uuid:` GUIDs; imported episodes keep the GUID of the source feed. Title, slug, domain and protocol changes never regenerate them.
+**GUIDs:** immutable per episode. Episodes created before 1.1.0 keep their issued GUIDs; newer ones get `urn:uuid:` GUIDs, assigned when the episode is created (editor, REST, WP-CLI or any other code) and derived from the show's `podcast:guid` and the episode ID, so two requests can never hand out different GUIDs for one episode; imported episodes keep the GUID of the source feed. Title, slug, domain and protocol changes never regenerate them.
 
-**Caching:** the rendered feed is cached and invalidated whenever an episode, its media, the podcast settings or the hosting settings change. Responses carry `ETag`/`Last-Modified` and answer conditional requests with `304 Not Modified`. `Last-Modified` and `<lastBuildDate>` move whenever the feed's content changes (for example a channel setting, a removed episode or a lower episode limit), not only when a newer episode is published; the build time is kept in the option `epm_feed_build`.
+**Building and caching:** the feed is built a page of episodes at a time (the window is applied in SQL, each page's posts and meta are loaded and released before the next), so memory does not grow with the catalog: measured with a 128M limit, the unlimited feed of 10,000 episodes builds within 7 MB of a php-fpm request. The rendered feed is cached in pieces of at most 256 KB in non-autoloaded rows of the options table (`epm_feed_cache` points to the current build, `epm_feed_chunk_*` hold it; never a file, never one multi-megabyte row) and invalidated whenever an episode, its media file or metadata, the podcast settings, the site title or tagline or the hosting settings change; it also expires after 12 hours. One request builds it at a time; a build that a change overtook is served to its own request but not stored. Responses carry `ETag`/`Last-Modified` and answer conditional requests with `304 Not Modified` after reading only the few hundred bytes of the pointer; `If-None-Match` accepts lists, weak tags and `*`. `Last-Modified` and `<lastBuildDate>` move whenever the feed's content changes (for example a channel setting, a removed episode or a lower episode limit), not only when a newer episode is published, and are never later than now; the build time is kept in the option `epm_feed_build`. Characters XML does not allow (control characters, U+FFFE/U+FFFF, invalid UTF-8) are removed from every field, so one bad paste cannot break the feed.
 
 ## Episode pages
 
@@ -339,7 +341,11 @@ includes/
   AdminPages.php        setup assistant, Hosting & import, Distribution screens; activation redirect; notices; delivery check
   StructuredData.php    schema.org JSON-LD and og:audio on episode pages
   Embed.php             episode embed card (/podcast/{slug}/embed/), oEmbed height, embed code
-  Cli.php               WP-CLI: wp podcast import|sync|status
+  Cli.php               WP-CLI: wp podcast import|sync|status|upgrade
+  FeedStore.php         feed cache: pointer row and pieces, one build at a time
+  FeedWriter.php        collects a feed while it is built (pieces of 256 KB)
+  OptionRow.php         options rows changed with conditional SQL (version, upgrade lock, feed cache)
+  Upgrade.php           per-episode upgrade work in batches (cron, admin, CLI)
   EpisodeTemplate.php   automatic episode pages
   Renderer.php          ONE player + shared markup (share menu, video facade, topic chips, timestamp links)
   Assets.php            conditional enqueue, sticky player shell
@@ -374,7 +380,7 @@ tests/                  test suites (see tests/README.md)
   - `epm_version` records the installed version for the upgrade routine; `epm_guids_migrated` marks the 1.1.0 GUID migration.
 - Files: none of its own. (1.3.0 kept the parsed feed in `wp-content/uploads/epm-import/`; that folder is removed after the update.)
 - Cron events: `epm_sync_feed` (host sync), `epm_import_continue` (background import), `epm_import_cleanup` (expires a checked feed nobody imported) and `epm_podcast_index_ping` (Podcast Index notification; `epm_ping_podcast_index` in 1.3.0).
-- The rendered feed is cached in a transient (`epm_feed_cache`).
+- The rendered feed is cached in non-autoloaded option rows: `epm_feed_cache` (the current build: ETag, Last-Modified, number of pieces) and `epm_feed_chunk_<build>_<n>` (the pieces). `epm_feed_address` remembers the feed address shown on the Distribution screen. While an update's per-episode work is pending, `epm_upgrade_state` holds it and `epm_upgrade_lock` the worker's lock; `epm_removed_guid_rows` records duplicate GUID rows the upgrade removed.
 - No custom tables.
 
 ## Developer hooks
@@ -425,7 +431,8 @@ JavaScript: `window.epmPlayerEngine.init(element)` initializes players, buttons,
 | `wp podcast import <feed> [--move] [--copy-media] [--draft] [--show-details] [--owner] [--accept-partial]` | Import from a feed address, Apple Podcasts link or web page. `--move` takes the show over (adopts its `podcast:guid`, lifts the feed episode limit, announces the new home and locks the feed when done); `--copy-media` downloads audio, images and caption files; `--draft` creates new episodes as drafts; `--show-details` fills empty podcast settings; `--owner` confirms ownership of a locked feed. When the feed cannot be read completely, nothing is imported and the command exits with an error naming the page and the error; `--accept-partial` imports the episodes found (and finishes a `--move`) with a warning instead of a success message. Warns about episodes whose audio was not copied. |
 | `wp podcast import --resume [options]` | Continue the last import: read the rest of a feed that could not be read completely (then import with the given options), or keep an interrupted import going. |
 | `wp podcast sync [--force]` | Sync with the host now; `--force` ignores the stored ETag/Last-Modified. |
-| `wp podcast status` | Hosting mode, feeds, last and next sync. |
+| `wp podcast status` | Hosting mode, feeds, last and next sync; upgrade work still queued. |
+| `wp podcast upgrade` | Finish the work an update queued (durations, duplicate GUID rows) now, batch by batch. |
 
 ## Testing
 

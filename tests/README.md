@@ -33,10 +33,11 @@ Suites are discovered by file name, so a new suite needs no change to
   others in alphabetical order. `e2e/lib.mjs`, `e2e/helpers.mjs` and files
   starting with `_` are shared code, not suites.
 
-Current order: `integration/run.php`, `admin.php`, `frontend.php`,
-`hosting.php`, `import.php`; then `concurrency/run.sh`; then
-`perf/run.sh`; then `http/run.sh`; then `e2e/run.mjs`, `admin.mjs`,
-`frontend.mjs`, `setup.mjs`.
+Current order: `integration/run.php`, `admin.php`, `feed.php`,
+`frontend.php`, `hosting.php`, `import.php`; then `concurrency/run.sh`;
+then `perf/run.sh`; then `http/run.sh`; then `e2e/run.mjs`, `admin.mjs`,
+`frontend.mjs`, `setup.mjs`. (`integration/reference/` holds frozen
+copies of earlier code for comparisons, not suites.)
 
 ## Suites
 
@@ -47,10 +48,11 @@ Current order: `integration/run.php`, `admin.php`, `frontend.php`,
 | | `integration/admin.php` | Topics taxonomy and its capabilities (contributors assign, editors manage, filtered capabilities), the Podcast menu and sentence-case labels, default hidden list columns; episode editor: next episode number, paste-chapters disclosure, video field help, transcript files (fill the text, SRT accepted, other files rejected, hosted file shown), episode search and media AJAX for contributors (no other authors' private episodes or media); Quick Edit and Bulk Edit (*Number from*); design export allowlist and import validation, the Design screen's token table against `DesignSettings::output_tokens()` for every preset, the script data, the WCAG contrast formula and pairs (every preset passes), the Design screen render |
 | | `integration/frontend.php` | timestamp links (parsing, building, only the page's episode), share menu (accessible markup, none for restricted episodes), embeds (iframe code, oEmbed height and HTML, the card document), video (sources, no third-party request before play, place on the episode page), topic filters and chips, `preload="none"` for audio on another host, the sticky player for lists and chapters, list play button labels, the number column, dark-design section surfaces, hero/latest background padding, no strings in the player engine |
 | | `integration/hosting.php` | the feed parser against every real feed in `fixtures/feeds/` and its host quirks, bot pages and Atom feeds rejected; host detection (address and `<generator>`), listing links, feed-address normalization and media types; finding a feed from an Apple Podcasts link, a web page (podcast feed before the blog feed) or a redirect; import (preview counts, lock and consent, GUIDs byte-for-byte including `%`-escapes, dates, external audio, chapters, transcripts to HTML, transcript files kept or copied, drafts for blocked/undated items, duplicates, re-import, show details, `podcast:guid`, audio that could not be copied, lock ownership, cancelling); host sync (conditional requests, local edits kept and editor saves ignored, deleted episodes stay deleted, truncated/empty feed guards, removed episodes drafted after a day, new feed addresses, never https to http, a redirect to this site, failures and back-off, schedule); feed output (external audio, remote artwork, moved-in `new-feed-url`, download-statistics prefix, `podcast:trailer`, `podcast:person`, `podcast:transcript` with captions, build time); transcript files (SRT type on every server, type aliases, upload before hosted file, readable text); setup steps and distribution progress |
+| | `integration/feed.php` | the feed built page by page against the 1.3 builder (`reference/Feed-1.3.php`), byte for byte without `<lastBuildDate>`, episodic and serial, limits 0/1/2/3/500, a trailer, special characters, a measurement prefix and the per-episode filter; a fixed order for episodes with the same time; the feed of 600 episodes within 8 MB for every limit; the cache (pieces of at most 256 KB, no transient row, streamed byte for byte, a 304 that reads no piece, missing pieces rebuilt, one builder at a time, an overtaken build not stored, old pieces swept); Last-Modified never in the future and a stored future time repaired; If-None-Match lists, weak tags, `*` and substrings; U+FFFE/U+FFFF, control characters and invalid UTF-8; cache invalidation for a replaced media file, its metadata and the site title; archive-feed and previous-address routing, the setup assistant's and settings' offer; a changed feed address reported until confirmed, `/podcast/feed/` under plain permalinks; GUIDs at creation without the editor, derived values, duplicate rows collapsed to the served one (and recorded); the upgrade under a 24 MB memory headroom with 40 MB of transcripts (version first, nothing per episode in the request, batches finish it), a request that lost the version claim, a held upgrade lock; the readiness report against the 1.3 report (`reference/Readiness-1.3.php`) and folding beyond 50 episode problems; the delivery test on the feed's first enclosure (prefix, 404, a followed redirect, wrong sizes and ranges); listing links per platform; YouTube's requirements and the `<`/`>` warning |
 | | `integration/import.php` | the import's data integrity in one process: a sync whose lock another request took over stops before the next episode (no validators stored, the other lock stays), the GUID is checked in the database right before an episode is created; paged feeds: page 2 answering 500, a transport timeout, invalid XML and an empty page that links on each end the catalog as incomplete with the reason, the page address and the error; relative and root-relative `rel="next"` resolved against the page; the page limit (`epm_import_max_pages`), a cycle and duplicate GUIDs across pages; "try again" continues from the failed page without reading a page or importing an episode twice; a move with an incomplete catalog is refused (no `moved_in`, no lock, no hosting switch) unless the missing part is accepted, a mirror is allowed and says it is partial; `wp podcast import` exits 1 on a partial catalog with `--resume`/`--accept-partial` as the way forward and never prints a plain success for part of a catalog; the parsed feed is stored in the database (never in uploads) and read back intact (1.5 MB of notes, Unicode, HTML), removed on done, cancel, a new preview and a failed import; two overlapping previews leave one job; a checked feed nobody imports expires after a day with its data (a running import does not); a running 1.3.0 import continues from the database and its folder is removed; uninstalling removes the stored data, the job, the 1.3.0 folder and the cleanup event |
-| Races | `concurrency/run.sh` | two (or three) real PHP processes per scenario, synchronized by barrier files on observable points (a statement on the lock row, an episode insert, a feed request): a free lock, an abandoned lock, renew vs. takeover, release vs. takeover and a loop re-taking the lock all leave exactly one holder; cron's loop plus a step from the import screen import no GUID twice and count what happened; a step that read the job before the lock never marks a finished job failed, never overwrites the next preview and never saves an older position; a preview never replaces an import started meanwhile; Cancel lets the episode in flight finish and nothing after it. `STRESS=1` adds a barrier-free cron loop plus polling run (200 items) |
-| Budget | `perf/run.sh` | the import's cost per request, each request a PHP process of its own with a 128M memory limit (a stock php-fpm): a paged feed (10 pages × 100 items from a slow host) is read over several requests, each below 48 MB above the booted site and 15 s; an import step needs the same memory on 1,000 and 4,000 items (at most 2 MB more). `PERF_HEAVY=1`: 50 pages × 500 items (25,000 episodes) and steps on 1,000 vs 10,000 items |
-| HTTP | `http/run.sh` | `/podcast/feed/` and every archive feed URL serve the podcast feed, ETag/Last-Modified with 304s, a channel change answers `If-Modified-Since` with the new feed and a new `Last-Modified`, chapters JSON and transcript endpoints (404 for restricted episodes), episode page output, feed discovery link, design tokens printed once, shortcode and Elementor pages, REST meta exposure/protection, byte-range media; import data: a feed check through admin-ajax stores the parsed feed in the database, in no file under uploads, no `epm-import` folder is served, the job token is in no URL or log, Cancel removes the data; with another host: 301 from every feed address to the host's feed (discovery link too), the blog feed not redirected, 200 again without the redirect and when self-hosted |
+| Races | `concurrency/run.sh` | two (or three) real PHP processes per scenario, synchronized by barrier files on observable points (a statement on the lock row, an episode insert, a feed request): a free lock, an abandoned lock, renew vs. takeover, release vs. takeover and a loop re-taking the lock all leave exactly one holder; cron's loop plus a step from the import screen import no GUID twice and count what happened; a step that read the job before the lock never marks a finished job failed, never overwrites the next preview and never saves an older position; a preview never replaces an import started meanwhile; Cancel lets the episode in flight finish and nothing after it; two first requests after a plugin update do no per-episode work and the queued batches write every episode once (`upgrade-once`); two requests that store the GUID of an episode created without hooks serve the same one (`guid-first-read`). `STRESS=1` adds a barrier-free cron loop plus polling run (200 items) |
+| Budget | `perf/run.sh` | cost per request, each request a PHP process of its own with a 128M memory limit (a stock php-fpm): a paged feed (10 pages × 100 items from a slow host) is read over several requests, each below 48 MB above the booted site and 15 s; an import step needs the same memory on 1,000 and 4,000 items (at most 2 MB more); the feed (limits 20, 500 and 0) on synthetic catalogs of 300 and 1,500 episodes: 200, well-formed, every expected item, within 24 MB, the same memory on both sizes for 20 and 500, a 304 under 2 MB; the readiness report the same on both; the first request after an update with 300 episodes of 200 KB transcripts (60 MB) stores the version and touches no episode, the queued batches finish it. `PERF_HEAVY=1`: 50 pages × 500 items (25,000 episodes), steps on 1,000 vs 10,000 items, feed and readiness on 1,000 vs 10,000 episodes and 1,000 episodes with 40 KB transcripts, upgrade with 1,000 × 200 KB |
+| HTTP | `http/run.sh` | `/podcast/feed/` and every archive feed URL serve the podcast feed, ETag/Last-Modified with 304s, a channel change answers `If-Modified-Since` with the new feed and a new `Last-Modified` (also on `/podcast/rss2/`, `/podcast/feed/atom/` and `?post_type=podcast_episode&feed=rss2`, which carry the feed's ETag), `If-None-Match: *` and tag lists answer 304, a tag merely containing the ETag 200, HEAD without a body, an episode dated next year leaves `Last-Modified` at or before now, the previous address `/feed/podcast/` and `?feed=podcast` (404 when off, 301 when on, also to `If-Modified-Since`), `/podcast/feed/` under plain permalinks, chapters JSON and transcript endpoints (404 for restricted episodes), episode page output, feed discovery link, design tokens printed once, shortcode and Elementor pages, REST meta exposure/protection, byte-range media; import data: a feed check through admin-ajax stores the parsed feed in the database, in no file under uploads, no `epm-import` folder is served, the job token is in no URL or log, Cancel removes the data; with another host: 301 from every feed address to the host's feed (discovery link too), the blog feed not redirected, 200 again without the redirect and when self-hosted |
 | Browser | `e2e/run.mjs` (Playwright/Chromium) | player playback, chapter seek + highlight, theme-proof buttons, resume position, remembered speed, shared state between card and player, pause-others, AJAX-inserted players, mobile layout; Elementor editor rendering, re-render on control change, playback in the preview, episode picker; episode admin: audio box placement, drag-and-drop upload, chapters, show notes, validation notices, feed update; Elementor page with the sticky player; design presets, export and import |
 | | `e2e/admin.mjs` | Design screen (live preview, preset tiles and the confirm dialog, contrast badges, save, the unsaved-changes warning, the save bar clear of focused fields, keyboard and 390 px); episode editor (next number, paste chapters: add or replace, half-filled rows, the save buttons after autosave); episode list (column widths, Quick Edit) |
 | | `e2e/frontend.mjs` | share menu (keyboard, copy, position link, embed code, manual copy), timestamp links (`?t=` forms, the cue label), the embed card (320 and 600 px, height message, links), card buttons and the sticky bar, the video facade (no third-party request before play, focus), the sticky bar for lists and chapters, remote audio loading only on play, the design system on real pages (dark designs, Elementor Kit rules, row alignment) |
@@ -124,6 +126,51 @@ MEMORY_LIMIT=96M BUDGET_MB=32 …                       # other limits
 The per-request peak needs PHP 8.2+ (`memory_reset_peak_usage()`); on
 PHP 8.1 the memory budget is not checked, the rest is.
 
+## Feed, readiness and upgrade budgets
+
+`perf/run.sh` also measures the feed, the readiness report and the
+upgrade on synthetic catalogs (`perf/catalog.php` writes them with bulk
+SQL: 10,000 episodes in seconds; every 13th one WAV, every 17th one
+without audio; all named `perf-cat-*` and removed afterwards):
+
+```bash
+PERF_ONLY=feed WP_DIR=/tmp/epm-wp tests/perf/run.sh        # one section: import, feed, readiness, upgrade
+PERF_HEAVY=1 PERF_ONLY=feed WP_DIR=/tmp/epm-wp tests/perf/run.sh
+WP_DIR=/tmp/epm-wp /tmp/epm-wp/wp eval-file tests/perf/catalog-budget.php catalog 5000 40   # by hand
+WP_DIR=/tmp/epm-wp /tmp/epm-wp/wp eval-file tests/perf/catalog-budget.php feed 0 cold
+```
+
+## Production-like checks (nginx + php-fpm, MariaDB)
+
+`perf/production.sh` drives a separate MariaDB test site through nginx
+and php-fpm with the distribution's php.ini (128M), started and stopped
+by `perf/fpm.sh` (which links `perf/probe.php` as a must-use plugin that
+logs each labelled request's time and peak memory). It needs nginx and
+php-fpm, deletes episodes and must run on a site that holds no other
+episodes (do not seed it). Not part of `run-all.sh`; it takes several
+minutes:
+
+```bash
+WP_DB=mysql DB_NAME=epm_perf DB_USER=epm DB_PASSWORD=epm DB_HOST=127.0.0.1 \
+  WP_DIR=/tmp/epm-wp-fpm WP_PORT=8963 tests/bin/setup-wp.sh
+WP_DIR=/tmp/epm-wp-fpm WP_PORT=8963 tests/perf/production.sh          # upgrade, feed, move
+WP_DIR=/tmp/epm-wp-fpm WP_PORT=8963 tests/perf/production.sh feed     # one section
+```
+
+- **upgrade:** 1,000 episodes with 40 KB transcripts, an older
+  `epm_version` written with SQL (an update without WordPress loading):
+  three rounds of `/`, `/podcast/feed/`, `/wp-login.php` and `/wp-admin/`
+  answer 200, the first request stores the new version, the queued
+  batches finish.
+- **feed:** 5,000 and 10,000 episodes and 1,000 with 40 KB transcripts:
+  limits 20, 500 and 0 cold, warm and conditional: 200, well-formed,
+  every item, at most `FEED_BUDGET_MB` (64) for the whole request, 304 in
+  under `NOT_MODIFIED_MS` (300).
+- **move:** "Move my podcast here" of a generated 5,000-episode feed
+  (`https://feeds.example.test/generated/5000.xml`) through the import
+  screen's AJAX requests; afterwards the feed (now unlimited) answers 200
+  with every episode, again from the cache, and 304.
+
 ## Running suites individually
 
 ```bash
@@ -169,6 +216,7 @@ is `production`. It serves:
 | `https://feeds.example.test/negative/<name>.html` | a bot-protection page with the HTTP status in the file name (`…-http403.html` answers 403) |
 | `https://feeds.example.test/media/<name>.mp3` / `.m4a` | a generated 5-second silent MP3 |
 | `https://feeds.example.test/media/<name>.png`, `<name>-<w>x<h>.png` | a generated square PNG (1400 px) or the given size |
+| `https://feeds.example.test/generated/<n>.xml` | a generated show of `n` episodes (at most 20,000; GUIDs `gen-1` …) for catalog-size tests |
 | `https://show.example.test/…` | web pages that link to a feed |
 | `https://itunes.apple.com/lookup?id=…` | Apple's lookup API for the test IDs (`1000000001` → the locked show) |
 | `https://op3.dev/e/feeds.example.test/…` | the URL after a measurement prefix |

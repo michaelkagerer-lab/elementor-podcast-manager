@@ -67,9 +67,39 @@ feeds can never redirect to each other.
 ## 2. Hosting on this website
 
 The plugin publishes the feed at `https://your-site/podcast/feed/`. With
-plain permalinks the address is `https://your-site/?epm_podcast_feed=1`.
-The address does not depend on the theme, and the show's
-`<podcast:guid>` is stored once and never changes.
+plain permalinks the address is `https://your-site/?epm_podcast_feed=1`;
+`/podcast/feed/` keeps serving the feed there wherever the web server
+passes that address to WordPress (nginx with `try_files`, not Apache
+without rewrite rules). The address does not depend on the theme, and the
+show's `<podcast:guid>` is stored once and never changes. When the
+address changes after the Distribution screen showed it for submission
+(the permalink setting, the site address), the Distribution screen, the
+dashboard, the Permalinks screen and the readiness report say so.
+
+The feed is built a page of episodes at a time and cached in pieces in
+the database, so its memory does not grow with the catalog: with a
+stock 128M PHP limit (nginx + php-fpm), the unlimited feed of 10,000
+episodes built within 7 MB of the request in our measurements, and a
+conditional request (`If-None-Match`/`If-Modified-Since`, answered with
+304) reads a few hundred bytes. A cold build takes time with the size of
+the feed (about 2.4 s for 5,000 episodes, 7.6 s for 14,000 on that
+server); later requests are served from the cache until something
+changes.
+
+### Moving from PowerPress or Seriously Simple Podcasting on this site
+
+These plugins published the feed at `https://your-site/feed/podcast/`
+(also `?feed=podcast`). After importing the show (Hosting & import →
+*Check feed* with that address while the old plugin is still active, or
+`wp podcast import https://your-site/feed/podcast/ --move`), deactivate
+the old plugin and turn on **Podcast settings → Feed status → Previous
+feed address** (the setup assistant offers it when the old plugin left
+its settings): the old address then answers with a permanent redirect
+(301) to `/podcast/feed/`, the way directories expect a moved feed. Keep
+it on; Apple asks for at least four weeks. (The import reads those
+plugins' feeds like any other; the test fixtures include real PowerPress
+and Seriously Simple Podcasting feeds, but the plugins themselves were not
+installed for the tests. The redirect is tested.)
 
 ### Server requirements
 
@@ -105,11 +135,15 @@ plugin. Check these points with your hosting company:
 
 **Podcast → Distribution → Test feed and audio delivery** checks these
 points from the server: the feed answers with HTTP 200 and RSS, the feed
-address uses HTTPS, the newest episode's audio answers a `HEAD` request
-with 200, a `Content-Length` and an audio or video type, and a byte-range
-request with `206`. The requests come from the site's own server, so a
-firewall or CDN rule that treats outside visitors differently is not
-covered; check from outside with `curl` as well.
+address uses HTTPS, and the audio of the first episode in the feed, at
+the address the feed gives (with the download-statistics prefix, its
+redirects followed), answers a `HEAD` request with 200, a `Content-Length`
+that matches the feed's `length` and an audio or video type, and a
+request for its first two bytes with `206` and `Content-Range: bytes
+0-1/<size>`. The result names the episode and the address it tested. The
+requests come from the site's own server, so a firewall or CDN rule that
+treats outside visitors differently is not covered; check from outside
+with `curl` as well.
 
 ### Where the audio can live
 
@@ -515,7 +549,9 @@ the plugin:
 
 - sets *Feed episode limit* to 0 (unlimited) if the show has more
   published episodes than the limit, because an episode missing from the
-  new feed counts as removed on Spotify;
+  new feed counts as removed on Spotify (the feed is built page by page,
+  so an unlimited feed works for large shows: 5,000 moved episodes were
+  served with 7 MB under a 128M limit);
 - turns on *This show moved here from another host*, so the feed carries
   `<itunes:new-feed-url>` with its own address, as Apple asks of the new
   feed after a host change;
