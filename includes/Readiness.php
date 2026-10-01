@@ -47,20 +47,24 @@ final class Readiness {
 	 *
 	 * Every check has status, label and message. url / fix_label name the
 	 * screen where the problem is fixed: '' when there is none or the
-	 * current user cannot open it.
+	 * current user cannot open it. A check about several episodes lists
+	 * them in `items` (title, url of the editor; at most ten) and how many
+	 * more there are in `more`.
 	 *
-	 * @return array{ready: bool, errors: int, warnings: int, checks: array<int, array{status: string, label: string, message: string, url: string, fix_label: string}>}
+	 * @return array{ready: bool, errors: int, warnings: int, checks: array<int, array{status: string, label: string, message: string, url: string, fix_label: string, items: array<int, array{title: string, url: string}>, more: int}>}
 	 */
 	public static function report(): array {
 		$checks = [];
 
-		$add = function ( string $status, string $label, string $message, string $url = '', string $fix_label = '' ) use ( &$checks ) {
+		$add = function ( string $status, string $label, string $message, string $url = '', string $fix_label = '', array $items = [], int $more = 0 ) use ( &$checks ) {
 			$checks[] = [
 				'status'    => $status,
 				'label'     => $label,
 				'message'   => $message,
 				'url'       => $url,
 				'fix_label' => '' !== $url ? $fix_label : '',
+				'items'     => $items,
+				'more'      => $more,
 			];
 		};
 
@@ -194,8 +198,9 @@ final class Readiness {
 		Episodes::prime_attachments( $episodes );
 		$distributable = 0;
 		$seen_urls     = [];
-		$left_at_host  = 0;
-		$moved_in      = ! empty( epm()->settings->get( 'moved_in' ) );
+		// After a move (or one that is not finished): what still loads
+		// from the old host, per kind.
+		$old_host = ! empty( epm()->settings->get( 'moved_in' ) ) || ImportJob::move_unfinished() ? self::old_host( $episodes ) : [];
 
 		foreach ( $episodes as $post ) {
 			$data = epm()->episodes->get_public_data( $post );
@@ -206,10 +211,6 @@ final class Readiness {
 			$audio_id  = (int) $data['audio_id'];
 			$external  = $audio_id <= 0 && 'external' === ( $data['audio_source'] ?? '' );
 			$edit_url  = (string) get_edit_post_link( $post->ID, 'raw' );
-
-			if ( $external && $moved_in && 'import' === get_post_meta( $post->ID, Episodes::META_PREFIX . 'source', true ) ) {
-				++$left_at_host;
-			}
 			$edit_text = __( 'Edit episode', 'elementor-podcast-manager' );
 
 			if ( $audio_id <= 0 && ! $external ) {
@@ -287,19 +288,7 @@ final class Readiness {
 			$distributable++;
 		}
 
-		if ( $left_at_host > 0 ) {
-			$add(
-				'warning',
-				__( 'Audio at the old host', 'elementor-podcast-manager' ),
-				sprintf(
-					/* translators: %s: number of episodes */
-					_n( 'The audio of %s episode still loads from the old host. Copy it before closing that account.', 'The audio of %s episodes still loads from the old host. Copy it before closing that account.', $left_at_host, 'elementor-podcast-manager' ),
-					number_format_i18n( $left_at_host )
-				),
-				self::admin_page_url( 'epm-hosting' ),
-				__( 'Import with “Copy audio”', 'elementor-podcast-manager' )
-			);
-		}
+		self::old_host_checks( $add, $old_host );
 
 		if ( 0 === $distributable ) {
 			$add( 'error', __( 'Distributable episodes', 'elementor-podcast-manager' ), __( 'Publish at least one episode with MP3 or M4A audio. Directories reject empty feeds.', 'elementor-podcast-manager' ), admin_url( 'post-new.php?post_type=' . EpisodePostType::CPT ), __( 'Add an episode', 'elementor-podcast-manager' ) );
@@ -375,7 +364,95 @@ final class Readiness {
 			$add( 'ok', __( 'Episodes', 'elementor-podcast-manager' ), sprintf( _n( '%s published episode', '%s published episodes', $count, 'elementor-podcast-manager' ), number_format_i18n( $count ) ) );
 		}
 
+		// A move into this site that is not finished yet.
+		if ( ImportJob::move_unfinished() ) {
+			self::old_host_checks( $add, self::old_host( epm()->episodes->get_episodes( [ 'posts_per_page' => -1 ] ) ) );
+		}
+
 		return $checks;
+	}
+
+	/**
+	 * Episodes with addresses that still point to the host they were
+	 * imported from, per kind (see Importer::old_host_references()).
+	 *
+	 * @param \WP_Post[] $episodes Episodes.
+	 * @return array<string, array{count: int, items: array<int, array{title: string, url: string}>}>
+	 */
+	private static function old_host( array $episodes ): array {
+		$out = [];
+		foreach ( $episodes as $post ) {
+			foreach ( Importer::old_host_references( (int) $post->ID ) as $kind => $url ) {
+				$out[ $kind ]['count'] = (int) ( $out[ $kind ]['count'] ?? 0 ) + 1;
+				if ( count( (array) ( $out[ $kind ]['items'] ?? [] ) ) < 10 ) {
+					$out[ $kind ]['items'][] = [
+						'title' => html_entity_decode( get_the_title( $post ), ENT_QUOTES, 'UTF-8' ),
+						'url'   => (string) get_edit_post_link( $post->ID, 'raw' ),
+					];
+				}
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * One warning per kind of file that still loads from the old host,
+	 * listing the episodes; and, while a move is not finished, a warning
+	 * that says so.
+	 *
+	 * @param callable                                                                                $add      Adds a check.
+	 * @param array<string, array{count: int, items: array<int, array{title: string, url: string}>}> $old_host From old_host().
+	 * @return void
+	 */
+	private static function old_host_checks( callable $add, array $old_host ): void {
+		$hosting = self::admin_page_url( 'epm-hosting' );
+
+		if ( ImportJob::move_unfinished() ) {
+			$add(
+				'warning',
+				__( 'Move to this website', 'elementor-podcast-manager' ),
+				__( 'The move is not finished: files listed here still load from the old host. Copy them again, or finish the move knowing they stay there.', 'elementor-podcast-manager' ),
+				$hosting,
+				__( 'Open Hosting & import', 'elementor-podcast-manager' )
+			);
+		}
+
+		foreach ( [ 'audio', 'image', 'transcript_file', 'transcript_link' ] as $kind ) {
+			$count = (int) ( $old_host[ $kind ]['count'] ?? 0 );
+			if ( $count <= 0 ) {
+				continue;
+			}
+			$number = number_format_i18n( $count );
+			$items  = (array) ( $old_host[ $kind ]['items'] ?? [] );
+			$more   = max( 0, $count - count( $items ) );
+			$copy   = __( 'Import with “Copy audio”', 'elementor-podcast-manager' );
+
+			switch ( $kind ) {
+				case 'audio':
+					$label   = __( 'Audio at the old host', 'elementor-podcast-manager' );
+					/* translators: %s: number of episodes */
+					$message = sprintf( _n( 'The audio of %s episode still loads from the old host. Copy it before closing that account.', 'The audio of %s episodes still loads from the old host. Copy it before closing that account.', $count, 'elementor-podcast-manager' ), $number );
+					break;
+				case 'image':
+					$label   = __( 'Episode images at the old host', 'elementor-podcast-manager' );
+					/* translators: %s: number of episodes */
+					$message = sprintf( _n( 'The image of %s episode still loads from the old host. Copy it before closing that account.', 'The images of %s episodes still load from the old host. Copy them before closing that account.', $count, 'elementor-podcast-manager' ), $number );
+					break;
+				case 'transcript_file':
+					$label   = __( 'Transcript files at the old host', 'elementor-podcast-manager' );
+					/* translators: %s: number of episodes */
+					$message = sprintf( _n( 'The WebVTT/SRT transcript file of %s episode is still linked at the old host; podcast apps lose its captions when that account is closed. Copy it before closing that account.', 'The WebVTT/SRT transcript files of %s episodes are still linked at the old host; podcast apps lose their captions when that account is closed. Copy them before closing that account.', $count, 'elementor-podcast-manager' ), $number );
+					break;
+				default:
+					$label   = __( 'Transcripts linked at the old host', 'elementor-podcast-manager' );
+					$copy    = '';
+					/* translators: %s: number of episodes */
+					$message = sprintf( _n( 'The transcript of %s episode is linked at the old host in a format that is not copied (such as JSON). Its text is on this site; replace or remove the link before closing that account.', 'The transcripts of %s episodes are linked at the old host in a format that is not copied (such as JSON). Their text is on this site; replace or remove the links before closing that account.', $count, 'elementor-podcast-manager' ), $number );
+			}
+
+			$add( 'warning', $label, $message, '' !== $copy ? $hosting : '', $copy, $items, $more );
+		}
 	}
 
 	/**
@@ -503,6 +580,31 @@ final class Readiness {
 	}
 
 	/**
+	 * The episodes a check is about, linked to their editor.
+	 *
+	 * @param array<int, array{title: string, url: string}> $items Episodes.
+	 * @param int                                           $more  Episodes not listed.
+	 * @return string
+	 */
+	private static function render_episodes( array $items, int $more ): string {
+		if ( empty( $items ) ) {
+			return '';
+		}
+
+		$out = '<ul class="epm-checklist__episodes">';
+		foreach ( $items as $item ) {
+			$title = '' !== (string) $item['title'] ? (string) $item['title'] : __( '(no title)', 'elementor-podcast-manager' );
+			$out  .= '<li>' . ( '' !== (string) $item['url'] ? '<a href="' . esc_url( (string) $item['url'] ) . '">' . esc_html( $title ) . '</a>' : esc_html( $title ) ) . '</li>';
+		}
+		if ( $more > 0 ) {
+			/* translators: %s: number of episodes */
+			$out .= '<li>' . esc_html( sprintf( _n( 'and %s more', 'and %s more', $more, 'elementor-podcast-manager' ), number_format_i18n( $more ) ) ) . '</li>';
+		}
+
+		return $out . '</ul>';
+	}
+
+	/**
 	 * Checklist items.
 	 *
 	 * @param array<int, array<string, string>> $checks Checks.
@@ -534,7 +636,9 @@ final class Readiness {
 			if ( '' !== $url && '' !== $label ) {
 				$out .= ' <a class="epm-readiness__fix" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '<span class="screen-reader-text">: ' . esc_html( (string) $check['label'] ) . '</span></a>';
 			}
-			$out .= '</p></li>';
+			$out .= '</p>';
+			$out .= self::render_episodes( (array) ( $check['items'] ?? [] ), (int) ( $check['more'] ?? 0 ) );
+			$out .= '</li>';
 		}
 
 		return $out;
