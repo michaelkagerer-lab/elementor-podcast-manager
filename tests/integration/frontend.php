@@ -521,6 +521,8 @@ $t->test(
 $t->test(
 	'dark designs give standalone sections the design background and padding',
 	static function ( EPM_Test_Runner $t ) {
+		// Tokens are printed only where podcast styles are used (WID-N9).
+		\EPM\Assets::mark_player_used();
 		$tokens = static function ( string $preset ): string {
 			$values = array_merge( DesignSettings::defaults(), (array) ( epm()->presets->get( $preset )['tokens'] ?? [] ) );
 			$filter = static function () use ( $values ) {
