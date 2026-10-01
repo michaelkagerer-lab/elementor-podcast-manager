@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
 # Provision a disposable WordPress + Elementor site and run every suite:
-# lint, integration (WP-CLI), two-process races, the import budget, HTTP
-# and browser (Playwright) tests.
+# lint, integration (WP-CLI), two-process races, the import budget, media
+# downloads over real sockets, HTTP and browser (Playwright) tests.
 #
 # Suites are discovered, so a new file is picked up without editing this
 # script:
@@ -72,6 +72,10 @@ WP_CLI="$WP_CLI" "$ROOT/tests/concurrency/run.sh" || FAILED+=("concurrency/run.s
 
 echo; echo "== Import budget (memory and time per request)"
 WP_DIR="$WP_DIR" "$ROOT/tests/perf/run.sh" || FAILED+=("perf/run.sh")
+
+echo; echo "== Media downloads (local media host, real sockets)"
+seed
+WP_DIR="$WP_DIR" WP_CLI="$WP_CLI" "$ROOT/tests/media/run.sh" || FAILED+=("media/run.sh")
 
 echo; echo "== HTTP tests"
 seed

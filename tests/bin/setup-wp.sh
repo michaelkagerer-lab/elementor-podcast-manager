@@ -162,6 +162,9 @@ ln -sfn "$PLUGIN_DIR" "$SITE/wp-content/plugins/elementor-podcast-manager"
 # imports and syncs run offline. Installed on this disposable site only.
 mkdir -p "$SITE/wp-content/mu-plugins"
 ln -sfn "$PLUGIN_DIR/tests/fixtures/mu-plugins/epm-test-http.php" "$SITE/wp-content/mu-plugins/epm-test-http.php"
+# Test-only: lets the media suite (tests/media/) reach its local media host,
+# one loopback port named in EPM_TEST_MEDIA_ORIGIN; inactive without it.
+ln -sfn "$PLUGIN_DIR/tests/fixtures/mu-plugins/epm-test-loopback.php" "$SITE/wp-content/mu-plugins/epm-test-loopback.php"
 
 "$WP" rewrite structure '/%postname%/' --hard --quiet
 "$WP" rewrite flush --hard --quiet
