@@ -43,9 +43,11 @@ export const assert = (condition, message) => {
 	}
 };
 
-export const launch = () =>
+/** Chromium; args are extra command-line switches. */
+export const launch = (args = []) =>
 	chromium.launch({
 		headless: true,
+		args,
 		...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}),
 	});
 
