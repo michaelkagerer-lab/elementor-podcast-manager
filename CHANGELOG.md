@@ -1,5 +1,74 @@
 # Changelog
 
+## Unreleased
+
+Player and sticky bar fixes from the 1.3.0 audit (PLAY-01..03,
+PLAY-N1..N11, WID-N5). Regression suite: `tests/e2e/player.mjs`.
+
+### Changed
+- The sticky bar honors a player's *Enable Sticky Player* option on every
+  page. Players, list play buttons and chapter lists say whether playback
+  started there opens the bar (`data-epm-sticky-player`; lists and
+  chapters follow `epm_sticky_player_for_lists`, chapters inside a player
+  follow the player). Before, any playback opened the bar as soon as a
+  list or chapter list on the page had printed it. An open bar that
+  shows the playing episode stays; when a player without the option
+  starts another episode, an open bar closes. The Latest Episode
+  widget's player has no sticky option and no longer opens the bar.
+- One volume for the page: every player's slider and every episode
+  follow it, including changes made outside the player; raising it
+  unmutes. It is spoken as a percentage. Where the device owns the
+  volume (iOS), the slider is hidden.
+- The preferred speed applies to every episode on the page as soon as it
+  is chosen (it was stored, but only new controllers read it).
+- A `?t=` value at or past the episode's end, or beyond 24 hours, is
+  ignored (playback starts at 0, no "Starts at" hint) instead of jumping
+  to the last second.
+
+### Fixed
+- Elementor: the per-widget hooks were registered without the skin
+  suffix (`frontend/element_ready/epm-podcast-player` instead of
+  `….default`) and never ran; every widget in the editor was initialized
+  by the MutationObserver fallback alone. One
+  `frontend/element_ready/widget` handler now initializes podcast widgets
+  (any skin) and podcast markup in any widget; the observer stays as the
+  fallback for markup other code inserts.
+- Copies of bound markup (Swiper loop slides in carousels, as bundled
+  with Elementor) carried the "bound" flags and stayed dead; bindings are
+  now kept in memory, so copies get bound.
+- A player re-rendered after the episode's audio was replaced (or a
+  broken file fixed) played the old file, Retry reloaded the old file,
+  and title, sticky bar and lock screen stayed stale. The newest render's
+  file now takes over; title, artwork and duration follow.
+- Re-rendering the player whose audio was playing (any control change in
+  the Elementor editor) stopped playback. The playing element no longer
+  lives inside a player's markup; the same file keeps playing across
+  re-renders.
+- Views of removed markup piled up until the next playback event, and
+  controllers were never released; both are released now. An episode
+  whose last view (and sticky bar) is gone is paused instead of playing
+  on where nobody can stop it.
+- Playback started from a chapter list had no artwork in the sticky bar
+  and on the lock screen (the chapter list now carries artwork and
+  duration).
+- Opening a `?t=` link, or seeking before the first press, overwrote the
+  position the visitor had stopped at.
+- The lock screen's elapsed time was not updated after seeks.
+- ArrowUp/ArrowDown on the seek sliders scrolled the page instead of
+  seeking (WAI-ARIA slider pattern).
+- The sticky bar ignored the left and right safe-area insets (landscape
+  phones with a notch).
+- A sticky shell that appeared after the first scan (AJAX, or the sticky
+  option turned on in the Elementor editor) was never used; the editor
+  preview now always has the (hidden) shell.
+- Touch: the seek and volume sliders take touches across 28px (the
+  visible tracks are unchanged).
+
+### Corrected
+- The 1.1.0 and 1.2.0 entries below claimed a working per-widget
+  Elementor initialization; the hooks never fired before this release
+  (see *Fixed*).
+
 ## 1.3.0 — 2026-09-30
 
 Hosting and design-system release. The plugin can host a show on the
@@ -404,7 +473,10 @@ way. `docs/VERIFICATION-1.2.0.md` lists what was tested and how.
 - Theme button styles (Hello Elementor, Twenty Twenty-One) restyled the
   player buttons.
 - Player JS registered its Elementor hooks before Elementor's frontend
-  existed; players inserted later were not initialized.
+  existed; players inserted later were not initialized. *(Correction: the
+  hooks still lacked the skin suffix and never ran; players inserted
+  later were initialized by the MutationObserver fallback. Fixed in
+  Unreleased.)*
 - "Latest episode" could pick an episode without audio.
 - "Current episode" ignored the loop (Loop Grid items all showed the
   page's episode).
@@ -468,8 +540,10 @@ Code-review repair release. All 18 review findings addressed; see
   non-password episodes; authorized editor preview; password-protected posts
   excluded from public distribution.
 - Player engine: one `PlaybackController` contract for full/card/row/sticky;
-  episode-scoped shared state; idempotent per-widget Elementor init;
-  chapters bound to their episode; sticky follows the active audio.
+  episode-scoped shared state; idempotent per-widget Elementor init
+  *(correction: the per-widget hooks never ran; initialization came from
+  the MutationObserver; fixed in Unreleased)*; chapters bound to their
+  episode; sticky follows the active audio.
 - CSS tokens: self-referential variables removed; single `:root` source;
   documented precedence; genuine inherit state; on-accent token.
 - Elementor: duplicate `style_source` control IDs removed; full control

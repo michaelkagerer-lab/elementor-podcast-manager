@@ -10,10 +10,18 @@
 > - keyboard seeking and aria-valuenow updates (F15 #20)
 > - the narrow-width layout (F15 #26)
 >
-> Still manual: duplicate-listener checks (F4 #1, #3–4), natural end
-> (F7 #11), chapters of a second episode (F8 #12), asset loading per page
-> type (F14), screen readers, error/retry and fallback (F15 #21–24) and
-> touch input (F15 #25).
+> `tests/e2e/player.mjs` (Unreleased) adds: initialization through
+> Elementor's hooks alone and together with the MutationObserver in the
+> real editor (insert, switch episode, duplicate, delete, undo/redo,
+> re-renders), one listener per control and one click = one playback
+> (F4 #1–4), cloned DOM (Swiper loop copies), source changes and
+> re-renders (F17), volume and touch targets (F18), speed, resume and
+> timestamp links, Media Session position, slider keys (F15 #20), and
+> the sticky bar (F19).
+>
+> Still manual: natural end (F7 #11), chapters of a second episode
+> (F8 #12), asset loading per page type (F14), screen readers, the
+> fallback (F15 #24), and everything in F17–F19 marked *device*.
 >
 > The list stays useful for manual checks on real devices and screen
 > readers, which the automated suites do not replace.
@@ -24,12 +32,14 @@ Scope: `assets/js/epm-player.js`, `assets/css/epm-frontend.css`,
 
 ## F4 — Idempotent initialization
 
-1. Load a page with a Podcast Player. In devtools, run the equivalent of
-   `init(document)` three times (e.g. re-dispatch the init path via the
-   Elementor hook). Click play once → audio must start exactly once;
-   `document.querySelectorAll('[data-epm-player]')` — each root must carry
-   `data-epm-initialized="1"` exactly once and have exactly one click
-   listener on its play button (verify via getEventListeners in Chrome).
+1. Load a page with a Podcast Player. In devtools, run
+   `epmPlayerEngine.init(document)` three times and Elementor's
+   `elementorFrontend.elementsHandler.runReadyTrigger(widget)` for the
+   widget. Click play once → audio must start exactly once; each play
+   button has exactly one click listener (getEventListeners in Chrome).
+   `data-epm-initialized="1"` is only a debugging marker: bindings are
+   kept in memory, so a copied element (a carousel's loop slide) carries
+   the attribute but is bound on its own.
 2. In the Elementor editor, add a Podcast Player widget, then edit any
    control so the widget re-renders 3×. Click play → exactly one action per
    click (no double-play, no overlapping audio).
@@ -47,7 +57,7 @@ Scope: `assets/js/epm-player.js`, `assets/css/epm-frontend.css`,
    Both represent one audio element.
 6. Duplicate cards for the same episode in one list. Click card A → card A
    AND card B both switch to pause state/label (class `is-playing`,
-   `aria-pressed="true"`, label "Pause {title}").
+   label "Pause {title}"; no `aria-pressed`, the label is the state).
 7. Play episode A (card), then play episode B (full player). A pauses and
    keeps its position; B starts. Return to A → resumes from kept position,
    not from 0.
@@ -89,13 +99,15 @@ Scope: `assets/js/epm-player.js`, `assets/css/epm-frontend.css`,
 
 ## F15 — Accessibility and error states
 
-20. Keyboard: focus the timeline slider → ArrowLeft/Right seek ∓5s,
-    Home/End jump to start/end; `aria-valuenow` and the time text update on
-    every change; the visible handle (`[data-epm-handle]`) moves with
-    playback and seeking.
+20. Keyboard: focus the timeline slider → ArrowLeft/ArrowDown −5 s,
+    ArrowRight/ArrowUp +5 s (the page does not scroll), Home/End jump to
+    start/end; `aria-valuenow` and the time text update on every change;
+    the visible handle (`[data-epm-handle]`) moves with playback and
+    seeking.
 21. Screen reader: play/pause toggles announce via updated `aria-label`;
     speed change announces "Playback speed: 1.5×" via the polite live
-    region; card buttons expose `aria-pressed` and correct labels.
+    region (once per change); card buttons are named "Play/Pause/Retry
+    {title}" without `aria-pressed`; the volume slider reads "70%".
 22. Simulate a media error (point `data-epm-src` at a 404): an inline error
     message with a Retry button appears (`role="alert"`); Retry re-attempts
     playback.
@@ -122,6 +134,46 @@ Scope: `assets/js/epm-player.js`, `assets/css/epm-frontend.css`,
     check text without links to inaccessible settings.
 30. `[podcast_latest_cta]` renders a link and enqueues the stylesheet without
     enqueuing `epm-player`; player and episode-list shortcodes enqueue it.
+
+## F17 — Source changes and re-renders
+
+31. Elementor editor: play a Podcast Player, change any of its controls →
+    playback continues and the re-rendered widget shows it.
+32. Replace the episode's audio file in WordPress while the editor is
+    open, then change a control of the widget → the next play uses the
+    new file; title and duration follow; the sticky bar and the lock
+    screen show the new title.
+33. Break the episode's file (404), press play (error), fix it and
+    re-render → play works and every view (player, cards, sticky bar)
+    leaves the error state.
+34. Delete every widget of a playing episode on a page without a sticky
+    bar → playback stops; with the sticky bar open → it keeps playing in
+    the bar.
+35. *Device / Elementor Pro:* a Loop Carousel with looping, and a Popup
+    with a player closed and reopened → every copy plays, one click = one
+    playback.
+
+## F18 — Volume and touch
+
+36. Two players of one episode: move one volume slider (keyboard,
+    pointer) → the other follows; a screen reader reads "70%".
+37. Mute the audio from the browser (or set it from devtools) → both
+    sliders show 0; moving a slider unmutes.
+38. *Device:* on an iPhone or iPad the volume slider is hidden and the
+    device buttons set the volume.
+39. *Device:* on a phone, the seek and volume sliders are easy to hit
+    (28px touch band), dragging the timeline does not scroll the page.
+
+## F19 — Sticky bar
+
+40. A player with *Enable Sticky Player* off next to an episode list:
+    playing the player leaves the bar closed; playing from the list opens
+    it; starting the player again closes it.
+41. Turn *Enable Sticky Player* on in the Elementor editor on a page
+    without any sticky player → playing shows the bar in the preview.
+42. *Device:* landscape iPhone with a theme using `viewport-fit=cover`:
+    the bar's artwork and close button stay clear of the notch and the
+    rounded corners; the bottom stays above the home indicator.
 
 ## Asset lifecycle notes for the verifier
 

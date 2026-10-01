@@ -1,3 +1,34 @@
+# Migration notes — Unreleased (player and sticky bar)
+
+Nothing to do for existing sites. Behavior changes to review:
+
+- **Sticky bar.** A player with *Enable Sticky Player* off no longer opens
+  the bar, even when an episode list or chapter list on the page printed
+  it; the Latest Episode widget's player (no sticky option) does not open
+  it either. Turn the option on where the bar is wanted. Lists and
+  chapter lists open it as before (`epm_sticky_player_for_lists`).
+- **Speed and volume** are page-wide: changing them on one player changes
+  every player on the page. On iOS the volume slider is hidden (the
+  device buttons set the volume there).
+- **Timestamp links** at or past the episode's end, or beyond 24 hours,
+  are ignored (playback starts at 0).
+
+For integrations working with the player markup:
+
+- Once bound, a player's `<audio>` element is no longer inside
+  `[data-epm-player]`: the engine keeps the element it plays outside the
+  player (re-rendering the player must not stop it) and empties other
+  copies. Read it with
+  `window.epmPlayerEngine.getController( id ).audio`.
+- The `data-epm-card-bound`, `data-epm-chapters-bound`,
+  `data-epm-share-bound` and `data-epm-video-bound` attributes are gone;
+  bindings are kept in memory. `data-epm-initialized` stays on players as
+  a debugging marker only (copied markup carries it but is bound anyway).
+- New attribute `data-epm-sticky-player="1|0"` on players, card/row play
+  buttons and chapter lists: whether playback started there opens the
+  sticky bar. Custom markup without it keeps opening the bar.
+- The chapter list carries `data-epm-artwork` and `data-epm-duration`.
+
 # Migration notes — 1.2.0 → 1.3.0
 
 ## Nothing to do for existing sites

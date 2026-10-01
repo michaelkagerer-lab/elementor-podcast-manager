@@ -252,15 +252,15 @@ Episode components default to the current episode (the loop's episode or the epi
 ## Player
 
 - **One engine:** `Renderer::player()` + `assets/js/epm-player.js`. The five layouts (Minimal, Compact, Editorial, Artwork, Full) are configurations of it.
-- **Shared playback:** one `PlaybackController` per episode is shared by the full player, card/row buttons, chapters and the sticky bar. Starting an episode pauses the others (and any video started from a facade).
-- **Sticky mini player:** docked to the bottom edge, hidden until something plays. Requested by players with *sticky*, by the automatic episode page, and by list play buttons and chapter lists (`epm_sticky_player_for_lists`). While it is open the page reserves its height, so it never covers the last content or the focused element.
-- **Keyboard and screen readers:** arrows ±5 s, PageUp/PageDown ±30 s, Home/End; live speed announcements; list play buttons keep their width while their label switches between Play, Pause and Retry.
+- **Shared playback:** one `PlaybackController` per episode is shared by the full player, card/row buttons, chapters and the sticky bar. Starting an episode pauses the others (and any video started from a facade). When a re-render brings another audio file for the episode (the file was replaced or fixed), that file takes over; the same file keeps playing across re-renders, including Elementor editor control changes. Speed and volume belong to the visitor and apply to every player on the page; where the device owns the volume (iOS), the volume slider is hidden.
+- **Sticky mini player:** docked to the bottom edge, hidden until something plays. Its shell is printed for players with *sticky*, the automatic episode page, and list play buttons and chapter lists (`epm_sticky_player_for_lists`); it opens only for playback started from one of those (a player with *sticky* off never opens it, even next to a list). While it is open the page reserves its height, so it never covers the last content or the focused element; it respects the safe areas of notched phones.
+- **Keyboard and screen readers:** Right/Up +5 s, Left/Down −5 s, PageUp/PageDown ±30 s, Home/End; the volume is read as a percentage; live speed announcements; list play buttons keep their width while their label switches between Play, Pause and Retry.
 - **Error handling:** an error + retry state, and a native-audio fallback.
 - **Lock-screen controls** via the Media Session API.
 - **Remembers per visitor** (browser storage) the resume position per episode and the preferred speed. Disable resume with `add_filter( 'epm_player_resume', '__return_false' )`.
 - **Theme-proof buttons:** player buttons use ID-level specificity (`:not(#epm)`), so theme button styles (Hello Elementor, Twenty Twenty-One…) cannot restyle them; titles and links resist Elementor Kit heading and link rules. Elementor controls stay effective because they set `--epm-play-*` variables.
 - **Narrow players** (phones, narrow columns) put the timeline on its own row (container query).
-- **Initializes content inserted later** (Elementor editor, AJAX "load more", popups). Integrations can call `window.epmPlayerEngine.init(element)`.
+- **Initializes content inserted later:** Elementor widgets through Elementor's `frontend/element_ready/widget` hook (editor, popups, loops), everything else (AJAX "load more", other builders) through a MutationObserver; copies of bound markup (carousel loop slides) are bound too. Integrations can call `window.epmPlayerEngine.init(element)`.
 
 ## Global Podcast Styles & presets
 
@@ -435,7 +435,7 @@ JavaScript: `window.epmPlayerEngine.init(element)` initializes players, buttons,
 | | `tests/integration/admin.php` | topics, menu, list columns, next number, transcript files, Quick/Bulk Edit, design export/import, Design screen tokens and contrast |
 | | `tests/integration/frontend.php` | timestamp links, share menu, embeds, video facade, topic filters, audio preloading, sticky player for lists, dark designs |
 | HTTP | `tests/http/run.sh` | feed URLs, conditional GET, endpoints, pages, REST, byte ranges, the external-mode redirect |
-| Browser (Playwright) | `tests/e2e/run.mjs`, `setup.mjs`, `admin.mjs`, `frontend.mjs` | player, Elementor editor, episode admin, setup assistant, Hosting & import, Distribution, Design screen, editor speed-ups, share menu, embeds, video, sticky bar, design on real pages |
+| Browser (Playwright) | `tests/e2e/run.mjs`, `setup.mjs`, `admin.mjs`, `frontend.mjs`, `player.mjs` | player, Elementor editor, episode admin, setup assistant, Hosting & import, Distribution, Design screen, editor speed-ups, share menu, embeds, video, sticky bar, design on real pages |
 
 It fails on any PHP notice from the plugin. CI runs lint on PHP 8.1–8.4, the integration and HTTP suites on PHP 8.1 and 8.4, and the browser suites. See [tests/README.md](tests/README.md) for exactly what each suite covers, and [docs/VERIFICATION-1.3.0.md](docs/VERIFICATION-1.3.0.md) for the latest results.
 
