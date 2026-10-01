@@ -836,6 +836,17 @@
 	/* ---------- step 4: show details ---------- */
 
 	var showForm = $( '[data-step-form="show"]' );
+	var savedShow = showForm ? JSON.stringify( formValues( showForm ) ) : '';
+	if ( showForm ) {
+		showForm.addEventListener( 'input', function ( event ) {
+			var field = event.target;
+			if ( field.name === 'title' && field.value.trim() ) {
+				fieldError( showForm, 'title', false );
+			} else if ( field.name === 'owner_email' && ( ! field.value.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test( field.value.trim() ) ) ) {
+				fieldError( showForm, 'owner_email', false );
+			}
+		} );
+	}
 
 	function fieldError( form, name, show ) {
 		var field = form.querySelector( '[name="' + name + '"]' );
@@ -855,7 +866,7 @@
 
 	function saveShow( form ) {
 		var values = formValues( form );
-		var emailInvalid = !! values.owner_email && ! /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test( values.owner_email.trim() );
+		var emailInvalid = !! values.owner_email.trim() && ! /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test( values.owner_email.trim() );
 
 		// Every error is shown; focus goes to the first field to fix.
 		var titleField = fieldError( form, 'title', ! values.title.trim() );
@@ -880,6 +891,7 @@
 
 		request( 'epm_setup_save', { step: 'show', data: values } )
 			.then( function ( result ) {
+				savedShow = JSON.stringify( formValues( form ) );
 				renderArtworkChecks( result.artwork );
 				next();
 			} )
@@ -1146,9 +1158,9 @@
 	// Leaving during an import is fine (it continues in the background),
 	// but say so.
 	window.addEventListener( 'beforeunload', function ( event ) {
-		if ( state.stepping ) {
+		if ( state.stepping || ( showForm && JSON.stringify( formValues( showForm ) ) !== savedShow ) ) {
 			event.preventDefault();
-			event.returnValue = app.strings.leaveImport;
+			event.returnValue = state.stepping ? app.strings.leaveImport : __( 'Your show details have unsaved changes.', 'elementor-podcast-manager' );
 		}
 	} );
 
@@ -1164,6 +1176,14 @@
 	}
 
 	var job = app.job || {};
+	if ( ! requested ) {
+		requested = ( app.setup && app.setup.resume ) || '';
+		if ( requested === 'import' && ( job.status === 'done' || job.status === 'done_with_problems' ) ) {
+			requested = 'show';
+		} else if ( requested === 'import' && ! importResult.active( job ) ) {
+			requested = 'connect';
+		}
+	}
 	if ( importResult.active( job ) && state.path && state.path !== 'new' ) {
 		go( 'import', { noFocus: true } );
 		renderJob( job );
@@ -1172,7 +1192,7 @@
 		go( 'import', { noFocus: true } );
 		renderJob( job );
 	} else if ( requested && flow().indexOf( requested ) > -1 && requested !== 'import' ) {
-		go( requested, { noFocus: true } );
+		go( requested, { noFocus: requested === 'path' } );
 	} else {
 		go( 'path', { noFocus: true } );
 	}

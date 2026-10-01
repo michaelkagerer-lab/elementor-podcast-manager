@@ -709,18 +709,22 @@ final class Hosting {
 			$headers['If-Modified-Since'] = (string) $validators['last_modified'];
 		}
 
-		$response = wp_safe_remote_get(
+		$max_bytes = max( 1, (int) apply_filters( 'epm_feed_max_bytes', 50 * MB_IN_BYTES ) );
+		$response = SafeHttp::get(
 			$url,
 			[
 				'timeout'             => 30,
 				'redirection'         => 5,
 				'headers'             => $headers,
 				'user-agent'          => 'ElementorPodcastManager/' . EPM_VERSION . '; ' . home_url( '/' ),
-				'limit_response_size' => (int) apply_filters( 'epm_feed_max_bytes', 50 * MB_IN_BYTES ),
+				'limit_response_size' => $max_bytes + 1,
 			]
 		);
 
 		if ( is_wp_error( $response ) ) {
+			if ( 'epm_insecure_redirect' === $response->get_error_code() ) {
+				return $response;
+			}
 			return new \WP_Error(
 				'epm_feed_unreachable',
 				sprintf(
@@ -732,6 +736,13 @@ final class Hosting {
 		}
 
 		$status = (int) wp_remote_retrieve_response_code( $response );
+		if ( 200 === $status && SafeHttp::exceeds_limit( $response, $max_bytes ) ) {
+			return new \WP_Error(
+				'epm_feed_too_large',
+				/* translators: %s: response size limit in bytes */
+				sprintf( __( 'The feed exceeds the %s-byte size limit. Ask the host for a smaller or paged feed, or adjust epm_feed_max_bytes.', 'elementor-podcast-manager' ), number_format_i18n( $max_bytes ) )
+			);
+		}
 
 		// 202 and friends are not a feed (seen: bot-protection pages).
 		if ( 304 !== $status && 200 !== $status ) {
@@ -1006,7 +1017,7 @@ final class Hosting {
 				);
 				return $result;
 			}
-			if ( 200 === (int) $fetched['status'] && strlen( (string) $fetched['body'] ) >= (int) apply_filters( 'epm_feed_max_bytes', 50 * MB_IN_BYTES ) ) {
+			if ( 200 === (int) $fetched['status'] && strlen( (string) $fetched['body'] ) > (int) apply_filters( 'epm_feed_max_bytes', 50 * MB_IN_BYTES ) ) {
 				$result['message'] = __( 'The host feed exceeded the configured response size limit, so nothing was synchronized.', 'elementor-podcast-manager' );
 				self::update_state( [ 'last_run' => $now, 'status' => 'error', 'message' => $result['message'], 'failures' => (int) $state['failures'] + 1, 'retry_at' => $now + HOUR_IN_SECONDS ] );
 				return $result;
@@ -1088,7 +1099,6 @@ final class Hosting {
 			[ $unique ] = Importer::dedupe( $parsed['items'] );
 			$parsed['items'] = $unique;
 
-			$importer->prime();
 
 			$limit   = max( 1, (int) apply_filters( 'epm_sync_batch_limit', 25 ) );
 			$pending = false;
@@ -1113,6 +1123,12 @@ final class Hosting {
 					break;
 				}
 				$outcome = $importer->import_item( $item );
+				// Transcripts may be large. Keep only the current episode's
+				// metadata in this request, including skipped/failed outcomes.
+				if ( ! empty( $outcome['id'] ) ) {
+					wp_cache_delete( (int) $outcome['id'], 'posts' );
+					wp_cache_delete( (int) $outcome['id'], 'post_meta' );
+				}
 				if ( 'failed' === ( $outcome['action'] ?? '' ) ) {
 					$pending          = true;
 					$result['message'] = (string) ( $outcome['message'] ?? __( 'An episode could not be synchronized.', 'elementor-podcast-manager' ) );
@@ -1137,7 +1153,8 @@ final class Hosting {
 				return $result;
 			}
 
-			if ( ! $pending && ! empty( $items ) ) {
+			$paged = ! empty( $parsed['channel']['next'] );
+			if ( ! $pending && ! $paged && ! empty( $items ) ) {
 				if ( 'draft' === $settings['missing'] ) {
 					$result['drafted'] += $importer->draft_missing( $guids, self::oldest_date( $parsed['items'] ) );
 				}
@@ -1183,6 +1200,9 @@ final class Hosting {
 			}
 			if ( $pending ) {
 				$result['message'] .= ' ' . __( 'Some episodes could not be synchronized; the feed will be checked again.', 'elementor-podcast-manager' );
+			}
+			if ( $paged ) {
+				$result['message'] .= ' ' . __( 'Only the first page of this feed was checked. Re-import the feed to update older episodes. Episodes from other pages were kept.', 'elementor-podcast-manager' );
 			}
 			if ( $moved_here ) {
 				$result['message'] .= ' ' . __( 'Your host now sends podcast apps to this website’s feed, so hosting switched to “This website”: the feed here is no longer redirected and syncing stopped.', 'elementor-podcast-manager' );

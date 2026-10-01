@@ -1664,6 +1664,23 @@
 			this.root = root;
 
 			var self = this;
+			if (!this.focusBound) {
+				this.focusBound = true;
+				document.addEventListener('focusin', function (event) {
+					var target = event.target;
+					window.requestAnimationFrame(function () {
+						var bar = self.root;
+						if (!bar || bar.hidden || !bar.isConnected || bar.contains(target) || document.activeElement !== target || !target.getBoundingClientRect) {
+							return;
+						}
+						var rect = target.getBoundingClientRect();
+						var bounds = bar.getBoundingClientRect();
+						if (rect.bottom > bounds.top && rect.top < bounds.bottom && rect.right > bounds.left && rect.left < bounds.right) {
+							window.scrollBy(0, rect.bottom - bounds.top + 8);
+						}
+					});
+				});
+			}
 			var refs = {
 				play: root.querySelector('[data-epm-play]'),
 				speed: root.querySelector('[data-epm-speed]'),

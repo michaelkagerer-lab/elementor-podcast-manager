@@ -263,7 +263,7 @@ final class MediaDownload {
 			E_NOTICE | E_WARNING
 		);
 		try {
-			$response = wp_safe_remote_get(
+			$response = SafeHttp::get(
 				(string) $d['url'],
 				[
 					// The watch stops the transfer at the deadline; this is
@@ -362,6 +362,9 @@ final class MediaDownload {
 		}
 
 		// A broken connection: what arrived is kept for the next attempt.
+		if ( 'epm_insecure_redirect' === $error->get_error_code() ) {
+			return self::fail( $d, 'unsafe', $error->get_error_message() );
+		}
 		if ( ! ( $data && $written > 0 && self::keep( $d, $watch, $target, $written, $resume ) ) ) {
 			self::drop( $d, $target, $resume );
 		}

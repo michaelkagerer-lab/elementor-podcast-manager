@@ -1,3 +1,30 @@
+## 2026-10-01 additional audit repairs
+
+Local verification on the same marked disposable SQLite site:
+
+- All nine PHP suites pass: run 186, admin 338, design 228, feed 147,
+  frontend 217, hosting 1178, import 92, media 165, widgets 131 assertions.
+- Player, Setup, Frontend, audio-dialog focus, sticky focus, setup resumption,
+  and translated-label layout browser suites pass. The previously flaky
+  Design suite passed twice after selecting the live Elementor model.
+- Newly reproduced regressions cover HTTPS redirect downgrades, explicit
+  remote-file size errors, legacy credentialed feed metadata exposed through
+  anonymous REST, catalog-wide transcript metadata loading during sync,
+  lost audio-picker focus, setup progress/dirty edits, sticky focus overlap,
+  and German-length actions overflowing five admin screens.
+- Paged automatic sync explicitly reports its first-page scope and keeps
+  episodes from unexamined pages. A full re-import checks older pages.
+- Headless imports receive an existing author; updating them retains local
+  attribution. The test fails with the old current-user assignment.
+- Markdown and JSON findings statuses agree; historical reproduction
+  evidence is retained. Translation, the minimum-version/browser CI matrix,
+  multisite, remaining targeted verification and named performance/download
+  leftovers remain open. This is not an all-findings-closed declaration.
+
+Hosted run 36905182422 completed: seven jobs passed; Browser failed at the
+legacy-widget selection now repaired locally. No hosted workflow is currently
+running. No merge, release, deployment or production operation was performed.
+
 # Unreleased verification
 
 ## 2026-10-01 audit follow-up

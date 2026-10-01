@@ -486,6 +486,14 @@ final class Plugin {
 	 * @return \WP_REST_Response
 	 */
 	public function protect_rest_meta( $response, $post, $request ) {
+		if ( $response instanceof \WP_REST_Response && $post instanceof \WP_Post ) {
+			$data = $response->get_data();
+			$key = Episodes::META_PREFIX . 'source_feed';
+			if ( isset( $data['meta'][ $key ] ) ) {
+				$data['meta'][ $key ] = Importer::source_feed_identifier( $data['meta'][ $key ] );
+				$response->set_data( $data );
+			}
+		}
 		if ( $response instanceof \WP_REST_Response && $post instanceof \WP_Post
 			&& post_password_required( $post ) && ! $this->request_unlocked( $post, $request ) && ! current_user_can( 'edit_post', $post->ID ) ) {
 			$data = $response->get_data();

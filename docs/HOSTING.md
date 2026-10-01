@@ -307,7 +307,11 @@ sync).
 - **Conditional requests.** Scheduled runs send the `ETag` and
   `Last-Modified` values from the last run. When the host answers
   `304 Not Modified`, nothing else happens. *Sync now* always reads the
-  whole feed.
+  response, even when the host supplied cache validators.
+- **Paged feeds:** scheduled sync and *Sync now* check the first page only,
+  state that limit in the result, and preserve episodes from unexamined
+  pages. Re-import the feed to update older pages; the import follows the
+  feed's next-page links and keeps episode identifiers and local edits.
 - **New episodes** are created, oldest first, at most 25 per run (filter
   `epm_sync_batch_limit`). When more are waiting, a follow-up run is
   scheduled for a minute later (if a regular run is due within ten

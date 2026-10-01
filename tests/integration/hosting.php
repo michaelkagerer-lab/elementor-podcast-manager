@@ -318,6 +318,160 @@ function epm_h_sync_feed( array $numbers, array $changes = [], string $channel_e
 
 $t = new EPM_Test_Runner();
 
+$t->test(
+	'SEC-N9: headless imports have a real author and updates preserve local attribution',
+	static function ( EPM_Test_Runner $t ) {
+		$user = get_current_user_id();
+		$id = 0;
+		try {
+			wp_set_current_user( 0 );
+			$item = ( new FeedParser() )->parse( epm_h_sync_feed( [ 1 ] ) )['items'][0];
+			$item['guid'] = 'headless-author-' . wp_generate_uuid4();
+			$importer = new Importer( [ 'fetch_extras' => false ] );
+			$outcome = $importer->import_item( $item );
+			$id = (int) $outcome['id'];
+			$author = (int) get_post_field( 'post_author', $id );
+			$t->assert( $author > 0 && false !== get_user_by( 'id', $author ), 'cron and CLI imports with no current user receive an existing author' );
+			wp_update_post( [ 'ID' => $id, 'post_author' => $user ] );
+			$item['title'] .= ' updated';
+			$importer->import_item( $item );
+			$t->same( $user, (int) get_post_field( 'post_author', $id ), 'updating an imported episode preserves its local author' );
+		} finally {
+			wp_set_current_user( $user );
+			if ( $id ) {
+				wp_delete_post( $id, true );
+			}
+		}
+	}
+);
+
+$t->test(
+	'PERF-N3: syncing a short feed never primes transcript metadata for the whole catalog',
+	static function ( EPM_Test_Runner $t ) {
+		$hosting = get_option( Hosting::OPTION, false );
+		$state = get_option( Hosting::STATE_OPTION, false );
+		$ids = [];
+		$max_batch = 0;
+		$observe = static function ( $pre, $object_ids ) use ( &$max_batch ) {
+			$max_batch = max( $max_batch, count( $object_ids ) );
+			return $pre;
+		};
+		try {
+			for ( $i = 0; $i < 60; ++$i ) {
+				$id = wp_insert_post( [ 'post_type' => EpisodePostType::CPT, 'post_status' => 'publish', 'post_title' => 'Transcript cache probe ' . $i ] );
+				update_post_meta( $id, '_epm_guid', 'cache-probe-' . wp_generate_uuid4() );
+				update_post_meta( $id, '_epm_transcript', str_repeat( 'Long transcript. ', 4096 ) );
+				wp_cache_delete( $id, 'post_meta' );
+				wp_cache_delete( $id, 'posts' );
+				$ids[] = $id;
+			}
+			epm_h_hosting( [ 'mode' => 'external', 'feed_url' => epm_h_url( 'synthetic/paged-2.xml' ) ] );
+			delete_option( Hosting::STATE_OPTION );
+			add_filter( 'update_post_metadata_cache', $observe, 10, 2 );
+			$result = Hosting::sync( true );
+			remove_filter( 'update_post_metadata_cache', $observe, 10 );
+			$t->same( 'ok', $result['status'], 'the short feed synchronizes' );
+			$t->assert( $max_batch <= 25, 'metadata remains bounded to a batch, not the catalog (' . $max_batch . ' IDs)' );
+		} finally {
+			remove_filter( 'update_post_metadata_cache', $observe, 10 );
+			foreach ( $ids as $id ) { wp_delete_post( $id, true ); }
+			foreach ( [ Hosting::OPTION => $hosting, Hosting::STATE_OPTION => $state ] as $option => $value ) {
+				if ( false === $value ) { delete_option( $option ); } else { update_option( $option, $value ); }
+			}
+		}
+	}
+);
+
+$t->test(
+	'SYNC-N6: a paged sync names its scope and never drafts episodes from unexamined pages',
+	static function ( EPM_Test_Runner $t ) {
+		$url = epm_h_url( 'synthetic/paged-1.xml' );
+		$hosting = get_option( Hosting::OPTION, false );
+		$state = get_option( Hosting::STATE_OPTION, false );
+		try {
+			$item = epm_h_parse( 'synthetic/paged-2.xml' )['items'][0];
+			$item['guid'] = 'unexamined-page-' . wp_generate_uuid4();
+			$item['pub_date'] = strtotime( '2026-06-05 12:00:00 UTC' );
+			$older = ( new Importer( [ 'feed_url' => $url ] ) )->import_item( $item );
+			update_option( Hosting::OPTION, Hosting::sanitize( array_merge( Hosting::all(), [ 'mode' => 'external', 'feed_url' => $url, 'missing' => 'draft' ] ) ) );
+			delete_option( Hosting::STATE_OPTION );
+			$result = Hosting::sync( true );
+			$t->assert( false !== stripos( $result['message'], 'first page' ), 'the sync message states its paging limit' );
+			$t->same( 'publish', get_post_status( $older['id'] ), 'episodes outside the examined page retain their status' );
+		} finally {
+			foreach ( [ Hosting::OPTION => $hosting, Hosting::STATE_OPTION => $state ] as $option => $value ) {
+				if ( false === $value ) { delete_option( $option ); } else { update_option( $option, $value ); }
+			}
+		}
+	}
+);
+
+$t->test(
+	'SEC-N7: secure feed redirects are stopped before an insecure hop',
+	static function ( EPM_Test_Runner $t ) {
+		foreach ( [ [ 'https', 'http', true ], [ 'https', 'https', false ], [ 'http', 'http', false ] ] as $case ) {
+			[ $from, $to, $blocked ] = $case;
+			$url = $from . '://feeds.example.test/redirect-security.xml';
+			$requested_target = false;
+			EPM_Test_HTTP::$routes[ $url ] = static function () use ( $url, $to, &$requested_target ) {
+				$target = $to . '://cdn.example.test/secure-feed.xml';
+				// Inject the same transport hook Requests fires before fetching a hop.
+				do_action( 'requests-requests.before_redirect', $target, [], [], [], (object) [ 'url' => $url ] );
+				$requested_target = true;
+				return EPM_Test_HTTP::response( 200, epm_h_file( 'synthetic/paged-2.xml' ) );
+			};
+			try {
+				$response = Hosting::fetch( $url );
+				$t->same( $blocked, is_wp_error( $response ), $from . ' to ' . $to . ': result' );
+				$t->same( ! $blocked, $requested_target, 'the downgrade never reaches its target' );
+				if ( $blocked ) {
+					$t->same( 'epm_insecure_redirect', $response instanceof WP_Error ? $response->get_error_code() : '', 'specific HTTPS downgrade error' );
+					$media = EPM\MediaDownload::run( EPM\MediaDownload::fresh( $url, 'audio' ), microtime( true ) + 10 );
+					$t->same( 'unsafe', $media['reason'] ?? '', 'media downloads reject the insecure hop too' );
+					$t->same( false, $requested_target, 'media never reaches the insecure target' );
+				}
+			} finally {
+				unset( EPM_Test_HTTP::$routes[ $url ] );
+			}
+		}
+		$t->assert( ! has_action( 'requests-requests.before_redirect' ), 'the request guard is removed after success and failure' );
+	}
+);
+
+$t->test(
+	'SEC-N8: oversized remote feeds and extras are rejected with useful item messages',
+	static function ( EPM_Test_Runner $t ) {
+		$url = epm_h_url( 'size-limit.xml' );
+		EPM_Test_HTTP::$routes[ $url ] = static function () { return EPM_Test_HTTP::response( 200, str_repeat( 'x', 65 ), [ 'content-length' => '65' ] ); };
+		$limit = static function () { return 64; };
+		add_filter( 'epm_feed_max_bytes', $limit );
+		try {
+			$response = Hosting::fetch( $url );
+			$t->same( 'epm_feed_too_large', $response instanceof WP_Error ? $response->get_error_code() : '', 'feed reports its limit rather than an XML parse error' );
+		} finally {
+			remove_filter( 'epm_feed_max_bytes', $limit );
+			unset( EPM_Test_HTTP::$routes[ $url ] );
+		}
+		$chapter_url = epm_h_url( 'oversized-chapters.json' );
+		$transcript_url = epm_h_url( 'oversized-transcript.txt' );
+		EPM_Test_HTTP::$routes[ $chapter_url ] = static function () { return EPM_Test_HTTP::response( 200, '{"chapters":[{"startTime":0,"title":"Truncated"}]}', [ 'content-length' => (string) ( 512 * KB_IN_BYTES + 1 ) ] ); };
+		EPM_Test_HTTP::$routes[ $transcript_url ] = static function () { return EPM_Test_HTTP::response( 200, 'Incomplete transcript', [ 'content-length' => (string) ( 2 * MB_IN_BYTES + 1 ) ] ); };
+		try {
+			$item = epm_h_parse( 'synthetic/paged-2.xml' )['items'][0];
+			$item['guid'] = 'size-limit-extras-' . wp_generate_uuid4();
+			$item['chapters'] = [];
+			$item['chapters_url'] = $chapter_url;
+			$item['transcripts'] = [ [ 'url' => $transcript_url, 'type' => 'text/plain' ] ];
+			$result = ( new Importer() )->import_item( $item );
+			$t->same( '', get_post_meta( $result['id'], '_epm_chapters', true ), 'no truncated chapters are stored' );
+			$t->same( '', get_post_meta( $result['id'], '_epm_transcript', true ), 'no truncated transcript is stored' );
+			$t->assert( false !== stripos( $result['message'], 'chapters' ) && false !== stripos( $result['message'], 'transcript' ) && false !== stripos( $result['message'], 'limit' ), 'both skipped documents are explained in the item log' );
+		} finally {
+			unset( EPM_Test_HTTP::$routes[ $chapter_url ], EPM_Test_HTTP::$routes[ $transcript_url ] );
+		}
+	}
+);
+
 /* ------------------------------------------------------------------------- */
 WP_CLI::log( 'Feed parser: real feeds' );
 /* ------------------------------------------------------------------------- */
@@ -3064,8 +3218,21 @@ $t->test(
 		$t->assert( '' !== $source && false === strpos( $source, 'secret' ) && false === strpos( $source, 'token' ), 'metadata contains no URL secrets' );
 		$t->same( 'private:' . hash( 'sha256', $url ), $source, 'stable private feed identifier' );
 		$t->same( 0, $importer->draft_missing( [ 'private-source-probe' => true ], 0 ), 'private source episodes remain discoverable without the URL' );
+		// Simulate a 1.3.0 row, written before the new metadata sanitizer.
+		$GLOBALS['wpdb']->update( $GLOBALS['wpdb']->postmeta, [ 'meta_value' => $url ], [ 'post_id' => $id, 'meta_key' => Episodes::META_PREFIX . 'source_feed' ] );
+		wp_cache_delete( $id, 'post_meta' );
+		$previous_user = get_current_user_id();
+		wp_set_current_user( 0 );
+		try {
+			$response = rest_do_request( new WP_REST_Request( 'GET', '/wp/v2/' . EpisodePostType::CPT . '/' . $id ) );
+			$t->same( 200, $response->get_status(), 'the public legacy episode remains readable' );
+			$t->same( $source, $response->get_data()['meta'][ Episodes::META_PREFIX . 'source_feed' ] ?? '', 'REST never reveals legacy source-feed credentials' );
+			$t->same( $url, get_post_meta( $id, Episodes::META_PREFIX . 'source_feed', true ), 'reading REST does not rewrite stored legacy data' );
+		} finally {
+			wp_set_current_user( $previous_user );
+		}
 		update_post_meta( $id, Episodes::META_PREFIX . 'missing_since', time() - 2 * DAY_IN_SECONDS );
-		$t->same( 1, $importer->draft_missing( [ 'another-guid' => true ], 0 ), 'missing episodes are found using the private feed identifier' );
+		$t->same( 1, $importer->draft_missing( [ 'another-guid' => true ], 0 ), 'missing episodes are found using both current and legacy private feed identifiers' );
 		$t->same( 'draft', get_post_status( $id ), 'the missing private-feed episode is drafted' );
 		$moved_url = 'https://feeds.example.test/private.xml?token=rotated-secret';
 		$moved_importer = new Importer( [ 'feed_url' => $moved_url ] );

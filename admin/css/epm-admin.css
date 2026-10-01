@@ -1471,3 +1471,15 @@ textarea[aria-invalid="true"] {
 		background: Highlight;
 	}
 }
+
+/* Translated actions must fit narrow admin screens, including core buttons. */
+@media (max-width: 600px) {
+	.epm-app .button,
+	.epm-settings .button {
+		min-inline-size: 0;
+		max-inline-size: 100%;
+		block-size: auto;
+		white-space: normal;
+		overflow-wrap: anywhere;
+	}
+}

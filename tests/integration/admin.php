@@ -157,6 +157,15 @@ $ajax = static function ( callable $handler, array $post ): array {
 WP_CLI::log( 'Topics' );
 
 $t->test(
+	'UX-N8: the unminified admin script name cannot be mistaken for a min.js catalog',
+	static function ( EPM_Test_Runner $t ) {
+		Admin::enqueue_assets();
+		$script = wp_scripts()->registered['epm-admin'];
+		$t->assert( ! preg_match( '/min\.js$/', basename( $script->src ) ), 'wp i18n make-json hashes the actual unminified script path' );
+	}
+);
+
+$t->test(
 	'podcast_topic is a tag-like taxonomy: episode editors assign topics, managing them needs manage_categories',
 	static function ( EPM_Test_Runner $t ) {
 		$tax = get_taxonomy( 'podcast_topic' );

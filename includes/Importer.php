@@ -84,6 +84,8 @@ final class Importer {
 	 */
 	private ?array $guid_map = null;
 	private bool $guid_map_loaded = false;
+	/** Remote extras skipped during this item's import, for its log. */
+	private array $extra_messages = [];
 
 	/**
 	 * Constructor.
@@ -231,6 +233,7 @@ final class Importer {
 	 * @return array{action: string, id: int, title: string, message: string, media_failed: bool, media: array<string, array<string, string>>, remaining: array<string, string>, pending: array<string, mixed>|null}
 	 */
 	public function import_item( array $item, array $resume = [] ): array {
+		$this->extra_messages = [];
 		$guid  = trim( (string) ( $item['guid'] ?? '' ) );
 		$title = sanitize_text_field( (string) ( $item['title'] ?? '' ) );
 
@@ -367,6 +370,7 @@ final class Importer {
 		}
 
 		$result['action'] = $action;
+		$result['message'] = trim( implode( ' ', array_merge( [ $result['message'] ], $this->extra_messages ) ) );
 
 		return $result;
 	}
@@ -703,7 +707,8 @@ final class Importer {
 				'meta_query'     => [
 					[
 						'key'   => Episodes::META_PREFIX . 'source_feed',
-						'value' => self::source_feed_identifier( $this->options['feed_url'] ),
+						'value' => array_values( array_unique( [ self::source_feed_identifier( $this->options['feed_url'] ), esc_url_raw( $this->options['feed_url'] ) ] ) ),
+						'compare' => 'IN',
 					],
 				],
 			]
@@ -711,35 +716,40 @@ final class Importer {
 
 		$count = 0;
 		foreach ( $ids as $id ) {
-			$is_future = 'future' === get_post_status( (int) $id );
-			if ( $future_only && ! $is_future ) {
-				continue;
+			try {
+				$is_future = 'future' === get_post_status( (int) $id );
+				if ( $future_only && ! $is_future ) {
+					continue;
+				}
+				$guid = (string) get_post_meta( (int) $id, Episodes::META_PREFIX . 'guid', true );
+				if ( '' === $guid || isset( $guids[ $guid ] ) ) {
+					continue;
+				}
+				if ( ! $is_future && $oldest > 0 && (int) get_post_time( 'U', true, (int) $id ) < $oldest ) {
+					continue;
+				}
+				// Only after it stayed missing for a day: a host's hiccup or a
+				// truncated response must not unpublish anything.
+				$since = (int) get_post_meta( (int) $id, Episodes::META_PREFIX . 'missing_since', true );
+				if ( 0 === $since ) {
+					update_post_meta( (int) $id, Episodes::META_PREFIX . 'missing_since', time() );
+					continue;
+				}
+				if ( time() - $since < DAY_IN_SECONDS ) {
+					continue;
+				}
+				delete_post_meta( (int) $id, Episodes::META_PREFIX . 'missing_since' );
+				wp_update_post(
+					[
+						'ID'          => (int) $id,
+						'post_status' => 'draft',
+					]
+				);
+				++$count;
+			} finally {
+				wp_cache_delete( (int) $id, 'posts' );
+				wp_cache_delete( (int) $id, 'post_meta' );
 			}
-			$guid = (string) get_post_meta( (int) $id, Episodes::META_PREFIX . 'guid', true );
-			if ( '' === $guid || isset( $guids[ $guid ] ) ) {
-				continue;
-			}
-			if ( ! $is_future && $oldest > 0 && (int) get_post_time( 'U', true, (int) $id ) < $oldest ) {
-				continue;
-			}
-			// Only after it stayed missing for a day: a host's hiccup or a
-			// truncated response must not unpublish anything.
-			$since = (int) get_post_meta( (int) $id, Episodes::META_PREFIX . 'missing_since', true );
-			if ( 0 === $since ) {
-				update_post_meta( (int) $id, Episodes::META_PREFIX . 'missing_since', time() );
-				continue;
-			}
-			if ( time() - $since < DAY_IN_SECONDS ) {
-				continue;
-			}
-			delete_post_meta( (int) $id, Episodes::META_PREFIX . 'missing_since' );
-			wp_update_post(
-				[
-					'ID'          => (int) $id,
-					'post_status' => 'draft',
-				]
-			);
-			++$count;
 		}
 
 		return $count;
@@ -1288,23 +1298,31 @@ final class Importer {
 	 * @param int    $bytes Size cap.
 	 * @return string Body or '' on failure.
 	 */
-	private static function fetch_text( string $url, int $bytes ): string {
+	private function fetch_text( string $url, int $bytes, string $label ): string {
 		$url = esc_url_raw( $url );
 		if ( '' === $url ) {
 			return '';
 		}
 
-		$response = wp_safe_remote_get(
+		$response = SafeHttp::get(
 			$url,
 			[
 				'timeout'             => 15,
 				'redirection'         => 5,
-				'limit_response_size' => $bytes,
+				'limit_response_size' => $bytes + 1,
 				'user-agent'          => 'ElementorPodcastManager/' . EPM_VERSION . '; ' . home_url( '/' ),
 			]
 		);
 
 		if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
+			if ( is_wp_error( $response ) && 'epm_insecure_redirect' === $response->get_error_code() ) {
+				$this->extra_messages[] = $label . ': ' . $response->get_error_message();
+			}
+			return '';
+		}
+		if ( SafeHttp::exceeds_limit( $response, $bytes ) ) {
+			/* translators: 1: chapters or transcript, 2: response size limit in bytes */
+			$this->extra_messages[] = sprintf( __( '%1$s was skipped because it exceeds the %2$s-byte size limit.', 'elementor-podcast-manager' ), $label, number_format_i18n( $bytes ) );
 			return '';
 		}
 
@@ -1342,7 +1360,7 @@ final class Importer {
 			return;
 		}
 
-		$chapters = self::parse_chapters_json( self::fetch_text( $url, 512 * KB_IN_BYTES ) );
+		$chapters = self::parse_chapters_json( $this->fetch_text( $url, 512 * KB_IN_BYTES, __( 'Chapters', 'elementor-podcast-manager' ) ) );
 		if ( ! empty( $chapters ) ) {
 			update_post_meta( $post_id, Episodes::META_PREFIX . 'chapters', wp_slash( $chapters ) );
 		}
@@ -1433,7 +1451,7 @@ final class Importer {
 			return;
 		}
 
-		$body = self::fetch_text( $best['url'], 2 * MB_IN_BYTES );
+		$body = $this->fetch_text( $best['url'], 2 * MB_IN_BYTES, __( 'Transcript', 'elementor-podcast-manager' ) );
 		if ( '' === trim( $body ) ) {
 			return;
 		}

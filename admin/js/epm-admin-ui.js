@@ -153,6 +153,9 @@
 	function setAudioBusy(wrap, busy) {
 		wrap.find('[data-epm-choose-audio], [data-epm-remove-audio], [data-epm-audio-url-check]').prop('disabled', busy);
 		wrap.attr('aria-busy', busy ? 'true' : null);
+		if (!busy && (!document.activeElement || document.activeElement === document.body)) {
+			wrap.find('[data-epm-choose-audio]').trigger('focus');
+		}
 	}
 
 	/**

@@ -244,7 +244,7 @@ final class Admin {
 	 */
 	public static function enqueue_assets(): void {
 		wp_enqueue_style( 'epm-admin', EPM_URL . 'admin/css/epm-admin.css', [ 'dashicons' ], EPM_VERSION );
-		wp_enqueue_script( 'epm-admin', EPM_URL . 'admin/js/epm-admin.js', [ 'jquery', 'wp-a11y', 'wp-i18n' ], EPM_VERSION, true );
+		wp_enqueue_script( 'epm-admin', EPM_URL . 'admin/js/epm-admin-ui.js', [ 'jquery', 'wp-a11y', 'wp-i18n' ], EPM_VERSION, true );
 
 		if ( wp_script_is( 'epm-admin', 'done' ) || ! empty( wp_scripts()->get_data( 'epm-admin', 'data' ) ) ) {
 			return;
@@ -255,7 +255,7 @@ final class Admin {
 	}
 
 	/**
-	 * Strings and settings for admin/js/epm-admin.js.
+	 * Strings and settings for admin/js/epm-admin-ui.js.
 	 *
 	 * @return array<string, mixed>
 	 */
@@ -496,7 +496,7 @@ final class Admin {
 	/**
 	 * Markup of a copy button: fixed width, the label cross-fades to
 	 * "Copied" and the icon swaps (both kept in the DOM); the result is
-	 * announced by admin/js/epm-admin.js through wp.a11y.speak().
+	 * announced by admin/js/epm-admin-ui.js through wp.a11y.speak().
 	 *
 	 * @param string $value   Text to copy.
 	 * @param string $label   Button label (verb first).
@@ -1536,7 +1536,7 @@ final class Admin {
 				break;
 
 			case 'epm_episode_no':
-				// Raw values for Quick Edit (admin/js/epm-admin.js).
+				// Raw values for Quick Edit (admin/js/epm-admin-ui.js).
 				printf(
 					'<span hidden class="epm-inline-data" id="epm-inline-%1$d" data-number="%2$s" data-season="%3$s" data-type="%4$s" data-explicit="%5$s"></span>',
 					(int) $post_id,
@@ -1621,7 +1621,7 @@ final class Admin {
 
 	/**
 	 * Quick Edit fields: episode number, season, type, explicit. Printed
-	 * once (for the episode number column); admin/js/epm-admin.js fills
+	 * once (for the episode number column); admin/js/epm-admin-ui.js fills
 	 * them from the row's .epm-inline-data element.
 	 *
 	 * @param string $column    Column key.

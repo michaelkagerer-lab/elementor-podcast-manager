@@ -2081,7 +2081,8 @@ body:has(.epm-sticky:not([hidden])) {
 	text-align: start;
 	text-transform: none;
 	letter-spacing: normal;
-	white-space: nowrap;
+	white-space: normal;
+	overflow-wrap: anywhere;
 	cursor: pointer;
 }
 
@@ -2097,6 +2098,7 @@ body:has(.epm-sticky:not([hidden])) {
 }
 
 .epm-share__item-label {
+	min-inline-size: 0;
 	font-variant-numeric: tabular-nums;
 }
 

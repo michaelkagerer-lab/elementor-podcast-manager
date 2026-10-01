@@ -51,7 +51,7 @@ final class AdminPages {
 	/**
 	 * Setup state.
 	 *
-	 * @return array{done: bool, path: string, dismissed: bool, page_id: int}
+	 * @return array{done: bool, path: string, dismissed: bool, page_id: int, resume: string}
 	 */
 	public static function setup_state(): array {
 		$state = get_option( self::SETUP_OPTION, [] );
@@ -62,6 +62,7 @@ final class AdminPages {
 			'path'      => in_array( $state['path'] ?? '', [ 'new', 'move', 'external' ], true ) ? (string) $state['path'] : '',
 			'dismissed' => ! empty( $state['dismissed'] ),
 			'page_id'   => (int) ( $state['page_id'] ?? 0 ),
+			'resume'    => in_array( $state['resume'] ?? '', [ 'path', 'connect', 'import', 'show', 'look', 'done' ], true ) ? (string) $state['resume'] : 'path',
 		];
 	}
 
@@ -418,7 +419,7 @@ final class AdminPages {
 				if ( '' === $path ) {
 					return new \WP_Error( 'epm_setup_path', __( 'Choose how your podcast is hosted.', 'elementor-podcast-manager' ) );
 				}
-				self::update_setup_state( [ 'path' => $path ] );
+				self::update_setup_state( [ 'path' => $path, 'resume' => 'new' === $path ? 'show' : 'connect' ] );
 				// Another host is only switched to at the next step, which
 				// has the host's feed; "host it here" has no such step.
 				if ( 'new' === $path ) {
@@ -451,6 +452,7 @@ final class AdminPages {
 					$hosting['redirect'] = false;
 				}
 				update_option( Hosting::OPTION, $hosting );
+				self::update_setup_state( [ 'resume' => 'import' ] );
 				return [ 'hosting' => $hosting ];
 
 			case 'show':
@@ -469,6 +471,7 @@ final class AdminPages {
 				}
 				$clean = $settings->sanitize( $next );
 				update_option( PodcastSettings::OPTION, $clean );
+				self::update_setup_state( [ 'resume' => 'look' ] );
 				return [
 					'settings'  => array_intersect_key( $clean, array_flip( array_merge( $allowed, [ 'subcategory' ] ) ) ),
 					'artwork'   => self::artwork_check( (int) $clean['artwork_id'] ),
@@ -488,6 +491,7 @@ final class AdminPages {
 					}
 					$out['page'] = $page;
 				}
+				self::update_setup_state( [ 'resume' => 'done' ] );
 				return $out;
 
 			case 'finish':

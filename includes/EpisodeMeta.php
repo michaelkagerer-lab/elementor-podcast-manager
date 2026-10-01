@@ -704,7 +704,7 @@ final class EpisodeMeta {
 
 	/**
 	 * Render the current audio state (file or URL details + preview, or the
-	 * empty hint). Mirrors renderAudioState() in admin/js/epm-admin.js.
+	 * empty hint). Mirrors renderAudioState() in admin/js/epm-admin-ui.js.
 	 *
 	 * @param \WP_Post $post      Post object.
 	 * @param int      $audio_id  Attachment ID (0 when none).
