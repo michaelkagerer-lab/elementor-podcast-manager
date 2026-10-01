@@ -443,9 +443,12 @@ final class Renderer {
 		}
 
 		// A chapter list can start playback on a page without any player:
-		// the sticky bar then carries pause and seek.
+		// the sticky bar then carries pause and seek. Inside a player
+		// (sticky false) the list carries no preference of its own and
+		// follows the player's.
+		$sticky = '';
 		if ( $args['sticky'] ?? true ) {
-			$this->request_sticky_for_lists();
+			$sticky = ' data-epm-sticky-player="' . ( $this->request_sticky_for_lists() ? '1' : '0' ) . '"';
 		}
 
 		$heading = $args['heading'] ?? __( 'Chapters', 'elementor-podcast-manager' );
@@ -458,7 +461,8 @@ final class Renderer {
 			. ' data-epm-src="' . esc_url( (string) ( $episode['audio_url'] ?? '' ) ) . '"'
 			. ' data-epm-title="' . esc_attr( (string) ( $episode['title'] ?? '' ) ) . '"'
 			. ' data-epm-artwork="' . esc_url( $this->artwork_url( $episode, 'medium' ) ) . '"'
-			. ' data-epm-duration="' . esc_attr( (string) (int) ( $episode['duration_seconds'] ?? 0 ) ) . '">';
+			. ' data-epm-duration="' . esc_attr( (string) (int) ( $episode['duration_seconds'] ?? 0 ) ) . '"'
+			. $sticky . '>';
 		if ( '' !== (string) $heading ) {
 			$out .= '<' . $tag . ' class="epm-chapters__heading">' . esc_html( (string) $heading ) . '</' . $tag . '>';
 		}
@@ -1092,6 +1096,9 @@ final class Renderer {
 			. ' data-epm-title="' . esc_attr( (string) ( $episode['title'] ?? '' ) ) . '"'
 			. ' data-epm-artwork="' . esc_url( $this->artwork_url( $episode, 'medium' ) ) . '"'
 			. ' data-epm-src="' . esc_url( (string) $episode['audio_url'] ) . '"'
+			// Whether playback started here opens the sticky bar (the bar's
+			// shell may be on the page for a list even when this is off).
+			. ' data-epm-sticky-player="' . ( $args['sticky'] ? '1' : '0' ) . '"'
 			// The episode this page is about: a ?t= link starts it there.
 			. ( $this->is_page_episode( $episode ) ? ' data-epm-page-episode' : '' )
 			. $this->style_vars( (array) $args['style_vars'] )
@@ -1357,10 +1364,11 @@ final class Renderer {
 		$title = (string) ( $episode['title'] ?? '' );
 
 		// Once scrolled away from the list, playback keeps its controls.
-		$this->request_sticky_for_lists();
+		$sticky = $this->request_sticky_for_lists();
 
 		return '<button type="button" class="' . esc_attr( $class ) . '"'
 			. ' data-epm-card-play="' . esc_attr( (string) $episode['id'] ) . '"'
+			. ' data-epm-sticky-player="' . ( $sticky ? '1' : '0' ) . '"'
 			. ' data-epm-src="' . esc_url( (string) $episode['audio_url'] ) . '"'
 			. ' data-epm-title="' . esc_attr( $title ) . '"'
 			. ' data-epm-artwork="' . esc_url( $this->artwork_url( $episode, 'medium' ) ) . '"'
@@ -1385,17 +1393,20 @@ final class Renderer {
 	 * player (card and row buttons, chapter lists). The shell stays hidden
 	 * until something plays.
 	 *
-	 * @return void
+	 * @return bool Whether they bring it (the markup says so, so playback
+	 *              started there opens the bar).
 	 */
-	private function request_sticky_for_lists(): void {
+	private function request_sticky_for_lists(): bool {
 		/**
 		 * Whether list play buttons and chapter lists bring the sticky player.
 		 *
 		 * @param bool $enabled Default true.
 		 */
-		if ( apply_filters( 'epm_sticky_player_for_lists', true ) ) {
-			Assets::request_sticky_player();
+		if ( ! apply_filters( 'epm_sticky_player_for_lists', true ) ) {
+			return false;
 		}
+		Assets::request_sticky_player();
+		return true;
 	}
 
 	/**

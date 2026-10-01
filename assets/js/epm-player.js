@@ -21,7 +21,11 @@
  *
  * Markup contract (see Renderer::player(), frozen):
  *   [data-epm-player]            root, data-epm-episode-id/src/title/artwork/duration
- *     audio                      native element (hidden)
+ *     audio                      native element (hidden); once bound it plays
+ *                                outside the root (or, when another player of
+ *                                the episode already plays the same file, is
+ *                                emptied), so a re-render never stops playback.
+ *                                Without JavaScript it stays as the fallback.
  *     [data-epm-play]            play/pause toggle (data-label-play/data-label-pause);
  *                                holds .epm-icon-swap (both glyphs; CSS cross-fades
  *                                them from the button's own .is-playing class)
@@ -41,11 +45,17 @@
  *                                .epm-list-play__label holds all three words
  *                                (Play/Pause/Retry); CSS shows one from the
  *                                button's .is-playing / .has-error class
- *   [data-epm-chapters]          chapter list (data-epm-episode-id/src/title)
+ *   [data-epm-chapters]          chapter list (data-epm-episode-id/src/title/
+ *                                artwork/duration)
  *     [data-epm-seek="{sec}"]    chapter seek buttons
+ *   [data-epm-sticky-player]     "1" or "0" on a player, a card/row button or a
+ *                                chapter list: whether playback started there
+ *                                opens the sticky bar (absent: it does; chapters
+ *                                inside a player follow the player)
  *   [data-epm-sticky]            footer sticky shell (hidden until playback);
- *                                its height is published as --epm-sticky-height
- *                                on <html> so the page reserves space for it
+ *                                bound whenever it appears; its height is
+ *                                published as --epm-sticky-height on <html> so
+ *                                the page reserves space for it
  *   [data-epm-share]             share menu (data-epm-url/title/embed-code):
  *     [data-epm-share-toggle]    menu button; [data-epm-share-menu] role=menu;
  *     [data-epm-share-action]    copy | copy-time | native | embed
@@ -400,6 +410,9 @@
 		this._played = false;
 		this._lastSaved = 0;
 		this._pendingSeek = 0;
+		// Whether this episode's playback brings the sticky bar: set by the
+		// view the visitor last pressed (see wantsSticky()).
+		this.wantsSticky = true;
 		this.mergeMeta(info);
 		this._setAudio(audioFor(info.src, rendered));
 	}
@@ -959,7 +972,7 @@
 
 		setActive: function (controller) {
 			this.active = controller;
-			Sticky.attach(controller);
+			Sticky.follow(controller);
 			MediaSessionBridge.update(controller, 'attach');
 		}
 	};
@@ -1232,7 +1245,9 @@
 				retry.className = 'epm-player__error-retry';
 				retry.textContent = STR.retry;
 				retry.addEventListener('click', function () {
-					refs.ctl().retry();
+					var c = refs.ctl();
+					c.wantsSticky = wantsSticky(root);
+					c.retry();
 				});
 
 				box.appendChild(msg);
@@ -1357,7 +1372,9 @@
 
 			if (refs.play) {
 				refs.play.addEventListener('click', function () {
-					ctl().toggle();
+					var c = ctl();
+					c.wantsSticky = wantsSticky(root);
+					c.toggle();
 				});
 			}
 
@@ -1498,6 +1515,7 @@
 		btn.addEventListener('click', function () {
 			var controller = Registry.get(episodeId) || Registry.obtain(episodeId, viewInfo(btn), null);
 			if (controller) {
+				controller.wantsSticky = wantsSticky(btn);
 				controller.toggle();
 			}
 		});
@@ -1535,6 +1553,7 @@
 			if (!controller) {
 				return;
 			}
+			controller.wantsSticky = wantsSticky(container);
 			controller.seekAbsolute(seconds);
 			if (controller.hasError()) {
 				controller.retry();
@@ -1548,27 +1567,46 @@
 	/* Sticky mini player: mirrors the active controller's real audio.     */
 	/* ------------------------------------------------------------------ */
 
+	/**
+	 * Whether playback started from el brings the sticky bar: the nearest
+	 * data-epm-sticky-player ("1" or "0") on a player, a list play button
+	 * or a chapter list decides; a chapter list inside a player follows the
+	 * player. Markup without the attribute (older cached pages, custom
+	 * integrations) brings it, as before.
+	 */
+	function wantsSticky(el) {
+		var holder = el && el.closest ? el.closest('[data-epm-sticky-player]') : null;
+		return !holder || holder.getAttribute('data-epm-sticky-player') !== '0';
+	}
+
 	var Sticky = {
 		root: null,
 		refs: null,
 		controller: null,
 		view: null,
-		initialized: false,
 
+		/**
+		 * Find and bind the bar's shell. Runs on every init() and before the
+		 * bar opens, so a shell that arrives after the first scan (AJAX, a
+		 * page builder's preview) or replaces the first one is used. Until
+		 * a shell exists nothing is bound and nothing is remembered.
+		 */
 		init: function () {
-			if (this.initialized) {
+			if (this.root && this.root.isConnected) {
 				return;
 			}
-			this.initialized = true;
-
 			var root = document.querySelector('[data-epm-sticky]');
-			if (!root) {
+			if (!root || root === this.root || !claim(root, 'sticky')) {
 				return;
 			}
+			if (this.controller && this.view) {
+				this.controller.unsubscribe(this.view);
+			}
+			this.controller = null;
 			this.root = root;
 
 			var self = this;
-			this.refs = {
+			var refs = {
 				play: root.querySelector('[data-epm-play]'),
 				speed: root.querySelector('[data-epm-speed]'),
 				close: root.querySelector('[data-epm-sticky-close]'),
@@ -1580,60 +1618,61 @@
 				title: root.querySelector('[data-epm-sticky-title]'),
 				artwork: root.querySelector('[data-epm-sticky-artwork]')
 			};
+			this.refs = refs;
 
-			if (this.refs.play) {
-				this.refs.play.addEventListener('click', function () {
+			if (refs.play) {
+				refs.play.addEventListener('click', function () {
 					if (self.controller) {
 						self.controller.toggle();
 					}
 				});
 			}
-			if (this.refs.speed) {
-				this.refs.speed.addEventListener('click', function () {
+			if (refs.speed) {
+				refs.speed.addEventListener('click', function () {
 					if (self.controller) {
 						self.controller.cycleSpeed();
 					}
 				});
 			}
-			if (this.refs.close) {
-				this.refs.close.addEventListener('click', function () {
+			if (refs.close) {
+				refs.close.addEventListener('click', function () {
 					self.close();
 				});
 			}
-			if (this.refs.timeline) {
+			if (refs.timeline) {
 				// Timeline controls bind lazily: the controller is only
 				// known once playback starts (see attach()).
-				this.refs.timeline.addEventListener('click', function (e) {
+				refs.timeline.addEventListener('click', function (e) {
 					if (self.controller) {
-						self.controller.seekRatio(clickRatio(e, self.refs.timeline));
+						self.controller.seekRatio(clickRatio(e, refs.timeline));
 					}
 				});
-				this.refs.timeline.addEventListener('keydown', function (e) {
+				refs.timeline.addEventListener('keydown', function (e) {
 					if (self.controller) {
 						sliderKeys(e, self.controller);
 					}
 				});
 				var dragging = false;
-				this.refs.timeline.addEventListener('pointerdown', function (e) {
+				refs.timeline.addEventListener('pointerdown', function (e) {
 					if (!self.controller) {
 						return;
 					}
 					dragging = true;
 					try {
-						self.refs.timeline.setPointerCapture(e.pointerId);
+						refs.timeline.setPointerCapture(e.pointerId);
 					} catch (err) { /* optional */ }
-					self.controller.seekRatio(clickRatio(e, self.refs.timeline));
+					self.controller.seekRatio(clickRatio(e, refs.timeline));
 				});
-				this.refs.timeline.addEventListener('pointermove', function (e) {
+				refs.timeline.addEventListener('pointermove', function (e) {
 					if (dragging && self.controller) {
-						self.controller.seekRatio(clickRatio(e, self.refs.timeline));
+						self.controller.seekRatio(clickRatio(e, refs.timeline));
 					}
 				});
 				var endDrag = function () {
 					dragging = false;
 				};
-				this.refs.timeline.addEventListener('pointerup', endDrag);
-				this.refs.timeline.addEventListener('pointercancel', endDrag);
+				refs.timeline.addEventListener('pointerup', endDrag);
+				refs.timeline.addEventListener('pointercancel', endDrag);
 			}
 
 			// Keep the reserved page space equal to the bar's real height
@@ -1652,6 +1691,44 @@
 					self.sync(controller, eventName);
 				}
 			};
+		},
+
+		/**
+		 * The episode that starts playing. The bar opens for it only when
+		 * the view that started playback asked for it (see wantsSticky());
+		 * an open bar that already shows it stays. When a player without
+		 * the sticky option starts another episode, an open bar closes
+		 * rather than show that episode or a stale one.
+		 */
+		follow: function (controller) {
+			this.init();
+			if (!this.root || !controller) {
+				return;
+			}
+			var open = !this.root.hidden;
+			if (open && this.controller === controller) {
+				this.sync(controller, 'attach');
+			} else if (controller.wantsSticky) {
+				this.attach(controller);
+			} else if (open) {
+				this.hide();
+			}
+		},
+
+		/**
+		 * Close without pausing (another episode took over).
+		 */
+		hide: function () {
+			var id = this.controller ? this.controller.episodeId : '';
+			var hadFocus = !!document.activeElement && this.root.contains(document.activeElement);
+			if (this.controller) {
+				this.controller.unsubscribe(this.view);
+			}
+			this.controller = null;
+			this.root.hidden = true;
+			if (hadFocus) {
+				this.returnFocus(id, true);
+			}
 		},
 
 		/**
@@ -1692,7 +1769,17 @@
 			}
 			this.root.hidden = true;
 
-			if (!hadFocus || !id) {
+			if (hadFocus) {
+				this.returnFocus(id, keyboard);
+			}
+		},
+
+		/**
+		 * Focus the episode's own play control after the bar closed with
+		 * focus inside it, instead of letting focus fall to <body>.
+		 */
+		returnFocus: function (id, keyboard) {
+			if (!id) {
 				return;
 			}
 			var safeId = String(id).replace(/"/g, '');

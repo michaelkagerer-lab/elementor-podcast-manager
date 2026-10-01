@@ -501,9 +501,20 @@ $t->test(
 			);
 			$t->assert( $page && true === ( $args['sticky'] ?? null ), 'automatic episode page player is sticky' );
 
+			// The shell may be on the page for one view and not another:
+			// each view says whether playback started there opens the bar.
+			$t->assert( false !== strpos( $renderer->player( $ep1 ), 'data-epm-sticky-player="0"' ), 'a player without sticky: its playback leaves the bar closed' );
+			$t->assert( false !== strpos( $renderer->player( $ep1, [ 'sticky' => true ] ), 'data-epm-sticky-player="1"' ), 'a sticky player opens it' );
+			$t->assert( false !== strpos( $renderer->episode_row( $ep1 ), 'data-epm-sticky-player="1"' ), 'a row button opens it' );
+			$t->assert( false !== strpos( $renderer->chapters( $ep1 ), 'data-epm-sticky-player="1"' ), 'a chapter list opens it' );
+			$inside = $renderer->player( $ep1, [ 'show_chapters_link' => true ] );
+			$t->assert( 1 === substr_count( $inside, 'data-epm-sticky-player=' ), 'chapters inside a player follow the player' );
+
 			add_filter( 'epm_sticky_player_for_lists', '__return_false' );
 			$t->assert( ! $requests( static fn() => $renderer->episode_row( $ep1 ) ), 'filter: rows opt out' );
 			$t->assert( ! $requests( static fn() => $renderer->chapters( $ep1 ) ), 'filter: chapters opt out' );
+			$t->assert( false !== strpos( $renderer->episode_row( $ep1 ), 'data-epm-sticky-player="0"' ), 'filter: a row button leaves the bar closed' );
+			$t->assert( false !== strpos( $renderer->chapters( $ep1 ), 'data-epm-sticky-player="0"' ), 'filter: a chapter list leaves it closed' );
 		} finally {
 			remove_filter( 'epm_auto_embed_player_args', $capture );
 			remove_filter( 'epm_sticky_player_for_lists', '__return_false' );

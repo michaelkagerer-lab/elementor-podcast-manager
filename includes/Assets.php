@@ -32,6 +32,13 @@ final class Assets {
 	private static bool $sticky_requested = false;
 
 	/**
+	 * Whether this request renders the Elementor editor's preview.
+	 *
+	 * @var bool
+	 */
+	private static bool $elementor_preview = false;
+
+	/**
 	 * Mark that a player was rendered (called by the Renderer).
 	 *
 	 * @return void
@@ -64,6 +71,20 @@ final class Assets {
 		// so print assets in the footer when they were actually used.
 		add_action( 'wp_footer', [ $this, 'maybe_enqueue_late' ], 5 );
 		add_action( 'wp_footer', [ $this, 'maybe_output_sticky' ], 25 );
+		add_action( 'elementor/preview/init', [ $this, 'mark_elementor_preview' ] );
+	}
+
+	/**
+	 * The editor's preview re-renders widgets without loading the page
+	 * again, so its footer is printed once: the sticky shell is always
+	 * there (hidden) for a player whose sticky option is turned on while
+	 * editing. Whether a press opens it is up to the pressed player (see
+	 * data-epm-sticky-player), as on the site.
+	 *
+	 * @return void
+	 */
+	public function mark_elementor_preview(): void {
+		self::$elementor_preview = true;
 	}
 
 	/**
@@ -203,7 +224,7 @@ final class Assets {
 	 * @return void
 	 */
 	public function maybe_output_sticky(): void {
-		if ( ! self::$sticky_requested ) {
+		if ( ! self::$sticky_requested && ! self::$elementor_preview ) {
 			return;
 		}
 

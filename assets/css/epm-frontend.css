@@ -1374,7 +1374,12 @@ body:has(.epm-sticky:not([hidden])) {
 	color: var(--epm-text, #111827);
 	border-top: 1px solid var(--epm-border, #e5e7eb);
 	box-shadow: var(--epm-shadow, none);
-	padding: 10px 20px calc(10px + env(safe-area-inset-bottom, 0px));
+	/*
+	 * Safe areas (notches, rounded corners, the home indicator; with
+	 * viewport-fit=cover): the bottom inset adds to the padding, the side
+	 * insets replace it when they are larger (landscape phones).
+	 */
+	padding: 10px max(20px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
 }
 
 .epm-sticky[hidden] {
@@ -1519,7 +1524,8 @@ body:has(.epm-sticky:not([hidden])) {
 @media (max-width: 480px) {
 	.epm-sticky {
 		gap: 12px;
-		padding-inline: 12px;
+		padding-left: max(12px, env(safe-area-inset-left, 0px));
+		padding-right: max(12px, env(safe-area-inset-right, 0px));
 	}
 
 	.epm-sticky__info {
