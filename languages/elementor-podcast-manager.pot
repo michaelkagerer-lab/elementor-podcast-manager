@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-01T06:16:52+00:00\n"
+"POT-Creation-Date: 2026-10-01T11:32:01+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: elementor-podcast-manager\n"
@@ -33,7 +33,7 @@ msgstr ""
 #: admin/views/distribution.php:181
 #: admin/views/settings.php:185
 #: includes/EpisodeMeta.php:688
-#: includes/EpisodeMeta.php:1149
+#: includes/EpisodeMeta.php:1154
 msgid "(opens in a new tab)"
 msgstr ""
 
@@ -44,7 +44,7 @@ msgstr ""
 #. translators: %s: human time difference, e.g. "5 mins"
 #: admin/views/dashboard.php:50
 #: admin/views/hosting.php:33
-#: includes/ImportJob.php:1941
+#: includes/ImportJob.php:2624
 #, php-format
 msgid "%s ago"
 msgstr ""
@@ -73,7 +73,7 @@ msgstr ""
 #: includes/Admin.php:317
 #: includes/Admin.php:318
 #: includes/AdminPages.php:133
-#: includes/AdminPages.php:519
+#: includes/AdminPages.php:527
 #: includes/Elementor/Integration.php:46
 msgid "Podcast"
 msgstr ""
@@ -95,7 +95,7 @@ msgid "Choose where your show is hosted, add its details and artwork, and get th
 msgstr ""
 
 #: admin/views/dashboard.php:73
-#: includes/AdminPages.php:289
+#: includes/AdminPages.php:297
 msgid "Start setup"
 msgstr ""
 
@@ -154,7 +154,7 @@ msgid "Customize design"
 msgstr ""
 
 #: admin/views/dashboard.php:128
-#: admin/views/setup.php:494
+#: admin/views/setup.php:491
 msgid "View podcast page"
 msgstr ""
 
@@ -162,7 +162,7 @@ msgstr ""
 #: admin/views/hosting.php:59
 #: admin/views/setup.php:43
 #: admin/views/setup.php:82
-#: includes/Readiness.php:334
+#: includes/Readiness.php:323
 msgid "Hosting"
 msgstr ""
 
@@ -183,10 +183,10 @@ msgstr ""
 
 #: admin/views/dashboard.php:155
 #: admin/views/distribution.php:113
-#: admin/views/hosting.php:296
+#: admin/views/hosting.php:293
 #: admin/views/settings.php:184
-#: admin/views/setup.php:447
-#: admin/views/setup.php:459
+#: admin/views/setup.php:444
+#: admin/views/setup.php:456
 msgid "Copy feed address"
 msgstr ""
 
@@ -201,13 +201,13 @@ msgstr ""
 
 #: admin/views/dashboard.php:163
 #: admin/views/hosting.php:162
-#: admin/js/epm-hosting.js:143
+#: admin/js/epm-hosting.js:145
 msgid "Problem"
 msgstr ""
 
 #: admin/views/dashboard.php:165
 #: admin/views/hosting.php:164
-#: admin/js/epm-hosting.js:133
+#: admin/js/epm-hosting.js:135
 msgid "Working"
 msgstr ""
 
@@ -290,7 +290,7 @@ msgstr ""
 
 #: admin/views/dashboard.php:291
 #: includes/EpisodePostType.php:134
-#: includes/Readiness.php:213
+#: includes/Readiness.php:214
 msgid "Edit episode"
 msgstr ""
 
@@ -309,7 +309,7 @@ msgid "No episodes yet. Add your first one: upload the audio, give it a title an
 msgstr ""
 
 #: admin/views/dashboard.php:306
-#: admin/views/setup.php:491
+#: admin/views/setup.php:488
 msgid "Add your first episode"
 msgstr ""
 
@@ -922,7 +922,7 @@ msgid "Check it with an independent validator: %1$s or %2$s."
 msgstr ""
 
 #: admin/views/distribution.php:129
-#: includes/Readiness.php:495
+#: includes/Readiness.php:572
 msgid "Test feed and audio delivery"
 msgstr ""
 
@@ -1190,95 +1190,106 @@ msgstr ""
 
 #: admin/views/hosting.php:243
 #: admin/views/setup.php:221
-#: includes/Readiness.php:372
+#: includes/Readiness.php:361
 msgid "Import episodes"
 msgstr ""
 
-#: admin/views/hosting.php:261
-#: admin/views/setup.php:245
-msgid "These episodes still play from the old host. Open each one to add the audio file, or run the import again, before you close the old account."
-msgstr ""
-
-#: admin/views/hosting.php:265
-#: admin/views/setup.php:250
+#: admin/views/hosting.php:262
+#: admin/views/setup.php:247
 msgid "Show the import log"
 msgstr ""
 
-#: admin/views/hosting.php:269
-#: admin/views/setup.php:257
+#: admin/views/hosting.php:266
+#: admin/views/setup.php:254
 msgid "Stop the import"
 msgstr ""
 
-#: admin/views/hosting.php:270
+#: admin/views/hosting.php:267
 msgid "View episodes"
 msgstr ""
 
-#: admin/views/hosting.php:276
+#: admin/views/hosting.php:273
 msgid "Moving your podcast"
 msgstr ""
 
-#: admin/views/hosting.php:278
+#: admin/views/hosting.php:275
 msgid "Moving your podcast to this website"
 msgstr ""
 
-#: admin/views/hosting.php:282
+#: admin/views/hosting.php:279
 msgid "Prepare the old host"
 msgstr ""
 
-#: admin/views/hosting.php:283
+#: admin/views/hosting.php:280
 msgid "Make every episode visible in its feed (raise any episode limit), turn off “Lock feed” and download your statistics: they do not move."
 msgstr ""
 
-#: admin/views/hosting.php:287
+#: admin/views/hosting.php:284
 msgid "Import with media"
 msgstr ""
 
-#: admin/views/hosting.php:288
+#: admin/views/hosting.php:285
 msgid "Use the setup assistant (“Move my podcast”) or the import on this page with “Copy audio” on. Episode IDs (GUIDs) are kept, so apps never show duplicates."
 msgstr ""
 
-#: admin/views/hosting.php:292
+#: admin/views/hosting.php:289
 msgid "Redirect the old feed here"
 msgstr ""
 
-#: admin/views/hosting.php:298
+#: admin/views/hosting.php:295
 msgid "Instructions for"
 msgstr ""
 
-#: admin/views/hosting.php:309
+#: admin/views/hosting.php:306
 msgid "Wait four weeks before closing the old account"
 msgstr ""
 
-#: admin/views/hosting.php:310
+#: admin/views/hosting.php:307
 msgid "Apple asks for at least four weeks. Where no redirect is possible, change the feed address in Apple Podcasts Connect and Spotify for Creators yourself."
 msgstr ""
 
-#: admin/views/hosting.php:316
+#: admin/views/hosting.php:313
 msgid "Moving your podcast to another host"
 msgstr ""
 
-#: admin/views/hosting.php:320
+#: admin/views/hosting.php:317
 msgid "Let the new host import this feed"
 msgstr ""
 
-#: admin/views/hosting.php:321
+#: admin/views/hosting.php:318
 msgid "Give it this site’s feed address. Set “Feed episode limit” to 0 in Podcast settings first so every episode is included, and unlock the feed."
 msgstr ""
 
-#: admin/views/hosting.php:325
+#: admin/views/hosting.php:322
 msgid "Check the new feed"
 msgstr ""
 
-#: admin/views/hosting.php:326
+#: admin/views/hosting.php:323
 msgid "Paste the new host’s feed into “Import episodes from a feed” and choose “Check feed”: it should report that every episode already exists here. That proves the episode IDs were kept."
 msgstr ""
 
-#: admin/views/hosting.php:330
+#: admin/views/hosting.php:327
 msgid "Switch to “Another podcast host”"
 msgstr ""
 
-#: admin/views/hosting.php:331
+#: admin/views/hosting.php:328
 msgid "Enter the new feed address and keep the redirect on. This site then answers its old feed address with a permanent (301) redirect, and apps move over by themselves. Keep it that way; the audio files already here stay online."
+msgstr ""
+
+#: admin/views/partials/import-result.php:19
+msgid "Copy the missing files again"
+msgstr ""
+
+#: admin/views/partials/import-result.php:26
+msgid "Confirm that these files may stay at the old host, or copy them again first."
+msgstr ""
+
+#: admin/views/partials/import-result.php:28
+msgid "Finish the move"
+msgstr ""
+
+#: admin/views/partials/import-result.php:33
+msgid "Every file of the imported episodes is on this website now: audio, episode images and transcript files."
 msgstr ""
 
 #: admin/views/settings.php:17
@@ -1288,14 +1299,14 @@ msgid "Podcast settings"
 msgstr ""
 
 #: admin/views/settings.php:27
-#: admin/views/setup.php:272
-#: includes/Readiness.php:82
-#: includes/Readiness.php:84
+#: admin/views/setup.php:269
+#: includes/Readiness.php:86
+#: includes/Readiness.php:88
 msgid "Podcast title"
 msgstr ""
 
 #: admin/views/settings.php:31
-#: admin/views/setup.php:278
+#: admin/views/setup.php:275
 #: includes/Admin.php:1371
 #: includes/Elementor/Widgets/EpisodeHeaderWidget.php:103
 #: includes/Elementor/Widgets/LatestEpisodeWidget.php:121
@@ -1327,10 +1338,10 @@ msgid "Website URL"
 msgstr ""
 
 #: admin/views/settings.php:54
-#: admin/views/setup.php:290
-#: includes/Readiness.php:118
+#: admin/views/setup.php:287
 #: includes/Readiness.php:122
-#: includes/Readiness.php:133
+#: includes/Readiness.php:126
+#: includes/Readiness.php:137
 msgid "Category"
 msgstr ""
 
@@ -1343,8 +1354,8 @@ msgid "Apple Podcasts categories (used by most directories). Choose a subcategor
 msgstr ""
 
 #: admin/views/settings.php:79
-#: admin/views/setup.php:321
-#: includes/Readiness.php:137
+#: admin/views/setup.php:318
+#: includes/Readiness.php:141
 msgid "Language"
 msgstr ""
 
@@ -1355,19 +1366,19 @@ msgid "Language code (e.g. de-at) or WordPress locale (e.g. de_AT). The feed use
 msgstr ""
 
 #: admin/views/settings.php:99
-#: admin/views/setup.php:330
+#: admin/views/setup.php:327
 #: includes/Elementor/Widgets/ShowNotesWidget.php:135
 #: includes/Elementor/Widgets/TranscriptWidget.php:147
 msgid "Content"
 msgstr ""
 
 #: admin/views/settings.php:102
-#: admin/views/setup.php:331
+#: admin/views/setup.php:328
 msgid "Suitable for all ages"
 msgstr ""
 
 #: admin/views/settings.php:103
-#: admin/views/setup.php:332
+#: admin/views/setup.php:329
 #: includes/Admin.php:1558
 #: includes/Admin.php:1598
 #: includes/Admin.php:1650
@@ -1376,7 +1387,7 @@ msgid "Explicit"
 msgstr ""
 
 #: admin/views/settings.php:108
-#: admin/views/setup.php:337
+#: admin/views/setup.php:334
 msgid "Episode order"
 msgstr ""
 
@@ -1393,16 +1404,16 @@ msgid "Copyright"
 msgstr ""
 
 #: admin/views/settings.php:121
-#: admin/views/setup.php:308
-#: includes/Readiness.php:110
-#: includes/Readiness.php:112
+#: admin/views/setup.php:305
+#: includes/Readiness.php:114
+#: includes/Readiness.php:116
 msgid "Owner name"
 msgstr ""
 
 #: admin/views/settings.php:125
-#: admin/views/setup.php:312
-#: includes/Readiness.php:103
-#: includes/Readiness.php:105
+#: admin/views/setup.php:309
+#: includes/Readiness.php:107
+#: includes/Readiness.php:109
 msgid "Owner email"
 msgstr ""
 
@@ -1412,18 +1423,18 @@ msgstr ""
 
 #. translators: %1$d: width, %2$d: height
 #: admin/views/settings.php:136
-#: admin/views/setup.php:343
-#: includes/Readiness.php:143
-#: includes/Readiness.php:158
-#: includes/Readiness.php:171
-#: includes/Readiness.php:182
-#: includes/Readiness.php:185
-#: includes/Readiness.php:188
+#: admin/views/setup.php:340
+#: includes/Readiness.php:147
+#: includes/Readiness.php:162
+#: includes/Readiness.php:175
+#: includes/Readiness.php:186
+#: includes/Readiness.php:189
+#: includes/Readiness.php:192
 msgid "Podcast artwork"
 msgstr ""
 
 #: admin/views/settings.php:138
-#: includes/AdminPages.php:230
+#: includes/AdminPages.php:238
 msgid "Choose podcast artwork"
 msgstr ""
 
@@ -1597,13 +1608,13 @@ msgstr ""
 #: includes/Admin.php:337
 #: includes/Admin.php:338
 #: includes/EpisodePostType.php:136
-#: includes/Readiness.php:372
-#: includes/Readiness.php:375
+#: includes/Readiness.php:361
+#: includes/Readiness.php:364
 msgid "Episodes"
 msgstr ""
 
 #: admin/views/setup.php:46
-#: admin/views/setup.php:265
+#: admin/views/setup.php:262
 msgid "Show details"
 msgstr ""
 
@@ -1664,7 +1675,7 @@ msgid "Your host keeps publishing the feed. This website shows every episode wit
 msgstr ""
 
 #: admin/views/setup.php:102
-#: admin/views/setup.php:258
+#: admin/views/setup.php:255
 msgid "Continue"
 msgstr ""
 
@@ -1770,8 +1781,8 @@ msgid "Useful when you add guest photos or links before an episode page goes liv
 msgstr ""
 
 #: admin/views/setup.php:220
-#: admin/views/setup.php:370
-#: admin/views/setup.php:429
+#: admin/views/setup.php:367
+#: admin/views/setup.php:426
 msgid "Back"
 msgstr ""
 
@@ -1783,163 +1794,163 @@ msgstr ""
 msgid "The import continues in the background if you leave this page. Episodes that already exist here are updated, never duplicated."
 msgstr ""
 
-#: admin/views/setup.php:267
+#: admin/views/setup.php:264
 msgid "This is what listeners see in Apple Podcasts, Spotify and on your website."
 msgstr ""
 
-#: admin/views/setup.php:268
+#: admin/views/setup.php:265
 msgid "Your host publishes these details to the apps. Here they are used on your website, for example in the podcast header widget."
 msgstr ""
 
-#: admin/views/setup.php:274
+#: admin/views/setup.php:271
 msgid "Enter the name of your podcast."
 msgstr ""
 
-#: admin/views/setup.php:281
+#: admin/views/setup.php:278
 msgid "What the show is about and who it is for. Directories show the first two lines in search results."
 msgstr ""
 
-#: admin/views/setup.php:286
+#: admin/views/setup.php:283
 msgid "Author or presenter name"
 msgstr ""
 
-#: admin/views/setup.php:292
+#: admin/views/setup.php:289
 msgid "Choose a category"
 msgstr ""
 
-#: admin/views/setup.php:314
+#: admin/views/setup.php:311
 msgid "Spotify, Amazon and YouTube send a verification code to this address. It appears in your feed, so use one you are happy to share."
 msgstr ""
 
-#: admin/views/setup.php:315
+#: admin/views/setup.php:312
 msgid "Enter an email address like name@example.com."
 msgstr ""
 
-#: admin/views/setup.php:338
+#: admin/views/setup.php:335
 msgid "Newest first — episodes stand on their own (interviews, news)"
 msgstr ""
 
-#: admin/views/setup.php:339
+#: admin/views/setup.php:336
 msgid "Oldest first — listeners should start at episode 1 (stories, courses)"
 msgstr ""
 
-#: admin/views/setup.php:347
+#: admin/views/setup.php:344
 msgid "Current podcast artwork"
 msgstr ""
 
-#: admin/views/setup.php:349
+#: admin/views/setup.php:346
 msgid "Square image"
 msgstr ""
 
-#: admin/views/setup.php:355
+#: admin/views/setup.php:352
 msgid "Replace artwork"
 msgstr ""
 
-#: admin/views/setup.php:355
+#: admin/views/setup.php:352
 msgid "Choose artwork"
 msgstr ""
 
-#: admin/views/setup.php:357
+#: admin/views/setup.php:354
 msgid "JPEG or PNG, exactly square, 1400 to 3000 px. Keep text large: it is shown as small as 55 px."
 msgstr ""
 
-#: admin/views/setup.php:371
-#: admin/views/setup.php:430
+#: admin/views/setup.php:368
+#: admin/views/setup.php:427
 msgid "Save and continue"
 msgstr ""
 
-#: admin/views/setup.php:379
+#: admin/views/setup.php:376
 msgid "Look and podcast page"
 msgstr ""
 
-#: admin/views/setup.php:380
+#: admin/views/setup.php:377
 msgid "Pick a starting style for the player and episode lists. Everything stays adjustable in Podcast → Design and in each Elementor widget."
 msgstr ""
 
-#: admin/views/setup.php:383
+#: admin/views/setup.php:380
 msgid "Style"
 msgstr ""
 
 #. translators: %s: link to the podcast page
-#: admin/views/setup.php:413
+#: admin/views/setup.php:410
 #, php-format
 msgid "Your podcast page: %s"
 msgstr ""
 
-#: admin/views/setup.php:421
+#: admin/views/setup.php:418
 msgid "Create a podcast page"
 msgstr ""
 
-#: admin/views/setup.php:422
+#: admin/views/setup.php:419
 msgid "A published page with the latest episode, subscribe buttons and the episode list. Each episode also gets its own page automatically. Rebuild it in Elementor with the podcast widgets any time."
 msgstr ""
 
-#: admin/views/setup.php:438
+#: admin/views/setup.php:435
 msgid "Your podcast is set up"
 msgstr ""
 
-#: admin/views/setup.php:439
+#: admin/views/setup.php:436
 msgid "Your episodes are here — one step left"
 msgstr ""
 
-#: admin/views/setup.php:440
+#: admin/views/setup.php:437
 msgid "Your website is connected to your host"
 msgstr ""
 
-#: admin/views/setup.php:444
+#: admin/views/setup.php:441
 msgid "Publish your first episode, then submit this feed address once to each platform. New episodes reach them automatically after that."
 msgstr ""
 
-#: admin/views/setup.php:452
+#: admin/views/setup.php:449
 msgid "Point your old feed at this website with a permanent (301) redirect. Apple Podcasts, Spotify and every app then switch over by themselves: subscribers, reviews and rankings stay."
 msgstr ""
 
-#: admin/views/setup.php:456
+#: admin/views/setup.php:453
 msgid "Copy this site’s feed address"
 msgstr ""
 
-#: admin/views/setup.php:464
+#: admin/views/setup.php:461
 msgid "Set the redirect at your old host"
 msgstr ""
 
-#: admin/views/setup.php:469
+#: admin/views/setup.php:466
 msgid "Keep the old account for four weeks"
 msgstr ""
 
-#: admin/views/setup.php:470
+#: admin/views/setup.php:467
 msgid "Apple asks for at least four weeks so every app sees the redirect. This feed also announces its new address in the meantime."
 msgstr ""
 
-#: admin/views/setup.php:476
+#: admin/views/setup.php:473
 msgid "New episodes you publish at your host appear here within the hour. Keep publishing at your host; edits you make here to an episode page are kept."
 msgstr ""
 
-#: admin/views/setup.php:478
+#: admin/views/setup.php:475
 msgid "Feed for listeners"
 msgstr ""
 
-#: admin/views/setup.php:480
+#: admin/views/setup.php:477
 msgid "This site’s old feed address"
 msgstr ""
 
-#: admin/views/setup.php:481
-#: includes/Readiness.php:367
+#: admin/views/setup.php:478
+#: includes/Readiness.php:356
 msgid "Redirects permanently to your host’s feed."
 msgstr ""
 
-#: admin/views/setup.php:486
+#: admin/views/setup.php:483
 msgid "Before you submit"
 msgstr ""
 
-#: admin/views/setup.php:492
+#: admin/views/setup.php:489
 msgid "View imported episodes"
 msgstr ""
 
-#: admin/views/setup.php:493
+#: admin/views/setup.php:490
 msgid "Get listed on Apple, Spotify and more"
 msgstr ""
 
-#: admin/views/setup.php:495
+#: admin/views/setup.php:492
 msgid "Go to the podcast dashboard"
 msgstr ""
 
@@ -2035,7 +2046,7 @@ msgid "Use this audio"
 msgstr ""
 
 #: includes/Admin.php:267
-#: includes/AdminPages.php:231
+#: includes/AdminPages.php:239
 msgid "Use this image"
 msgstr ""
 
@@ -2120,8 +2131,8 @@ msgstr ""
 
 #: includes/Admin.php:288
 #: includes/EpisodeMeta.php:639
-#: includes/EpisodeMeta.php:1492
-#: includes/EpisodeMeta.php:1692
+#: includes/EpisodeMeta.php:1497
+#: includes/EpisodeMeta.php:1697
 msgid "Enter a web address that starts with https://, for example https://cdn.example.com/episode-12.mp3."
 msgstr ""
 
@@ -2160,7 +2171,7 @@ msgstr ""
 
 #: includes/Admin.php:297
 #: includes/Admin.php:513
-#: includes/AdminPages.php:225
+#: includes/AdminPages.php:233
 #: includes/Renderer.php:788
 msgid "Copied"
 msgstr ""
@@ -2215,7 +2226,7 @@ msgstr ""
 #: includes/Admin.php:389
 #: includes/Admin.php:717
 #: includes/Admin.php:730
-#: includes/AdminPages.php:692
+#: includes/AdminPages.php:700
 msgid "You do not have permission to access this page."
 msgstr ""
 
@@ -2515,7 +2526,7 @@ msgid "Episode #"
 msgstr ""
 
 #: includes/Admin.php:1410
-#: includes/AdminPages.php:622
+#: includes/AdminPages.php:630
 msgid "Audio"
 msgstr ""
 
@@ -2593,201 +2604,201 @@ msgstr ""
 msgid "Set up podcast"
 msgstr ""
 
-#: includes/AdminPages.php:223
+#: includes/AdminPages.php:231
 msgid "Saving…"
 msgstr ""
 
-#: includes/AdminPages.php:224
+#: includes/AdminPages.php:232
 msgid "Saved"
 msgstr ""
 
-#: includes/AdminPages.php:226
+#: includes/AdminPages.php:234
 msgid "Checking the feed…"
 msgstr ""
 
-#: includes/AdminPages.php:227
+#: includes/AdminPages.php:235
 msgid "Importing…"
 msgstr ""
 
-#: includes/AdminPages.php:228
+#: includes/AdminPages.php:236
 msgid "Syncing…"
 msgstr ""
 
-#: includes/AdminPages.php:229
+#: includes/AdminPages.php:237
 msgid "Something went wrong. Check your connection and try again."
 msgstr ""
 
 #. translators: 1: episodes done, 2: total episodes
-#: includes/AdminPages.php:233
+#: includes/AdminPages.php:241
 #, php-format
 msgid "%1$s of %2$s episodes"
 msgstr ""
 
-#: includes/AdminPages.php:234
+#: includes/AdminPages.php:242
 msgid "The import continues in the background if you leave this page."
 msgstr ""
 
-#: includes/AdminPages.php:286
+#: includes/AdminPages.php:294
 msgid "Your podcast is not set up yet."
 msgstr ""
 
-#: includes/AdminPages.php:287
+#: includes/AdminPages.php:295
 msgid "The setup assistant walks you through hosting, show details, artwork and getting listed on Apple Podcasts and Spotify."
 msgstr ""
 
-#: includes/AdminPages.php:291
+#: includes/AdminPages.php:299
 msgid "Dismiss"
 msgstr ""
 
-#: includes/AdminPages.php:299
+#: includes/AdminPages.php:307
 msgid "Episodes are not syncing from your podcast host."
 msgstr ""
 
-#: includes/AdminPages.php:302
+#: includes/AdminPages.php:310
 msgid "Check the hosting settings"
 msgstr ""
 
-#: includes/AdminPages.php:314
-#: includes/ImportJob.php:1815
+#: includes/AdminPages.php:322
+#: includes/ImportJob.php:2466
 msgid "Your session expired. Reload the page and try again."
 msgstr ""
 
-#: includes/AdminPages.php:317
+#: includes/AdminPages.php:325
 msgid "You do not have permission to change the podcast setup."
 msgstr ""
 
-#: includes/AdminPages.php:369
+#: includes/AdminPages.php:377
 msgid "Choose how your podcast is hosted."
 msgstr ""
 
-#: includes/AdminPages.php:435
+#: includes/AdminPages.php:443
 msgid "Unknown setup step."
 msgstr ""
 
-#: includes/AdminPages.php:454
+#: includes/AdminPages.php:462
 msgid "Add square artwork: Apple Podcasts and Spotify require it."
 msgstr ""
 
-#: includes/AdminPages.php:468
-#: admin/js/epm-setup.js:927
+#: includes/AdminPages.php:476
+#: admin/js/epm-setup.js:929
 msgid "Use a JPEG or PNG file."
 msgstr ""
 
 #. translators: 1: width, 2: height
-#: includes/AdminPages.php:472
+#: includes/AdminPages.php:480
 #, php-format
 msgid "The image is %1$d×%2$d px. It must be exactly square."
 msgstr ""
 
 #. translators: %d: width in pixels
-#: includes/AdminPages.php:476
+#: includes/AdminPages.php:484
 #, php-format
 msgid "The image is %d px wide. Use 1400 to 3000 px (3000 px is best)."
 msgstr ""
 
-#: includes/AdminPages.php:509
+#: includes/AdminPages.php:517
 msgid "All episodes"
 msgstr ""
 
-#: includes/AdminPages.php:555
+#: includes/AdminPages.php:563
 msgid "Unknown platform."
 msgstr ""
 
-#: includes/AdminPages.php:601
-#: includes/AdminPages.php:607
 #: includes/AdminPages.php:609
-#: includes/AdminPages.php:611
+#: includes/AdminPages.php:615
+#: includes/AdminPages.php:617
+#: includes/AdminPages.php:619
 msgid "Feed"
 msgstr ""
 
 #. translators: %s: error message from the HTTP client
-#: includes/AdminPages.php:601
+#: includes/AdminPages.php:609
 #: includes/Hosting.php:576
 #, php-format
 msgid "The feed could not be loaded: %s"
 msgstr ""
 
 #. translators: %d: HTTP status
-#: includes/AdminPages.php:607
+#: includes/AdminPages.php:615
 #, php-format
 msgid "The feed answers with HTTP status %d instead of 200."
 msgstr ""
 
-#: includes/AdminPages.php:609
+#: includes/AdminPages.php:617
 msgid "The feed address returns something other than RSS. A caching or security plugin may be replacing it; exclude the feed address from it."
 msgstr ""
 
 #. translators: %s: content type
-#: includes/AdminPages.php:611
+#: includes/AdminPages.php:619
 #, php-format
 msgid "Loads correctly (%s)."
 msgstr ""
 
-#: includes/AdminPages.php:615
+#: includes/AdminPages.php:623
 msgid "HTTPS"
 msgstr ""
 
-#: includes/AdminPages.php:615
+#: includes/AdminPages.php:623
 msgid "The feed address uses http://. Apple Podcasts and Spotify expect HTTPS; turn on HTTPS for your site before submitting."
 msgstr ""
 
-#: includes/AdminPages.php:622
+#: includes/AdminPages.php:630
 msgid "Publish an episode with audio to test how the audio is served."
 msgstr ""
 
-#: includes/AdminPages.php:629
-#: includes/AdminPages.php:635
 #: includes/AdminPages.php:637
-#: includes/AdminPages.php:639
-#: includes/AdminPages.php:641
+#: includes/AdminPages.php:643
+#: includes/AdminPages.php:645
+#: includes/AdminPages.php:647
+#: includes/AdminPages.php:649
 msgid "Audio (HEAD)"
 msgstr ""
 
 #. translators: %s: error
-#: includes/AdminPages.php:629
+#: includes/AdminPages.php:637
 #, php-format
 msgid "The audio did not answer a HEAD request: %s"
 msgstr ""
 
 #. translators: %d: HTTP status
-#: includes/AdminPages.php:635
+#: includes/AdminPages.php:643
 #, php-format
 msgid "The audio answers a HEAD request with HTTP status %d instead of 200."
 msgstr ""
 
-#: includes/AdminPages.php:637
+#: includes/AdminPages.php:645
 msgid "The server does not report the file size (Content-Length). Apps need it to show download progress."
 msgstr ""
 
 #. translators: %s: content type
-#: includes/AdminPages.php:639
+#: includes/AdminPages.php:647
 #, php-format
 msgid "The audio is served as %s. It should be served with an audio type such as audio/mpeg."
 msgstr ""
 
 #. translators: 1: file size, 2: content type
-#: includes/AdminPages.php:641
+#: includes/AdminPages.php:649
 #, php-format
 msgid "%1$s, %2$s."
 msgstr ""
 
-#: includes/AdminPages.php:647
-#: includes/AdminPages.php:649
-#: includes/AdminPages.php:651
+#: includes/AdminPages.php:655
+#: includes/AdminPages.php:657
+#: includes/AdminPages.php:659
 msgid "Audio (byte ranges)"
 msgstr ""
 
 #. translators: %s: error
-#: includes/AdminPages.php:647
+#: includes/AdminPages.php:655
 #, php-format
 msgid "The range request failed: %s"
 msgstr ""
 
-#: includes/AdminPages.php:649
+#: includes/AdminPages.php:657
 msgid "Supported: listeners can seek and apps can stream."
 msgstr ""
 
-#: includes/AdminPages.php:651
+#: includes/AdminPages.php:659
 msgid "The server ignores byte-range requests. Apple Podcasts rejects such shows. Ask your web host to enable range requests for audio files, or serve the audio from a CDN or storage bucket."
 msgstr ""
 
@@ -3995,156 +4006,168 @@ msgstr ""
 msgid "Remove transcript file"
 msgstr ""
 
-#. translators: 1: file format, e.g. WebVTT, 2: host name
-#: includes/EpisodeMeta.php:1143
-#, php-format
-msgid "The feed also lists a %1$s transcript hosted at %2$s. It came with the import and stays at this address:"
-msgstr ""
-
-#: includes/EpisodeMeta.php:1144
+#: includes/EpisodeMeta.php:1137
 msgid "transcript"
 msgstr ""
 
-#: includes/EpisodeMeta.php:1153
+#. translators: 1: file format, e.g. WebVTT, 2: host name
+#: includes/EpisodeMeta.php:1143
+#, php-format
+msgid "The feed also lists a %1$s transcript hosted at %2$s:"
+msgstr ""
+
+#. translators: 1: file format, e.g. WebVTT, 2: host name
+#: includes/EpisodeMeta.php:1146
+#, php-format
+msgid "The %1$s transcript file from the imported feed is still hosted at %2$s, and the feed links to it there. Importing again with “Copy audio” copies it to this website:"
+msgstr ""
+
+#. translators: 1: file format, e.g. JSON, 2: host name
+#: includes/EpisodeMeta.php:1149
+#, php-format
+msgid "The %1$s transcript from the imported feed is hosted at %2$s and stays linked there (this format is not copied):"
+msgstr ""
+
+#: includes/EpisodeMeta.php:1158
 msgid "Transcript text"
 msgstr ""
 
-#: includes/EpisodeMeta.php:1165
+#: includes/EpisodeMeta.php:1170
 msgid "Shown on the episode page and by the Transcript widget. When this is empty and a transcript file is attached, the text is filled from the file when you save."
 msgstr ""
 
-#: includes/EpisodeMeta.php:1209
+#: includes/EpisodeMeta.php:1214
 msgid "plain text"
 msgstr ""
 
-#: includes/EpisodeMeta.php:1255
+#: includes/EpisodeMeta.php:1260
 msgid "The selected audio file is not a supported audio attachment. The previous audio association was kept."
 msgstr ""
 
-#: includes/EpisodeMeta.php:1258
+#: includes/EpisodeMeta.php:1263
 msgid "Go to the audio"
 msgstr ""
 
-#: includes/EpisodeMeta.php:1270
+#: includes/EpisodeMeta.php:1275
 msgid "The manual duration was not saved: use minutes:seconds (e.g. 48:12) or hours:minutes:seconds."
 msgstr ""
 
-#: includes/EpisodeMeta.php:1273
-#: includes/EpisodeMeta.php:1300
+#: includes/EpisodeMeta.php:1278
+#: includes/EpisodeMeta.php:1305
 msgid "Go to the duration"
 msgstr ""
 
-#: includes/EpisodeMeta.php:1276
+#: includes/EpisodeMeta.php:1281
 msgid "Use minutes:seconds (48:12) or hours:minutes:seconds (1:02:30)."
 msgstr ""
 
-#: includes/EpisodeMeta.php:1297
+#: includes/EpisodeMeta.php:1302
 msgid "Duration could not be detected automatically. You can enter it manually below the audio upload."
 msgstr ""
 
 #. translators: %d: number of links
-#: includes/EpisodeMeta.php:1362
+#: includes/EpisodeMeta.php:1367
 #, php-format
 msgid "%d platform link was not saved. Each link needs a web address that starts with https://."
 msgid_plural "%d platform links were not saved. Each link needs a web address that starts with https://."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/EpisodeMeta.php:1367
+#: includes/EpisodeMeta.php:1372
 msgid "Go to the links"
 msgstr ""
 
 #. translators: %d: number of chapters
-#: includes/EpisodeMeta.php:1431
+#: includes/EpisodeMeta.php:1436
 #, php-format
 msgid "%d chapter was not saved. Each chapter needs a start time (for example 12:30) and a title."
 msgid_plural "%d chapters were not saved. Each chapter needs a start time (for example 12:30) and a title."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/EpisodeMeta.php:1436
+#: includes/EpisodeMeta.php:1441
 msgid "Go to the chapters"
 msgstr ""
 
-#: includes/EpisodeMeta.php:1486
+#: includes/EpisodeMeta.php:1491
 msgid "The audio URL was not saved. Use a web address that starts with https://."
 msgstr ""
 
-#: includes/EpisodeMeta.php:1489
-#: includes/EpisodeMeta.php:1538
+#: includes/EpisodeMeta.php:1494
+#: includes/EpisodeMeta.php:1543
 msgid "Go to the audio URL"
 msgstr ""
 
 #. translators: %s: what went wrong and how to fix it
-#: includes/EpisodeMeta.php:1535
+#: includes/EpisodeMeta.php:1540
 #, php-format
 msgid "The audio URL was saved. %s"
 msgstr ""
 
-#: includes/EpisodeMeta.php:1566
+#: includes/EpisodeMeta.php:1571
 msgid "The transcript file was not saved. Choose a WebVTT (.vtt) or SubRip (.srt) file."
 msgstr ""
 
-#: includes/EpisodeMeta.php:1569
-#: includes/EpisodeMeta.php:1592
+#: includes/EpisodeMeta.php:1574
+#: includes/EpisodeMeta.php:1597
 msgid "Go to the transcript"
 msgstr ""
 
-#: includes/EpisodeMeta.php:1571
+#: includes/EpisodeMeta.php:1576
 #: admin/js/epm-admin.js:1107
 msgid "Choose a WebVTT (.vtt) or SubRip (.srt) file. Other file types can’t be used for captions."
 msgstr ""
 
-#: includes/EpisodeMeta.php:1589
+#: includes/EpisodeMeta.php:1594
 msgid "The transcript text was filled from the transcript file. You can edit it below."
 msgstr ""
 
-#: includes/EpisodeMeta.php:1609
+#: includes/EpisodeMeta.php:1614
 msgid "You are not allowed to upload files."
 msgstr ""
 
-#: includes/EpisodeMeta.php:1614
-#: includes/EpisodeMeta.php:1650
-#: includes/EpisodeMeta.php:1681
+#: includes/EpisodeMeta.php:1619
+#: includes/EpisodeMeta.php:1655
+#: includes/EpisodeMeta.php:1686
 msgid "You are not allowed to edit this episode."
 msgstr ""
 
-#: includes/EpisodeMeta.php:1631
+#: includes/EpisodeMeta.php:1636
 msgid "This file is not audio. Upload an MP3 or M4A file (WAV is kept for storage only)."
 msgstr ""
 
-#: includes/EpisodeMeta.php:1653
-#: includes/EpisodeMeta.php:1684
-#: includes/EpisodeMeta.php:1730
+#: includes/EpisodeMeta.php:1658
+#: includes/EpisodeMeta.php:1689
+#: includes/EpisodeMeta.php:1735
 msgid "You are not allowed to manage episodes."
 msgstr ""
 
-#: includes/EpisodeMeta.php:1659
+#: includes/EpisodeMeta.php:1664
 msgid "This file can’t be used as episode audio. Choose an MP3 or M4A file."
 msgstr ""
 
-#: includes/EpisodeMeta.php:1760
+#: includes/EpisodeMeta.php:1765
 msgid "Draft"
 msgstr ""
 
-#: includes/EpisodeMeta.php:1761
+#: includes/EpisodeMeta.php:1766
 msgid "Pending review"
 msgstr ""
 
-#: includes/EpisodeMeta.php:1762
+#: includes/EpisodeMeta.php:1767
 msgid "Scheduled"
 msgstr ""
 
-#: includes/EpisodeMeta.php:1763
+#: includes/EpisodeMeta.php:1768
 msgid "Private"
 msgstr ""
 
-#: includes/EpisodeMeta.php:1775
+#: includes/EpisodeMeta.php:1780
 msgid "Password protected"
 msgstr ""
 
 #. translators: %d: episode post ID
-#: includes/EpisodeMeta.php:1783
+#: includes/EpisodeMeta.php:1788
 #, php-format
 msgid "Episode #%d"
 msgstr ""
@@ -4401,34 +4424,50 @@ msgstr[1] ""
 msgid "Up to date."
 msgstr ""
 
-#: includes/Importer.php:180
+#: includes/Importer.php:203
 msgid "The item has no identifier."
 msgstr ""
 
-#: includes/Importer.php:185
+#: includes/Importer.php:208
 msgid "Untitled episode"
 msgstr ""
 
-#: includes/Importer.php:208
+#: includes/Importer.php:232
 msgid "Deleted on this site; not imported again."
 msgstr ""
 
-#. translators: %s: error message
-#: includes/Importer.php:786
+#. translators: %s: why the file was not copied
+#: includes/Importer.php:327
 #, php-format
 msgid "Audio stays on the host: %s"
 msgstr ""
 
-#: includes/Importer.php:872
-msgid "Only WebVTT (.vtt) and SRT (.srt) transcript files are copied."
+#. translators: %s: why the file was not copied
+#: includes/Importer.php:329
+#, php-format
+msgid "Episode image stays on the host: %s"
 msgstr ""
 
-#: includes/ImportJob.php:622
+#. translators: %s: why the file was not copied
+#: includes/Importer.php:331
+#, php-format
+msgid "Transcript file stays on the host: %s"
+msgstr ""
+
+#: includes/Importer.php:867
+msgid "Another request is copying this file right now."
+msgstr ""
+
+#: includes/Importer.php:1194
+msgid "The file did not arrive in time."
+msgstr ""
+
+#: includes/ImportJob.php:631
 msgid "The feed links to its next page with an address that is not a web address."
 msgstr ""
 
 #. translators: 1: number of the feed page being read, 2: number of episodes found so far
-#: includes/ImportJob.php:998
+#: includes/ImportJob.php:1007
 #, php-format
 msgid "Reading page %1$s of the feed… %2$s episode found so far."
 msgid_plural "Reading page %1$s of the feed… %2$s episodes found so far."
@@ -4436,7 +4475,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: number of feed pages
-#: includes/ImportJob.php:1008
+#: includes/ImportJob.php:1017
 #, php-format
 msgid "All %s page of the feed was read."
 msgid_plural "All %s pages of the feed were read."
@@ -4444,7 +4483,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: 1: page number, 2: page address, 3: error message, 4: number of episodes found
-#: includes/ImportJob.php:1017
+#: includes/ImportJob.php:1026
 #, php-format
 msgid "Page %1$s of the feed (%2$s) could not be read: %3$s Only %4$s episode was found on the pages before it. The episodes on that page and any later pages are missing."
 msgid_plural "Page %1$s of the feed (%2$s) could not be read: %3$s Only %4$s episodes were found on the pages before it. The episodes on that page and any later pages are missing."
@@ -4452,7 +4491,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: 1: page number, 2: page address, 3: number of episodes found
-#: includes/ImportJob.php:1027
+#: includes/ImportJob.php:1036
 #, php-format
 msgid "Page %1$s of the feed (%2$s) lists no episodes but links to further pages. Only %3$s episode was found on the pages before it; later episodes may be missing."
 msgid_plural "Page %1$s of the feed (%2$s) lists no episodes but links to further pages. Only %3$s episodes were found on the pages before it; later episodes may be missing."
@@ -4460,7 +4499,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: 1: maximum number of pages, 2: number of episodes found
-#: includes/ImportJob.php:1036
+#: includes/ImportJob.php:1045
 #, php-format
 msgid "The feed has more than %1$s pages, and the import reads at most %1$s. Only the %2$s episode on those pages was found; the episodes on later pages are missing."
 msgid_plural "The feed has more than %1$s pages, and the import reads at most %1$s. Only the %2$s episodes on those pages were found; the episodes on later pages are missing."
@@ -4468,48 +4507,128 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: 1: size limit, e.g. "200 MB", 2: number of episodes found
-#: includes/ImportJob.php:1044
+#: includes/ImportJob.php:1053
 #, php-format
 msgid "The feed is larger than the import reads (%1$s). Only %2$s episode was found; the episodes on later pages are missing."
 msgid_plural "The feed is larger than the import reads (%1$s). Only %2$s episodes were found; the episodes on later pages are missing."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/ImportJob.php:1080
+#: includes/ImportJob.php:1089
 msgid "This feed check was cancelled."
 msgstr ""
 
-#: includes/ImportJob.php:1089
+#: includes/ImportJob.php:1098
 msgid "An import is already running. Wait for it to finish or cancel it first."
 msgstr ""
 
-#: includes/ImportJob.php:1098
-#: includes/ImportJob.php:1380
-#: includes/ImportJob.php:1413
+#: includes/ImportJob.php:1107
+#: includes/ImportJob.php:1390
+#: includes/ImportJob.php:1423
 msgid "This import expired. Check the feed again to start a new one."
 msgstr ""
 
-#: includes/ImportJob.php:1107
+#: includes/ImportJob.php:1116
 msgid "Another feed check (in another tab or by another administrator) replaced this one. Check the feed again."
 msgstr ""
 
-#: includes/ImportJob.php:1286
-#: includes/ImportJob.php:1327
-#: includes/ImportJob.php:1520
+#: includes/ImportJob.php:1296
+#: includes/ImportJob.php:1337
+#: includes/ImportJob.php:1597
 #: includes/ImportStore.php:466
 msgid "The stored feed data is missing. Check the feed again to restart the import."
 msgstr ""
 
-#: includes/ImportJob.php:1386
+#: includes/ImportJob.php:1396
 msgid "This feed is locked against moving to another platform. If it is your show, confirm that you own it, or unlock the feed at your current host first (the setting is often called “Lock feed”)."
 msgstr ""
 
-#: includes/ImportJob.php:1394
+#: includes/ImportJob.php:1404
 msgid "The feed could not be read completely, so moving it now would leave episodes behind. Try reading the rest of the feed again, or confirm that you want to move only the episodes that were found."
 msgstr ""
 
-#: includes/ImportJob.php:1819
+#: includes/ImportJob.php:1783
+msgid "The request ended without a response (it was stopped by the server)."
+msgstr ""
+
+#. translators: 1: number of attempts, 2: error message
+#: includes/ImportJob.php:1805
+#, php-format
+msgid "The copy was interrupted %1$d times (last: %2$s)."
+msgstr ""
+
+#: includes/ImportJob.php:1947
+msgid "The request ended in the middle of the copy."
+msgstr ""
+
+#: includes/ImportJob.php:2108
+msgid "Only WebVTT and SRT transcript files are copied; transcripts in other formats (such as JSON) stay linked at the old host."
+msgstr ""
+
+#: includes/ImportJob.php:2111
+msgid "Not copied in this run."
+msgstr ""
+
+#. translators: %s: number of files
+#: includes/ImportJob.php:2126
+#, php-format
+msgid "%s audio file"
+msgid_plural "%s audio files"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of images
+#: includes/ImportJob.php:2129
+#, php-format
+msgid "%s episode image"
+msgid_plural "%s episode images"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of files
+#: includes/ImportJob.php:2132
+#, php-format
+msgid "%s transcript file (WebVTT/SRT)"
+msgid_plural "%s transcript files (WebVTT/SRT)"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of transcripts
+#: includes/ImportJob.php:2136
+#, php-format
+msgid "%s transcript in another format (linked)"
+msgid_plural "%s transcripts in other formats (linked)"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/ImportJob.php:2195
+msgid "There is nothing to try again. Check the feed again to start a new import."
+msgstr ""
+
+#: includes/ImportJob.php:2221
+msgid "There is no unfinished move to confirm."
+msgstr ""
+
+#. translators: %s: number of episodes
+#: includes/ImportJob.php:2429
+#, php-format
+msgid "%s episode that could not be imported"
+msgid_plural "%s episodes that could not be imported"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: list such as "1 audio file, 2 episode images"
+#: includes/ImportJob.php:2434
+#, php-format
+msgid "Still at the old host: %s. Copy them again, or finish the move and keep them there (they stop working when the old account is closed)."
+msgstr ""
+
+#: includes/ImportJob.php:2470
 msgid "You do not have permission to import episodes."
+msgstr ""
+
+#: includes/ImportJob.php:2589
+msgid "Confirm that these files may stay at the old host."
 msgstr ""
 
 #. translators: %s: database error message
@@ -4520,6 +4639,167 @@ msgstr ""
 
 #: includes/ImportStore.php:390
 msgid "unknown error"
+msgstr ""
+
+#: includes/MediaCopy.php:73
+msgid "The address is not a valid web address."
+msgstr ""
+
+#. translators: %s: error message
+#: includes/MediaCopy.php:140
+#, php-format
+msgid "The file could not be added to the Media Library: %s"
+msgstr ""
+
+#: includes/MediaCopy.php:234
+msgid "the audio file"
+msgstr ""
+
+#: includes/MediaCopy.php:235
+msgid "the image"
+msgstr ""
+
+#: includes/MediaCopy.php:236
+#: admin/js/epm-import-result.js:52
+msgid "the transcript file"
+msgstr ""
+
+#: includes/MediaCopy.php:237
+msgid "the file"
+msgstr ""
+
+#: includes/MediaCopy.php:240
+msgid "The host returned an empty file."
+msgstr ""
+
+#: includes/MediaCopy.php:252
+msgid "The host returned a file that is not an image (JPEG, PNG, GIF or WebP)."
+msgstr ""
+
+#: includes/MediaCopy.php:268
+msgid "The host returned a file that is neither WebVTT nor SRT."
+msgstr ""
+
+#. translators: %s: detected file type, e.g. "application/zip"
+#: includes/MediaCopy.php:307
+#, php-format
+msgid "The host returned a file that is not audio (%s)."
+msgstr ""
+
+#: includes/MediaCopy.php:310
+#: includes/MediaCopy.php:432
+msgid "The host returned data that is not an audio file WordPress can read."
+msgstr ""
+
+#. translators: 1: audio format, e.g. "AAC", 2: list of formats, e.g. "MP3, M4A, WAV"
+#: includes/MediaCopy.php:320
+#, php-format
+msgid "Audio in the %1$s format is not copied (only %2$s are); it keeps playing from the host."
+msgstr ""
+
+#. translators: 1: bytes received, e.g. "2 MB", 2: size the feed announces, e.g. "40 MB"
+#: includes/MediaCopy.php:335
+#, php-format
+msgid "The download ended after %1$s, but the feed announces %2$s, so the file is probably incomplete."
+msgstr ""
+
+#. translators: %s: "the audio file", "the image" or "the transcript file"
+#: includes/MediaCopy.php:417
+#, php-format
+msgid "The host returned a web page instead of %s (often a login, error or consent page)."
+msgstr ""
+
+#. translators: %s: "the audio file", "the image" or "the transcript file"
+#: includes/MediaCopy.php:421
+#, php-format
+msgid "The host returned data (JSON) instead of %s, usually an error message."
+msgstr ""
+
+#. translators: %s: "the audio file", "the image" or "the transcript file"
+#: includes/MediaCopy.php:425
+#, php-format
+msgid "The host returned an XML document instead of %s, usually an error message of its storage."
+msgstr ""
+
+#. translators: %s: "the audio file", "the image" or "the transcript file"
+#: includes/MediaCopy.php:429
+#, php-format
+msgid "The host returned a text message instead of %s."
+msgstr ""
+
+#. translators: %s: folder
+#: includes/MediaCopy.php:504
+#, php-format
+msgid "The file could not be moved to %s (is the disk full?)."
+msgstr ""
+
+#: includes/MediaCopy.php:513
+msgid "Unknown error."
+msgstr ""
+
+#: includes/MediaDownload.php:327
+#: includes/MediaDownload.php:421
+#: includes/MediaDownload.php:439
+#: includes/MediaDownload.php:454
+msgid "The file could not be written to the disk (it may be full)."
+msgstr ""
+
+#. translators: %s: error message of the connection, e.g. "cURL error 7: Failed to connect"
+#: includes/MediaDownload.php:374
+#, php-format
+msgid "The download failed: %s"
+msgstr ""
+
+#: includes/MediaDownload.php:406
+msgid "It kept asking to wait."
+msgstr ""
+
+#: includes/MediaDownload.php:435
+msgid "The host sent a different part of the file than requested."
+msgstr ""
+
+#. translators: 1: bytes received, e.g. "20 MB", 2: file size the host announced, e.g. "50 MB"
+#: includes/MediaDownload.php:566
+#, php-format
+msgid "The download stopped after %1$s of %2$s."
+msgstr ""
+
+#. translators: 1: space needed, e.g. "120 MB", 2: free space, e.g. "40 MB", 3: folder
+#: includes/MediaDownload.php:740
+#, php-format
+msgid "Not enough free disk space: %1$s needed, %2$s free in %3$s."
+msgstr ""
+
+#. translators: 1: HTTP status code, 2: status text, e.g. "Not Found"
+#: includes/MediaDownload.php:783
+#, php-format
+msgid "The host answered HTTP %1$d (%2$s)."
+msgstr ""
+
+#. translators: %d: HTTP status code
+#: includes/MediaDownload.php:789
+#, php-format
+msgid "The host answered HTTP %d."
+msgstr ""
+
+#. translators: 1: size limit, e.g. "1 GB", 2: filter name
+#: includes/MediaDownload.php:803
+#, php-format
+msgid "The file is larger than the limit of %1$s for this kind of file (filter %2$s)."
+msgstr ""
+
+#: includes/MediaDownload.php:815
+msgid "The address (or an address it redirects to) is not allowed: it is not a public web address."
+msgstr ""
+
+#: includes/MediaDownload.php:824
+msgid "The host cannot continue an interrupted download (no HTTP Range support), and the file did not arrive within one request."
+msgstr ""
+
+#. translators: %s: speed, e.g. "1 KB"
+#: includes/MediaDownload.php:835
+#, php-format
+msgid "The host stopped sending the file (less than %s per second)."
 msgstr ""
 
 #: includes/Plugin.php:383
@@ -4724,239 +5004,287 @@ msgstr ""
 msgid "In %s, find the setting that redirects or moves the feed (often called “301 redirect”, “Redirect feed” or “Move podcast”) and paste this site’s feed address. If you cannot find it, the host’s support can set the redirect for you."
 msgstr ""
 
-#: includes/Readiness.php:68
+#: includes/Readiness.php:72
 msgid "Fix in podcast settings"
 msgstr ""
 
-#: includes/Readiness.php:82
+#: includes/Readiness.php:86
 msgid "Add a podcast title. Directories show it as the name of your show."
 msgstr ""
 
-#: includes/Readiness.php:89
-#: includes/Readiness.php:91
+#: includes/Readiness.php:93
+#: includes/Readiness.php:95
 msgid "Podcast description"
 msgstr ""
 
-#: includes/Readiness.php:89
+#: includes/Readiness.php:93
 msgid "Add a podcast description. Directories show it on your show’s page."
 msgstr ""
 
-#: includes/Readiness.php:91
-#: includes/Readiness.php:188
+#: includes/Readiness.php:95
+#: includes/Readiness.php:192
 msgid "Present."
 msgstr ""
 
-#: includes/Readiness.php:96
-#: includes/Readiness.php:98
+#: includes/Readiness.php:100
+#: includes/Readiness.php:102
 msgid "Podcast author"
 msgstr ""
 
-#: includes/Readiness.php:96
+#: includes/Readiness.php:100
 msgid "Recommended: set the author shown in directories."
 msgstr ""
 
-#: includes/Readiness.php:103
+#: includes/Readiness.php:107
 msgid "Add a valid owner email address. Directories send the verification code to it."
 msgstr ""
 
-#: includes/Readiness.php:110
+#: includes/Readiness.php:114
 msgid "Recommended: set the podcast owner name."
 msgstr ""
 
-#: includes/Readiness.php:118
+#: includes/Readiness.php:122
 msgid "Choose a category. Directories use it to help listeners find your show."
 msgstr ""
 
 #. translators: %s: category name
-#: includes/Readiness.php:125
+#: includes/Readiness.php:129
 #, php-format
 msgid "“%s” is not a top-level Apple Podcasts category. Choose one from the list."
 msgstr ""
 
-#: includes/Readiness.php:143
+#: includes/Readiness.php:147
 msgid "Add square podcast artwork (1400–3000 px, JPEG or PNG). Directories require it."
 msgstr ""
 
-#: includes/Readiness.php:147
+#: includes/Readiness.php:151
 msgid "Podcast artwork format"
 msgstr ""
 
-#: includes/Readiness.php:147
+#: includes/Readiness.php:151
 msgid "Directories only accept JPEG or PNG artwork. Replace the image with a JPEG or PNG file."
 msgstr ""
 
 #. translators: %1$d: width, %2$d: height
-#: includes/Readiness.php:161
+#: includes/Readiness.php:165
 #, php-format
 msgid "Artwork is %1$d×%2$d px. Apple Podcasts accepts at most 3000×3000 px."
 msgstr ""
 
 #. translators: %1$d: width, %2$d: height
-#: includes/Readiness.php:174
+#: includes/Readiness.php:178
 #, php-format
 msgid "Artwork is %1$d×%2$d px. Directories recommend at least 1400×1400 px."
 msgstr ""
 
-#: includes/Readiness.php:182
+#: includes/Readiness.php:186
 msgid "Artwork should be exactly square."
 msgstr ""
 
 #. translators: %1$d: width, %2$d: height
-#: includes/Readiness.php:185
+#: includes/Readiness.php:189
 #, php-format
 msgid "%1$d×%2$d px"
 msgstr ""
 
 #. translators: %s: episode title
-#: includes/Readiness.php:219
-#: includes/Readiness.php:230
-#: includes/Readiness.php:240
-#: includes/Readiness.php:253
-#: includes/Readiness.php:264
-#: includes/Readiness.php:274
+#: includes/Readiness.php:220
+#: includes/Readiness.php:231
+#: includes/Readiness.php:241
+#: includes/Readiness.php:254
+#: includes/Readiness.php:265
+#: includes/Readiness.php:275
 #, php-format
 msgid "Episode: %s"
 msgstr ""
 
-#: includes/Readiness.php:220
+#: includes/Readiness.php:221
 msgid "No audio yet, so it is not in the feed. Attach an MP3 or M4A file or an audio URL."
 msgstr ""
 
-#: includes/Readiness.php:231
+#: includes/Readiness.php:232
 msgid "The audio URL does not use HTTPS. Some apps refuse insecure audio; use an https:// address."
 msgstr ""
 
-#: includes/Readiness.php:241
+#: includes/Readiness.php:242
 msgid "The audio file is missing or not a supported audio file. Attach the MP3 or M4A file again."
 msgstr ""
 
-#: includes/Readiness.php:254
+#: includes/Readiness.php:255
 msgid "This audio format is kept for storage only, so the episode is not in the feed. Replace it with an MP3 or M4A file."
 msgstr ""
 
-#: includes/Readiness.php:265
+#: includes/Readiness.php:266
 msgid "The file size is unknown, so the feed reports 0 bytes. Attach the file again or check the audio URL."
 msgstr ""
 
 #. translators: %s: other episode title
-#: includes/Readiness.php:277
+#: includes/Readiness.php:278
 #, php-format
 msgid "Duplicate audio URL — also used by “%s”."
 msgstr ""
 
-#: includes/Readiness.php:293
-msgid "Audio at the old host"
-msgstr ""
-
-#. translators: %s: number of episodes
-#: includes/Readiness.php:296
-#, php-format
-msgid "The audio of %s episode still loads from the old host. Copy it before closing that account."
-msgid_plural "The audio of %s episodes still loads from the old host. Copy it before closing that account."
-msgstr[0] ""
-msgstr[1] ""
-
-#: includes/Readiness.php:300
-msgid "Import with “Copy audio”"
-msgstr ""
-
-#: includes/Readiness.php:305
-#: includes/Readiness.php:309
+#: includes/Readiness.php:294
+#: includes/Readiness.php:298
 msgid "Distributable episodes"
 msgstr ""
 
-#: includes/Readiness.php:305
+#: includes/Readiness.php:294
 msgid "Publish at least one episode with MP3 or M4A audio. Directories reject empty feeds."
 msgstr ""
 
-#: includes/Readiness.php:305
+#: includes/Readiness.php:294
 msgid "Add an episode"
 msgstr ""
 
 #. translators: %s: number of episodes
-#: includes/Readiness.php:312
+#: includes/Readiness.php:301
 #, php-format
 msgid "%s episode with distribution-ready audio."
 msgid_plural "%s episodes with distribution-ready audio."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/Readiness.php:332
+#: includes/Readiness.php:321
 msgid "Open hosting settings"
+msgstr ""
+
+#: includes/Readiness.php:326
+#: includes/Readiness.php:330
+msgid "Host feed"
+msgstr ""
+
+#: includes/Readiness.php:326
+msgid "Enter your host’s RSS feed address so episodes can sync."
+msgstr ""
+
+#: includes/Readiness.php:333
+msgid "Automatic sync"
+msgstr ""
+
+#: includes/Readiness.php:333
+msgid "Off. New episodes from your host only appear here after “Sync now”."
 msgstr ""
 
 #: includes/Readiness.php:337
 #: includes/Readiness.php:341
-msgid "Host feed"
-msgstr ""
-
-#: includes/Readiness.php:337
-msgid "Enter your host’s RSS feed address so episodes can sync."
-msgstr ""
-
-#: includes/Readiness.php:344
-msgid "Automatic sync"
-msgstr ""
-
-#: includes/Readiness.php:344
-msgid "Off. New episodes from your host only appear here after “Sync now”."
-msgstr ""
-
-#: includes/Readiness.php:348
-#: includes/Readiness.php:352
-#: includes/Readiness.php:361
+#: includes/Readiness.php:350
 msgid "Last sync"
 msgstr ""
 
-#: includes/Readiness.php:348
+#: includes/Readiness.php:337
 msgid "Check hosting settings"
 msgstr ""
 
 #. translators: 1: time difference, 2: sync summary
-#: includes/Readiness.php:355
+#: includes/Readiness.php:344
 #, php-format
 msgid "%1$s ago — %2$s"
 msgstr ""
 
-#: includes/Readiness.php:361
+#: includes/Readiness.php:350
 msgid "Not synced yet. Run “Sync now” or import the show."
 msgstr ""
 
-#: includes/Readiness.php:365
-#: includes/Readiness.php:367
+#: includes/Readiness.php:354
+#: includes/Readiness.php:356
 msgid "Site feed"
 msgstr ""
 
-#: includes/Readiness.php:365
+#: includes/Readiness.php:354
 msgid "This site still publishes its own feed. If apps find both, listeners may see the show twice; turn on the redirect to your host’s feed."
 msgstr ""
 
-#: includes/Readiness.php:372
+#: includes/Readiness.php:361
 msgid "No episodes on this site yet. Import them from your host’s feed."
 msgstr ""
 
 #. translators: %s: number of episodes
-#: includes/Readiness.php:375
+#: includes/Readiness.php:364
 #, php-format
 msgid "%s published episode"
 msgid_plural "%s published episodes"
 msgstr[0] ""
 msgstr[1] ""
 
+#: includes/Readiness.php:414
+msgid "Move to this website"
+msgstr ""
+
+#: includes/Readiness.php:415
+msgid "The move is not finished: files listed here still load from the old host. Copy them again, or finish the move knowing they stay there."
+msgstr ""
+
+#: includes/Readiness.php:417
+msgid "Open Hosting & import"
+msgstr ""
+
+#: includes/Readiness.php:429
+msgid "Import with “Copy audio”"
+msgstr ""
+
+#: includes/Readiness.php:433
+msgid "Audio at the old host"
+msgstr ""
+
+#. translators: %s: number of episodes
+#: includes/Readiness.php:435
+#, php-format
+msgid "The audio of %s episode still loads from the old host. Copy it before closing that account."
+msgid_plural "The audio of %s episodes still loads from the old host. Copy it before closing that account."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/Readiness.php:438
+msgid "Episode images at the old host"
+msgstr ""
+
+#. translators: %s: number of episodes
+#: includes/Readiness.php:440
+#, php-format
+msgid "The image of %s episode still loads from the old host. Copy it before closing that account."
+msgid_plural "The images of %s episodes still load from the old host. Copy them before closing that account."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/Readiness.php:443
+msgid "Transcript files at the old host"
+msgstr ""
+
+#. translators: %s: number of episodes
+#: includes/Readiness.php:445
+#, php-format
+msgid "The WebVTT/SRT transcript file of %s episode is still linked at the old host; podcast apps lose its captions when that account is closed. Copy it before closing that account."
+msgid_plural "The WebVTT/SRT transcript files of %s episodes are still linked at the old host; podcast apps lose their captions when that account is closed. Copy them before closing that account."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/Readiness.php:448
+msgid "Transcripts linked at the old host"
+msgstr ""
+
+#. translators: %s: number of episodes
 #: includes/Readiness.php:451
+#, php-format
+msgid "The transcript of %s episode is linked at the old host in a format that is not copied (such as JSON). Its text is on this site; replace or remove the link before closing that account."
+msgid_plural "The transcripts of %s episodes are linked at the old host in a format that is not copied (such as JSON). Their text is on this site; replace or remove the links before closing that account."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/Readiness.php:528
 msgid "In sync"
 msgstr ""
 
-#: includes/Readiness.php:451
+#: includes/Readiness.php:528
 msgid "Ready for distribution"
 msgstr ""
 
-#: includes/Readiness.php:453
+#: includes/Readiness.php:530
 msgid "Not ready"
 msgstr ""
 
 #. translators: %s: number of problems
-#: includes/Readiness.php:459
+#: includes/Readiness.php:536
 #, php-format
 msgid "%s problem"
 msgid_plural "%s problems"
@@ -4964,38 +5292,50 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: number of warnings
-#: includes/Readiness.php:463
+#: includes/Readiness.php:540
 #, php-format
 msgid "%s warning"
 msgid_plural "%s warnings"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/Readiness.php:471
+#: includes/Readiness.php:548
 msgid "No problems found. Everything that is checked here is in place."
 msgstr ""
 
 #. translators: %s: number of passed checks
-#: includes/Readiness.php:481
+#: includes/Readiness.php:558
 #, php-format
 msgid "Show %s passed check"
 msgid_plural "Show %s passed checks"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/Readiness.php:493
+#: includes/Readiness.php:570
 msgid "Directories also check that your server delivers the audio correctly."
 msgstr ""
 
-#: includes/Readiness.php:513
+#: includes/Readiness.php:596
+msgid "(no title)"
+msgstr ""
+
+#. translators: %s: number of episodes
+#: includes/Readiness.php:601
+#, php-format
+msgid "and %s more"
+msgid_plural "and %s more"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/Readiness.php:615
 msgid "Problem:"
 msgstr ""
 
-#: includes/Readiness.php:514
+#: includes/Readiness.php:616
 msgid "Warning:"
 msgstr ""
 
-#: includes/Readiness.php:515
+#: includes/Readiness.php:617
 msgid "Passed:"
 msgstr ""
 
@@ -5254,14 +5594,14 @@ msgstr ""
 msgid "The delivery test passed."
 msgstr ""
 
-#: admin/js/epm-hosting.js:197
-#: admin/js/epm-setup.js:438
+#: admin/js/epm-hosting.js:199
+#: admin/js/epm-setup.js:440
 msgid "Paste your RSS feed address, Apple Podcasts link or show page."
 msgstr ""
 
 #. translators: %1$s: number of episodes found in the feed
-#: admin/js/epm-hosting.js:288
-#: admin/js/epm-setup.js:414
+#: admin/js/epm-hosting.js:290
+#: admin/js/epm-setup.js:416
 #, js-format
 msgid "Move only the %1$s episode that was found. The missing episodes stay at the old host and will not be on this website."
 msgid_plural "Move only the %1$s episodes that were found. The missing episodes stay at the old host and will not be on this website."
@@ -5269,7 +5609,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %1$s: number of episodes
-#: admin/js/epm-hosting.js:338
+#: admin/js/epm-hosting.js:340
 #, js-format
 msgid "%1$s episode"
 msgid_plural "%1$s episodes"
@@ -5277,7 +5617,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %1$s: number of episodes
-#: admin/js/epm-hosting.js:352
+#: admin/js/epm-hosting.js:354
 #, js-format
 msgid "%1$s of these episodes is already on this website and is updated, not duplicated."
 msgid_plural "%1$s of these episodes are already on this website and are updated, not duplicated."
@@ -5285,13 +5625,13 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %1$s: feed address
-#: admin/js/epm-hosting.js:361
+#: admin/js/epm-hosting.js:363
 #, js-format
 msgid "This feed says the show moved to %1$s."
 msgstr ""
 
 #. translators: %1$s: number of episodes
-#: admin/js/epm-hosting.js:370
+#: admin/js/epm-hosting.js:372
 #, js-format
 msgid "%1$s episode shares its ID with another one and is skipped."
 msgid_plural "%1$s episodes share their ID with another one and are skipped."
@@ -5299,91 +5639,125 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: 1: podcast title, 2: number of episodes
-#: admin/js/epm-hosting.js:385
-#: admin/js/epm-setup.js:577
+#: admin/js/epm-hosting.js:387
+#: admin/js/epm-setup.js:579
 #, js-format
 msgid "%1$s: %2$s episode found."
 msgid_plural "%1$s: %2$s episodes found."
 msgstr[0] ""
 msgstr[1] ""
 
-#: admin/js/epm-hosting.js:419
+#: admin/js/epm-hosting.js:421
 msgid "Copying the audio moves your podcast to this website. When the import finishes, hosting switches to “This website”: episodes stop syncing from your host and this site publishes the feed. Continue?"
 msgstr ""
 
 #. translators: import result label, e.g. "12 new"
-#: admin/js/epm-hosting.js:474
-#: admin/js/epm-setup.js:677
+#: admin/js/epm-hosting.js:476
+#: admin/js/epm-setup.js:679
 msgid "new"
 msgstr ""
 
 #. translators: import result label, e.g. "3 updated"
-#: admin/js/epm-hosting.js:476
-#: admin/js/epm-setup.js:679
+#: admin/js/epm-hosting.js:478
+#: admin/js/epm-setup.js:681
 msgid "updated"
 msgstr ""
 
 #. translators: import result label, e.g. "40 unchanged"
-#: admin/js/epm-hosting.js:478
-#: admin/js/epm-setup.js:681
+#: admin/js/epm-hosting.js:480
+#: admin/js/epm-setup.js:683
 msgid "unchanged"
 msgstr ""
 
 #. translators: import result label, e.g. "1 skipped"
-#: admin/js/epm-hosting.js:480
-#: admin/js/epm-setup.js:683
+#: admin/js/epm-hosting.js:482
+#: admin/js/epm-setup.js:685
 msgid "skipped"
 msgstr ""
 
 #. translators: import result label, e.g. "1 failed"
-#: admin/js/epm-hosting.js:482
-#: admin/js/epm-setup.js:685
+#: admin/js/epm-hosting.js:484
+#: admin/js/epm-setup.js:687
 msgid "failed"
 msgstr ""
 
 #. translators: import result label, e.g. "2 audio not copied"
-#: admin/js/epm-hosting.js:484
-#: admin/js/epm-setup.js:687
+#: admin/js/epm-hosting.js:486
+#: admin/js/epm-setup.js:689
 msgid "audio not copied"
 msgstr ""
 
 #. translators: %1$s: why the feed could not be read completely
-#: admin/js/epm-hosting.js:533
-#: admin/js/epm-setup.js:734
+#: admin/js/epm-hosting.js:535
+#: admin/js/epm-setup.js:737
 #, js-format
 msgid "This import covers only part of the feed. %1$s"
 msgstr ""
 
-#. translators: %1$s: number of episodes
-#: admin/js/epm-hosting.js:570
-#: admin/js/epm-setup.js:769
+#: admin/js/epm-import-result.js:48
+msgid "the audio"
+msgstr ""
+
+#: admin/js/epm-import-result.js:50
+msgid "the episode image"
+msgstr ""
+
+#. translators: 1: time, e.g. "14:05", 2: what the host answered, e.g. "The host answered HTTP 429 (Too Many Requests)."
+#: admin/js/epm-import-result.js:79
 #, js-format
-msgid "The audio of %1$s episode was not copied."
-msgid_plural "The audio of %1$s episodes was not copied."
-msgstr[0] ""
-msgstr[1] ""
+msgid "The old host asked the import to wait. It continues by itself at %1$s, also when you leave this page. %2$s"
+msgstr ""
+
+#. translators: 1: "the audio", "the episode image" …, 2: episode title, 3: amount copied, e.g. "120 MB", 4: file size
+#: admin/js/epm-import-result.js:96
+#, js-format
+msgid "Copying %1$s of “%2$s”: %3$s of %4$s."
+msgstr ""
+
+#. translators: 1: "the audio", "the episode image" …, 2: episode title, 3: amount copied, e.g. "120 MB"
+#: admin/js/epm-import-result.js:104
+#, js-format
+msgid "Copying %1$s of “%2$s”: %3$s so far."
+msgstr ""
+
+#: admin/js/epm-import-result.js:119
+msgid "The move is not finished."
+msgstr ""
+
+#: admin/js/epm-import-result.js:120
+msgid "These files still load from the old host."
+msgstr ""
+
+#: admin/js/epm-import-result.js:124
+msgid "Open each episode to add the file, or run the import again with “Copy audio”, before you close the old account."
+msgstr ""
 
 #. translators: %1$s: number of episodes
-#: admin/js/epm-hosting.js:591
-#: admin/js/epm-setup.js:789
+#: admin/js/epm-import-result.js:158
 #, js-format
 msgid "and %1$s more"
 msgid_plural "and %1$s more"
 msgstr[0] ""
 msgstr[1] ""
 
+#. translators: %1$s: list such as "1 audio file, 2 episode images"
+#: admin/js/epm-import-result.js:173
+#, js-format
+msgid "Finish the move anyway. These stay at the old host and stop working when that account is closed: %1$s."
+msgstr ""
+
 #. translators: 1: step number, 2: number of steps, 3: step title
-#: admin/js/epm-setup.js:229
+#: admin/js/epm-setup.js:231
 #, js-format
 msgid "Step %1$s of %2$s: %3$s"
 msgstr ""
 
-#: admin/js/epm-setup.js:267
+#: admin/js/epm-setup.js:269
 msgid "Choose where your podcast lives to continue."
 msgstr ""
 
 #. translators: %1$s: number of episodes
-#: admin/js/epm-setup.js:525
+#: admin/js/epm-setup.js:527
 #, js-format
 msgid "%1$s of these episodes is already on this website. It is updated, never duplicated."
 msgid_plural "%1$s of these episodes are already on this website. They are updated, never duplicated."
@@ -5391,13 +5765,13 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %1$s: feed address
-#: admin/js/epm-setup.js:535
+#: admin/js/epm-setup.js:537
 #, js-format
 msgid "This feed says the show moved to %1$s. Check that address to import the current version."
 msgstr ""
 
 #. translators: %1$s: number of episodes
-#: admin/js/epm-setup.js:546
+#: admin/js/epm-setup.js:548
 #, js-format
 msgid "%1$s episode shares its ID with another episode in the feed and is skipped, as Apple Podcasts does."
 msgid_plural "%1$s episodes share their ID with another episode in the feed and are skipped, as Apple Podcasts does."
@@ -5405,19 +5779,19 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %1$s: number of episodes
-#: admin/js/epm-setup.js:555
+#: admin/js/epm-setup.js:557
 #, js-format
 msgid "%1$s episode is hidden from Apple Podcasts at your host; it is imported as a draft."
 msgid_plural "%1$s episodes are hidden from Apple Podcasts at your host; they are imported as drafts."
 msgstr[0] ""
 msgstr[1] ""
 
-#: admin/js/epm-setup.js:561
+#: admin/js/epm-setup.js:563
 msgid "The audio links include download statistics services (for example Podtrac or OP3). They keep working after the import."
 msgstr ""
 
 #. translators: %1$s: number of episodes
-#: admin/js/epm-setup.js:568
+#: admin/js/epm-setup.js:570
 #, js-format
 msgid "Import %1$s episode"
 msgid_plural "Import %1$s episodes"
@@ -5425,19 +5799,19 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: 1: width, 2: height
-#: admin/js/epm-setup.js:931
+#: admin/js/epm-setup.js:933
 #, js-format
 msgid "The image is %1$s×%2$s px. It must be exactly square."
 msgstr ""
 
 #. translators: %1$s: width in pixels
-#: admin/js/epm-setup.js:935
+#: admin/js/epm-setup.js:937
 #, js-format
 msgid "The image is %1$s px wide. Use 1400 to 3000 px (3000 px is best)."
 msgstr ""
 
 #. translators: %1$s: podcast host name
-#: admin/js/epm-setup.js:978
+#: admin/js/epm-setup.js:980
 #, js-format
 msgid "Set the redirect at %1$s"
 msgstr ""
