@@ -34,8 +34,9 @@ Suites are discovered by file name, so a new suite needs no change to
   starting with `_` are shared code, not suites.
 
 Current order: `integration/run.php`, `admin.php`, `frontend.php`,
-`hosting.php`; then `http/run.sh`; then `e2e/run.mjs`, `admin.mjs`,
-`frontend.mjs`, `setup.mjs`.
+`hosting.php`, `import.php`; then `concurrency/run.sh`; then
+`http/run.sh`; then `e2e/run.mjs`, `admin.mjs`, `frontend.mjs`,
+`setup.mjs`.
 
 ## Suites
 
@@ -46,6 +47,8 @@ Current order: `integration/run.php`, `admin.php`, `frontend.php`,
 | | `integration/admin.php` | Topics taxonomy and its capabilities (contributors assign, editors manage, filtered capabilities), the Podcast menu and sentence-case labels, default hidden list columns; episode editor: next episode number, paste-chapters disclosure, video field help, transcript files (fill the text, SRT accepted, other files rejected, hosted file shown), episode search and media AJAX for contributors (no other authors' private episodes or media); Quick Edit and Bulk Edit (*Number from*); design export allowlist and import validation, the Design screen's token table against `DesignSettings::output_tokens()` for every preset, the script data, the WCAG contrast formula and pairs (every preset passes), the Design screen render |
 | | `integration/frontend.php` | timestamp links (parsing, building, only the page's episode), share menu (accessible markup, none for restricted episodes), embeds (iframe code, oEmbed height and HTML, the card document), video (sources, no third-party request before play, place on the episode page), topic filters and chips, `preload="none"` for audio on another host, the sticky player for lists and chapters, list play button labels, the number column, dark-design section surfaces, hero/latest background padding, no strings in the player engine |
 | | `integration/hosting.php` | the feed parser against every real feed in `fixtures/feeds/` and its host quirks, bot pages and Atom feeds rejected; host detection (address and `<generator>`), listing links, feed-address normalization and media types; finding a feed from an Apple Podcasts link, a web page (podcast feed before the blog feed) or a redirect; import (preview counts, lock and consent, GUIDs byte-for-byte including `%`-escapes, dates, external audio, chapters, transcripts to HTML, transcript files kept or copied, drafts for blocked/undated items, duplicates, re-import, show details, `podcast:guid`, audio that could not be copied, lock ownership, cancelling); host sync (conditional requests, local edits kept and editor saves ignored, deleted episodes stay deleted, truncated/empty feed guards, removed episodes drafted after a day, new feed addresses, never https to http, a redirect to this site, failures and back-off, schedule); feed output (external audio, remote artwork, moved-in `new-feed-url`, download-statistics prefix, `podcast:trailer`, `podcast:person`, `podcast:transcript` with captions, build time); transcript files (SRT type on every server, type aliases, upload before hosted file, readable text); setup steps and distribution progress |
+| | `integration/import.php` | the import's data integrity in one process: a sync whose lock another request took over stops before the next episode (no validators stored, the other lock stays), the GUID is checked in the database right before an episode is created |
+| Races | `concurrency/run.sh` | two (or three) real PHP processes per scenario, synchronized by barrier files on observable points (a statement on the lock row, an episode insert, a feed request): a free lock, an abandoned lock, renew vs. takeover, release vs. takeover and a loop re-taking the lock all leave exactly one holder; cron's loop plus a step from the import screen import no GUID twice and count what happened; a step that read the job before the lock never marks a finished job failed, never overwrites the next preview and never saves an older position; a preview never replaces an import started meanwhile; Cancel lets the episode in flight finish and nothing after it. `STRESS=1` adds a barrier-free cron loop plus polling run (200 items) |
 | HTTP | `http/run.sh` | `/podcast/feed/` and every archive feed URL serve the podcast feed, ETag/Last-Modified with 304s, a channel change answers `If-Modified-Since` with the new feed and a new `Last-Modified`, chapters JSON and transcript endpoints (404 for restricted episodes), episode page output, feed discovery link, design tokens printed once, shortcode and Elementor pages, REST meta exposure/protection, byte-range media; with another host: 301 from every feed address to the host's feed (discovery link too), the blog feed not redirected, 200 again without the redirect and when self-hosted |
 | Browser | `e2e/run.mjs` (Playwright/Chromium) | player playback, chapter seek + highlight, theme-proof buttons, resume position, remembered speed, shared state between card and player, pause-others, AJAX-inserted players, mobile layout; Elementor editor rendering, re-render on control change, playback in the preview, episode picker; episode admin: audio box placement, drag-and-drop upload, chapters, show notes, validation notices, feed update; Elementor page with the sticky player; design presets, export and import |
 | | `e2e/admin.mjs` | Design screen (live preview, preset tiles and the confirm dialog, contrast badges, save, the unsaved-changes warning, the save bar clear of focused fields, keyboard and 390 px); episode editor (next number, paste chapters: add or replace, half-filled rows, the save buttons after autosave); episode list (column widths, Quick Edit) |
@@ -79,6 +82,31 @@ A site keeps the database type it was installed with; use another
 WP_DB=mysql DB_NAME=epm_test DB_USER=epm DB_PASSWORD=epm \
   WP_DIR=/tmp/epm-wp-mysql WP_PORT=8891 tests/run-all.sh
 ```
+
+## Race tests
+
+`concurrency/run.sh` runs each scenario of `concurrency/race.php` as
+separate `wp eval-file` processes (roles A and B, plus a monitor M that
+records every saved job position). The roles meet at barrier files in a
+temporary directory; a role waiting for a barrier is also released when
+the other role has finished, so a barrier the code under test never
+reaches cannot hang the run (a barrier that times out fails the
+scenario). Barriers sit on behavior both an old and a new implementation
+show (a statement on the `epm_import_lock` row seen through the `query`
+filter, `wp_insert_post`, a fixture feed request), so the same scenarios
+reproduce the races on the 1.3.0 code and pass on the fixed code.
+
+```bash
+WP_DIR=/tmp/epm-wp tests/concurrency/run.sh                 # all scenarios
+WP_DIR=/tmp/epm-wp tests/concurrency/run.sh lock-stale       # one scenario
+STRESS=1 WP_DIR=/tmp/epm-wp tests/concurrency/run.sh         # plus the stress run
+RACE_KEEP=1 …                                                # keep events.log and role output
+```
+
+Run them on MySQL/MariaDB too (`WP_DB=mysql`, see below): the SQLite
+drop-in and MariaDB answer the same statements differently (for example,
+MySQL reports 0 affected rows for an UPDATE that writes the same value).
+They do not cover a persistent object cache.
 
 ## Running suites individually
 

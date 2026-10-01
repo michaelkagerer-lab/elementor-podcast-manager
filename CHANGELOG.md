@@ -13,6 +13,49 @@
   scheduled is moved to the new name, keeping its time. Test sites
   answer Podcast Index requests locally, so no suite notifies the real
   service.
+- Import/sync lock (IMP-02): two requests could both take a free or an
+  abandoned lock, a renewal could overwrite a takeover, a release could
+  delete another request's fresh lock, and a loop (WP-Cron,
+  `wp podcast import`) re-took a live lock; with a persistent object
+  cache even a fresh request could. The lock row is now written only
+  with conditional statements that bypass the options caches (insert
+  only when missing, take over only the stale value read, renew and
+  release only the own value), on MySQL/MariaDB and SQLite alike.
+- Import job state (IMP-02): a step read the job before taking the lock
+  and saved that copy afterwards, so a finished import could be marked
+  failed, a new preview destroyed ("This import expired"), progress set
+  back and counters reset; a preview could replace an import started
+  meanwhile. The job is now read from the database after the lock is
+  taken and every save is a compare-and-swap on a job version; before
+  each episode the step checks that it still holds the lock and that the
+  job is still running, the same job and at the same position, and it
+  records each outcome on the current job, so counts match what was
+  imported. A preview, start and cancel can no longer overwrite each
+  other; a preview never replaces a running import. A move is finished
+  only by the request that still holds the lock.
+- Duplicate episodes: when two requests imported the same items (cron's
+  loop and the import screen, two tabs, `wp podcast import` while the
+  screen was open), episodes were created twice. Besides the lock, the
+  importer now checks the GUID in the database right before it creates
+  an episode.
+- Cancel (IMP-N2): a running mirror batch kept importing up to ten
+  episodes after *Stop the import*. The episode in flight (for example
+  an audio download) still finishes; nothing after it, and a cancelled
+  import is never started again.
+- Host sync: when another request took over its lock, the sync carried
+  on. It now stops before the next episode, stores no validators (so the
+  next run reads the whole feed) and reports that it was interrupted.
+
+### Tests
+
+- `tests/concurrency/`: two-process race tests (lock: free, abandoned,
+  renew vs. takeover, release vs. takeover, loop; job: cron loop plus
+  step, failed over done, failed over a new preview, progress going
+  back, preview vs. start, cancel mid-batch; an optional barrier-free
+  stress run), part of `run-all.sh`. They fail on 1.3.0 and pass now, on
+  SQLite and MariaDB.
+- `tests/bin/setup-wp.sh`: `WP_DB=mysql` installs the test site on
+  MySQL/MariaDB (SQLite stays the default).
 
 ## 1.3.0 — 2026-09-30
 

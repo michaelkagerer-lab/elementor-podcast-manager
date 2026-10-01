@@ -140,7 +140,6 @@ final class ImportJob {
 	 * @return int
 	 */
 	private static function lock_ttl(): int {
-		wp_cache_delete( self::OPTION, 'options' );
 		$job = self::get();
 
 		return ! empty( $job['options']['download_media'] ) && 'running' === ( $job['status'] ?? '' )
@@ -308,24 +307,80 @@ final class ImportJob {
 	}
 
 	/**
-	 * Current job (empty array when none).
+	 * Current job (empty array when none), read from the database: every
+	 * decision about the job is made on what other requests last saved,
+	 * never on a cached copy.
 	 *
 	 * @return array<string, mixed>
 	 */
 	public static function get(): array {
-		$job = get_option( self::OPTION, [] );
-
-		return is_array( $job ) ? $job : [];
+		return self::job_read()['job'];
 	}
 
 	/**
-	 * Save the job.
+	 * The job and the stored value it was read from (null when none).
 	 *
-	 * @param array<string, mixed> $job Job.
-	 * @return void
+	 * @return array{job: array<string, mixed>, raw: string|null}
 	 */
-	private static function save( array $job ): void {
-		update_option( self::OPTION, $job, false );
+	private static function job_read(): array {
+		global $wpdb;
+
+		$raw = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s LIMIT 1", self::OPTION ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- never from a cache, see get().
+		$job = null === $raw ? [] : maybe_unserialize( (string) $raw );
+
+		return [
+			'job' => is_array( $job ) ? $job : [],
+			'raw' => null === $raw ? null : (string) $raw,
+		];
+	}
+
+	/**
+	 * Save the job only if it is still stored as $expected (compare-and-
+	 * swap). Every save bumps the job's version, so two different states
+	 * never compare equal.
+	 *
+	 * @param string|null          $expected Stored value read before (null: no job stored).
+	 * @param array<string, mixed> $job      Job to save.
+	 * @return array<string, mixed>|null The saved job, null when another request changed it first.
+	 */
+	private static function job_swap( ?string $expected, array $job ): ?array {
+		global $wpdb;
+
+		$job['version'] = (int) ( $job['version'] ?? 0 ) + 1;
+		$value          = maybe_serialize( $job );
+
+		if ( null === $expected ) {
+			$rows = $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, %s)", self::OPTION, $value, self::no_autoload() ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- compare-and-swap.
+		} else {
+			$rows = $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND BINARY option_value = %s", $value, self::OPTION, $expected ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- compare-and-swap.
+		}
+		self::forget_option( self::OPTION );
+
+		return 1 === (int) $rows ? $job : null;
+	}
+
+	/**
+	 * Change the job: $change gets the current job and returns the new one
+	 * (or null to leave it alone). Retried on the current job when another
+	 * request saved in between, so no change is ever made to an old copy.
+	 *
+	 * @param callable $change Receives the job (array), returns array|null.
+	 * @return array<string, mixed>|null The saved job, or null when $change declined.
+	 */
+	private static function job_update( callable $change ): ?array {
+		for ( $try = 0; $try < 20; $try++ ) {
+			$read = self::job_read();
+			$job  = $change( $read['job'] );
+			if ( ! is_array( $job ) ) {
+				return null;
+			}
+			$saved = self::job_swap( $read['raw'], $job );
+			if ( null !== $saved ) {
+				return $saved;
+			}
+		}
+
+		return null;
 	}
 
 	/**
@@ -411,8 +466,6 @@ final class ImportJob {
 		if ( is_wp_error( $dir ) ) {
 			return $dir;
 		}
-
-		self::delete_file( $current );
 
 		// Paged feeds (SoundCloud serves 500 items per page): follow
 		// rel="next" so the whole back catalog is imported.
@@ -505,7 +558,26 @@ final class ImportJob {
 			'log'      => [],
 			'created'  => time(),
 		];
-		self::save( $job );
+
+		// Replace the previous job, unless an import started meanwhile (in
+		// another tab, the setup assistant or WP-CLI): a preview never
+		// replaces a running import.
+		$replaced = [];
+		$saved    = self::job_update(
+			static function ( array $current ) use ( $job, &$replaced ) {
+				if ( 'running' === ( $current['status'] ?? '' ) ) {
+					return null;
+				}
+				$replaced = $current;
+				$job['version'] = (int) ( $current['version'] ?? 0 );
+				return $job;
+			}
+		);
+		if ( null === $saved ) {
+			self::delete_file( $job );
+			return new \WP_Error( 'epm_import_running', __( 'An import is already running. Wait for it to finish or cancel it first.', 'elementor-podcast-manager' ) );
+		}
+		self::delete_file( $replaced );
 
 		return [
 			'token'     => $token,
@@ -566,27 +638,44 @@ final class ImportJob {
 	 * @return array<string, mixed>|\WP_Error Client state.
 	 */
 	public static function start( string $token, array $options ) {
-		$job = self::get();
-
-		if ( '' === $token || ( $job['token'] ?? '' ) !== $token || 'ready' !== ( $job['status'] ?? '' ) ) {
-			return new \WP_Error( 'epm_import_token', __( 'This import expired. Check the feed again to start a new one.', 'elementor-podcast-manager' ) );
-		}
-
 		$purpose = 'move' === ( $options['purpose'] ?? '' ) ? 'move' : 'mirror';
+		$error   = null;
 
-		// A locked feed may only move with its owner's consent.
-		if ( 'move' === $purpose && ! empty( $job['channel']['locked'] ) && empty( $options['confirm_owner'] ) ) {
-			return new \WP_Error( 'epm_import_locked', __( 'This feed is locked against moving to another platform. If it is your show, confirm that you own it, or unlock the feed at your current host first (the setting is often called “Lock feed”).', 'elementor-podcast-manager' ) );
+		// Claim the previewed job: only one start wins, and only while it is
+		// still the job that was previewed.
+		$job = self::job_update(
+			static function ( array $job ) use ( $token, $options, $purpose, &$error ) {
+				if ( '' === $token || ( $job['token'] ?? '' ) !== $token || 'ready' !== ( $job['status'] ?? '' ) ) {
+					$error = new \WP_Error( 'epm_import_token', __( 'This import expired. Check the feed again to start a new one.', 'elementor-podcast-manager' ) );
+					return null;
+				}
+
+				// A locked feed may only move with its owner's consent.
+				if ( 'move' === $purpose && ! empty( $job['channel']['locked'] ) && empty( $options['confirm_owner'] ) ) {
+					$error = new \WP_Error( 'epm_import_locked', __( 'This feed is locked against moving to another platform. If it is your show, confirm that you own it, or unlock the feed at your current host first (the setting is often called “Lock feed”).', 'elementor-podcast-manager' ) );
+					return null;
+				}
+
+				$job['options'] = [
+					'status'         => 'draft' === ( $options['status'] ?? '' ) ? 'draft' : 'publish',
+					'download_media' => ! empty( $options['download_media'] ),
+					'purpose'        => $purpose,
+				];
+				$job['status']  = 'running';
+				$job['started'] = time();
+				$job['touched'] = time();
+
+				return $job;
+			}
+		);
+
+		if ( null === $job ) {
+			return $error instanceof \WP_Error ? $error : new \WP_Error( 'epm_import_token', __( 'This import expired. Check the feed again to start a new one.', 'elementor-podcast-manager' ) );
 		}
 
-		$job['options'] = [
-			'status'         => 'draft' === ( $options['status'] ?? '' ) ? 'draft' : 'publish',
-			'download_media' => ! empty( $options['download_media'] ),
-			'purpose'        => $purpose,
-		];
-
+		$changed = [];
 		if ( ! empty( $options['apply_channel'] ) ) {
-			$job['settings_changed'] = Importer::apply_channel( (array) $job['channel'], ! empty( $options['overwrite_channel'] ), true, 'move' === $purpose ? (string) $job['feed_url'] : '' );
+			$changed = Importer::apply_channel( (array) $job['channel'], ! empty( $options['overwrite_channel'] ), true, 'move' === $purpose ? (string) $job['feed_url'] : '' );
 		}
 
 		// A move keeps the show's podcast:guid (apps and OP3 statistics are
@@ -598,10 +687,17 @@ final class ImportJob {
 			Importer::adopt_podcast_guid( (array) $job['channel'], (string) $job['feed_url'], '' === $stored || Feed::derived_podcast_guid() === $stored );
 		}
 
-		$job['status']  = 'running';
-		$job['started'] = time();
-		$job['touched'] = time();
-		self::save( $job );
+		if ( ! empty( $changed ) ) {
+			$job = self::job_update(
+				static function ( array $current ) use ( $token, $changed ) {
+					if ( ( $current['token'] ?? '' ) !== $token ) {
+						return null;
+					}
+					$current['settings_changed'] = $changed;
+					return $current;
+				}
+			) ?? self::get();
+		}
 
 		self::schedule_continuation();
 
@@ -628,6 +724,15 @@ final class ImportJob {
 		}
 
 		try {
+			// What happened before the lock was taken counts, not what was
+			// read before (another request may have finished, cancelled or
+			// replaced the job meanwhile).
+			$job = self::get();
+			if ( 'running' !== ( $job['status'] ?? '' ) ) {
+				return self::client_state( $job );
+			}
+
+			$token    = (string) ( $job['token'] ?? '' );
 			$items    = self::items( $job );
 			$total    = count( $items );
 			$started  = microtime( true );
@@ -635,10 +740,17 @@ final class ImportJob {
 			$batch    = $download ? 1 : 10;
 
 			if ( 0 === $total && (int) $job['total'] > 0 ) {
-				$job['status'] = 'failed';
-				$job['error']  = __( 'The stored feed data is missing. Check the feed again to restart the import.', 'elementor-podcast-manager' );
-				self::save( $job );
-				return self::client_state( $job );
+				self::job_update(
+					static function ( array $current ) use ( $token ) {
+						if ( 'running' !== ( $current['status'] ?? '' ) || ( $current['token'] ?? '' ) !== $token ) {
+							return null;
+						}
+						$current['status'] = 'failed';
+						$current['error']  = __( 'The stored feed data is missing. Check the feed again to restart the import.', 'elementor-podcast-manager' );
+						return $current;
+					}
+				);
+				return self::client_state( self::get() );
 			}
 
 			$importer = new Importer(
@@ -650,66 +762,123 @@ final class ImportJob {
 			);
 
 			$done = 0;
+			$lost = false;
 			while ( (int) $job['position'] < $total && $done < $batch && ( microtime( true ) - $started ) < $budget ) {
+				// Before every episode: the lock is still this request's, and
+				// the job is still running, the same job, at the same place
+				// (Cancel or a new preview end the batch here).
 				if ( ! self::keep_lock() ) {
+					$lost = true;
 					break;
 				}
-				$item    = $items[ (int) $job['position'] ];
-				$outcome = $importer->import_item( $item );
-
-				$action = isset( $job['counts'][ $outcome['action'] ] ) ? $outcome['action'] : 'skipped';
-				++$job['counts'][ $action ];
-
-				if ( ! empty( $outcome['media_failed'] ) ) {
-					$job['counts']['media_failed'] = (int) ( $job['counts']['media_failed'] ?? 0 ) + 1;
-					$job['media_failed_ids']       = array_slice( array_merge( (array) ( $job['media_failed_ids'] ?? [] ), [ (int) $outcome['id'] ] ), -500 );
+				$fresh = self::get();
+				if ( 'running' !== ( $fresh['status'] ?? '' ) || ( $fresh['token'] ?? '' ) !== $token || (int) ( $fresh['position'] ?? -1 ) !== (int) $job['position'] ) {
+					break;
 				}
 
-				array_unshift(
-					$job['log'],
-					[
-						'title'   => $outcome['title'],
-						'action'  => $action,
-						'message' => $outcome['message'],
-						'id'      => (int) $outcome['id'],
-					]
+				$position = (int) $job['position'];
+				$outcome  = $importer->import_item( $items[ $position ] );
+
+				// A request that took the lock over (this episode took longer
+				// than the lock lives) handles the job now; its own check of
+				// this episode counts, not this one.
+				if ( ! self::keep_lock() ) {
+					$lost = true;
+					break;
+				}
+
+				// Count what happened on the job as it is now: a Cancel that
+				// came while the episode was imported stays, and the episode
+				// is counted once.
+				$saved = self::job_update(
+					static function ( array $current ) use ( $token, $position, $outcome ) {
+						if ( ( $current['token'] ?? '' ) !== $token || (int) ( $current['position'] ?? -1 ) !== $position ) {
+							return null;
+						}
+						return self::record( $current, $outcome );
+					}
 				);
-				$job['log'] = array_slice( $job['log'], 0, 50 );
-
-				++$job['position'];
-				++$done;
-			}
-
-			$job['touched'] = time();
-
-			// Cancelled (or replaced) while this batch ran: never overwrite
-			// that with "running", and never finish a cancelled move. The
-			// option is read past this request's cache.
-			wp_cache_delete( self::OPTION, 'options' );
-			$fresh = self::get();
-			if ( 'running' !== ( $fresh['status'] ?? '' ) || ( $fresh['token'] ?? '' ) !== ( $job['token'] ?? '' ) ) {
-				return self::client_state( $fresh );
-			}
-
-			if ( (int) $job['position'] >= $total ) {
-				$job['status']   = 'done';
-				$job['finished'] = time();
-				self::delete_file( $job );
-				if ( 'move' === ( $job['options']['purpose'] ?? '' ) ) {
-					self::finish_move();
+				if ( null === $saved ) {
+					break;
 				}
-				wp_clear_scheduled_hook( self::CRON_HOOK );
-				Feed::flush_cache();
-			} else {
+				$job = $saved;
+				++$done;
+
+				if ( 'running' !== ( $job['status'] ?? '' ) ) {
+					break;
+				}
+			}
+
+			if ( $lost ) {
+				$state         = self::client_state( self::get() );
+				$state['busy'] = 'running' === $state['status'];
+				return $state;
+			}
+
+			if ( 'running' === ( $job['status'] ?? '' ) && (int) $job['position'] >= $total ) {
+				// Finished: only by the request that still holds the lock,
+				// and only a job nobody cancelled or replaced meanwhile.
+				$finished = self::keep_lock() ? self::job_update(
+					static function ( array $current ) use ( $token, $total ) {
+						if ( 'running' !== ( $current['status'] ?? '' ) || ( $current['token'] ?? '' ) !== $token || (int) ( $current['position'] ?? 0 ) < $total ) {
+							return null;
+						}
+						$current['status']   = 'done';
+						$current['finished'] = time();
+						return $current;
+					}
+				) : null;
+
+				if ( null !== $finished ) {
+					self::delete_file( $finished );
+					if ( 'move' === ( $finished['options']['purpose'] ?? '' ) ) {
+						self::finish_move();
+					}
+					wp_clear_scheduled_hook( self::CRON_HOOK );
+					Feed::flush_cache();
+				}
+			} elseif ( 'running' === ( $job['status'] ?? '' ) ) {
 				self::schedule_continuation();
 			}
 
-			self::save( $job );
-
-			return self::client_state( $job );
+			return self::client_state( self::get() );
 		} finally {
 			self::release_lock();
 		}
+	}
+
+	/**
+	 * Record one item's outcome on the job and move past it.
+	 *
+	 * @param array<string, mixed>                                                            $job     Job.
+	 * @param array{action: string, id: int, title: string, message: string, media_failed: bool} $outcome Outcome.
+	 * @return array<string, mixed>
+	 */
+	private static function record( array $job, array $outcome ): array {
+		$job['counts'] = wp_parse_args( (array) ( $job['counts'] ?? [] ), self::empty_counts() );
+		$action        = isset( $job['counts'][ $outcome['action'] ] ) && 'media_failed' !== $outcome['action'] ? $outcome['action'] : 'skipped';
+		++$job['counts'][ $action ];
+
+		if ( ! empty( $outcome['media_failed'] ) ) {
+			++$job['counts']['media_failed'];
+			$job['media_failed_ids'] = array_slice( array_merge( (array) ( $job['media_failed_ids'] ?? [] ), [ (int) $outcome['id'] ] ), -500 );
+		}
+
+		$log = (array) ( $job['log'] ?? [] );
+		array_unshift(
+			$log,
+			[
+				'title'   => $outcome['title'],
+				'action'  => $action,
+				'message' => $outcome['message'],
+				'id'      => (int) $outcome['id'],
+			]
+		);
+		$job['log']      = array_slice( $log, 0, 50 );
+		$job['position'] = (int) ( $job['position'] ?? 0 ) + 1;
+		$job['touched']  = time();
+
+		return $job;
 	}
 
 	/**
@@ -749,18 +918,27 @@ final class ImportJob {
 	 * @return array<string, mixed>
 	 */
 	public static function cancel(): array {
-		$job = self::get();
+		// A batch that is running finishes the episode in flight and then
+		// stops (it checks the job before every episode); a cancelled job
+		// is never started again.
+		$cancelled = self::job_update(
+			static function ( array $job ) {
+				if ( ! in_array( $job['status'] ?? '', [ 'ready', 'running' ], true ) ) {
+					return null;
+				}
+				$job['status']   = 'cancelled';
+				$job['finished'] = time();
+				return $job;
+			}
+		);
 
-		if ( in_array( $job['status'] ?? '', [ 'ready', 'running' ], true ) ) {
-			self::delete_file( $job );
-			$job['status']   = 'cancelled';
-			$job['finished'] = time();
-			self::save( $job );
+		if ( null !== $cancelled ) {
+			self::delete_file( $cancelled );
 		}
 
 		wp_clear_scheduled_hook( self::CRON_HOOK );
 
-		return self::client_state( $job );
+		return self::client_state( self::get() );
 	}
 
 	/**
