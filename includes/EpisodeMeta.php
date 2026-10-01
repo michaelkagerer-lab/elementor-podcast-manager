@@ -1132,20 +1132,25 @@ final class EpisodeMeta {
 			<p class="epm-field-error" id="epm-transcript-file-error" data-epm-transcript-error<?php echo '' === $error ? ' hidden' : ''; ?>><?php echo esc_html( $error ); ?></p>
 			<?php if ( '' !== $hosted ) : ?>
 				<?php
-				$hosted_type = self::transcript_format_label( Transcripts::normalize_type( (string) $this->meta( $post, 'transcript_type', '' ), $hosted ) );
+				$hosted_mime = Transcripts::normalize_type( (string) $this->meta( $post, 'transcript_type', '' ), $hosted );
+				$hosted_type = self::transcript_format_label( $hosted_mime );
+				$hosted_type = '' !== $hosted_type ? $hosted_type : __( 'transcript', 'elementor-podcast-manager' );
 				$hosted_host = self::host_label( $hosted );
+				// Only an address the import wrote came with the import; one
+				// set on this site is described as what it is.
+				if ( ! Importer::transcript_from_import( $post->ID ) ) {
+					/* translators: 1: file format, e.g. WebVTT, 2: host name */
+					$hosted_text = __( 'The feed also lists a %1$s transcript hosted at %2$s:', 'elementor-podcast-manager' );
+				} elseif ( in_array( $hosted_mime, [ 'text/vtt', 'application/x-subrip' ], true ) ) {
+					/* translators: 1: file format, e.g. WebVTT, 2: host name */
+					$hosted_text = __( 'The %1$s transcript file from the imported feed is still hosted at %2$s, and the feed links to it there. Importing again with “Copy audio” copies it to this website:', 'elementor-podcast-manager' );
+				} else {
+					/* translators: 1: file format, e.g. JSON, 2: host name */
+					$hosted_text = __( 'The %1$s transcript from the imported feed is hosted at %2$s and stays linked there (this format is not copied):', 'elementor-podcast-manager' );
+				}
 				?>
 				<div class="epm-transcript-file__hosted">
-					<p>
-						<?php
-						printf(
-							/* translators: 1: file format, e.g. WebVTT, 2: host name */
-							esc_html__( 'The feed also lists a %1$s transcript hosted at %2$s. It came with the import and stays at this address:', 'elementor-podcast-manager' ),
-							esc_html( '' !== $hosted_type ? $hosted_type : __( 'transcript', 'elementor-podcast-manager' ) ),
-							esc_html( $hosted_host )
-						);
-						?>
-					</p>
+					<p><?php printf( esc_html( $hosted_text ), esc_html( $hosted_type ), esc_html( $hosted_host ) ); ?></p>
 					<p class="epm-transcript-file__url"><a href="<?php echo esc_url( $hosted ); ?>" target="_blank" rel="noopener"><?php echo esc_html( $hosted ); ?><span class="screen-reader-text"> <?php esc_html_e( '(opens in a new tab)', 'elementor-podcast-manager' ); ?></span></a></p>
 				</div>
 			<?php endif; ?>
