@@ -9,8 +9,10 @@
  *   the same episode shares one controller and one audio element.
  * - Views subscribe to controller events; disconnected views are pruned
  *   lazily, so removed DOM nodes never leak listeners.
- * - init(scope) is idempotent: per-element flags guarantee exactly one
- *   binding per element, no matter how often Elementor re-renders.
+ * - init(scope) is idempotent: a WeakMap of bound elements guarantees
+ *   exactly one binding per element, no matter how often Elementor
+ *   re-renders or how many initialization paths see it. Clones (a
+ *   carousel's loop copies) are new elements and get bound.
  * - Initialization paths: init(document) on DOMContentLoaded; Elementor's
  *   "frontend/element_ready/widget" hook for widgets Elementor renders
  *   (editor preview, popups, loops); a MutationObserver as the fallback
@@ -130,6 +132,40 @@
 			} catch (e) { /* storage is optional */ }
 		}
 	};
+
+	/* ------------------------------------------------------------------ */
+	/* Bindings: which element is bound in which role. Kept in memory, not */
+	/* in data-* flags: cloned DOM (a carousel's loop copies) copies the   */
+	/* attributes but not the listeners, so a copied flag left the clone   */
+	/* dead. data-epm-initialized on players stays as a debugging marker.  */
+	/* ------------------------------------------------------------------ */
+
+	var bindings = typeof window.WeakMap === 'function' ? new window.WeakMap() : null;
+
+	/**
+	 * Mark el as bound in role; false when it already was.
+	 */
+	function claim(el, role) {
+		if (!bindings) {
+			// No WeakMap (very old browsers): a flag on the element.
+			var flag = 'data-epm-bound-' + role;
+			if (el.hasAttribute(flag)) {
+				return false;
+			}
+			el.setAttribute(flag, '1');
+			return true;
+		}
+		var roles = bindings.get(el);
+		if (!roles) {
+			roles = {};
+			bindings.set(el, roles);
+		}
+		if (roles[role]) {
+			return false;
+		}
+		roles[role] = true;
+		return true;
+	}
 
 	function formatTime(seconds) {
 		seconds = Math.max(0, Math.floor(seconds || 0));
@@ -869,12 +905,12 @@
 	}
 
 	function bindFullPlayer(root) {
-		if (!root || root.nodeType !== 1 || root.dataset.epmInitialized) {
+		if (!root || root.nodeType !== 1) {
 			return;
 		}
 		var audio = root.querySelector('audio');
 		var episodeId = root.dataset.epmEpisodeId || '';
-		if (!audio || !episodeId) {
+		if (!audio || !episodeId || !claim(root, 'player')) {
 			return;
 		}
 
@@ -1019,14 +1055,13 @@
 	}
 
 	function bindCardButton(btn) {
-		if (!btn || btn.nodeType !== 1 || btn.dataset.epmCardBound) {
+		if (!btn || btn.nodeType !== 1) {
 			return;
 		}
 		var episodeId = btn.dataset.epmCardPlay || '';
-		if (!episodeId) {
+		if (!episodeId || !claim(btn, 'card')) {
 			return;
 		}
-		btn.dataset.epmCardBound = '1';
 
 		// Exactly one click listener per button. State sync for all
 		// duplicate buttons of the episode is handled by the controller's
@@ -1054,14 +1089,13 @@
 	/* ------------------------------------------------------------------ */
 
 	function bindChapters(container) {
-		if (!container || container.nodeType !== 1 || container.dataset.epmChaptersBound) {
+		if (!container || container.nodeType !== 1) {
 			return;
 		}
 		var episodeId = container.dataset.epmEpisodeId || '';
-		if (!episodeId) {
+		if (!episodeId || !claim(container, 'chapters')) {
 			return;
 		}
-		container.dataset.epmChaptersBound = '1';
 
 		// Delegated: exactly one listener per chapter list.
 		container.addEventListener('click', function (e) {
@@ -1389,15 +1423,14 @@
 	var openShare = null;
 
 	function bindShare(root) {
-		if (!root || root.nodeType !== 1 || root.dataset.epmShareBound) {
+		if (!root || root.nodeType !== 1) {
 			return;
 		}
 		var toggle = root.querySelector('[data-epm-share-toggle]');
 		var menu = root.querySelector('[data-epm-share-menu]');
-		if (!toggle || !menu) {
+		if (!toggle || !menu || !claim(root, 'share')) {
 			return;
 		}
-		root.dataset.epmShareBound = '1';
 
 		var manual = root.querySelector('[data-epm-share-manual]');
 		var manualField = root.querySelector('[data-epm-share-manual-field]');
@@ -1718,14 +1751,13 @@
 	}
 
 	function bindVideo(root) {
-		if (!root || root.nodeType !== 1 || root.dataset.epmVideoBound) {
+		if (!root || root.nodeType !== 1) {
 			return;
 		}
 		var button = root.querySelector('[data-epm-video-play]');
-		if (!button) {
+		if (!button || !claim(root, 'video')) {
 			return;
 		}
-		root.dataset.epmVideoBound = '1';
 
 		button.addEventListener('click', function () {
 			var kind = root.dataset.epmVideoKind || '';
