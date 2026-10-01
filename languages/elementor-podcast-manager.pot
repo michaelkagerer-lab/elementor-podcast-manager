@@ -2855,6 +2855,12 @@ msgstr ""
 msgid "Starts at %s"
 msgstr ""
 
+#. translators: %s: volume level in percent, e.g. 70
+#: includes/Assets.php:161
+#, php-format
+msgid "%s%%"
+msgstr ""
+
 #: includes/Assets.php:209
 msgid "Audio player"
 msgstr ""
