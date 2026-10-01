@@ -62,6 +62,7 @@ suites() {
 }
 
 "$ROOT/tests/bin/lint.sh"
+python3 "$ROOT/tests/packaging/test_package.py"
 
 # Only this run's notices count.
 [ -f "$DEBUG_LOG" ] && : > "$DEBUG_LOG"

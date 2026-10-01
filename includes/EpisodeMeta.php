@@ -1252,12 +1252,13 @@ final class EpisodeMeta {
 		$old_audio_id = (int) get_post_meta( $post_id, $p . 'audio_id', true );
 		$new_audio_id = absint( $input['audio_id'] ?? 0 );
 
-		// A newly chosen file must also be one the user may read (media
-		// attached to someone else's unpublished episode is not). The stored
+		// Newly chosen media must be readable or belong to an editable episode. The stored
 		// file is not checked again, so another editor can re-save the episode.
-		if ( $new_audio_id > 0 && ( ! AudioMetadata::is_valid_audio_attachment( $new_audio_id ) || ( $new_audio_id !== $old_audio_id && ! current_user_can( 'read_post', $new_audio_id ) ) ) ) {
+		if ( $new_audio_id > 0 && ( ! AudioMetadata::is_valid_audio_attachment( $new_audio_id ) || ( $new_audio_id !== $old_audio_id && ! Capabilities::can_use_attachment( $new_audio_id ) ) ) ) {
 			self::add_notice(
-				__( 'The selected audio file is not a supported audio attachment. The previous audio association was kept.', 'elementor-podcast-manager' ),
+				AudioMetadata::is_valid_audio_attachment( $new_audio_id )
+					? __( 'You do not have permission to use this audio file. The previous audio association was kept.', 'elementor-podcast-manager' )
+					: __( 'The selected audio file is not a supported audio attachment. The previous audio association was kept.', 'elementor-podcast-manager' ),
 				'error',
 				'epm-audio',
 				__( 'Go to the audio', 'elementor-podcast-manager' )
@@ -1322,7 +1323,7 @@ final class EpisodeMeta {
 
 		$old_artwork = (int) get_post_meta( $post_id, $p . 'artwork_id', true );
 		$new_artwork = absint( $input['artwork_id'] ?? 0 );
-		if ( $new_artwork > 0 && ( ! self::is_image_attachment( $new_artwork ) || ( $new_artwork !== $old_artwork && ! current_user_can( 'read_post', $new_artwork ) ) ) ) {
+		if ( $new_artwork > 0 && ( ! self::is_image_attachment( $new_artwork ) || ( $new_artwork !== $old_artwork && ! Capabilities::can_use_attachment( $new_artwork ) ) ) ) {
 			self::add_notice( __( 'The selected artwork must be an image you may use. The previous artwork was kept.', 'elementor-podcast-manager' ), 'error', 'epm-artwork', __( 'Go to the artwork', 'elementor-podcast-manager' ) );
 			$new_artwork = $old_artwork;
 		}
@@ -1330,7 +1331,7 @@ final class EpisodeMeta {
 
 		$old_guest_image = (int) get_post_meta( $post_id, $p . 'guest_image_id', true );
 		$new_guest_image = absint( $input['guest_image_id'] ?? 0 );
-		if ( $new_guest_image > 0 && ( ! self::is_image_attachment( $new_guest_image ) || ( $new_guest_image !== $old_guest_image && ! current_user_can( 'read_post', $new_guest_image ) ) ) ) {
+		if ( $new_guest_image > 0 && ( ! self::is_image_attachment( $new_guest_image ) || ( $new_guest_image !== $old_guest_image && ! Capabilities::can_use_attachment( $new_guest_image ) ) ) ) {
 			self::add_notice( __( 'The selected guest photo must be an image you may use. The previous photo was kept.', 'elementor-podcast-manager' ), 'error', 'epm-guest-image', __( 'Go to the guest photo', 'elementor-podcast-manager' ) );
 			$new_guest_image = $old_guest_image;
 		}
@@ -1598,16 +1599,19 @@ final class EpisodeMeta {
 		if ( array_key_exists( 'transcript_file_id', $input ) ) {
 			$new_id = absint( $input['transcript_file_id'] );
 
-			// A newly chosen file must also be one the user may read: its text
+			// Newly chosen media must be readable or belong to an editable episode: its text
 			// is copied into this episode. The stored file is not checked again.
-			if ( $new_id > 0 && ( ! self::is_transcript_attachment( $new_id ) || ( $new_id !== $file_id && ! current_user_can( 'read_post', $new_id ) ) ) ) {
+			if ( $new_id > 0 && ( ! self::is_transcript_attachment( $new_id ) || ( $new_id !== $file_id && ! Capabilities::can_use_attachment( $new_id ) ) ) ) {
+				$message = self::is_transcript_attachment( $new_id )
+					? __( 'You do not have permission to use this transcript file.', 'elementor-podcast-manager' )
+					: __( 'The transcript file was not saved. Choose a WebVTT (.vtt) or SubRip (.srt) file.', 'elementor-podcast-manager' );
 				self::add_notice(
-					__( 'The transcript file was not saved. Choose a WebVTT (.vtt) or SubRip (.srt) file.', 'elementor-podcast-manager' ),
+					$message,
 					'error',
 					'epm-transcript',
 					__( 'Go to the transcript', 'elementor-podcast-manager' )
 				);
-				self::$field_errors['transcript_file'] = __( 'Choose a WebVTT (.vtt) or SubRip (.srt) file. Other file types can’t be used for captions.', 'elementor-podcast-manager' );
+				self::$field_errors['transcript_file'] = $message;
 			} else {
 				$file_id = $new_id;
 				if ( $file_id > 0 ) {
@@ -1692,10 +1696,11 @@ final class EpisodeMeta {
 			wp_send_json_error( [ 'message' => __( 'You are not allowed to manage episodes.', 'elementor-podcast-manager' ) ] );
 		}
 
-		// The user must be able to read the file (media attached to someone
-		// else's unpublished episode is not theirs to see).
-		if ( ! AudioMetadata::is_valid_audio_attachment( $attachment_id ) || ! current_user_can( 'read_post', $attachment_id ) ) {
+		if ( ! AudioMetadata::is_valid_audio_attachment( $attachment_id ) ) {
 			wp_send_json_error( [ 'message' => __( 'This file can’t be used as episode audio. Choose an MP3 or M4A file.', 'elementor-podcast-manager' ) ] );
+		}
+		if ( ! Capabilities::can_use_attachment( $attachment_id ) ) {
+			wp_send_json_error( [ 'message' => __( 'You do not have permission to use this audio file.', 'elementor-podcast-manager' ) ], 403 );
 		}
 
 		$info           = AudioMetadata::describe( $attachment_id );

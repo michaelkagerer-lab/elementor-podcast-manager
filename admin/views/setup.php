@@ -470,7 +470,7 @@ $epm_steps = [
 			<p class="epm-panel__lede"><?php esc_html_e( 'Publish your first episode, then submit this feed address once to each platform. New episodes reach them automatically after that.', 'elementor-podcast-manager' ); ?></p>
 			<div class="epm-copy">
 				<code class="epm-copy__value"><?php echo esc_html( \EPM\Feed::url() ); ?></code>
-				<button type="button" class="button" data-copy="<?php echo esc_attr( \EPM\Feed::url() ); ?>"><?php esc_html_e( 'Copy feed address', 'elementor-podcast-manager' ); ?></button>
+				<button type="button" class="button" data-epm-copy="<?php echo esc_attr( \EPM\Feed::url() ); ?>"><?php esc_html_e( 'Copy feed address', 'elementor-podcast-manager' ); ?></button>
 			</div>
 		</div>
 
@@ -482,7 +482,7 @@ $epm_steps = [
 					<span class="epm-checklist__label"><?php esc_html_e( 'Copy this site’s feed address', 'elementor-podcast-manager' ); ?></span>
 					<div class="epm-checklist__text epm-copy">
 						<code class="epm-copy__value"><?php echo esc_html( \EPM\Feed::url() ); ?></code>
-						<button type="button" class="button" data-copy="<?php echo esc_attr( \EPM\Feed::url() ); ?>"><?php esc_html_e( 'Copy feed address', 'elementor-podcast-manager' ); ?></button>
+						<button type="button" class="button" data-epm-copy="<?php echo esc_attr( \EPM\Feed::url() ); ?>"><?php esc_html_e( 'Copy feed address', 'elementor-podcast-manager' ); ?></button>
 					</div>
 				</li>
 				<li class="epm-checklist__item">

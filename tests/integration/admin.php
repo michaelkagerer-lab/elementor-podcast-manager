@@ -324,6 +324,43 @@ $t->test(
 WP_CLI::log( 'Episode editor' );
 
 $t->test(
+	'SEC-N5: custom-capability episode editors can use that episode’s unpublished media',
+	static function ( EPM_Test_Runner $t ) use ( $make_episode, $make_file, $make_user, $ajax ) {
+		$old_user = get_current_user_id();
+		$id = $make_episode( [ 'post_status' => 'future', 'post_date' => gmdate( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ) ] );
+		$audio = $make_file( 'custom-caps.mp3', str_repeat( "\xff\xfb\x90\x00", 100 ), 'audio/mpeg' );
+		$transcript = $make_file( 'custom-caps.vtt', "WEBVTT\n\n00:00:00.000 --> 00:00:01.000\nHello\n", 'text/vtt' );
+		foreach ( [ $audio, $transcript ] as $file ) {
+			wp_update_post( [ 'ID' => $file, 'post_parent' => $id ] );
+		}
+		$user_id = $make_user( 'subscriber' );
+		$user = new WP_User( $user_id );
+		$user->add_cap( 'epm_test_edit_episodes' );
+		$filter = static function () { return 'epm_test_edit_episodes'; };
+		add_filter( 'epm_cap_manage_episodes', $filter );
+		EpisodePostType::register();
+		wp_set_current_user( $user_id );
+		try {
+			$t->assert( current_user_can( 'edit_post', $id ) && ! current_user_can( 'read_post', $audio ), 'precondition: episode rights exceed core attachment rights' );
+			$result = $ajax( [ new EpisodeMeta(), 'ajax_audio_describe' ], [ '_ajax_nonce' => wp_create_nonce( 'epm_episode_meta' ), 'post_id' => $id, 'attachment_id' => $audio ] );
+			$t->assert( ! empty( $result['success'] ), 'the audio picker accepts the editable episode’s file' );
+			$request = new WP_REST_Request( 'POST' );
+			$request->set_param( 'meta', [ '_epm_audio_id' => $audio, '_epm_transcript_file_id' => $transcript ] );
+			$t->assert( ! is_wp_error( epm()->rest_check_attachment_meta( (object) [ 'ID' => $id ], $request ) ), 'REST accepts editable-episode audio and captions' );
+			$_POST = [ 'epm_episode_meta_nonce' => wp_create_nonce( 'epm_episode_meta' ), 'epm' => [ 'audio_id' => $audio, 'transcript_file_id' => $transcript ] ];
+			( new EpisodeMeta() )->save( $id, get_post( $id ) );
+			$t->same( [ $audio, $transcript ], [ (int) get_post_meta( $id, '_epm_audio_id', true ), (int) get_post_meta( $id, '_epm_transcript_file_id', true ) ], 'the editor saves both associations' );
+		} finally {
+			$_POST = [];
+			remove_filter( 'epm_cap_manage_episodes', $filter );
+			EpisodePostType::register();
+			$user->remove_cap( 'epm_test_edit_episodes' );
+			wp_set_current_user( $old_user );
+		}
+	}
+);
+
+$t->test(
 	'next episode number: highest number in use plus one, per season, ignoring trash and the edited episode',
 	static function ( EPM_Test_Runner $t ) use ( $make_episode ) {
 		$before = EpisodeMeta::next_episode_numbers();
@@ -616,7 +653,7 @@ $t->test(
 		$t->same( 403, $rest( $rest_ep, [ '_epm_audio_id' => $audio ] ), 'REST: the other author\'s audio is refused' );
 		$t->same( 0, (int) get_post_meta( $rest_ep, '_epm_audio_id', true ), 'REST: nothing stored' );
 		$t->same( 403, $rest( $rest_ep, [ '_epm_transcript_file_id' => $vtt ] ), 'REST: the other author\'s transcript file is refused' );
-		$t->same( 403, $rest( $rest_ep, [ '_epm_transcript_file_id' => $own_audio ] ), 'REST: an audio file is not a transcript file' );
+		$t->same( 400, $rest( $rest_ep, [ '_epm_transcript_file_id' => $own_audio ] ), 'REST: an audio file is not a transcript file (invalid type, rather than denied access)' );
 		$t->same( 200, $rest( $rest_ep, [ '_epm_audio_id' => $own_audio ] ), 'REST: their own audio is accepted' );
 		$t->same( $own_audio, (int) get_post_meta( $rest_ep, '_epm_audio_id', true ), 'REST: their own audio is stored' );
 		$t->same( 200, $rest( $own_ep, [ '_epm_audio_id' => $audio, '_epm_transcript_file_id' => $vtt ] ), 'REST: unchanged stored files pass' );

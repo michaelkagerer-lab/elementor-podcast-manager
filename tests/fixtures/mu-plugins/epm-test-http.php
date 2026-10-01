@@ -76,7 +76,7 @@ if ( ! class_exists( 'EPM_Test_HTTP' ) ) {
 		 *
 		 * @var bool
 		 */
-		public static bool $offline = false;
+		public static bool $offline = true;
 
 		/**
 		 * Fixture directory (tests/fixtures/feeds/).

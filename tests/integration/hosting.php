@@ -3098,6 +3098,8 @@ $t->test(
 		// Everything uninstall.php deletes is kept aside and put back; only
 		// the probe episode and topic are offered to it.
 		$options = $wpdb->get_results( "SELECT option_name, option_value, autoload FROM {$wpdb->options} WHERE option_name LIKE 'epm%'", ARRAY_A );
+		$rewrite_rules = get_option( 'rewrite_rules', false );
+		update_option( 'rewrite_rules', [ 'podcast/feed/?$' => 'index.php?epm_feed=1' ] );
 		$posts   = static function ( $pre, $query ) use ( $episode ) {
 			return EpisodePostType::CPT === $query->get( 'post_type' ) && get_post( $episode ) ? [ $episode ] : $pre;
 		};
@@ -3120,12 +3122,18 @@ $t->test(
 			} )();
 
 			$t->same( null, get_post( $episode ), 'episode deleted' );
+			$t->same( false, get_option( 'rewrite_rules', false ), 'LIFE-N3: uninstall invalidates the podcast routes' );
 			$t->same( 0, (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->term_relationships} WHERE object_id = %d OR term_taxonomy_id = %d", $episode, $tt_id ) ), 'no topic relationships left' );
 			$t->same( 0, (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->term_taxonomy} WHERE term_taxonomy_id = %d", $tt_id ) ), 'topic deleted' );
 		} finally {
 			remove_filter( 'posts_pre_query', $posts, 10 );
 			remove_filter( 'terms_pre_query', $terms, 10 );
 			remove_filter( 'epm_delete_data_on_uninstall', '__return_true' );
+			if ( false === $rewrite_rules ) {
+				delete_option( 'rewrite_rules' );
+			} else {
+				update_option( 'rewrite_rules', $rewrite_rules );
+			}
 			EpisodePostType::register_topics();
 			foreach ( $options as $option ) {
 				delete_option( $option['option_name'] );

@@ -27,6 +27,17 @@ to 5 minutes, with a 30-second connection timeout for browser downloads.
 The browser dependency is pinned in `e2e/package.json` and installed from
 `e2e/package-lock.json` using `npm ci`.
 
+Unmocked external HTTP requests are refused by the test transport by default;
+localhost socket fixtures remain available. Disposable sites are set private
+to suppress search and directory pings.
+
+`python3 tests/packaging/test_package.py` checks reproducibility, checksums,
+licensing and runtime-only ZIP contents. To build an unpublished review
+artifact, run `python3 tools/build-package.py /tmp/epm-unreleased.zip`.
+The builder reads tracked runtime files from the current working tree, uses
+fixed ZIP metadata and refuses to overwrite existing artifacts. Commit new
+runtime files before building a release. Building does not publish anything.
+
 ## How suites are found
 
 Suites are discovered by file name, so a new suite needs no change to
@@ -44,7 +55,7 @@ Suites are discovered by file name, so a new suite needs no change to
 Current order: `integration/run.php`, `admin.php`, `design.php`,
 `feed.php`, `frontend.php`, `hosting.php`, `import.php`, `media.php`,
 `widgets.php`; then `concurrency/run.sh`; then `perf/run.sh`; then
-`media/run.sh`; then `http/run.sh`; then `e2e/run.mjs`, `admin.mjs`,
+`media/run.sh`; then `http/run.sh`; then `e2e/run.mjs`, `admin.mjs`, `copy.mjs`,
 `design.mjs`, `frontend.mjs`, `player.mjs`, `setup.mjs`,
 `style-audit.mjs`, `widgets.mjs`. (`integration/reference/` holds frozen
 copies of earlier code for comparisons, not suites.)
@@ -69,6 +80,7 @@ copies of earlier code for comparisons, not suites.)
 | HTTP | `http/run.sh` | `/podcast/feed/` and every archive feed URL serve the podcast feed, ETag/Last-Modified with 304s, a channel change answers `If-Modified-Since` with the new feed and a new `Last-Modified` (also on `/podcast/rss2/`, `/podcast/feed/atom/` and `?post_type=podcast_episode&feed=rss2`, which carry the feed's ETag), `If-None-Match: *` and tag lists answer 304, a tag merely containing the ETag 200, HEAD without a body, an episode dated next year leaves `Last-Modified` at or before now, the previous address `/feed/podcast/` and `?feed=podcast` (404 when off, 301 when on, also to `If-Modified-Since`), `/podcast/feed/` under plain permalinks, chapters JSON and transcript endpoints (404 for restricted episodes), episode page output, feed discovery link, design tokens printed once, shortcode and Elementor pages, REST meta exposure/protection, byte-range media; import data: a feed check through admin-ajax stores the parsed feed in the database, in no file under uploads, no `epm-import` folder is served, the job token is in no URL or log, Cancel removes the data; with another host: 301 from every feed address to the host's feed (discovery link too), the blog feed not redirected, 200 again without the redirect and when self-hosted |
 | Browser | `e2e/run.mjs` (Playwright/Chromium) | player playback, chapter seek + highlight, theme-proof buttons, resume position, remembered speed, shared state between card and player, pause-others, AJAX-inserted players, mobile layout; Elementor editor rendering, re-render on control change, playback in the preview, episode picker; episode admin: audio box placement, drag-and-drop upload, chapters, show notes, validation notices, feed update; Elementor page with the sticky player; design presets, export and import |
 | | `e2e/admin.mjs` | Design screen (live preview, preset tiles and the confirm dialog, contrast badges, save, the unsaved-changes warning, the save bar clear of focused fields, keyboard and 390 px); episode editor (next number, paste chapters: add or replace, half-filled rows, the save buttons after autosave); episode list (column widths, Quick Edit) |
+| | `e2e/copy.mjs` | feed-copy fallback on Setup, Hosting and Distribution, including denied clipboard permission, success/failure of legacy copying and selecting the visible address |
 | | `e2e/design.mjs` | the *Details shown by default* form (keyboard, phones, save); 1.1–1.3 maps as suggestions, never active; an explicit layout chosen in the real Elementor editor survives preset changes (DESIGN-N1); widgets saved by 1.3.0 in the editor and *Use Podcast → Design defaults*; artwork radius and the round guest photo inside Elementor (DESIGN-N2) |
 | | `e2e/frontend.mjs` | share menu (keyboard, copy, position link, embed code, manual copy), timestamp links (`?t=` forms, the cue label), the embed card (320 and 600 px, height message, links), card buttons and the sticky bar, the video facade (no third-party request before play, focus), the sticky bar for lists and chapters, remote audio loading only on play, the design system on real pages (dark designs, Elementor Kit rules, row alignment) |
 | | `e2e/player.mjs` | the player engine and its Elementor integration: initialization through Elementor's `element_ready` hooks alone (the engine is served with its MutationObserver fallback switched off) and together with the observer, in the real editor (insert, switch episode, duplicate, delete, undo/redo, ten re-renders; one click listener per control, one click = one playback); init three times plus hooks plus observer; Swiper 8 loop copies (Elementor's bundled `swiper.js`); a replaced or fixed audio file taking over (duration, title, sticky bar, Media Session), re-rendering a playing player (frontend and editor), views and controllers released, a player put back into the page, chapter-first artwork, remote audio unrequested after a re-render; one volume across players, native mute, unmute on raise, an emulated read-only volume (iOS), touch hit areas; speed on another episode, resume vs `?t=`, out-of-range timestamps, Media Session position after seeks, ArrowUp/ArrowDown on sliders; sticky bar safe areas (CDP insets), a shell inserted later, the sticky option next to a list. Creates its own pages and remote-audio episodes (audio on `127.0.0.1`, "another host") and deletes them at the end |

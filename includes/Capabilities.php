@@ -16,6 +16,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Capabilities {
 
+	/** Whether media is readable directly or belongs to an editable episode. */
+	public static function can_use_attachment( int $attachment_id ): bool {
+		$attachment = get_post( $attachment_id );
+		if ( ! $attachment || 'attachment' !== $attachment->post_type ) {
+			return false;
+		}
+		if ( current_user_can( 'read_post', $attachment_id ) ) {
+			return true;
+		}
+		$parent = (int) $attachment->post_parent;
+		return $parent > 0 && EpisodePostType::CPT === get_post_type( $parent ) && current_user_can( 'edit_post', $parent );
+	}
+
 	/**
 	 * Capability required to manage podcast settings and design.
 	 *

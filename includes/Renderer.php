@@ -870,7 +870,9 @@ final class Renderer {
 
 		$extension = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
 		if ( in_array( $extension, [ 'mp4', 'm4v', 'webm', 'mov', 'ogv' ], true ) ) {
-			return [ 'kind' => 'file', 'id' => '', 'src' => esc_url_raw( $url ), 'host' => '' ];
+			$file_host = strtolower( (string) $parts['host'] );
+			$site_host = strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) );
+			return [ 'kind' => 'file', 'id' => '', 'src' => esc_url_raw( $url ), 'host' => $file_host === $site_host ? '' : $file_host ];
 		}
 
 		return [ 'kind' => 'link', 'id' => '', 'src' => esc_url_raw( $url ), 'host' => '' ];
@@ -1059,6 +1061,7 @@ final class Renderer {
 				'player_id'            => 'epm-player-' . (int) ( $episode['id'] ?? 0 ) . '-' . wp_unique_id(),
 				'label'                => '',
 				'title_url'            => '',
+				'title_new_window'     => false,
 				'class'                => '',
 			]
 		);
@@ -1147,7 +1150,8 @@ final class Renderer {
 		if ( $args['show_title'] ) {
 			$title = esc_html( (string) ( $episode['title'] ?? '' ) );
 			if ( '' !== (string) $args['title_url'] ) {
-				$title = '<a class="epm-player__title-link" href="' . esc_url( (string) $args['title_url'] ) . '" target="_top">' . $title . '</a>';
+				$title = '<a class="epm-player__title-link" href="' . esc_url( (string) $args['title_url'] ) . '"'
+					. ( $args['title_new_window'] ? ' target="_blank" rel="noopener"' : ' target="_top"' ) . '>' . $title . '</a>';
 			}
 			$out .= '<p class="epm-player__title">' . $title . '</p>';
 		}

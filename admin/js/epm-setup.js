@@ -1035,37 +1035,6 @@
 
 	/* ---------- copy buttons ---------- */
 
-	function copy( button ) {
-		var value = button.getAttribute( 'data-copy' );
-		var label = button.textContent;
-		var done = function () {
-			button.textContent = app.strings.copied;
-			announce( app.strings.copied );
-			window.setTimeout( function () {
-				button.textContent = label;
-			}, 2000 );
-		};
-
-		if ( window.navigator.clipboard && window.isSecureContext ) {
-			window.navigator.clipboard.writeText( value ).then( done, function () {} );
-			return;
-		}
-
-		var area = document.createElement( 'textarea' );
-		area.value = value;
-		area.setAttribute( 'readonly', '' );
-		area.style.position = 'fixed';
-		area.style.opacity = '0';
-		document.body.appendChild( area );
-		area.select();
-		try {
-			document.execCommand( 'copy' );
-			done();
-		} catch ( e ) {
-			// Nothing else to try: the address stays selectable on screen.
-		}
-		document.body.removeChild( area );
-	}
 
 	/* ---------- wiring ---------- */
 
@@ -1093,15 +1062,11 @@
 	} );
 
 	root.addEventListener( 'click', function ( event ) {
-		var target = event.target.closest( '[data-action], [data-copy]' );
+		var target = event.target.closest( '[data-action]' );
 		if ( ! target ) {
 			return;
 		}
 
-		if ( target.hasAttribute( 'data-copy' ) ) {
-			copy( target );
-			return;
-		}
 
 		switch ( target.getAttribute( 'data-action' ) ) {
 			case 'back':

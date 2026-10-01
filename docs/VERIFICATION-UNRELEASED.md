@@ -1,5 +1,27 @@
 # Unreleased verification
 
+## 2026-10-01 audit follow-up
+
+The bounded hosted run 36905182422 finished in 17m14s: all four PHP lint
+checks, both PHP integration jobs and MariaDB passed. Its browser job failed
+only while opening the legacy widget's editor controls. The test now selects
+the widget, explicitly opens Content and waits for the correct panel/model.
+The complete Design browser suite passed twice locally after that change.
+
+New regression tests reproduced and then verified fixes for UX-N1, UX-N3,
+UX-N4, UX-N13, UX-N15, SEC-N5, SEC-N10, LIFE-N3, QA-N2 and QA-N4. The
+Frontend browser suite passes, including the WordPress handshake and
+script-disabled embed; the Copy suite passes on all three admin screens.
+Package tests produce identical ZIP bytes twice, verify the checksum and
+runtime-only contents, and require LICENSE and NOTICE.
+
+PHP checks pass locally: run 186, admin 337, design 228, feed 147,
+frontend 217, hosting 1155, import 92, media 165, widgets 131 assertions.
+An existing REST test was updated to expect 400 for an invalid file type;
+unreadable media still returns 403. The corrected Admin suite passes.
+PHP/JavaScript syntax checks pass. Remaining audit items and the hosted
+checks for this follow-up are still open; no merge or release is authorized.
+
 ## 2026-10-01 CI regression repair
 
 Verified on a marked disposable SQLite site with WordPress 7.1.2,

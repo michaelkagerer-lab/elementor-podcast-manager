@@ -226,36 +226,6 @@
 			serverCheck( check );
 			return;
 		}
-		var button = event.target.closest( '[data-copy]' );
-		if ( ! button ) {
-			return;
-		}
-		var value = button.getAttribute( 'data-copy' );
-		var label = button.textContent;
-		var done = function () {
-			button.textContent = app.strings.copied;
-			announce( app.strings.copied );
-			window.setTimeout( function () {
-				button.textContent = label;
-			}, 2000 );
-		};
-		if ( window.navigator.clipboard && window.isSecureContext ) {
-			window.navigator.clipboard.writeText( value ).then( done, function () {} );
-			return;
-		}
-		var area = document.createElement( 'textarea' );
-		area.value = value;
-		area.setAttribute( 'readonly', '' );
-		area.style.position = 'fixed';
-		area.style.opacity = '0';
-		document.body.appendChild( area );
-		area.select();
-		try {
-			document.execCommand( 'copy' );
-			done();
-		} catch ( e ) {
-			// The address stays selectable on screen.
-		}
-		document.body.removeChild( area );
+
 	} );
 } )();

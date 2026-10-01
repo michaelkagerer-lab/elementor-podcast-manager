@@ -13,6 +13,9 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
+// Rebuild without the plugin on the next request, even when keeping its data.
+delete_option( 'rewrite_rules' );
+
 // Scheduled events never outlive the plugin, whatever happens to the data.
 // (epm_ping_podcast_index: the Podcast Index event's name in 1.3.0.)
 foreach ( [ 'epm_sync_feed', 'epm_import_continue', 'epm_import_cleanup', 'epm_podcast_index_ping', 'epm_ping_podcast_index', 'epm_upgrade_step' ] as $epm_hook ) {

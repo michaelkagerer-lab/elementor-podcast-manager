@@ -477,7 +477,7 @@ final class AdminPages {
 
 			case 'design':
 				$preset = sanitize_key( (string) ( $data['preset'] ?? '' ) );
-				if ( '' !== $preset && null !== epm()->presets->get( $preset ) ) {
+				if ( '' !== $preset && $preset !== (string) epm()->design->get( 'preset' ) && null !== epm()->presets->get( $preset ) ) {
 					epm()->design->apply_preset( $preset );
 				}
 				$out = [ 'preset' => (string) epm()->design->get( 'preset' ) ];

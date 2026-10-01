@@ -29,6 +29,28 @@ const legacy = JSON.parse(fs.readFileSync(new URL('../fixtures/elementor-1.3.0.j
 const resetDesign = () => php(`delete_option( 'epm_design_settings' ); \\Elementor\\Plugin::$instance->files_manager->clear_cache(); echo 1;`);
 const applyPreset = (id) => php(`epm()->design->apply_preset( ${JSON.stringify(id)} ); \\Elementor\\Plugin::$instance->files_manager->clear_cache(); echo 1;`);
 
+/** Wait for selection and the Content panel before opening player controls. */
+async function openPlayerControls(page, id) {
+	await page.waitForFunction((id) => {
+		try {
+			const container = window.elementor.getContainer(id);
+			return !!(window.$e && container.view && container.view.el.isConnected && window.elementor.getPanelView());
+		} catch (error) {
+			return false;
+		}
+	}, id, { timeout: 30000 });
+	await page.evaluate(async (id) => {
+		const container = window.elementor.getContainer(id);
+		await window.$e.run('document/elements/select', { container });
+		window.$e.route('panel/editor/content', { model: container.model, view: container.view });
+	}, id);
+	await page.waitForFunction((id) => {
+		const panel = window.elementor.getPanelView().getCurrentPageView();
+		return panel && panel.model && panel.model.id === id && panel.activeTab === 'content';
+	}, id, { timeout: 20000 });
+	await page.locator('.elementor-control-section_player >> visible=true').click();
+}
+
 /** An Elementor page from widget data; returns [id, url]. */
 const elementorPage = (slug, widgets, containerSettings = {}) =>
 	php(`
@@ -196,9 +218,7 @@ try {
 		// Creating a widget opens its panel asynchronously. Wait for the
 		// last widget to render before selecting its controls.
 		await page.frameLocator('#elementor-preview-iframe').locator(`.elementor-element-${chosen} [data-epm-player]`).waitFor({ timeout: 30000 });
-		await page.evaluate((id) => window.$e.run('document/elements/select', { container: window.elementor.getContainer(id) }), chosen);
-		await page.evaluate((id) => window.$e.run('panel/editor/open', { model: window.elementor.getContainer(id).model, view: window.elementor.getContainer(id).view }), chosen);
-		await page.locator('.elementor-control-section_player >> visible=true').click();
+		await openPlayerControls(page, chosen);
 		const select = page.locator('.elementor-control-layout select >> visible=true');
 		await select.waitFor({ timeout: 20000 });
 		const defaultLabel = await select.locator('option[value=""]').textContent();
@@ -251,8 +271,7 @@ try {
 		await page.waitForTimeout(1500);
 		const settings = await page.evaluate(() => window.elementor.getContainer('p130001').settings.toJSON());
 		assert(settings.epm_schema === '2' && settings.show_volume === 'no' && settings.show_artwork === 'yes' && settings.show_description === 'no', `the editor shows its 1.3.0 values explicitly (${JSON.stringify({ volume: settings.show_volume, artwork: settings.show_artwork, description: settings.show_description })})`);
-		await page.evaluate(() => window.$e.run('panel/editor/open', { model: window.elementor.getContainer('p130001').model, view: window.elementor.getContainer('p130001').view }));
-		await page.locator('.elementor-control-section_player >> visible=true').click();
+		await openPlayerControls(page, 'p130001');
 		const volumeSelect = page.locator('.elementor-control-show_volume select >> visible=true');
 		assert((await volumeSelect.inputValue()) === 'no', 'the Volume control reads Hide');
 		await page.locator('.elementor-control-section_player').screenshot({ path: 'screenshots/design-editor-legacy-panel.png' }).catch(() => {});

@@ -88,6 +88,7 @@ register_deactivation_hook(
 	__FILE__,
 	function () {
 		EPM\Hosting::unschedule_all();
-		flush_rewrite_rules();
+		// Rebuild on the next request, when this plugin's routes are absent.
+		delete_option( 'rewrite_rules' );
 	}
 );

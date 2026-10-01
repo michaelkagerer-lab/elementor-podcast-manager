@@ -387,7 +387,7 @@ final class Admin {
 	 */
 	public function render_dashboard(): void {
 		if ( ! Capabilities::can_manage_episodes() ) {
-			wp_die( esc_html__( 'You do not have permission to access this page.', 'elementor-podcast-manager' ) );
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'elementor-podcast-manager' ), '', [ 'response' => 403 ] );
 		}
 
 		$settings    = epm()->settings;
@@ -715,7 +715,7 @@ final class Admin {
 	 */
 	public function render_settings(): void {
 		if ( ! Capabilities::can_manage_podcast() ) {
-			wp_die( esc_html__( 'You do not have permission to access this page.', 'elementor-podcast-manager' ) );
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'elementor-podcast-manager' ), '', [ 'response' => 403 ] );
 		}
 
 		require EPM_PATH . 'admin/views/settings.php';
@@ -728,7 +728,7 @@ final class Admin {
 	 */
 	public function render_design(): void {
 		if ( ! Capabilities::can_manage_podcast() ) {
-			wp_die( esc_html__( 'You do not have permission to access this page.', 'elementor-podcast-manager' ) );
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'elementor-podcast-manager' ), '', [ 'response' => 403 ] );
 		}
 
 		require EPM_PATH . 'admin/views/design.php';
@@ -805,7 +805,7 @@ final class Admin {
 	 */
 	public function handle_design_export(): void {
 		if ( ! Capabilities::can_manage_podcast() ) {
-			wp_die( esc_html__( 'You do not have permission to export the design.', 'elementor-podcast-manager' ) );
+			wp_die( esc_html__( 'You do not have permission to export the design.', 'elementor-podcast-manager' ), '', [ 'response' => 403 ] );
 		}
 
 		check_admin_referer( 'epm_design_export', '_epm_export_nonce' );
@@ -851,7 +851,7 @@ final class Admin {
 	 */
 	public function handle_design_import(): void {
 		if ( ! Capabilities::can_manage_podcast() ) {
-			wp_die( esc_html__( 'You do not have permission to import a design.', 'elementor-podcast-manager' ) );
+			wp_die( esc_html__( 'You do not have permission to import a design.', 'elementor-podcast-manager' ), '', [ 'response' => 403 ] );
 		}
 
 		check_admin_referer( 'epm_design_import', '_epm_import_nonce' );
@@ -997,7 +997,7 @@ final class Admin {
 	 */
 	public function handle_design_details(): void {
 		if ( ! Capabilities::can_manage_podcast() ) {
-			wp_die( esc_html__( 'You do not have permission to change the design.', 'elementor-podcast-manager' ) );
+			wp_die( esc_html__( 'You do not have permission to change the design.', 'elementor-podcast-manager' ), '', [ 'response' => 403 ] );
 		}
 
 		check_admin_referer( 'epm_design_details', isset( $_POST['_epm_suggestion_nonce'] ) ? '_epm_suggestion_nonce' : '_epm_details_nonce' );
@@ -1043,7 +1043,7 @@ final class Admin {
 	 */
 	public function handle_design_preset(): void {
 		if ( ! Capabilities::can_manage_podcast() ) {
-			wp_die( esc_html__( 'You do not have permission to change the design.', 'elementor-podcast-manager' ) );
+			wp_die( esc_html__( 'You do not have permission to change the design.', 'elementor-podcast-manager' ), '', [ 'response' => 403 ] );
 		}
 
 		check_admin_referer( 'epm_design_preset', '_epm_preset_nonce' );

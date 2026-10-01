@@ -44,6 +44,17 @@ add_action(
 
 $t = new EPM_Test_Runner();
 
+$t->test(
+	'QA-N2: the fixture transport refuses unmocked remote requests by default',
+	static function ( EPM_Test_Runner $t ) {
+		$t->assert( class_exists( 'EPM_Test_HTTP' ), 'test transport is installed' );
+		$response = apply_filters( 'pre_http_request', false, [], 'https://unmocked.example.invalid/feed.xml' );
+		$t->assert( is_wp_error( $response ) && false !== strpos( $response->get_error_message(), 'Offline test run:' ), 'unknown hosts cannot leave the test site' );
+		$local = apply_filters( 'pre_http_request', false, [], home_url( '/podcast/feed/' ) );
+		$t->same( false, $local, 'local socket tests can still reach the test server' );
+	}
+);
+
 WP_CLI::log( 'Routing & capabilities' );
 
 $t->test(
@@ -638,6 +649,26 @@ $t->test(
 	'no plugin-triggered _doing_it_wrong notices during the run',
 	static function ( EPM_Test_Runner $t ) {
 		$t->same( [], $GLOBALS['epm_test_doing_it_wrong'] );
+	}
+);
+
+$t->test(
+	'LIFE-N3: deactivation invalidates rewrite rules without persisting active plugin routes',
+	static function ( EPM_Test_Runner $t ) {
+		$rules = get_option( 'rewrite_rules', false );
+		$cron = get_option( 'cron', [] );
+		try {
+			update_option( 'rewrite_rules', [ 'podcast/feed/?$' => 'index.php?epm_feed=1' ] );
+			do_action( 'deactivate_' . plugin_basename( EPM_FILE ) );
+			$t->same( false, get_option( 'rewrite_rules', false ), 'the next request must build rules without EPM loaded' );
+		} finally {
+			update_option( 'cron', $cron );
+			if ( false === $rules ) {
+				delete_option( 'rewrite_rules' );
+			} else {
+				update_option( 'rewrite_rules', $rules );
+			}
+		}
 	}
 );
 

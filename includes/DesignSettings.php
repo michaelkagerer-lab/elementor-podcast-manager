@@ -422,6 +422,9 @@ final class DesignSettings {
 	 * @return bool
 	 */
 	private function to_bool( $value ): bool {
+		if ( ! is_scalar( $value ) ) {
+			return false;
+		}
 		if ( is_bool( $value ) ) {
 			return $value;
 		}

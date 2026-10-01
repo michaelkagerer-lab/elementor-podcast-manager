@@ -461,7 +461,10 @@ final class Plugin {
 				continue;
 			}
 
-			if ( ! $is_valid( $id ) || ! current_user_can( 'read_post', $id ) ) {
+			if ( ! $is_valid( $id ) ) {
+				return new \WP_Error( 'rest_invalid_meta', __( 'This attachment is not a supported file type for this episode field.', 'elementor-podcast-manager' ), [ 'status' => 400 ] );
+			}
+			if ( ! Capabilities::can_use_attachment( $id ) ) {
 				return new \WP_Error(
 					'rest_forbidden_meta',
 					__( 'You can’t use this file for the episode.', 'elementor-podcast-manager' ),

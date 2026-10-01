@@ -64,6 +64,62 @@ $reset = static function (): void {
 };
 $reset();
 
+$t->test(
+	'UX-N4: repeating the setup design step preserves manual design and detail choices',
+	static function ( EPM_Test_Runner $t ) use ( $reset ) {
+		try {
+			epm()->design->apply_preset( 'business-tuning' );
+			$settings = epm()->design->all();
+			$settings['accent'] = '#123456';
+			$settings['details']['player']['show_volume'] = true;
+			update_option( DesignSettings::OPTION, $settings );
+			( new EPM\AdminPages() )->save_step( 'design', [ 'preset' => 'business-tuning' ] );
+			$t->same( $settings, epm()->design->all(), 'revisiting the same preset keeps all custom values' );
+		} finally {
+			$reset();
+		}
+	}
+);
+
+$t->test(
+	'SEC-N10: design permission denials return 403 and nested flags are rejected without warnings',
+	static function ( EPM_Test_Runner $t ) {
+		$user = get_current_user_id();
+		$die = static function () {
+			return static function ( $message, $title, $args ) {
+				throw new RuntimeException( 'denied', (int) ( $args['response'] ?? 500 ) );
+			};
+		};
+		add_filter( 'wp_die_handler', $die, PHP_INT_MAX );
+		wp_set_current_user( 0 );
+		try {
+			foreach ( [ 'handle_design_export', 'handle_design_import', 'handle_design_preset', 'handle_design_details' ] as $method ) {
+				try {
+					( new Admin() )->$method();
+					$t->assert( false, $method . ' must refuse anonymous access' );
+				} catch ( RuntimeException $error ) {
+					$t->same( 403, $error->getCode(), $method . ' returns a permission status' );
+				}
+			}
+		} finally {
+			wp_set_current_user( $user );
+			remove_filter( 'wp_die_handler', $die, PHP_INT_MAX );
+		}
+		$warnings = [];
+		set_error_handler( static function ( $severity, $message ) use ( &$warnings ) {
+			$warnings[] = $message;
+			return true;
+		} );
+		try {
+			$flags = epm()->design->sanitize_flag_map( [ 'show_title' => [ 'nested' => true ], 'show_date' => 'yes' ] );
+		} finally {
+			restore_error_handler();
+		}
+		$t->same( [], $warnings, 'nested import flags emit no PHP warning' );
+		$t->same( [ 'show_title' => false, 'show_date' => true ], $flags, 'malformed flags are false, valid values survive' );
+	}
+);
+
 /**
  * Visible parts of the first player in some markup ('' when none).
  */

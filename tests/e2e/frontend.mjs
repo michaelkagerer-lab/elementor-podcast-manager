@@ -120,7 +120,7 @@ console.log('Share menu');
 	await page.click('[data-epm-share-action="embed"]');
 	await page.waitForTimeout(200);
 	const embed = await page.evaluate(() => navigator.clipboard.readText());
-	assert(/^<iframe src="[^"]+\/embed\/" title="[^"]+" width="640" height="200"/.test(embed), `Copy embed code copies an iframe (${embed.slice(0, 90)}…)`);
+	assert(/<iframe src="[^"]+\/embed\/" title="[^"]+" width="640" height="200"/.test(embed) && /^<p><a href=/.test(embed), `Copy embed code includes a fallback link and iframe (${embed.slice(0, 90)}…)`);
 
 	// Copying blocked: the text is offered, selected, in a labelled field.
 	await page.evaluate(() => {
@@ -266,12 +266,38 @@ console.log('Embed');
 				resolve(e.data);
 			}
 		});
-		document.body.innerHTML = `<iframe sandbox="allow-scripts" src="${src}#?secret=abcdefghij" width="600" height="200"></iframe>`;
+		document.body.innerHTML = `<iframe sandbox="allow-scripts" src="${src}#?secret=oldsecret1#?secret=abcdefghij" width="600" height="200"></iframe>`;
 		setTimeout(() => resolve(null), 5000);
 	}), embedUrl);
 	assert(message && message.secret === 'abcdefghij' && message.value === 200, `the frame reports its height to a WordPress host (${JSON.stringify(message)})`);
+	const embedFrame = page.frames().find((frame) => frame.url().includes('/embed/'));
+	const clickIntercepted = () => embedFrame.evaluate(() => {
+		const link = document.querySelector('.epm-player__title a');
+		let intercepted;
+		document.addEventListener('click', (event) => {
+			intercepted = event.defaultPrevented;
+			event.preventDefault(); // Keep this test on the same document.
+		}, { once: true });
+		link.click();
+		return intercepted;
+	});
+	assert(!(await clickIntercepted()), 'UX-N1: without a handshake the title link keeps its native behavior');
+	await page.evaluate(() => document.querySelector('iframe').contentWindow.postMessage({ message: 'ready', secret: 'oldsecret1' }, '*'));
+	await embedFrame.evaluate(() => new Promise((resolve) => setTimeout(resolve, 100)));
+	assert(!(await clickIntercepted()), 'an obsolete secret cannot enable link interception');
+	await page.evaluate(() => document.querySelector('iframe').contentWindow.postMessage({ message: 'ready', secret: 'abcdefghij' }, '*'));
+	await embedFrame.evaluate(() => new Promise((resolve) => setTimeout(resolve, 100)));
+	assert(await clickIntercepted(), 'a matching parent handshake enables WordPress link messages');
+	await embedFrame.evaluate(() => { window.location.hash = '?secret=newsecret1'; });
+	await embedFrame.evaluate(() => new Promise((resolve) => setTimeout(resolve, 100)));
+	assert(!(await clickIntercepted()), 'changing the secret requires a new handshake');
 	assert(page.problems.length === 0, `no browser errors ${page.problems.join('; ')}`);
 	await page.context().close();
+	const noScripts = await newPage({ width: 320, height: 200 }, { javaScriptEnabled: false });
+	await noScripts.goto(embedUrl);
+	assert(await noScripts.locator('noscript audio[controls]').isVisible(), 'UX-N13: the embed offers native audio with scripts disabled');
+	assert(await noScripts.locator('.epm-player--embed').isHidden(), 'inactive scripted controls are hidden when scripts are disabled');
+	await noScripts.context().close();
 }
 
 // ---------------------------------------------------------------------------

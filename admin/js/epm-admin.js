@@ -1158,16 +1158,32 @@
 		e.preventDefault();
 		var button = $(this);
 		var text = String(button.attr('data-epm-copy') || '');
+		var label = null;
+		if (!button.children().length) {
+			label = button.data('epm-copy-label') || button.text();
+			button.data('epm-copy-label', label);
+		}
 
 		var done = function () {
 			window.clearTimeout(button.data('epm-copy-timer'));
 			button.addClass('is-copied');
+			if (label !== null) {
+				button.text(strings.copied);
+			}
 			button.data('epm-copy-timer', window.setTimeout(function () {
 				button.removeClass('is-copied');
+				if (label !== null) {
+					button.text(label);
+				}
 			}, 2000));
 			speak(button.attr('data-epm-copied-message') || strings.copiedMessage);
 		};
 		var failed = function () {
+			window.clearTimeout(button.data('epm-copy-timer'));
+			button.removeClass('is-copied');
+			if (label !== null) {
+				button.text(label);
+			}
 			selectCopyValue(button);
 			speak(strings.copyFailed, 'assertive');
 		};

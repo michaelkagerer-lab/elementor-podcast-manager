@@ -178,7 +178,8 @@ $t->test(
 		$ep1  = epm()->episodes->get_public_data( $fx['ep1'] );
 		$code = Embed::code( $ep1 );
 
-		$t->assert( 0 === strpos( $code, '<iframe src="' . esc_url( get_post_embed_url( $fx['ep1'] ) ) . '"' ), 'src is the embed URL: ' . $code );
+		$t->assert( false !== strpos( $code, '<iframe src="' . esc_url( get_post_embed_url( $fx['ep1'] ) ) . '"' ), 'src is the embed URL: ' . $code );
+		$t->assert( false !== strpos( $code, '<a href="' . esc_url( $ep1['url'] ) . '"' ) && strpos( $code, '<a ' ) < strpos( $code, '<iframe ' ), 'UX-N13: a visible episode link survives blocked frames' );
 		$t->assert( false !== strpos( get_post_embed_url( $fx['ep1'] ), '/podcast/episode-one-hello-friends/embed/' ), 'pretty embed URL' );
 		$t->assert( false !== strpos( $code, 'height="' . Embed::HEIGHT . '"' ), 'height' );
 		$t->assert( (bool) preg_match( '/title="Episode One: [^"]+ – Test &amp; Talk Podcast"/u', $code ), 'title names episode and podcast' );
@@ -235,7 +236,8 @@ $t->test(
 		$t->assert( 1 === substr_count( $html, 'data-epm-player' ), 'one player' );
 		$t->assert( false !== strpos( $html, 'epm-player--embed' ), 'embed card layout' );
 		$t->assert( false !== strpos( $html, 'data-epm-page-episode' ), '?t= applies inside the embed' );
-		$t->assert( false !== strpos( $html, '<a class="epm-player__title-link" href="' . esc_url( $ep1['url'] ) . '" target="_top">' ), 'title links back to the episode' );
+		$t->assert( false !== strpos( $html, '<a class="epm-player__title-link" href="' . esc_url( $ep1['url'] ) . '" target="_blank" rel="noopener">' ), 'UX-N13: title link works in frames that allow popups' );
+		$t->assert( false !== strpos( $html, '<noscript>' ) && false !== strpos( $html, '<audio controls src="' . esc_url( $ep1['audio_url'] ) . '"' ), 'UX-N13: native audio survives disabled scripting' );
 		$t->assert( false !== strpos( $html, '<p class="epm-player__label">Test &amp; Talk Podcast</p>' ), 'show name' );
 		$t->assert( false !== strpos( $html, 'epm-player__artwork' ), 'artwork' );
 		$t->assert( false === strpos( $html, 'data-epm-share' ), 'no share menu in the frame' );
@@ -297,6 +299,11 @@ $t->test(
 		$file               = epm()->renderer->video( $ep2 );
 		$t->assert( false !== strpos( $file, 'data-epm-video-kind="file"' ) && false !== strpos( $file, 'data-epm-video-src="' . esc_url( $ep2['video_url'] ) . '"' ), 'video file' );
 		$t->assert( false === strpos( $file, '<video' ), 'no <video> before play' );
+		$t->assert( false === strpos( $file, 'epm-video__note' ), 'local files need no third-party notice' );
+		$ep2['video_url'] = 'https://cdn.example.org/ep2.mp4';
+		$remote_video = epm()->renderer->video( $ep2 );
+		$t->assert( false !== strpos( $remote_video, 'The video loads from cdn.example.org when you play it.' ), 'UX-N15: remote files name their host before play' );
+		$t->assert( false === strpos( epm()->renderer->video( $ep2, [ 'show_note' => false ] ), 'epm-video__note' ), 'remote-file notice can be hidden explicitly' );
 
 		$ep2['video_url'] = 'https://example.org/watch/ep2';
 		$t->assert( false !== strpos( epm()->renderer->video( $ep2 ), '<a class="epm-video__link" href="https://example.org/watch/ep2">' ), 'unknown platform: a link' );

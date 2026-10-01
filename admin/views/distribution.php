@@ -135,7 +135,7 @@ $epm_icon = static function ( array $dir ): string {
 		<?php endif; ?>
 		<div class="epm-copy">
 			<code class="epm-copy__value"><?php echo esc_html( $epm_feed ); ?></code>
-			<button type="button" class="button button-primary" data-copy="<?php echo esc_attr( $epm_feed ); ?>"><?php esc_html_e( 'Copy feed address', 'elementor-podcast-manager' ); ?></button>
+			<button type="button" class="button button-primary" data-epm-copy="<?php echo esc_attr( $epm_feed ); ?>"><?php esc_html_e( 'Copy feed address', 'elementor-podcast-manager' ); ?></button>
 			<a class="button" href="<?php echo esc_url( $epm_feed ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'View feed', 'elementor-podcast-manager' ); ?></a>
 		</div>
 		<p class="epm-field__help">

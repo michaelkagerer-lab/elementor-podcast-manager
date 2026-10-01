@@ -290,7 +290,7 @@ $epm_when = static function ( int $timestamp ): string {
 						<div class="epm-checklist__text epm-stack--tight">
 							<div class="epm-copy">
 								<code class="epm-copy__value"><?php echo esc_html( \EPM\Feed::url() ); ?></code>
-								<button type="button" class="button" data-copy="<?php echo esc_attr( \EPM\Feed::url() ); ?>"><?php esc_html_e( 'Copy feed address', 'elementor-podcast-manager' ); ?></button>
+								<button type="button" class="button" data-epm-copy="<?php echo esc_attr( \EPM\Feed::url() ); ?>"><?php esc_html_e( 'Copy feed address', 'elementor-podcast-manager' ); ?></button>
 							</div>
 							<label class="epm-field__label" for="epm-move-host"><?php esc_html_e( 'Instructions for', 'elementor-podcast-manager' ); ?></label>
 							<select id="epm-move-host" data-redirect-select>

@@ -826,7 +826,7 @@
   "id": "SEC-N5",
   "title": "Attachment permission for audio/transcript uses core attachment caps: on custom-capability sites an episode editor cannot (re)select the episode's own unpublished media; refusals are shown as a format error",
   "priority": "P3",
-  "status": "confirmed",
+  "status": "fixed and tested",
   "evidence": "includes/EpisodePostType.php:157-170 maps only the episode CPT's primitive caps to the filtered capability. includes/EpisodeMeta.php:1253 and 1658 and includes/Plugin.php:376 use `current_user_can( 'read_post', $attachment_id )`. For an attachment whose parent is unpublished, that resolves through core 'post' caps (edit_others_posts), not the episode capability. The message at EpisodeMeta.php:1255 reads 'The selected audio file is not a supported audio attachment.' even when the real cause is permission.",
   "reproduction": "Custom caps on (`wp option update epm_audit_custom_caps 1`; the mu-plugin maps the filters to manage_podcast_episodes and manage_podcast_show):\n- `wp eval` as the podcaster: `edit_post(admin_draft 92)=1 read_post(aud_draft 93)=0`.\n- REST as podcaster on admin_draft: audio_id=0 gives 200; setting it back to 93 gives `403 rest_forbidden_meta`.\n- AJAX epm_audio_describe attachment 93 gives 'This file can’t be used as episode audio. Choose an MP3 or M4A file.'\n- GET /wp/v2/media/93 as podcaster gives 200 (REST lets them read the very file the plugin refuses).\nDefault caps: the author's classic save with someone else's draft audio shows the 'not a supported audio attachment' notice, although the file is a valid MP3.",
   "user_impact": "On sites that use epm_cap_manage_episodes, podcast editors cannot pick or restore audio or transcript files attached to a colleague's unpublished episode, even while editing that episode. They have to upload again, which creates duplicates. Everyone who is refused for permission reasons is told the file has the wrong format.",
@@ -837,7 +837,8 @@
    "includes/EpisodePostType.php:157-170",
    "includes/EpisodeMeta.php:1253",
    "includes/Plugin.php:376"
-  ]
+  ],
+  "validation": "tests/integration/admin.php (custom-capability media picker, REST and editor; foreign media still refused)"
  },
  {
   "id": "SEC-N6",
@@ -905,7 +906,7 @@
   "id": "SEC-N10",
   "title": "Error responses: admin-post permission denials return HTTP 500; a design file with nested values raises a PHP warning",
   "priority": "P3",
-  "status": "confirmed",
+  "status": "fixed and tested",
   "evidence": "includes/Admin.php:778-780 `if ( ! Capabilities::can_manage_podcast() ) { wp_die( esc_html__( 'You do not have permission to export the design.', … ) ); }`. wp_die defaults to status 500; the same applies at Admin.php:845-847 (import) and 985-987 (preset). includes/DesignSettings.php:410 `$value = strtolower( trim( (string) $value ) );` in to_bool() casts arrays.",
   "reproduction": "`python3 p/ajax.py p`: admin-post epm_design_export, epm_design_preset and epm_design_import sent by sub, contrib, author and editor, each with their own valid nonce, all return `500 <!DOCTYPE html>…`. Anonymous gets 400 and admin gets 200 or 302. `wp eval` with `EPM\\Admin::design_from_payload( [ 'format'=>'epm-design','version'=>1,'design'=>[…], 'preset_extras'=>[ 'visibility'=>[ 'x\"y'=>[1,2] ] ] ] )` prints `Warning: Array to string conversion in …/includes/DesignSettings.php on line 410`. The values are still sanitized: tokens contain no script and no url(.",
   "user_impact": "Permission refusals appear as server errors in logs and monitoring, and users see a 500 page. A hand-edited or malicious design file triggers a PHP warning, which also fails run-all.sh's 'no plugin warnings' gate.",
@@ -915,7 +916,8 @@
   "refs": [
    "includes/Admin.php:778-780",
    "includes/DesignSettings.php:410"
-  ]
+  ],
+  "validation": "tests/integration/design.php (403 responses and warning-free nested flags)"
  },
  {
   "id": "LIFE-N1",
@@ -1084,7 +1086,7 @@
   "id": "QA-N2",
   "title": "Test suites are not hermetic: Podcast Index pings and real host URLs from fixture feeds go to the internet outside hosting.php's offline mode",
   "priority": "P2",
-  "status": "confirmed",
+  "status": "fixed and tested",
   "evidence": "tests/fixtures/mu-plugins/epm-test-http.php answers only *.example.test, Apple lookup and the op3 prefix, and passes everything else through (answer() returns null when $offline is false). Only tests/integration/hosting.php:60 sets EPM_Test_HTTP::$offline = true (reset at :3003).\n\nTest sites are blog_public=1 (wp core install default). PERF-N2 makes every published episode ping.\n\nFixture feeds contain real host URLs (tests/fixtures/feeds/buzzsprout.xml: 28 occurrences of www.buzzsprout.com/231452/...).",
   "reproduction": "With the audit guard counting refused requests, one integration + HTTP run on /tmp/epm-a-life-perf-qa (5 seeds) attempted 42 requests to https://api.podcastindex.org/api/1.0/hub/pubnotify?url=http%3A%2F%2Flocalhost%3A8925%2Fpodcast%2Ffeed%2F.\n\nDuring my lifecycle fixture, a WP-Cron sync of the buzzsprout.xml fixture (external mode) attempted https://www.buzzsprout.com/231452/19782308/transcript and 2 more (blocked-http.log, backtrace via Importer::fetch_transcript < Hosting::sync < run_scheduled_sync).\n\nIn CI there is no such guard, so these requests are sent (inferred from code).",
   "user_impact": "CI and local runs contact real third parties (notifying Podcast Index of localhost feeds). Results can depend on network availability, contradicting tests/README.md ('imports and syncs never leave localhost').",
@@ -1094,13 +1096,14 @@
   "refs": [
    "tests/fixtures/mu-plugins/epm-test-http.php",
    "tests/integration/hosting.php:60"
-  ]
+  ],
+  "validation": "tests/integration/run.php (unmocked HTTP refused, local sockets permitted)"
  },
  {
   "id": "LIFE-N3",
   "title": "Deactivation's rewrite flush keeps the podcast rules; after deactivation or uninstall, /podcast/feed/ and episode URLs serve the home page with HTTP 200",
   "priority": "P3",
-  "status": "confirmed",
+  "status": "fixed and tested",
   "evidence": "elementor-podcast-manager.php:83-92: the deactivation hook calls flush_rewrite_rules() while the CPT and the feed rule registered on init in the same request are still present, so the rules are rebuilt unchanged. The comment claims 'flush rewrites so /podcast/feed/ stops resolving'. uninstall.php does not touch rewrite rules.",
   "reproduction": "/tmp/epm-a-life-perf-qa: wp plugin deactivate elementor-podcast-manager. Afterwards:\n- inventory rewrite_rules_mentioning_podcast = 29 (same as before)\n- curl /podcast/feed/ -> 200 text/html, <title>EPM Test</title> with body class 'home blog'; /podcast/episode-two/ -> 200 home page\n- after wp rewrite flush with the plugin inactive: 0 podcast rules, /podcast/feed/ -> 200 application/rss+xml (core feed), /podcast/episode-two/ -> 404\nAfter delete-mode uninstall: still 29 podcast rules.",
   "user_impact": "After deactivation, podcast apps polling the feed get the site's HTML home page with 200 instead of an error. Episode URLs become soft-404 duplicates of the home page until something else flushes the rules.",
@@ -1109,7 +1112,8 @@
   "area": "LIFE-01, PERF-01, QA-01",
   "refs": [
    "uninstall.php"
-  ]
+  ],
+  "validation": "tests/integration/run.php; tests/integration/hosting.php (rewrite invalidation)"
  },
  {
   "id": "LIFE-N4",
@@ -1178,7 +1182,7 @@
   "id": "QA-N4",
   "title": "Release packaging: no LICENSE file, the MIT notice for the derived presets sits only in dev docs, and no export-ignore or dist script (git archive ships tests and CI files)",
   "priority": "P3",
-  "status": "confirmed",
+  "status": "fixed and tested",
   "evidence": "Repo root has no LICENSE/COPYING. The license is only in elementor-podcast-manager.php:11-12 (GPL-2.0-or-later) and readme.txt:7-8.\n\nAttributions:\n- readme.txt:39 (Simple Icons CC0, awesome-design-md MIT)\n- includes/BrandIcons.php:5 and includes/Presets.php:321\n- DESIGN.md:1027-1028 ('MIT License, Copyright (c) 2026 VoltAgent'), but no MIT permission notice text anywhere\n\nNo .gitattributes. tests/e2e/.gitignore ignores node_modules and screenshots only. All tests/*.php have ABSPATH guards.",
   "reproduction": "git archive --format=zip b1076c8 (qa/git-archive-b1076c8.zip, 711,680 bytes): 171 entries, of which 82 are tests/, docs/ or .github/. Tracked bytes per area: tests 891,523; includes 728,858; admin 334,596; languages 134,847; assets 119,943; docs 75,367; DESIGN.md 55,586; README.md 53,514; CHANGELOG.md 29,254; MIGRATION.md 22,797; readme.txt 17,174; CONTROL-AUDIT.md 13,963; TEST-PLAN.md 7,677; .github 2,228.\n\nThe working tree also contains tests/e2e/node_modules (a symlink into the scratchpad) and tests/e2e/screenshots, which a naive zip of the folder would include.",
   "user_impact": "A naive release ships test fixtures (a mu-plugin that intercepts HTTP, a seeder that deletes episodes, shell scripts and 26 real third-party feeds) to production sites. The GPL text and the MIT notice may not travel with the package.",
@@ -1188,7 +1192,8 @@
   "refs": [
    "includes/BrandIcons.php:5",
    "includes/Presets.php:321"
-  ]
+  ],
+  "validation": "tests/packaging/test_package.py (runtime manifest, licensing, deterministic ZIP and checksum)"
  },
  {
   "id": "FEED-N1",
@@ -1430,7 +1435,7 @@
   "id": "UX-N1",
   "title": "Episode embed never shows on another WordPress site: the bridge reads the first #?secret= instead of the last, and the title link is swallowed",
   "priority": "P1",
-  "status": "confirmed",
+  "status": "fixed and tested",
   "evidence": "assets/js/epm-embed.js:26 `var match = /secret=([\\w]{10})/.exec(window.location.hash || '');` takes the FIRST secret. When another WordPress site embeds the URL, the iframe src carries two secrets, e.g. `.../embed/#?secret=9hlhgJwlo8#?secret=yCj6IhZQgP` with `data-secret=\"yCj6IhZQgP\"`: the provider's from the oEmbed response, then the one the consumer's wp_filter_oembed_result appends. Core's wp-includes/js/wp-embed-template.js:232 uses the greedy `window.location.hash.replace( /.*secret=([\\d\\w]{10}).*/, '$1' )`, so it takes the last one. Because of the wrong secret, the host's wp-embed.js (`iframe[data-secret=\"…\"]` lookup) never removes `position:absolute; visibility:hidden`. In addition, epm-embed.js:51-63 onClick calls `send('link', href); e.preventDefault();` with the same wrong secret, so the title link inside the card is dead.",
   "reproduction": "1. Second site: `WP_DIR=/tmp/epm-a-ux-2 WP_PORT=8968 tests/bin/setup-wp.sh`, then `/tmp/epm-a-ux-2/wp plugin deactivate elementor-podcast-manager`. The mu-plugin `scratch/mu/epm-ux-site2.php` allows port 8928 for the oEmbed fetch.\n2. Posts on site 2 created with `wp post create` containing the episode URL http://localhost:8928/podcast/folge-1-erste-schritte/ on its own line (classic) and as a wp:embed block; a control post embeds http://localhost:8928/hello-world/.\n3. `node dbg-site2.mjs` output:\n   - control core post: `{\"style\":null,\"visible\":\"visible\",\"bqDisplay\":\"none\"}`\n   - episode (classic): `{\"style\":\"position: absolute; visibility: hidden;\",\"visible\":\"hidden\",\"bqDisplay\":\"block\",\"msgs\":[\"{\\\"message\\\":\\\"height\\\",\\\"value\\\":200,\\\"secret\\\":\\\"9hlhgJwlo8\\\"}\"...]}` while the iframe's data-secret is yCj6IhZQgP. The block embed behaves the same.\n4. `node embed-site2-fixcheck.mjs` serves epm-embed.js with the greedy regex in flight:\n   - as shipped: `{\"iframeStyle\":\"position: absolute; visibility: hidden;\",\"blockquote\":\"block\"} title link -> null`\n   - patched: `{\"iframeStyle\":null,\"height\":\"200\",\"blockquote\":\"none\"} title link -> http://localhost:8928/podcast/folge-1-erste-schritte/`\nScreenshot: screens/embed-site2-unpatched-top.png (only the fallback link 'Folge 1: Erste Schritte' is visible).",
   "user_impact": "\"Pasted into another WordPress site, an episode URL becomes a playable card\" (README) fails on every WordPress-to-WordPress embed: visitors see a plain link instead of the player. If the card is made visible some other way, its title link does nothing. VERIFICATION-1.3.0 notes that the handshake was only simulated with a single secret.",
@@ -1441,7 +1446,8 @@
   "refs": [
    "assets/js/epm-embed.js:26",
    "includes/js/wp-embed-template.js:232"
-  ]
+  ],
+  "validation": "tests/e2e/frontend.mjs (two secrets, matching parent handshake, hash changes)"
  },
  {
   "id": "UX-N2",
@@ -1464,7 +1470,7 @@
   "id": "UX-N3",
   "title": "Copy feed address in the setup assistant, Hosting & import and Distribution: silent failure without clipboard permission, false \"Copied\" in insecure contexts",
   "priority": "P2",
-  "status": "confirmed",
+  "status": "fixed and tested",
   "evidence": "The same copy() function in three files:\n- admin/js/epm-setup.js:902-919\n- admin/js/epm-hosting.js:484-498\n- admin/js/epm-distribution.js:242-256\nEach does `window.navigator.clipboard.writeText( value ).then( done, function () {} );` (a rejection is ignored: no fallback, no message, nothing selected). The non-secure branch calls `document.execCommand( 'copy' ); done();` inside try/catch, but execCommand returns false rather than throwing, so done() announces 'Copied' even when nothing was copied. By contrast, admin/js/epm-admin.js:1157-1195 (dashboard) and assets/js/epm-player.js:1346-1381 (share menu) handle both cases.",
   "reproduction": "`node share-fallback.mjs` (an init script makes the clipboard reject and execCommand return false, or sets isSecureContext=false).\n- [denied] setup: `after click {\"label\":\"Copy feed address\",\"live\":\"\",\"selection\":\"\"} -> NO feedback, nothing selected`; hosting and distribution are identical.\n- [insecure] setup, hosting and distribution: `{\"label\":\"Copied\",\"live\":\"Copied\",\"selection\":\"\"} -> CLAIMS COPIED although nothing was copied`.\n- Dashboard copy button: correctly `Couldn’t copy automatically. The address is selected: press Ctrl+C (⌘C on a Mac) to copy it.`\n- Frontend share menu: the manual-copy field is shown, selected and focused in both scenarios.\nScreenshots: screens/share-denied-setup.png, share-insecure-hosting.png, share-denied-frontend.png.",
   "user_impact": "The most important value of the setup (the feed address to submit to Apple and Spotify) cannot be copied in browsers or policies that deny clipboard access, and the user is not told. On plain-http sites the user is told it was copied and pastes something else into the directory form.",
@@ -1476,13 +1482,14 @@
    "admin/js/epm-setup.js:902-919",
    "admin/js/epm-hosting.js:484-498",
    "admin/js/epm-distribution.js:242-256"
-  ]
+  ],
+  "validation": "tests/e2e/copy.mjs (all three screens, denied clipboard, failed/successful fallback)"
  },
  {
   "id": "UX-N4",
   "title": "Going through the setup assistant's \"Look & page\" step again silently overwrites manual design values",
   "priority": "P2",
-  "status": "confirmed",
+  "status": "fixed and tested",
   "evidence": "includes/AdminPages.php:412-416:\n```\ncase 'design':\n  $preset = sanitize_key( (string) ( $data['preset'] ?? '' ) );\n  if ( '' !== $preset && null !== epm()->presets->get( $preset ) ) {\n    epm()->design->apply_preset( $preset );\n```\nadmin/views/setup.php:382 pre-checks the current preset (`checked( $epm_preset, $epm_id )`), so 'Save and continue' with nothing touched re-applies it. DesignSettings::apply_preset() (includes/DesignSettings.php:424-437) writes `array_merge( self::defaults(), $preset['tokens'] )` over the whole option. Unlike the Design screen, the assistant shows no confirmation.",
   "reproduction": "`wp eval` sets epm_design_settings accent=#ff00aa and border_radius=3 with preset=editorial. Then `node rerun-look.mjs` opens admin.php?page=epm-setup&step=look and clicks 'Save and continue' without changing anything. Output: `re-opened look step: pre-checked preset editorial; any warning about replacing custom values: false`, then `design after \"Save and continue\" without touching anything: {\"accent\":\"#111111\",\"radius\":\"4\",\"preset\":\"editorial\"}`.",
   "user_impact": "The setup assistant stays in the Podcast menu, and the brief requires that manual settings survive. A user who walks through it again (for example to create the podcast page or to read the redirect instructions) loses all colors, radii and type adjustments made on the Design screen, with no warning and no undo.",
@@ -1494,7 +1501,8 @@
    "includes/AdminPages.php:412-416",
    "admin/views/setup.php:382",
    "includes/DesignSettings.php:424-437"
-  ]
+  ],
+  "validation": "tests/integration/design.php (same preset keeps manual tokens and details)"
  },
  {
   "id": "UX-N5",
@@ -1635,7 +1643,7 @@
   "id": "UX-N13",
   "title": "Copied embed code on non-WordPress pages: no fallback when framing is blocked, dead title link in sandboxed frames, dead player without scripts",
   "priority": "P3",
-  "status": "confirmed",
+  "status": "fixed and tested",
   "evidence": "includes/Embed.php:82 `'<iframe src=\"%1$s\" title=\"%2$s\" width=\"640\" height=\"%3$d\" style=\"width:100%%;max-width:640px;border:0\" loading=\"lazy\"></iframe>'`: no fallback link. The card's title link is target=_top. The custom player needs JS, and Renderer.php:1111 prints the <audio> without controls; a native fallback only appears when the engine starts and fails (epm-player.js:855-862).",
   "reproduction": "`node embed-server.mjs &` then `node embed-test.mjs` (host pages on http://localhost:8969):\n- plain, csp-allow, permissions-policy (`autoplay=(), clipboard-write=()`): the card plays, and the title link navigates the top window.\n- csp-block (frame-src 'none'): `{\"frameUrl\":\"chrome-error://chromewebdata/\"}`, an empty error frame.\n- sandbox=\"allow-scripts\" and \"allow-scripts allow-same-origin allow-popups…\": playing works (localStorage blocked, handled), but the title link fails: `Unsafe attempt to initiate navigation for frame …`, `afterLinkClick.top` unchanged.\n- sandbox=\"\": `{\"playing\":{\"cls\":false,\"t\":0,\"paused\":true}}`, console 'Blocked script execution … sandboxed'.\nScreenshots: screens/embed-*.png.",
   "user_impact": "Sites that block frames, or CMSs that sandbox pasted iframes, show an empty box or a dead title link; with scripts disallowed, the play button does nothing.",
@@ -1645,7 +1653,8 @@
   "area": "User journeys, a11y, embeds, i18n",
   "refs": [
    "includes/Embed.php:82"
-  ]
+  ],
+  "validation": "tests/integration/frontend.php; tests/e2e/frontend.mjs (fallback link and scripting disabled)"
  },
  {
   "id": "UX-N14",
@@ -1667,7 +1676,7 @@
   "id": "UX-N15",
   "title": "Video facade: no privacy note for direct video files on another host; the loaded <video> has no accessible name",
   "priority": "P3",
-  "status": "confirmed",
+  "status": "fixed and tested",
   "evidence": "includes/Renderer.php:931-935 prints the note only `if ( $args['show_note'] && '' !== $source['host'] )`. For direct files the source has host '' (Renderer.php:838-866 classify only YouTube and Vimeo hosts), even when the file sits on a third-party CDN. The engine inserts a <video> without a title or aria-label. YouTube and Vimeo iframes do get title='Video: …'.",
   "reproduction": "`node video-facade.mjs` (third parties answered locally, never contacted):\n- `[mp4-cdn] … facade {\"button\":\"Play video: Folge 1: Erste Schritte\",\"img\":null}` (no note)\n- after Enter: `requests [\"media:https://cdn.example.org/video/folge-1.mp4\"]; {\"el\":\"VIDEO\",\"title\":null,\"focusIn\":true}`\n- YouTube: before interaction `[]`, after Enter `[\"document:https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0&playsinline=1\"]`, title 'Video: Folge 1: Erste Schritte'\n- Vimeo: `player.vimeo.com/video/76979871?autoplay=1&dnt=1`",
   "user_impact": "Visitors are not told that pressing play contacts a third-party CDN for file videos; screen readers announce an unnamed video.",
@@ -1677,7 +1686,8 @@
   "area": "User journeys, a11y, embeds, i18n",
   "refs": [
    "includes/Renderer.php:931-935"
-  ]
+  ],
+  "validation": "tests/integration/frontend.php (remote CDN notice; native video label already supplied by player)"
  },
  {
   "id": "UX-N16",

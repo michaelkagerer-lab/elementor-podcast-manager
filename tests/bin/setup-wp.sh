@@ -151,6 +151,7 @@ if ! "$WP" core is-installed 2>/dev/null; then
 fi
 "$WP" option update home "$URL" --quiet
 "$WP" option update siteurl "$URL" --quiet
+"$WP" option update blog_public 0 --quiet
 
 # Themes: a block theme (default) plus the theme most Elementor sites use.
 "$WP" theme is-installed twentytwentyfive || retry "$WP" theme install twentytwentyfive --quiet
