@@ -525,6 +525,23 @@ try {
 			return { had, old: !!window.epmPlayerEngine.getController(before), now: !!window.epmPlayerEngine.getController(el.dataset.epmEpisodeId) };
 		}, { url: URLS.ep3, before: String(fx.ep2) });
 		assert(r.had && !r.old && r.now, `a controller left without views on the page is released (${JSON.stringify(r)})`);
+		// A popup closes (its DOM leaves the page, the controller is
+		// released) and opens again with the same nodes.
+		const back = await page.evaluate(async () => {
+			const player = document.querySelector('[data-epm-player]');
+			const id = player.dataset.epmEpisodeId;
+			const parent = player.parentNode;
+			player.remove();
+			window.epmPlayerEngine.init(document);
+			const released = !window.epmPlayerEngine.getController(id);
+			parent.appendChild(player);
+			await new Promise((res) => setTimeout(res, 300));
+			player.querySelector('[data-epm-play]').click();
+			await new Promise((res) => setTimeout(res, 900));
+			const c = window.epmPlayerEngine.getController(id);
+			return { released, playing: !!c && c.isPlaying(), shown: player.classList.contains('is-playing') };
+		});
+		assert(back.released && back.playing && back.shown, `a player put back into the page after its controller was released plays again (${JSON.stringify(back)})`);
 		await noProblems(page);
 	}
 	{

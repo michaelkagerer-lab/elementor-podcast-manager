@@ -1364,8 +1364,13 @@
 
 		try {
 			// One controller per episode across all representations. When
-			// this view names another file, its file takes over.
-			bound = Registry.obtain(episodeId, viewInfo(root), audio);
+			// this view names another file, its file takes over. Custom
+			// markup may name the file only on its <audio>.
+			var info = viewInfo(root);
+			if (!info.src && audio) {
+				info.src = audio.getAttribute('src') || '';
+			}
+			bound = Registry.obtain(episodeId, info, audio);
 			if (!bound) {
 				return;
 			}
