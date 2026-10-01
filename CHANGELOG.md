@@ -67,9 +67,11 @@
   (filters `epm_import_request_seconds`, `epm_import_max_pages`, default
   50, and `epm_import_max_bytes`, default 200 MB); a step reads only the
   rows it needs. Measured with a 128M limit: 25,000 episodes (50 × 500)
-  checked in requests of at most 9.3 MB above the booted site; a step
-  needs 2.0 MB on 1,000 and 2.3 MB on 10,000 items (1.3.0: a fatal
-  error, and 6.2 vs. 61.5 MB).
+  checked in requests of 9–11 MB above the booted site; a step needs
+  2.0 MB on 1,000 and 2.3 MB on 10,000 items (1.3.0: a fatal error, and
+  6.2 vs. 61.5 MB). Through nginx and php-fpm (stock 128M) with 1.3 s per
+  page, the same feed took 7 requests of at most 11.2 s and 16.4 MB peak
+  (1.3.0: a 504 after 60 s, or a fatal error).
 - Where an import keeps the parsed feed (IMP-05): 1.3.0 wrote it as JSON
   to `wp-content/uploads/epm-import/`, protected only by an Apache
   `.htaccess`, so nginx and Apache without `AllowOverride` served it to
