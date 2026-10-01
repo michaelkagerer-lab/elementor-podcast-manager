@@ -1000,7 +1000,7 @@ final class Admin {
 			wp_die( esc_html__( 'You do not have permission to change the design.', 'elementor-podcast-manager' ) );
 		}
 
-		check_admin_referer( 'epm_design_details', '_epm_details_nonce' );
+		check_admin_referer( 'epm_design_details', isset( $_POST['_epm_suggestion_nonce'] ) ? '_epm_suggestion_nonce' : '_epm_details_nonce' );
 
 		$design = epm()->design;
 		$do     = isset( $_POST['epm_details_action'] ) && is_string( $_POST['epm_details_action'] ) ? sanitize_key( wp_unslash( $_POST['epm_details_action'] ) ) : 'save';

@@ -92,7 +92,7 @@ seed
 if [ -z "${SKIP_E2E:-}" ]; then
 	echo; echo "== Browser tests"
 	cd "$ROOT/tests/e2e"
-	[ -d node_modules/playwright ] || npm install --no-audit --no-fund
+	[ -d node_modules/playwright ] || npm ci --no-audit --no-fund
 	while IFS= read -r suite; do
 		echo; echo "-- e2e/$(basename "$suite")"
 		seed

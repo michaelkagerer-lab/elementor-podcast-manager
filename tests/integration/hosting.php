@@ -1801,7 +1801,8 @@ $t->test(
 		unset( EPM_Test_HTTP::$routes[ $url ] );
 		// Restore the suite's sync feed so later tests do not inherit a URL
 		// whose temporary route has just been removed.
-		epm_h_hosting( [ 'feed_url' => $GLOBALS['epm_h_sync'], 'mode' => 'external' ] );
+		epm_h_hosting( [ 'feed_url' => epm_h_url( 'sync.xml' ), 'mode' => 'external' ] );
+		Hosting::sync( true );
 	}
 );
 
@@ -1970,6 +1971,10 @@ $t->test(
 		$GLOBALS['epm_h_sync']['extra'] = '';
 
 		// Redirected by the host: permanent moves are followed, temporary ones not.
+		EPM_Test_HTTP::$routes[ epm_h_url( 'sync-final.xml' ) ] = static function () {
+			$s = $GLOBALS['epm_h_sync'];
+			return EPM_Test_HTTP::response( 200, epm_h_sync_feed( $s['numbers'], $s['changes'] ), [ 'content-type' => 'application/rss+xml' ] );
+		};
 		foreach ( [ 'sync-302.xml' => [ [ 302 ], 'sync-302.xml' ], 'sync-301.xml' => [ [ 301 ], 'sync-final.xml' ] ] as $name => [ $hops, $expected ] ) {
 			EPM_Test_HTTP::$routes[ epm_h_url( $name ) ] = static function () use ( $hops ) {
 				$s = $GLOBALS['epm_h_sync'];
@@ -1981,6 +1986,7 @@ $t->test(
 			$t->same( epm_h_url( $expected ), Hosting::get( 'feed_url' ), $hops[0] . ' (' . $result['message'] . ')' );
 		}
 		epm_h_hosting( [ 'feed_url' => $epm_h_sync ] );
+		unset( EPM_Test_HTTP::$routes[ epm_h_url( 'sync-final.xml' ) ] );
 	}
 );
 
@@ -3058,6 +3064,14 @@ $t->test(
 		$t->assert( '' !== $source && false === strpos( $source, 'secret' ) && false === strpos( $source, 'token' ), 'metadata contains no URL secrets' );
 		$t->same( 'private:' . hash( 'sha256', $url ), $source, 'stable private feed identifier' );
 		$t->same( 0, $importer->draft_missing( [ 'private-source-probe' => true ], 0 ), 'private source episodes remain discoverable without the URL' );
+		update_post_meta( $id, Episodes::META_PREFIX . 'missing_since', time() - 2 * DAY_IN_SECONDS );
+		$t->same( 1, $importer->draft_missing( [ 'another-guid' => true ], 0 ), 'missing episodes are found using the private feed identifier' );
+		$t->same( 'draft', get_post_status( $id ), 'the missing private-feed episode is drafted' );
+		$moved_url = 'https://feeds.example.test/private.xml?token=rotated-secret';
+		$moved_importer = new Importer( [ 'feed_url' => $moved_url ] );
+		$moved = $moved_importer->import_item( [ 'guid' => 'private-source-probe', 'title' => 'Private source probe', 'pub_date' => time() - HOUR_IN_SECONDS, 'html' => '', 'audio_url' => 'https://media.example.test/private.mp3', 'audio_type' => 'audio/mpeg' ] );
+		$t->same( $id, (int) $moved['id'], 'a private feed move keeps the episode identity' );
+		$t->same( 'private:' . hash( 'sha256', $moved_url ), get_post_meta( $id, Episodes::META_PREFIX . 'source_feed', true ), 're-tagging an existing episode never stores the new URL secret' );
 		wp_delete_post( $id, true );
 	}
 );

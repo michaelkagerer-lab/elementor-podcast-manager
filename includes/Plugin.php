@@ -309,7 +309,7 @@ final class Plugin {
 			// Import bookkeeping: readable, written by the importer only.
 			'source'            => [ 'string', 'sanitize_key', false ],
 			'source_link'       => [ 'string', 'esc_url_raw', false ],
-			'source_feed'       => [ 'string', 'esc_url_raw', false ],
+			'source_feed'       => [ 'string', [ Importer::class, 'source_feed_identifier' ], false ],
 			'guest_name'        => [ 'string', 'sanitize_text_field', true ],
 			'guest_role'        => [ 'string', 'sanitize_text_field', true ],
 			'guest_company'     => [ 'string', 'sanitize_text_field', true ],

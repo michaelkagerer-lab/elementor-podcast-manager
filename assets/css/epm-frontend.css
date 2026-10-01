@@ -1891,7 +1891,7 @@ body:has(.epm-sticky:not([hidden])) {
 	}
 
 	.epm-episode-list--numbered .epm-episode-row__aside {
-		grid-column: 2 / -1;
+		grid-column: 1 / -1;
 	}
 }
 

@@ -392,9 +392,10 @@ $t->test(
 		$foreign = $make_file( 'private-artwork.png', "\x89PNG\r\n\x1a\n", 'image/png' );
 		$plain = $make_file( 'not-artwork.txt', 'text', 'text/plain' );
 		wp_update_post( [ 'ID' => $foreign, 'post_parent' => $private_episode ] );
-		$editor = $make_user( 'editor' );
+		$editor = $make_user( 'contributor' );
+		wp_update_post( [ 'ID' => $id, 'post_author' => $editor ] );
 		wp_set_current_user( $editor );
-		$t->assert( ! current_user_can( 'read_post', $foreign ), 'precondition: the editor cannot read the image attached to another author\'s scheduled episode' );
+		$t->assert( ! current_user_can( 'read_post', $foreign ), 'precondition: the contributor cannot read the image attached to another author\'s scheduled episode' );
 		$_POST['epm_episode_meta_nonce'] = wp_create_nonce( 'epm_episode_meta' );
 		$_POST['epm'] = [ 'artwork_id' => $foreign, 'guest_image_id' => $plain ];
 		( new EpisodeMeta() )->save( $id, get_post( $id ) );

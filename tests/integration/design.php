@@ -104,7 +104,10 @@ $t->test(
 		ob_start();
 		( new Admin() )->render_design();
 		$html = (string) ob_get_clean();
-		preg_match_all( '~\\bid=["\']([^"\']+)["\']~', $html, $matches );
+		foreach ( [ '_epm_preset_nonce', '_epm_details_nonce', '_epm_export_nonce', '_epm_import_nonce' ] as $nonce_name ) {
+			$t->assert( (bool) preg_match( '/name="' . preg_quote( $nonce_name, '/' ) . '"[^>]*value="[^"]+"/', $html ), $nonce_name . ' is rendered for form submission' );
+		}
+		preg_match_all( '~\\s+id=["\']([^"\']+)["\']~', $html, $matches );
 		$counts = array_count_values( $matches[1] );
 		$duplicates = array_keys( array_filter( $counts, static fn ( int $count ): bool => $count > 1 ) );
 		$t->same( [], $duplicates, 'all IDs are unique' );

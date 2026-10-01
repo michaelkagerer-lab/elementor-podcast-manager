@@ -238,8 +238,11 @@ return true;
 PHP
 
 if ! curl -fs -o /dev/null "$URL/wp-login.php"; then
+	# Browser fixtures use localhost for pages and 127.0.0.1 as a second
+	# audio origin. An explicit IPv4 listener serves both consistently;
+	# binding localhost may select IPv6 only on some runners.
 	EPM_WP_SITE="$SITE" PHP_CLI_SERVER_WORKERS=4 nohup "$PHP_BIN" -d memory_limit=512M -d upload_max_filesize=64M -d post_max_size=64M \
-		-S "localhost:$WP_PORT" -t "$SITE" "$WP_DIR/router.php" > "$WP_DIR/server.log" 2>&1 &
+		-S "127.0.0.1:$WP_PORT" -t "$SITE" "$WP_DIR/router.php" > "$WP_DIR/server.log" 2>&1 &
 	echo $! > "$WP_DIR/server.pid"
 	for _ in $(seq 1 30); do
 		curl -fs -o /dev/null "$URL/wp-login.php" && break

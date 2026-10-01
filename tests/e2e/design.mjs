@@ -191,8 +191,11 @@ try {
 		await page.waitForTimeout(1500);
 		const create = (settings) =>
 			page.evaluate((settings) => window.$e.run('document/elements/create', { container: window.elementor.getContainer('d5e5f01'), model: { elType: 'widget', widgetType: 'epm-podcast-player', settings } }).id, settings);
-		const chosen = await create({ source: 'specific', episode_id: String(fx.ep1) });
 		const followed = await create({ source: 'specific', episode_id: String(fx.ep1) });
+		const chosen = await create({ source: 'specific', episode_id: String(fx.ep1) });
+		// Creating a widget opens its panel asynchronously. Wait for the
+		// last widget to render before selecting its controls.
+		await page.frameLocator('#elementor-preview-iframe').locator(`.elementor-element-${chosen} [data-epm-player]`).waitFor({ timeout: 30000 });
 		await page.evaluate((id) => window.$e.run('document/elements/select', { container: window.elementor.getContainer(id) }), chosen);
 		await page.evaluate((id) => window.$e.run('panel/editor/open', { model: window.elementor.getContainer(id).model, view: window.elementor.getContainer(id).view }), chosen);
 		await page.locator('.elementor-control-section_player >> visible=true').click();

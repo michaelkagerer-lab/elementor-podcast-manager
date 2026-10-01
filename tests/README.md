@@ -21,6 +21,12 @@ script ends with a summary and a non-zero exit code when a suite failed.
 It leaves the site running and seeded at `http://localhost:$WP_PORT`
 (admin/admin) for manual checks.
 
+CI jobs have hard time limits: lint 5 minutes, PHP integration and MariaDB
+15 minutes, and browser checks 30 minutes. Playwright installation is limited
+to 5 minutes, with a 30-second connection timeout for browser downloads.
+The browser dependency is pinned in `e2e/package.json` and installed from
+`e2e/package-lock.json` using `npm ci`.
+
 ## How suites are found
 
 Suites are discovered by file name, so a new suite needs no change to

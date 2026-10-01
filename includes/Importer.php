@@ -30,6 +30,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class Importer {
+	/** Keep a stable feed identifier without persisting URL credentials. */
+	public static function source_feed_identifier( $value ): string {
+		$value = (string) $value;
+		if ( preg_match( '/^private:[a-f0-9]{64}$/D', $value ) ) {
+			return $value;
+		}
+		return Hosting::has_url_secret( $value ) ? 'private:' . hash( 'sha256', $value ) : esc_url_raw( $value );
+	}
 	/**
 	 * Default post author for non-interactive imports.
 	 *
@@ -285,11 +293,8 @@ final class Importer {
 			// lists, so "unpublish episodes the host removed" keeps finding
 			// them. Episodes created on this site stay untagged.
 			$source_feed = (string) get_post_meta( $post_id, Episodes::META_PREFIX . 'source_feed', true );
-			if ( '' !== $this->options['feed_url'] && '' !== $source_feed && $source_feed !== $this->options['feed_url'] ) {
-				$next_source_feed = $this->options['feed_url'];
-				if ( Hosting::has_url_secret( $next_source_feed ) ) {
-					$next_source_feed = 'private:' . hash( 'sha256', $next_source_feed );
-				}
+			$next_source_feed = self::source_feed_identifier( $this->options['feed_url'] );
+			if ( '' !== $next_source_feed && '' !== $source_feed && $source_feed !== $next_source_feed ) {
 				update_post_meta( $post_id, Episodes::META_PREFIX . 'source_feed', $next_source_feed );
 			}
 
@@ -421,8 +426,7 @@ final class Importer {
 		];
 
 		if ( '' !== $this->options['feed_url'] ) {
-			$source_feed = $this->options['feed_url'];
-			$postarr['meta_input'][ Episodes::META_PREFIX . 'source_feed' ] = Hosting::has_url_secret( $source_feed ) ? 'private:' . hash( 'sha256', $source_feed ) : $source_feed;
+			$postarr['meta_input'][ Episodes::META_PREFIX . 'source_feed' ] = self::source_feed_identifier( $this->options['feed_url'] );
 		}
 
 		if ( $timestamp > 0 ) {
@@ -699,7 +703,7 @@ final class Importer {
 				'meta_query'     => [
 					[
 						'key'   => Episodes::META_PREFIX . 'source_feed',
-						'value' => $this->options['feed_url'],
+						'value' => self::source_feed_identifier( $this->options['feed_url'] ),
 					],
 				],
 			]

@@ -17,6 +17,7 @@ jobs:
   lint:
     name: Lint (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     strategy:
       fail-fast: false
       matrix:
@@ -35,6 +36,7 @@ jobs:
   integration:
     name: WordPress + Elementor (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -58,6 +60,7 @@ jobs:
   mariadb:
     name: Races, import and media on MariaDB 10.11 (PHP 8.4)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     services:
       mariadb:
         image: mariadb:10.11
@@ -98,6 +101,7 @@ jobs:
   browser:
     name: Browser (Playwright)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -109,10 +113,11 @@ jobs:
         with:
           node-version: '22'
       - name: Install Playwright
+        timeout-minutes: 5
         working-directory: tests/e2e
         run: |
-          npm install --no-audit --no-fund
-          npx playwright install --with-deps chromium
+          npm ci --no-audit --no-fund
+          PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT=30000 npx playwright install --with-deps chromium
       - name: All suites
         run: tests/run-all.sh
       - name: Debug log
