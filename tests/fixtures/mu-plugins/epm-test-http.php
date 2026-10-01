@@ -14,6 +14,9 @@
  *                                                    <name>-<w>x<h>.png)
  * - https://show.example.test/…                      web pages that link to a feed (see page())
  * - https://itunes.apple.com/lookup?id=…             Apple's lookup API for the IDs in APPLE_IDS
+ * - https://api.podcastindex.org/…                   Podcast Index (the "feed updated" ping): a
+ *                                                    fixed success answer, so test sites never
+ *                                                    notify the real service
  *
  * URLs that pass through a download-measurement prefix
  * (https://op3.dev/e/feeds.example.test/…) are served like the URL after
@@ -134,6 +137,12 @@ if ( ! class_exists( 'EPM_Test_HTTP' ) ) {
 			}
 
 			$host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
+
+			// Podcast Index notifications from test sites never leave the
+			// machine; tests read them from the log.
+			if ( 'api.podcastindex.org' === $host ) {
+				return self::response( 200, '{"status":"true","description":"Feed marked for immediate update."}', [ 'content-type' => 'application/json' ] );
+			}
 
 			if ( 'itunes.apple.com' === $host && 0 === strpos( (string) wp_parse_url( $url, PHP_URL_PATH ), '/lookup' ) ) {
 				parse_str( (string) wp_parse_url( $url, PHP_URL_QUERY ), $query );

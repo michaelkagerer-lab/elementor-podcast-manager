@@ -120,6 +120,7 @@ is `production`. It serves:
 | `https://show.example.test/…` | web pages that link to a feed |
 | `https://itunes.apple.com/lookup?id=…` | Apple's lookup API for the test IDs (`1000000001` → the locked show) |
 | `https://op3.dev/e/feeds.example.test/…` | the URL after a measurement prefix |
+| `https://api.podcastindex.org/…` | a fixed success answer to the "feed updated" notification, so test sites never notify Podcast Index |
 
 Feeds answer `If-None-Match` with 304. Every other request passes through
 untouched. `integration/hosting.php` loads the class directly and uses

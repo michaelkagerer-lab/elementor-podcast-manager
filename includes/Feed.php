@@ -50,7 +50,15 @@ final class Feed {
 	/**
 	 * Cron hook: notify Podcast Index that the feed changed.
 	 */
-	public const PING_HOOK = 'epm_ping_podcast_index';
+	public const PING_HOOK = 'epm_podcast_index_ping';
+
+	/**
+	 * Filter that turns the Podcast Index notification off (return false).
+	 * 1.3.0 also used this name for the cron event, so apply_filters() ran
+	 * the notification itself; an event scheduled under it is moved to
+	 * PING_HOOK (see adopt_legacy_ping()).
+	 */
+	public const PING_FILTER = 'epm_ping_podcast_index';
 
 	/**
 	 * Option holding the immutable podcast:guid.
@@ -97,6 +105,7 @@ final class Feed {
 		// Podverse and many other apps) instead of waiting for its poll.
 		add_action( 'transition_post_status', [ $this, 'maybe_schedule_ping' ], 20, 3 );
 		add_action( self::PING_HOOK, [ self::class, 'ping_podcast_index' ] );
+		add_action( 'init', [ self::class, 'adopt_legacy_ping' ] );
 
 		foreach ( [ PodcastSettings::OPTION, 'permalink_structure', 'home', 'blog_charset' ] as $option ) {
 			add_action( 'update_option_' . $option, [ self::class, 'flush_cache' ] );
@@ -429,12 +438,31 @@ final class Feed {
 			return;
 		}
 
-		if ( Hosting::is_external() || ! get_option( 'blog_public' ) || ! (bool) apply_filters( 'epm_ping_podcast_index', true ) ) {
+		if ( Hosting::is_external() || ! get_option( 'blog_public' ) || ! (bool) apply_filters( self::PING_FILTER, true ) ) {
 			return;
 		}
 
 		if ( ! wp_next_scheduled( self::PING_HOOK ) ) {
 			wp_schedule_single_event( time() + MINUTE_IN_SECONDS, self::PING_HOOK );
+		}
+	}
+
+	/**
+	 * Move a notification 1.3.0 scheduled under the filter's name to the
+	 * ping event, keeping its time. Without this the old event would run
+	 * the opt-out filter's callbacks instead of the notification.
+	 *
+	 * @return void
+	 */
+	public static function adopt_legacy_ping(): void {
+		$when = wp_next_scheduled( self::PING_FILTER );
+		if ( false === $when ) {
+			return;
+		}
+
+		wp_clear_scheduled_hook( self::PING_FILTER );
+		if ( ! wp_next_scheduled( self::PING_HOOK ) ) {
+			wp_schedule_single_event( (int) $when, self::PING_HOOK );
 		}
 	}
 

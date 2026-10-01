@@ -3013,7 +3013,7 @@ foreach ( $epm_h_created as $epm_h_id ) {
 foreach ( array_keys( $GLOBALS['epm_h_options'] ) as $epm_h_name ) {
 	epm_h_restore( $epm_h_name );
 }
-foreach ( [ Hosting::CRON_HOOK, ImportJob::CRON_HOOK, 'epm_ping_podcast_index' ] as $epm_h_hook ) {
+foreach ( [ Hosting::CRON_HOOK, ImportJob::CRON_HOOK, Feed::PING_HOOK, Feed::PING_FILTER ] as $epm_h_hook ) {
 	wp_clear_scheduled_hook( $epm_h_hook );
 }
 Feed::flush_cache();

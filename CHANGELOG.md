@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Podcast Index notification: the cron event and the opt-out filter
+  shared the name `epm_ping_podcast_index`, so publishing an episode ran
+  the notification immediately (inside `apply_filters()`) and
+  `add_filter( 'epm_ping_podcast_index', '__return_false' )` could not
+  stop it. The event is now `epm_podcast_index_ping`; the filter keeps
+  its name and turns the notification off. An event 1.3.0 already
+  scheduled is moved to the new name, keeping its time. Test sites
+  answer Podcast Index requests locally, so no suite notifies the real
+  service.
+
 ## 1.3.0 — 2026-09-30
 
 Hosting and design-system release. The plugin can host a show on the

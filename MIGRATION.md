@@ -132,7 +132,7 @@ time those pages load.
 |---|---|---|
 | `epm_sync_feed` | Recurring (hourly, twice daily or daily) only in *Another podcast host* mode with a feed address and sync on; plus single follow-up runs when more than 25 new episodes are waiting | When the hosting settings change (rescheduled), on deactivation, on uninstall |
 | `epm_import_continue` | Single events while an import runs, so it continues without a browser | When the import finishes or is cancelled, on deactivation, on uninstall |
-| `epm_ping_podcast_index` | A single event one minute after a self-hosted episode is published on a site that allows search engines | On deactivation, on uninstall |
+| `epm_podcast_index_ping` (1.3.0: `epm_ping_podcast_index`, moved to the new name on the next request) | A single event one minute after a self-hosted episode is published on a site that allows search engines | On deactivation, on uninstall |
 
 Deactivation clears all three. Reactivation schedules the sync again on
 the next request if it is enabled. Uninstall clears them whether or not

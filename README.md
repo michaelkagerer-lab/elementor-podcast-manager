@@ -180,7 +180,7 @@ Control characters pasted into any field are removed, so one stray character can
 
 **Download statistics:** Podcast → Hosting & import → *Download statistics* puts a measurement prefix in front of every enclosure URL of the self-hosted feed: OP3, Podtrac or the prefix address of another service (`epm_stats_services`). URLs that already pass through the same service are left alone; episode GUIDs do not change.
 
-**Podcast Index notification:** when a self-hosted episode is published on a site that allows search engines, the plugin tells Podcast Index about the feed one minute later (`hub/pubnotify`, cron event `epm_ping_podcast_index`), so Podcast Index apps pick the episode up without waiting for their next poll. `add_filter( 'epm_ping_podcast_index', '__return_false' )` turns it off.
+**Podcast Index notification:** when a self-hosted episode is published on a site that allows search engines, the plugin tells Podcast Index about the feed one minute later (`hub/pubnotify`, cron event `epm_podcast_index_ping`), so Podcast Index apps pick the episode up without waiting for their next poll. `add_filter( 'epm_ping_podcast_index', '__return_false' )` turns it off.
 
 **Eligibility and window:** only published, non-password episodes with distributable audio (a Media Library file or an audio URL of a distributed type), filtered *before* the "Feed episode limit" window (default 500, 0 = unlimited). The window always keeps the newest episodes. Episodic feeds are newest-first; serial feeds list those episodes oldest-first.
 
@@ -373,7 +373,7 @@ tests/                  test suites (see tests/README.md)
   - `epm_activation_redirect` (set on activation, removed by the first admin request).
   - `epm_version` records the installed version for the upgrade routine; `epm_guids_migrated` marks the 1.1.0 GUID migration.
 - Files: `wp-content/uploads/epm-import/` holds the parsed feed of a running import (random file name; deleted when the import ends).
-- Cron events: `epm_sync_feed` (host sync), `epm_import_continue` (background import) and `epm_ping_podcast_index` (Podcast Index notification).
+- Cron events: `epm_sync_feed` (host sync), `epm_import_continue` (background import) and `epm_podcast_index_ping` (Podcast Index notification; `epm_ping_podcast_index` in 1.3.0).
 - The rendered feed is cached in a transient (`epm_feed_cache`).
 - No custom tables.
 

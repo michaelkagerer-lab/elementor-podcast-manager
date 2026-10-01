@@ -14,7 +14,8 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 }
 
 // Scheduled events never outlive the plugin, whatever happens to the data.
-foreach ( [ 'epm_sync_feed', 'epm_import_continue', 'epm_ping_podcast_index' ] as $epm_hook ) {
+// (epm_ping_podcast_index: the Podcast Index event's name in 1.3.0.)
+foreach ( [ 'epm_sync_feed', 'epm_import_continue', 'epm_podcast_index_ping', 'epm_ping_podcast_index' ] as $epm_hook ) {
 	wp_clear_scheduled_hook( $epm_hook );
 }
 

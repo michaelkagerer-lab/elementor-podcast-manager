@@ -367,6 +367,92 @@ $t->test(
 	}
 );
 
+$t->test(
+	'Podcast Index ping: the opt-out filter stops it, and by default publishing schedules one deferred ping without a request',
+	static function ( EPM_Test_Runner $t ) {
+		$hooks = [ 'epm_ping_podcast_index', 'epm_podcast_index_ping' ];
+		$pings = static function (): array {
+			return array_values(
+				array_filter(
+					EPM_Test_HTTP::$log,
+					static function ( $entry ) {
+						return 'api.podcastindex.org' === wp_parse_url( $entry['url'], PHP_URL_HOST );
+					}
+				)
+			);
+		};
+		$scheduled = static function () use ( $hooks ): array {
+			$found = [];
+			foreach ( $hooks as $hook ) {
+				if ( wp_next_scheduled( $hook ) ) {
+					$found[] = $hook;
+				}
+			}
+			return $found;
+		};
+		$publish = static function ( string $title ): int {
+			return (int) wp_insert_post(
+				[
+					'post_type'   => EpisodePostType::CPT,
+					'post_title'  => $title,
+					'post_status' => 'publish',
+				]
+			);
+		};
+		$clear = static function () use ( $hooks ): void {
+			foreach ( $hooks as $hook ) {
+				wp_clear_scheduled_hook( $hook );
+			}
+		};
+		$public = get_option( 'blog_public' );
+		update_option( 'blog_public', '1' );
+		$ids = [];
+		$clear();
+		EPM_Test_HTTP::$log = [];
+		try {
+			add_filter( 'epm_ping_podcast_index', '__return_false' );
+			$ids[] = $publish( 'Ping opt-out' );
+			remove_filter( 'epm_ping_podcast_index', '__return_false' );
+			$t->same( [], $pings(), 'opted out: no request to Podcast Index' );
+			$t->same( [], $scheduled(), 'opted out: nothing scheduled' );
+
+			$ids[] = $publish( 'Ping default' );
+			$t->same( [], $pings(), 'default: no request while the episode is published' );
+			$t->same( 1, count( $scheduled() ), 'default: one deferred ping' );
+			$ids[] = $publish( 'Ping burst' );
+			$t->same( 1, count( $scheduled() ), 'a burst of publishes still schedules one ping' );
+
+			// The cron event sends the notification.
+			EPM_Test_HTTP::$log = [];
+			do_action( (string) ( $scheduled()[0] ?? Feed::PING_HOOK ) );
+			$sent = $pings();
+			$t->same( 1, count( $sent ), 'the scheduled event pings once' );
+			$t->assert( false !== strpos( $sent[0]['url'] ?? '', rawurlencode( Feed::url() ) ), 'with this site\'s feed address' );
+
+			// An event 1.3.0 scheduled under the filter's name still pings:
+			// it is moved to the ping event.
+			$clear();
+			EPM_Test_HTTP::$log = [];
+			$when               = time() + 30;
+			wp_schedule_single_event( $when, 'epm_ping_podcast_index' );
+			if ( is_callable( [ Feed::class, 'adopt_legacy_ping' ] ) ) {
+				Feed::adopt_legacy_ping();
+			}
+			$t->same( false, wp_next_scheduled( 'epm_ping_podcast_index' ), 'the old event is moved' );
+			$t->same( $when, wp_next_scheduled( 'epm_podcast_index_ping' ), 'to the ping event, same time' );
+			$t->same( [], $pings(), 'without a request' );
+		} finally {
+			remove_filter( 'epm_ping_podcast_index', '__return_false' );
+			$clear();
+			foreach ( $ids as $id ) {
+				wp_delete_post( $id, true );
+			}
+			update_option( 'blog_public', $public );
+			EPM_Test_HTTP::$log = [];
+		}
+	}
+);
+
 WP_CLI::log( 'Rendering' );
 
 $t->test(
