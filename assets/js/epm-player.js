@@ -8,7 +8,9 @@
  * - Registry: controllers are keyed by episode ID, so every UI bound to
  *   the same episode shares one controller and one audio element.
  * - Views subscribe to controller events; disconnected views are pruned
- *   lazily, so removed DOM nodes never leak listeners.
+ *   whenever a view subscribes and on every event, so removed DOM nodes
+ *   never pile up. Controllers that nothing on the page shows any more
+ *   (and that are neither playing nor active) are released.
  * - init(scope) is idempotent: a WeakMap of bound elements guarantees
  *   exactly one binding per element, no matter how often Elementor
  *   re-renders or how many initialization paths see it. Clones (a
