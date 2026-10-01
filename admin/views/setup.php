@@ -241,10 +241,7 @@ $epm_steps = [
 		<div class="epm-callout epm-callout--error" data-import-error hidden><p></p></div>
 		<div class="epm-callout epm-callout--warn" data-import-incomplete hidden><p></p></div>
 
-		<div class="epm-callout epm-callout--warn" data-media-failed hidden>
-			<p><strong data-media-failed-title></strong> <?php esc_html_e( 'These episodes still play from the old host. Open each one to add the audio file, or run the import again, before you close the old account.', 'elementor-podcast-manager' ); ?></p>
-			<ul class="epm-callout__list" data-media-failed-list></ul>
-		</div>
+		<?php require EPM_PATH . 'admin/views/partials/import-result.php'; ?>
 
 		<details class="epm-details" data-import-details>
 			<summary><?php esc_html_e( 'Show the import log', 'elementor-podcast-manager' ); ?></summary>

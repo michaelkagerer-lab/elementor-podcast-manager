@@ -10,6 +10,8 @@
  * - https://feeds.example.test/negative/<name>.html  bot-protection pages, with the HTTP status in
  *                                                    the file name (…-http403.html answers 403)
  * - https://feeds.example.test/media/<name>.mp3|m4a  a generated silent MP3 (5 s)
+ * - https://feeds.example.test/media/<name>-http<code>.mp3  answers <code> (429 and 503 with
+ *                                                    Retry-After: 120)
  * - https://feeds.example.test/media/<name>.png      a generated square PNG (1400 px, or
  *                                                    <name>-<w>x<h>.png)
  * - https://show.example.test/…                      web pages that link to a feed (see page())
@@ -180,6 +182,13 @@ if ( ! class_exists( 'EPM_Test_HTTP' ) ) {
 
 			if ( 'feeds.example.test' !== $host || false !== strpos( $path, '..' ) ) {
 				return self::response( 404, 'Not found' );
+			}
+
+			// A host that answers media requests with an error status
+			// (…-http429.mp3: 429 with Retry-After: 120, like 503).
+			if ( preg_match( '#^/media/[a-z0-9_-]+-http(\d{3})\.(mp3|m4a|png)$#i', $path, $m ) ) {
+				$code = (int) $m[1];
+				return self::response( $code, '<html><body>' . $code . '</body></html>', [ 'content-type' => 'text/html' ] + ( in_array( $code, [ 429, 503 ], true ) ? [ 'retry-after' => '120' ] : [] ) );
 			}
 
 			// Like a real server, files come with their length.

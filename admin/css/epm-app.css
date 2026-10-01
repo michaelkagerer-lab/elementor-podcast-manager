@@ -630,6 +630,12 @@ fieldset.epm-field > legend {
 
 .epm-callout__list li {
 	margin: 0;
+	overflow-wrap: anywhere;
+}
+
+/* Kinds of files still at the old host (import result). */
+.epm-remaining__kind {
+	margin-block-start: 8px !important;
 }
 
 /* ---------- Copy field ---------- */
@@ -896,6 +902,16 @@ fieldset.epm-field > legend {
 	grid-column: 2;
 	margin: 0;
 	color: var(--epm-app-muted);
+	line-height: 1.5;
+	overflow-wrap: anywhere;
+}
+
+/* The episodes a readiness check is about. */
+.epm-checklist__episodes {
+	grid-column: 2;
+	margin: 4px 0 0;
+	padding-inline-start: 20px;
+	list-style: disc;
 	line-height: 1.5;
 	overflow-wrap: anywhere;
 }

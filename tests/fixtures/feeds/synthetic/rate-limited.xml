@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic show whose host answers the audio request with HTTP 429 (Retry-After: 120): copying the media must wait, not fail. -->
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+	<channel>
+		<title>Rate-Limited Show</title>
+		<link>https://show.example.test/rate-limited/</link>
+		<description>A show whose host asks to slow down.</description>
+		<language>en</language>
+		<item>
+			<title>Rate-limited episode</title>
+			<guid isPermaLink="false">rate-limited-1</guid>
+			<pubDate>Mon, 01 Jun 2026 08:00:00 +0000</pubDate>
+			<description>Its host answers 429.</description>
+			<enclosure url="https://feeds.example.test/media/rate-limited-http429.mp3" length="1000" type="audio/mpeg"/>
+		</item>
+	</channel>
+</rss>

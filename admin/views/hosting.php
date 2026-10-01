@@ -245,7 +245,7 @@ $epm_when = static function ( int $timestamp ): string {
 					</div>
 				</form>
 
-				<div class="epm-stack" data-job <?php echo 'running' === $epm_job['status'] ? '' : 'hidden'; ?>>
+				<div class="epm-stack" data-job <?php echo in_array( $epm_job['status'], [ 'running', 'waiting', 'done_with_problems' ], true ) ? '' : 'hidden'; ?>>
 					<div class="epm-progress">
 						<div class="epm-progress__track" role="progressbar" aria-labelledby="epm-hosting-import-title" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
 							<div class="epm-progress__bar"></div>
@@ -257,10 +257,7 @@ $epm_when = static function ( int $timestamp ): string {
 					</div>
 					<div class="epm-callout epm-callout--error" data-job-error hidden><p></p></div>
 					<div class="epm-callout epm-callout--warn" data-job-incomplete hidden><p></p></div>
-					<div class="epm-callout epm-callout--warn" data-media-failed hidden>
-						<p><strong data-media-failed-title></strong> <?php esc_html_e( 'These episodes still play from the old host. Open each one to add the audio file, or run the import again, before you close the old account.', 'elementor-podcast-manager' ); ?></p>
-						<ul class="epm-callout__list" data-media-failed-list></ul>
-					</div>
+					<?php require EPM_PATH . 'admin/views/partials/import-result.php'; ?>
 					<details class="epm-details">
 						<summary><?php esc_html_e( 'Show the import log', 'elementor-podcast-manager' ); ?></summary>
 						<div class="epm-details__body"><ul class="epm-log" data-job-log></ul></div>

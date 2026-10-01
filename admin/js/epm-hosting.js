@@ -6,8 +6,10 @@
 
 	var root = document.querySelector( '[data-epm-hosting]' );
 	var app = window.epmApp;
+	// The import result (admin/js/epm-import-result.js).
+	var importResult = window.epmImportResult;
 
-	if ( ! root || ! app ) {
+	if ( ! root || ! app || ! importResult ) {
 		return;
 	}
 
@@ -535,66 +537,62 @@
 			);
 		}
 
-		var running = job.status === 'running';
-		$( '[data-action="cancel"]', jobBox ).hidden = ! running;
-		$( '[data-job-episodes]', jobBox ).hidden = running;
+		var active = importResult.active( job );
+		$( '[data-action="cancel"]', jobBox ).hidden = ! active;
+		$( '[data-job-episodes]', jobBox ).hidden = active;
 
-		var media = renderMediaFailed( job );
+		// Waiting, the file in progress, what is still at the old host.
+		var media = importResult.render( jobBox, job );
 
-		if ( job.status === 'done' ) {
+		if ( job.status === 'done' || job.status === 'done_with_problems' || job.status === 'waiting' ) {
 			announce( format( app.strings.progress, done, total ) + ( media ? ' ' + media : '' ) + ( incomplete ? ' ' + $( 'p', partial ).textContent : '' ) );
 		}
 	}
 
-	/**
-	 * After an import: the episodes whose audio stayed at the old host,
-	 * with links to fix them (the log only keeps the latest entries).
-	 *
-	 * @return {string} The callout's heading, '' when hidden.
-	 */
-	function renderMediaFailed( job ) {
-		var box = $( '[data-media-failed]', jobBox );
-		if ( ! box ) {
-			return '';
+	/* ---------- an unfinished move ---------- */
+
+	function retryCopies( button ) {
+		busy( button, true );
+		request( 'epm_import_retry', {} )
+			.then( function ( job ) {
+				renderJob( job );
+				jobBox.setAttribute( 'tabindex', '-1' );
+				jobBox.focus();
+				loop();
+			} )
+			.catch( function ( error ) {
+				announce( error.message );
+			} )
+			.then( function () {
+				busy( button, false );
+			} );
+	}
+
+	function confirmMove( button ) {
+		var box = $( '[data-confirm-move]', jobBox );
+		var field = $( '[name="confirm_remaining"]', box );
+		var error = $( '[data-error-for="confirm_remaining"]', box );
+		if ( ! field.checked ) {
+			error.hidden = false;
+			field.setAttribute( 'aria-invalid', 'true' );
+			field.focus();
+			return;
 		}
-		var count = ( job.counts && job.counts.media_failed ) || 0;
-		var episodes = job.media_failed || [];
-
-		box.hidden = ! ( job.status !== 'running' && count > 0 );
-		if ( box.hidden ) {
-			return '';
-		}
-
-		var title = format(
-			/* translators: %1$s: number of episodes */
-			_n( 'The audio of %1$s episode was not copied.', 'The audio of %1$s episodes was not copied.', count, 'elementor-podcast-manager' ),
-			count
-		);
-		$( '[data-media-failed-title]', box ).textContent = title;
-
-		var list = $( '[data-media-failed-list]', box );
-		list.textContent = '';
-		episodes.forEach( function ( episode ) {
-			var li = document.createElement( 'li' );
-			var link = document.createElement( episode.edit ? 'a' : 'span' );
-			link.textContent = episode.title;
-			if ( episode.edit ) {
-				link.href = episode.edit;
-			}
-			li.appendChild( link );
-			list.appendChild( li );
-		} );
-		if ( count > episodes.length ) {
-			var more = document.createElement( 'li' );
-			more.textContent = format(
-				/* translators: %1$s: number of episodes */
-				_n( 'and %1$s more', 'and %1$s more', count - episodes.length, 'elementor-podcast-manager' ),
-				count - episodes.length
-			);
-			list.appendChild( more );
-		}
-
-		return title;
+		error.hidden = true;
+		field.removeAttribute( 'aria-invalid' );
+		busy( button, true );
+		request( 'epm_import_confirm', { confirm_remaining: 1 } )
+			.then( function ( job ) {
+				renderJob( job );
+				jobBox.setAttribute( 'tabindex', '-1' );
+				jobBox.focus();
+			} )
+			.catch( function ( failure ) {
+				announce( failure.message );
+			} )
+			.then( function () {
+				busy( button, false );
+			} );
 	}
 
 	function loop() {
@@ -607,8 +605,8 @@
 			request( 'epm_import_step', {} )
 				.then( function ( job ) {
 					renderJob( job );
-					if ( job.status === 'running' ) {
-						window.setTimeout( next, job.busy ? 3000 : 150 );
+					if ( importResult.active( job ) ) {
+						window.setTimeout( next, importResult.delay( job ) );
 						return;
 					}
 					state.stepping = false;
@@ -694,6 +692,12 @@
 			case 'retry-feed':
 				retry( target );
 				break;
+			case 'retry-copies':
+				retryCopies( target );
+				break;
+			case 'confirm-move':
+				confirmMove( target );
+				break;
 			case 'cancel':
 				busy( target, true );
 				request( 'epm_import_cancel', {} )
@@ -720,10 +724,12 @@
 		}
 	} );
 
-	// A running import (started here, in the setup assistant or by cron)
-	// is picked up again.
-	if ( app.job && app.job.status === 'running' ) {
+	// A running (or waiting) import, started here, in the setup assistant
+	// or by cron, is picked up again; an unfinished move is shown.
+	if ( app.job && importResult.active( app.job ) ) {
 		renderJob( app.job );
 		loop();
+	} else if ( app.job && app.job.status === 'done_with_problems' ) {
+		renderJob( app.job );
 	}
 } )();

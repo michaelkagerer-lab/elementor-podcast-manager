@@ -65,6 +65,9 @@ Made-up shows for cases no real feed shows in three items.
 | `broken-markup.xml` | BOM, leading whitespace, bare `&`, HTML named entities, control characters |
 | `atom.xml` | an Atom feed (rejected: podcast apps need RSS) |
 | `missing-audio.xml` | two episodes; the first one's audio answers 404, so "copy media" must list it as not copied |
+| `rate-limited.xml` | one episode whose audio answers 429 with `Retry-After: 120` (`/media/<name>-http429.mp3`), so "copy media" must wait |
 
 Audio (`/media/<name>.mp3|m4a`) and images (`/media/<name>.png`,
-`<name>-<w>x<h>.png`) are generated on request by the HTTP fixture server.
+`<name>-<w>x<h>.png`) are generated on request by the HTTP fixture server,
+with a Content-Length like a real server; `/media/<name>-http<code>.mp3`
+answers that status (429 and 503 with `Retry-After: 120`).

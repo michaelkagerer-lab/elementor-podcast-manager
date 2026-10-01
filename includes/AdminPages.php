@@ -175,9 +175,17 @@ final class AdminPages {
 			wp_enqueue_media();
 		}
 
+		$deps = [ 'wp-i18n' ];
+		if ( in_array( $key, [ 'setup', 'hosting' ], true ) ) {
+			// The import result (shared by both screens).
+			wp_register_script( 'epm-import-result', EPM_URL . 'admin/js/epm-import-result.js', [ 'wp-i18n' ], EPM_VERSION, true );
+			wp_set_script_translations( 'epm-import-result', 'elementor-podcast-manager', EPM_PATH . 'languages' );
+			$deps[] = 'epm-import-result';
+		}
+
 		$file = EPM_PATH . 'admin/js/epm-' . $key . '.js';
 		if ( file_exists( $file ) ) {
-			wp_enqueue_script( 'epm-' . $key, EPM_URL . 'admin/js/epm-' . $key . '.js', [ 'wp-i18n' ], EPM_VERSION, true );
+			wp_enqueue_script( 'epm-' . $key, EPM_URL . 'admin/js/epm-' . $key . '.js', $deps, EPM_VERSION, true );
 			wp_set_script_translations( 'epm-' . $key, 'elementor-podcast-manager', EPM_PATH . 'languages' );
 			wp_localize_script( 'epm-' . $key, 'epmApp', $this->script_data( $key ) );
 		}

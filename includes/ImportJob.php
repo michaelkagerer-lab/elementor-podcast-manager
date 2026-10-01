@@ -2431,7 +2431,7 @@ final class ImportJob {
 
 		return sprintf(
 			/* translators: %s: list such as "1 audio file, 2 episode images" */
-			__( 'The move is not finished: %s still depend on the old host. Copy them again, or finish the move and keep them there (they stop working when the old account is closed).', 'elementor-podcast-manager' ),
+			__( 'Still at the old host: %s. Copy them again, or finish the move and keep them there (they stop working when the old account is closed).', 'elementor-podcast-manager' ),
 			implode( ', ', $parts )
 		);
 	}

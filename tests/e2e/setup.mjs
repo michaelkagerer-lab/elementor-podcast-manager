@@ -379,6 +379,40 @@ console.log('Setup assistant: move a locked show here');
 }
 
 // ---------------------------------------------------------------------------
+console.log('Setup assistant: a move that leaves a file at the old host');
+{
+	fresh();
+	const page = await newPage(browser);
+	await login(page);
+	await page.goto(`${BASE}/wp-admin/admin.php?page=epm-setup`);
+	await page.check('input[name="path"][value="move"]');
+	await page.click('[data-step-form="path"] [type="submit"]');
+	await page.waitForSelector('[data-panel="connect"]:not([hidden])');
+	await page.fill('#epm-setup-feed', 'https://feeds.example.test/synthetic/missing-audio.xml');
+	await page.click('[data-step-form="connect"] [data-action="check-feed"]');
+	await page.waitForSelector('[data-panel="connect"] [data-preview]:not([hidden])', { timeout: 30000 });
+	await page.click('[data-import-button]');
+	await page.waitForSelector('[data-panel="import"] [data-remaining]:not([hidden])', { timeout: 60000 });
+	const unfinished = await page.evaluate(() => ({
+		title: document.querySelector('[data-panel="import"] [data-remaining-title]').textContent,
+		listed: Array.from(document.querySelectorAll('[data-panel="import"] [data-remaining-groups] a')).map((a) => a.textContent),
+		next: document.querySelector('[data-import-continue]').disabled,
+		stop: document.querySelector('[data-action="cancel-import"]').hidden,
+	}));
+	assert(/not finished/.test(unfinished.title) && JSON.stringify(unfinished.listed) === '["Missing audio episode"]', `the assistant lists what is still at the old host (${JSON.stringify(unfinished)})`);
+	assert(unfinished.next && unfinished.stop, 'Continue waits for a decision; there is nothing to stop');
+	assert(php(`echo wp_json_encode( epm()->settings->get( 'moved_in' ) )`) === false, 'not moved yet');
+	await page.screenshot({ path: 'screenshots/setup-move-unfinished.png', fullPage: true });
+	await page.check('[data-panel="import"] [name="confirm_remaining"]');
+	await page.click('[data-panel="import"] [data-action="confirm-move"]');
+	await page.waitForSelector('[data-import-continue]:not([disabled])', { timeout: 30000 });
+	assert(await page.evaluate(() => document.activeElement === document.querySelector('[data-import-continue]')), 'after the confirmation, focus moves to Continue');
+	assert(php(`echo wp_json_encode( epm()->settings->get( 'moved_in' ) )`) === true, 'the move is finished after the confirmation');
+	assert(page.problems.length === 0, `no browser errors ${page.problems.join('; ')}`);
+	await page.context().close();
+}
+
+// ---------------------------------------------------------------------------
 console.log('Hosting & import');
 {
 	fresh();
@@ -419,8 +453,9 @@ console.log('Hosting & import');
 	assert((await page.getAttribute('[data-job] [role="progressbar"]', 'aria-valuenow')) === '100', 'progress reaches 100 %');
 	await page.screenshot({ path: 'screenshots/hosting-import.png', fullPage: true });
 
-	// Copying a show while mirroring its host: asked first, and audio that
-	// could not be copied is listed with links to the episodes.
+	// Copying a show while mirroring its host: asked first. A file that
+	// could not be copied is listed with a link to its episode, and the
+	// move is not finished until it is copied or left behind knowingly.
 	await page.fill('#epm-import-url', 'https://feeds.example.test/synthetic/missing-audio.xml');
 	await page.click('[data-import-form] [data-action="check"]');
 	await page.waitForSelector('[data-import-form] [data-preview]:not([hidden])', { timeout: 30000 });
@@ -431,17 +466,58 @@ console.log('Hosting & import');
 		dialog.accept();
 	});
 	await page.click('[data-import-form] [data-action="start"]');
-	await page.waitForSelector('[data-media-failed]:not([hidden])', { timeout: 60000 });
+	await page.waitForSelector('[data-remaining]:not([hidden])', { timeout: 60000 });
 	assert(/This website/.test(asked), `copying the audio of a mirrored show asks first ("${asked}")`);
 	const media = await page.evaluate(() => ({
-		title: document.querySelector('[data-media-failed-title]').textContent,
-		links: Array.from(document.querySelectorAll('[data-media-failed-list] a')).map((a) => [a.textContent, /post\.php\?post=\d+&action=edit/.test(a.href)]),
+		title: document.querySelector('[data-remaining-title]').textContent,
+		text: document.querySelector('[data-remaining-text]').textContent,
+		groups: Array.from(document.querySelectorAll('[data-remaining-groups] .epm-remaining__kind')).map((p) => p.textContent),
+		links: Array.from(document.querySelectorAll('[data-remaining-groups] a')).map((a) => [a.textContent, /post\.php\?post=\d+&action=edit/.test(a.href), a.parentElement.textContent]),
 		summary: document.querySelector('[data-job-summary]').textContent,
+		confirm: document.querySelector('[data-confirm-move-label]').textContent,
 	}));
-	assert(/1 episode/.test(media.title) && JSON.stringify(media.links) === '[["Missing audio episode",true]]', `audio that was not copied is listed (${JSON.stringify(media)})`);
+	assert(/not finished/.test(media.title) && /1 audio file/.test(media.text), `the move is not finished, and says why (${JSON.stringify(media)})`);
+	assert(JSON.stringify(media.groups) === '["1 audio file"]' && media.links.length === 1 && media.links[0][0] === 'Missing audio episode' && media.links[0][1] && /404/.test(media.links[0][2]), `the audio that stays is listed per kind, linked, with the reason (${JSON.stringify(media)})`);
 	assert(/1 audio not copied/.test(media.summary), `and counted (${media.summary})`);
+	assert(php(`echo wp_json_encode( [ EPM\\Hosting::get( 'mode' ), epm()->settings->get( 'moved_in' ) ] )`).join() === 'external,false', 'the site still mirrors the old host');
+	await page.screenshot({ path: 'screenshots/hosting-move-unfinished.png', fullPage: true });
+
+	// Finishing anyway needs the informed confirmation, which names what stays.
+	assert(/Finish the move anyway/.test(media.confirm) && /1 audio file/.test(media.confirm), `the confirmation names what stays behind (${media.confirm})`);
+	await page.click('[data-action="confirm-move"]');
+	await page.waitForTimeout(300);
+	const unconfirmed = await page.evaluate(() => {
+		const input = document.querySelector('[name="confirm_remaining"]');
+		return { error: !document.querySelector('#epm-confirm-remaining-error').hidden, focused: document.activeElement === input, invalid: input.getAttribute('aria-invalid'), described: input.getAttribute('aria-describedby') };
+	});
+	assert(unconfirmed.error && unconfirmed.focused && unconfirmed.invalid === 'true' && unconfirmed.described === 'epm-confirm-remaining-error', `finishing without the confirmation is refused next to the checkbox (${JSON.stringify(unconfirmed)})`);
+	assert(php(`echo wp_json_encode( EPM\\Hosting::get( 'mode' ) )`) === 'external', 'nothing changed');
+	await page.check('[name="confirm_remaining"]');
+	await page.click('[data-action="confirm-move"]');
+	await page.waitForSelector('[data-confirm-move]', { state: 'hidden', timeout: 30000 });
 	assert(php(`echo wp_json_encode( EPM\\Hosting::get( 'mode' ) )`) === 'self', 'the moved show is hosted here now');
+	const after = await page.evaluate(() => ({ title: document.querySelector('[data-remaining-title]').textContent, listed: document.querySelectorAll('[data-remaining-groups] a').length }));
+	assert(/still load from the old host/.test(after.title) && after.listed === 1, `what stayed behind is still listed (${JSON.stringify(after)})`);
 	await page.screenshot({ path: 'screenshots/hosting-media-failed.png', fullPage: true });
+
+	// A host that answers 429: the import waits (and says until when)
+	// instead of failing the episode; it can be stopped while it waits.
+	await page.fill('#epm-import-url', 'https://feeds.example.test/synthetic/rate-limited.xml');
+	await page.click('[data-import-form] [data-action="check"]');
+	await page.waitForSelector('[data-import-form] [data-preview]:not([hidden])', { timeout: 30000 });
+	await page.check('[data-import-form] [name="download_media"]');
+	// The screen still knows the hosting mode it was loaded with.
+	page.once('dialog', (dialog) => dialog.accept());
+	await page.click('[data-import-form] [data-action="start"]');
+	await page.waitForSelector('[data-import-waiting]:not([hidden])', { timeout: 60000 });
+	const waiting = await page.evaluate(() => ({ text: document.querySelector('[data-import-waiting]').textContent, stop: !document.querySelector('[data-job] [data-action="cancel"]').hidden, remaining: !document.querySelector('[data-remaining]').hidden }));
+	assert(/asked the import to wait/.test(waiting.text) && /\d{1,2}:\d{2}/.test(waiting.text) && /429/.test(waiting.text), `the wait is explained with its time and cause (${waiting.text})`);
+	assert(waiting.stop && !waiting.remaining, `the waiting import can be stopped, and nothing is reported as failed (${JSON.stringify(waiting)})`);
+	assert(php(`echo wp_json_encode( EPM\\ImportJob::get()['status'] )`) === 'waiting', 'the job waits');
+	await page.screenshot({ path: 'screenshots/hosting-import-waiting.png', fullPage: true });
+	await page.click('[data-job] [data-action="cancel"]');
+	await page.waitForFunction(() => document.querySelector('[data-import-waiting]').hidden, null, { timeout: 30000 });
+	assert(php(`echo wp_json_encode( EPM\\ImportJob::get()['status'] )`) === 'cancelled', 'stopped while waiting');
 
 	await page.setViewportSize({ width: 390, height: 844 });
 	assert(await noOverflow(page), 'Hosting & import fits 390 px');

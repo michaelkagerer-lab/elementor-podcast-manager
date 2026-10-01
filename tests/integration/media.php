@@ -759,7 +759,7 @@ $t->test(
 			epm_m_reset( $mirror );
 			$state = epm_m_import( $feed, $move )['state'];
 			$t->same( 'done_with_problems', $state['status'] ?? '' );
-			$t->assert( false !== strpos( (string) ( $state['problems']['message'] ?? '' ), 'Missing audio episode' ) || in_array( 'Missing audio episode', epm_m_remaining( $state )['audio'] ?? [], true ), 'the confirmation names what stays behind' );
+			$t->assert( false !== strpos( (string) ( $state['problems'] ?? '' ), '1 audio file' ), 'the screen says what stays behind: ' . ( $state['problems'] ?? '' ) );
 			$confirmed = is_callable( [ ImportJob::class, 'confirm_move' ] ) ? ImportJob::confirm_move() : new WP_Error( 'missing', 'no confirmation' );
 			$t->same( 'done', is_wp_error( $confirmed ) ? $confirmed->get_error_message() : $confirmed['status'] );
 			$t->same( [ true, true, 'self' ], epm_m_moved(), 'finish_move ran after the confirmation' );
