@@ -286,7 +286,11 @@ final class Importer {
 			// them. Episodes created on this site stay untagged.
 			$source_feed = (string) get_post_meta( $post_id, Episodes::META_PREFIX . 'source_feed', true );
 			if ( '' !== $this->options['feed_url'] && '' !== $source_feed && $source_feed !== $this->options['feed_url'] ) {
-				update_post_meta( $post_id, Episodes::META_PREFIX . 'source_feed', $this->options['feed_url'] );
+				$next_source_feed = $this->options['feed_url'];
+				if ( Hosting::has_url_secret( $next_source_feed ) ) {
+					$next_source_feed = 'private:' . hash( 'sha256', $next_source_feed );
+				}
+				update_post_meta( $post_id, Episodes::META_PREFIX . 'source_feed', $next_source_feed );
 			}
 
 			// Changed at the host since the last import.

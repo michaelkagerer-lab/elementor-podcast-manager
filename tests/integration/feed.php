@@ -288,7 +288,11 @@ $t->test(
 			$served = epm_f_serve();
 			$peak   = ( memory_get_peak_usage() - $before ) / MB_IN_BYTES;
 			$items  = substr_count( $served['body'], '<item>' );
-			$t->assert( $peak < 8, sprintf( 'limit %d: %.1f MB', $limit, $peak ) );
+			// PHP 8.1 cannot reset its process-wide peak counter, so the
+			// exact per-build budget is only meaningful from PHP 8.2 onward.
+			if ( function_exists( 'memory_reset_peak_usage' ) ) {
+				$t->assert( $peak < 8, sprintf( 'limit %d: %.1f MB', $limit, $peak ) );
+			}
 			$t->same( 0 === $limit ? epm_perf_distributable( 600, true ) + 3 : min( $limit, epm_perf_distributable( 600, true ) + 3 ), $items, "limit $limit: items" );
 		}
 		epm_f_settings( [ 'feed_limit' => 500 ] );

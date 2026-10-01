@@ -808,7 +808,7 @@ final class Admin {
 			wp_die( esc_html__( 'You do not have permission to export the design.', 'elementor-podcast-manager' ) );
 		}
 
-		check_admin_referer( 'epm_design_export' );
+		check_admin_referer( 'epm_design_export', '_epm_export_nonce' );
 
 		$design  = epm()->design;
 		$payload = self::design_export_payload();
@@ -854,7 +854,7 @@ final class Admin {
 			wp_die( esc_html__( 'You do not have permission to import a design.', 'elementor-podcast-manager' ) );
 		}
 
-		check_admin_referer( 'epm_design_import' );
+		check_admin_referer( 'epm_design_import', '_epm_import_nonce' );
 
 		$fail = function ( string $message ): void {
 			set_transient(
@@ -1000,7 +1000,7 @@ final class Admin {
 			wp_die( esc_html__( 'You do not have permission to change the design.', 'elementor-podcast-manager' ) );
 		}
 
-		check_admin_referer( 'epm_design_details' );
+		check_admin_referer( 'epm_design_details', '_epm_details_nonce' );
 
 		$design = epm()->design;
 		$do     = isset( $_POST['epm_details_action'] ) && is_string( $_POST['epm_details_action'] ) ? sanitize_key( wp_unslash( $_POST['epm_details_action'] ) ) : 'save';
@@ -1046,7 +1046,7 @@ final class Admin {
 			wp_die( esc_html__( 'You do not have permission to change the design.', 'elementor-podcast-manager' ) );
 		}
 
-		check_admin_referer( 'epm_design_preset' );
+		check_admin_referer( 'epm_design_preset', '_epm_preset_nonce' );
 
 		$preset_id = isset( $_POST['epm_preset'] ) && is_string( $_POST['epm_preset'] ) ? sanitize_key( wp_unslash( $_POST['epm_preset'] ) ) : '';
 		$status    = ( '' !== $preset_id && epm()->design->apply_preset( $preset_id ) ) ? 'preset-applied' : 'preset-error';

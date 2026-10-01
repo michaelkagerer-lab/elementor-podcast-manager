@@ -388,10 +388,13 @@ $t->test(
 	'episode and guest artwork must be a readable image attachment',
 	static function ( EPM_Test_Runner $t ) use ( $make_episode, $make_file, $make_user ) {
 		$id = $make_episode();
+		$private_episode = $make_episode( [ 'post_status' => 'future', 'post_date' => gmdate( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ) ] );
 		$foreign = $make_file( 'private-artwork.png', "\x89PNG\r\n\x1a\n", 'image/png' );
 		$plain = $make_file( 'not-artwork.txt', 'text', 'text/plain' );
+		wp_update_post( [ 'ID' => $foreign, 'post_parent' => $private_episode ] );
 		$editor = $make_user( 'editor' );
 		wp_set_current_user( $editor );
+		$t->assert( ! current_user_can( 'read_post', $foreign ), 'precondition: the editor cannot read the image attached to another author\'s scheduled episode' );
 		$_POST['epm_episode_meta_nonce'] = wp_create_nonce( 'epm_episode_meta' );
 		$_POST['epm'] = [ 'artwork_id' => $foreign, 'guest_image_id' => $plain ];
 		( new EpisodeMeta() )->save( $id, get_post( $id ) );

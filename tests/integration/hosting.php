@@ -1799,6 +1799,9 @@ $t->test(
 		$t->same( 0, $result['updated'], $result['message'] );
 		$t->same( $modified, get_post_modified_time( 'U', true, $id ), 'post timestamp remains unchanged' );
 		unset( EPM_Test_HTTP::$routes[ $url ] );
+		// Restore the suite's sync feed so later tests do not inherit a URL
+		// whose temporary route has just been removed.
+		epm_h_hosting( [ 'feed_url' => $GLOBALS['epm_h_sync'], 'mode' => 'external' ] );
 	}
 );
 

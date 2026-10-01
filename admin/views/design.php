@@ -200,7 +200,7 @@ $epm_style = static function ( array $vars ): string {
 			<section class="epm-card epm-design__presets" aria-labelledby="epm-presets-title">
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" data-epm-preset-form>
 					<input type="hidden" name="action" value="epm_design_preset" />
-					<?php wp_nonce_field( 'epm_design_preset', '_wpnonce', true, false ); ?>
+					<?php wp_nonce_field( 'epm_design_preset', '_epm_preset_nonce', true, false ); ?>
 					<fieldset class="epm-presets">
 						<legend class="epm-presets__legend">
 							<h2 class="epm-card__title" id="epm-presets-title"><?php esc_html_e( 'Presets', 'elementor-podcast-manager' ); ?></h2>
@@ -290,7 +290,7 @@ $epm_style = static function ( array $vars ): string {
 					</div>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="epm-suggested__actions">
 						<input type="hidden" name="action" value="epm_design_details" />
-						<?php wp_nonce_field( 'epm_design_details', '_wpnonce', true, false ); ?>
+						<?php wp_nonce_field( 'epm_design_details', '_epm_suggestion_nonce', true, false ); ?>
 						<button type="submit" class="button button-primary" name="epm_details_action" value="apply" data-epm-suggestion-apply><?php esc_html_e( 'Apply these details', 'elementor-podcast-manager' ); ?></button>
 						<button type="submit" class="button" name="epm_details_action" value="dismiss" data-epm-suggestion-dismiss><?php esc_html_e( 'Keep my site as it is', 'elementor-podcast-manager' ); ?></button>
 					</form>
@@ -437,7 +437,7 @@ $epm_style = static function ( array $vars ): string {
 			<section class="epm-card epm-design__details" id="epm-details" aria-labelledby="epm-details-title">
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" data-epm-details-form>
 					<input type="hidden" name="action" value="epm_design_details" />
-					<?php wp_nonce_field( 'epm_design_details', '_wpnonce', true, false ); ?>
+					<?php wp_nonce_field( 'epm_design_details', '_epm_details_nonce', true, false ); ?>
 					<h2 class="epm-card__title" id="epm-details-title"><?php esc_html_e( 'Details shown by default', 'elementor-podcast-manager' ); ?></h2>
 					<p class="epm-card__lede"><?php esc_html_e( 'Which parts players and lists show where a widget or shortcode leaves the choice to the site. A widget set to Show or Hide, or a shortcode attribute, always wins. Colors, fonts and the styles above never change these.', 'elementor-podcast-manager' ); ?></p>
 					<div class="epm-details">
@@ -543,13 +543,13 @@ $epm_style = static function ( array $vars ): string {
 						<h3><?php esc_html_e( 'Export', 'elementor-podcast-manager' ); ?></h3>
 						<p class="description"><?php esc_html_e( 'Downloads the saved design as a .json file.', 'elementor-podcast-manager' ); ?></p>
 						<input type="hidden" name="action" value="epm_design_export" />
-						<?php wp_nonce_field( 'epm_design_export', '_wpnonce', true, false ); ?>
+						<?php wp_nonce_field( 'epm_design_export', '_epm_export_nonce', true, false ); ?>
 						<?php submit_button( __( 'Export design file', 'elementor-podcast-manager' ), 'secondary', 'submit', false, [ 'id' => 'epm-design-export-submit' ] ); ?>
 					</form>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data">
 						<h3><?php esc_html_e( 'Import', 'elementor-podcast-manager' ); ?></h3>
 						<input type="hidden" name="action" value="epm_design_import" />
-						<?php wp_nonce_field( 'epm_design_import', '_wpnonce', true, false ); ?>
+						<?php wp_nonce_field( 'epm_design_import', '_epm_import_nonce', true, false ); ?>
 						<label for="epm-design-file"><?php esc_html_e( 'Design file (.json)', 'elementor-podcast-manager' ); ?></label>
 						<input type="file" id="epm-design-file" name="epm_design_file" accept=".json,application/json" required aria-describedby="epm-design-file-help" />
 						<p class="description" id="epm-design-file-help"><?php esc_html_e( 'Replaces the current design. Export it first to keep a copy.', 'elementor-podcast-manager' ); ?></p>
