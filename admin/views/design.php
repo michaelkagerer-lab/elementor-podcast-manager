@@ -280,9 +280,9 @@ $epm_style = static function ( array $vars ): string {
 								<?php foreach ( $epm_suggested as $epm_change ) : ?>
 									<tr>
 										<th scope="row"><?php echo esc_html( $epm_change['label'] ); ?></th>
-										<td><?php echo esc_html( $epm_change['context_label'] ); ?></td>
-										<td><?php echo $epm_change['now'] ? esc_html__( 'Shown', 'elementor-podcast-manager' ) : esc_html__( 'Hidden', 'elementor-podcast-manager' ); ?></td>
-										<td><span class="epm-badge <?php echo $epm_change['suggested'] ? 'epm-badge--ok' : ''; ?>"><?php echo $epm_change['suggested'] ? esc_html__( 'Shown', 'elementor-podcast-manager' ) : esc_html__( 'Hidden', 'elementor-podcast-manager' ); ?></span></td>
+										<td data-label="<?php esc_attr_e( 'Where', 'elementor-podcast-manager' ); ?>"><?php echo esc_html( $epm_change['context_label'] ); ?></td>
+										<td data-label="<?php esc_attr_e( 'Now', 'elementor-podcast-manager' ); ?>"><?php echo $epm_change['now'] ? esc_html__( 'Shown', 'elementor-podcast-manager' ) : esc_html__( 'Hidden', 'elementor-podcast-manager' ); ?></td>
+										<td data-label="<?php esc_attr_e( 'After applying', 'elementor-podcast-manager' ); ?>"><span class="epm-badge <?php echo $epm_change['suggested'] ? 'epm-badge--ok' : ''; ?>"><?php echo $epm_change['suggested'] ? esc_html__( 'Shown', 'elementor-podcast-manager' ) : esc_html__( 'Hidden', 'elementor-podcast-manager' ); ?></span></td>
 									</tr>
 								<?php endforeach; ?>
 							</tbody>

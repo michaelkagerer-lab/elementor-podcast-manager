@@ -324,8 +324,11 @@ final class Details {
 	/**
 	 * Per-context details from the maps presets stored in 1.1–1.3
 	 * (visibility, player, episodeList). Visibility and player details go
-	 * to every context that has them (the episode page has no title);
-	 * the episode list map goes to lists.
+	 * to every context that has them; the episode list map goes to lists.
+	 * The episode page takes neither the description (the page's content
+	 * is the description) nor the download button (offered there on
+	 * purpose since 1.2): those maps were written for players placed on
+	 * pages, and the page has no title detail.
 	 *
 	 * @param mixed $visibility  Visibility map.
 	 * @param mixed $player      Player map.
@@ -347,6 +350,9 @@ final class Details {
 		$out = [];
 		foreach ( self::CONTEXTS as $context ) {
 			foreach ( self::flags( $context ) as $flag ) {
+				if ( 'episode_page' === $context && in_array( $flag, [ 'show_description', 'show_download' ], true ) ) {
+					continue;
+				}
 				if ( array_key_exists( $flag, $flat ) ) {
 					$out[ $context ][ $flag ] = $flat[ $flag ];
 				}

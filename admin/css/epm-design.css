@@ -696,6 +696,7 @@ html:has(.epm-design__savebar) {
 .epm-suggested__table-wrap {
 	overflow-x: auto;
 	margin-block-end: 16px;
+	container: epm-suggested / inline-size;
 }
 
 .epm-suggested__table {
@@ -719,6 +720,49 @@ html:has(.epm-design__savebar) {
 
 .epm-suggested__table tbody th {
 	font-weight: 600;
+}
+
+/* Narrow: one block per change, each value with its column name. */
+@container epm-suggested (max-width: 520px) {
+	.epm-suggested__table thead {
+		position: absolute;
+		inline-size: 1px;
+		block-size: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	.epm-suggested__table,
+	.epm-suggested__table tbody,
+	.epm-suggested__table tr,
+	.epm-suggested__table th,
+	.epm-suggested__table td {
+		display: block;
+	}
+
+	.epm-suggested__table tr {
+		padding-block: 8px;
+		border-block-end: 1px solid var(--epm-app-line);
+	}
+
+	.epm-suggested__table th,
+	.epm-suggested__table td {
+		padding: 2px 0;
+		border: 0;
+	}
+
+	.epm-suggested__table td {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px 8px;
+	}
+
+	.epm-suggested__table td::before {
+		content: attr(data-label);
+		min-inline-size: 9em;
+		color: var(--epm-app-muted);
+	}
 }
 
 .epm-suggested__actions {
