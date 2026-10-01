@@ -79,6 +79,91 @@
   the options table (`epm_import_chunk_*`, at most 512 KB each), never in
   a file. After the update a running 1.3.0 import continues from the
   database; the folder and any other 1.3.0 file in it are removed.
+- Moving a show that was mirrored before (IMP-03): the move copied the
+  audio (the episode image only together with it) and never a WebVTT or
+  SRT transcript file of an existing episode; a failed image was reported
+  nowhere and never retried; the result ("5 updated · 1 audio not
+  copied"), a second run and the readiness report all read as a complete
+  move while the feed still pointed to the old host 13 times. Now every
+  episode in the feed, new or existing, gets each kind of file copied on
+  its own (transcript file, episode image, audio); a copied WebVTT/SRT
+  file replaces the link, the transcript text is never touched. Only
+  addresses the import wrote are replaced: the plugin now records where a
+  transcript address came from (1.3.0 addresses: the import's when the
+  feed item lists them, otherwise the site's choice), so a transcript
+  file chosen on this site or an audio URL on your own CDN stays. A file
+  that is here is not requested again, so the next run requests exactly
+  what failed. Everything that stays at the old host is listed per kind
+  (audio, episode images, transcript files, transcripts in formats that
+  are not copied such as JSON) with the episode and the reason, after
+  the import and in the readiness report.
+- A move with files left at the old host was finished anyway (FEED-N7):
+  the site switched to *This website*, announced itself as the show's
+  new home and locked the feed although episodes' audio still loaded
+  from the old host. Such a move now ends as *not finished*
+  (`done_with_problems`): hosting mode, *This show moved here* and the
+  lock stay; *Copy the missing files again* (or `wp podcast import
+  --resume`) finishes it when nothing is left, *Finish the move* after an
+  informed confirmation that names what stays behind (or
+  `wp podcast finish-move`) finishes it anyway.
+- Media downloads had no size, disk, speed or rate limit (IMP-04): a
+  400 MB file with Content-Length, a 300 MB chunked one and a 200 MB one
+  without length were accepted; a stalled host held the import (and the
+  lock) for 900 seconds; behind nginx a step answered 504 after 60
+  seconds while PHP went on downloading, and the screen stopped; HTTP 429
+  was ignored. Downloads now stream through `wp_safe_remote_get()` (no
+  private addresses, also after redirects) with limits per kind (audio
+  1 GB, image 20 MB, transcript file 5 MB; filter `epm_media_max_bytes`)
+  enforced while the file arrives, a free-space check of the temp and
+  uploads folders, a low-speed limit (1 KB/s, `epm_media_low_speed`), at
+  most 20 seconds per request (`epm_media_request_seconds`; the import
+  screen's steps use 8) with the rest continued by the next request
+  through HTTP Range, and a *waiting* state until the time a host's 429
+  (or 503 with Retry-After) names. Measured through nginx and php-fpm
+  (stock 128M, `fastcgi_read_timeout` 60 s): the 3 MB file at 40 KB/s
+  that ended in a 504 arrives in 10 steps of at most 8.2 s,
+  byte-identical; a stalled host is reported after 3 steps of 8.1 s.
+- Copying long audio ran out of memory (IMPB-N1): WordPress's
+  `media_handle_sideload()` probes every file with `getimagesize()`,
+  which read a 100 MB MP3 into memory (a fatal error at 128M, 240 MB at
+  256M); the job stayed stuck with the lock held, and every retry left
+  another full-size file in uploads (`m100.mp3`, `m100-1.mp3`). Audio is
+  now stored without the image probe (audio metadata only): through
+  admin-ajax at 128M a 100 MB file took 0.4 s and a 300 MB file 1.3 s,
+  each request at 22 MB; the test suite copies 60 MB and 300 MB with a
+  peak of 18.7 MB above the booted site. A request that dies during a
+  copy (memory or time limit, a killed process) removes its download and
+  any file not yet in the Media Library, counts the attempt with its
+  reason, releases the lock and lets the import continue in the
+  background, also when WordPress's own fatal error handler ends the
+  request; an identical file a dead request left behind is taken over,
+  so no "-1" copies appear.
+- A full disk stored a cut-off file as the episode's audio (IMPB-N2): 20
+  MB of a 50 MB file became the audio and counted as copied; a full
+  uploads folder left a partial file. A download is now complete only
+  when every byte the host announced is on the disk (bytes that arrive
+  but are not written stop the transfer), the free space is checked
+  first, and a failed move into uploads removes what it wrote.
+- An interrupted copy lost the episode's chapters and transcript for
+  good (IMPB-N3), left partial files in the temp folder, and WP-CLI could
+  not stop the job. Chapters and transcripts are now fetched before any
+  file is copied (and completed by a later run when the import died
+  before them); downloads use `epm-media-*` temp files that are removed
+  when the copy ends or fails, and leftovers after an hour;
+  `wp podcast cancel` stops the import and `wp podcast status` shows it.
+- Wrong content was stored as the episode's audio (IMPB-N4): random bytes
+  without a file extension became `r4.mp3` and counted as
+  distribution-ready; an HTML login page gave "Sorry, you are not allowed
+  to upload this file type". What arrives must now be audio WordPress can
+  read (MP3, M4A or WAV), an image, or a WebVTT/SRT file; otherwise the
+  episode keeps its address at the host and the reason says what the
+  host returned ("The host returned a web page instead of the audio file
+  (often a login, error or consent page)."). Audio in other formats (AAC,
+  Ogg, FLAC), which 1.3.0 stored as `.mp3`, stays at the host and is
+  reported.
+- The episode editor called every hosted transcript address one that
+  "came with the import", also one chosen on the site; it now says where
+  the address came from.
 - Orphaned import data (IMPB-N5): two overlapping previews or a preview
   nobody imported left job files behind indefinitely. A new preview
   removes the data of the one it replaces (a replaced preview removes
@@ -111,6 +196,29 @@
 - New AJAX action `epm_import_more` (continue reading a feed); the
   preview's summary has a `catalog` object (complete, reason, error, url,
   pages, message), and so does the import's state.
+- Hosting & import and the setup assistant show the result of a copy per
+  kind (audio, episode images, transcript files, transcripts linked in
+  other formats) with links to the episodes and the reason, the file
+  being copied over several requests, a host's wait (until when and
+  why), and for an unfinished move *Copy the missing files again* and
+  *Finish the move* behind the checkbox "Finish the move anyway. These
+  stay at the old host and stop working when that account is closed: …".
+  The setup assistant goes on only after one of them. When nothing was
+  left behind, the result says that every file is here.
+- The readiness report lists after a move (and while one is unfinished)
+  one warning per kind of file still at the old host, each with up to ten
+  episodes linked to their editor; checks carry `items` and `more`.
+- WP-CLI: `wp podcast cancel`, `wp podcast finish-move [--yes]`;
+  `wp podcast status` shows the import; `wp podcast import` lists every
+  file still at the old host and exits with an error for an unfinished
+  move; `--resume` also copies the missing files of an unfinished move.
+- New job statuses `waiting` and `done_with_problems`, new AJAX actions
+  `epm_import_retry` and `epm_import_confirm`; new filters
+  `epm_media_max_bytes`, `epm_media_request_seconds`,
+  `epm_media_low_speed`, `epm_media_max_attempts`, `epm_media_max_waits`,
+  `epm_media_max_wait`, `epm_media_disk_free` (see MIGRATION.md).
+- An import step handles up to ten episodes also when media are copied
+  (1.3.0: one); each media download is bounded by the step's time.
 
 ### Tests
 
@@ -135,6 +243,22 @@
   the setup assistant (the warning, try again, the move confirmation,
   focus and error, the partial result); fixture
   `synthetic/paged-broken-1.xml`.
+- `tests/integration/media.php`: moving media after a mirror per kind,
+  local choices, retries, unfinished moves, limits, wrong content, HTTP
+  errors and waits, interrupted copies (a separate process that runs out
+  of memory), WP-CLI cancel and status. Written before the fixes: on
+  1.3.0 code every one of its 14 tests failed (60 assertions passed, 95
+  failed).
+- `tests/media/run.sh`: downloads over real sockets from a local media
+  host (`tests/fixtures/mediaserver.py`; the test-only mu-plugin
+  `epm-test-loopback.php` opens exactly its port): limits while
+  streaming, stalled and slow hosts, Range resumption (byte-identical),
+  no Range support, a large file under 128M, full disks via tmpfs. Part
+  of `run-all.sh`.
+- `tests/e2e/setup.mjs`: an unfinished move on Hosting & import and in
+  the setup assistant, a waiting import; fixture
+  `synthetic/rate-limited.xml`. The HTTP fixture sends a Content-Length
+  with its files, like a real server.
 
 ## 1.3.0 — 2026-09-30
 
@@ -473,7 +597,9 @@ added in this release.
 ### Security
 - Feeds, pages, linked chapter/transcript files and media downloads go
   through `wp_safe_remote_get` / `download_url` (no requests to private
-  networks), with timeouts and size limits. *Test feed and audio
+  networks), with timeouts; feeds and linked chapter/transcript files
+  also with size limits. (Correction: media downloads through
+  `download_url` had no size limit in 1.3.0; see Unreleased.) *Test feed and audio
   delivery* uses `wp_safe_remote_*` as well, because any user who can
   publish episodes can set an audio URL.
 - XML is parsed with network access disabled (`LIBXML_NONET`), without

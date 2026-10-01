@@ -49,6 +49,66 @@ owner). The job option `epm_import_job` gains `version`, `store`,
 `catalog` and `stats`; it is read from the database on every use and
 saved with compare-and-swap.
 
+## Copying media and moves
+
+Nothing to do; behavior to know when you run imports with *Copy audio*
+(`download_media`) or integrate with the import:
+
+- **Existing episodes get their files too.** A run with copies now copies
+  every file of every episode in the feed that still loads from the host
+  (WebVTT/SRT transcript file, episode image, audio, each on its own),
+  also of episodes mirrored earlier. 1.3.0 copied audio (and the image
+  only together with it) and never a transcript file of an existing
+  episode. Running a move again after updating fills those gaps.
+- **Where a transcript address came from** is recorded in the private
+  `_epm_import_hash` (key `transcript_url`: a hash when the import wrote
+  the address, `local` when it was set on this site). For addresses
+  1.3.0 wrote, the next import decides: an address the current feed item
+  lists is the import's (copied with *Copy audio*), anything else counts
+  as chosen on this site and is never replaced.
+- **New private post meta** `_epm_import_extras`: set when an import
+  creates an episode, removed once its chapters and transcripts are
+  fetched (an episode whose import died before that gets them on the
+  next run).
+- **A move that leaves files at the old host is not finished.** The job
+  ends with the new status `done_with_problems` (1.3.0: `done`, and the
+  move was finished anyway): `moved_in`, `locked` and the hosting mode
+  stay unchanged and the parsed feed is kept. New AJAX actions
+  `epm_import_retry` (copy the missing files again; finishes the move
+  when nothing is left) and `epm_import_confirm` (needs
+  `confirm_remaining=1`; finishes the move). `wp podcast import --move`
+  exits with an error then; scripts can follow up with
+  `wp podcast import --resume` or `wp podcast finish-move --yes`.
+- **New job status `waiting`** (with `wait_until` and `wait_reason`)
+  while a host's HTTP 429 (or 503 with `Retry-After`) is honored. Code
+  that checks for `running` to tell whether an import is in progress
+  should check `EPM\ImportJob::is_active()`.
+- **The job option `epm_import_job`** gains `media` (`inflight`: the
+  copy in progress; `refs`, `counts`, `copied`: what was copied and what
+  stays at the old host, per kind), `retries` and `confirmed`. The
+  client state (AJAX responses, `epmApp.job`) gains `remaining` (per
+  kind: count, label, episodes with title, edit link, address, reason),
+  `copied`, `copy_media`, `current`, `wait_until`, `wait_reason`,
+  `problems`, `can_retry` and `confirmed`. `media_failed` (audio only)
+  stays for compatibility.
+- **Readiness checks** carry `items` (episodes: title, editor link) and
+  `more`. *Audio at the old host* is joined by *Episode images at the
+  old host*, *Transcript files at the old host*, *Transcripts linked at
+  the old host* and, while a move is unfinished, *Move to this website*.
+- **Downloads** no longer use `download_url()` and audio no longer goes
+  through `media_handle_sideload()`: audio attachments get audio metadata
+  only (no `image_meta`, no attachment for embedded cover art). A file is
+  named after what it is (an `.m4a` address that serves MP3 data is
+  stored as `.mp3`); audio other than MP3, M4A and WAV (AAC, Ogg, FLAC),
+  which 1.3.0 stored as `.mp3`, stays at the host and is reported. New
+  filters: `epm_media_max_bytes`, `epm_media_request_seconds`,
+  `epm_media_low_speed`, `epm_media_max_attempts`, `epm_media_max_waits`,
+  `epm_media_max_wait`, `epm_media_disk_free`.
+- **Temp files** of a copy in progress are named `epm-media-*` in the
+  temp folder; leftovers older than an hour are removed.
+- **WP-CLI:** new `wp podcast cancel` and `wp podcast finish-move`;
+  `wp podcast status` shows the import.
+
 ## Scheduled events
 
 | Event | Change |
@@ -66,7 +126,12 @@ Additionally removes every `epm_import_chunk_*` row and the
 Reactivating 1.3.0 is safe: it ignores the new job fields and the
 `epm_import_chunk_*` rows (remove them with the cleanup below), and
 treats a job started by this version as having no stored data (*Check
-the feed again*). Finish or cancel a running import before rolling back.
+the feed again*). Finish or cancel a running import before rolling back;
+an unfinished move (`done_with_problems`) or a waiting import is not
+picked up by 1.3.0 either, so finish or cancel those too
+(`wp podcast finish-move`, `wp podcast cancel`). The `transcript_url`
+entries in `_epm_import_hash` and the `_epm_import_extras` meta are
+ignored by 1.3.0.
 
 ```sql
 DELETE FROM wp_options WHERE option_name LIKE 'epm\_import\_chunk\_%';

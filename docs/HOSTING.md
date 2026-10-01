@@ -397,20 +397,12 @@ import.
      feed. `wp podcast import` stops with an error instead (see
      below).
 2. Options:
-   - *Copy audio and episode images to this website* downloads the files
-     into the Media Library; for episodes the import creates, the host's
-     WebVTT or SRT transcript file is copied too. Needed before you close
-     an account at the old host. Without it, episodes keep playing from
-     the old host's URLs (and a transcript file stays linked where it
-     is). With it, episodes
-     that were mirrored earlier without their audio get their files
-     copied too, so a show that was first connected and later moved ends
-     up complete. When a file cannot be downloaded, the episode is still
-     imported and keeps the old address; after the import, Hosting &
-     import and the setup assistant list those episodes with links to
-     them ("The audio of 2 episodes was not copied"), and
-     `wp podcast import` prints a warning. Run the import again or add the
-     files by hand before you close the old account.
+   - *Copy audio and episode images to this website* copies the files
+     into the Media Library: the audio, the episode image and the host's
+     WebVTT or SRT transcript file. Needed before you close an account at
+     the old host. Without it, episodes keep playing from the old host's
+     URLs (and a transcript file stays linked where it is). See
+     [What copying the media does](#what-copying-the-media-does).
    - *Import new episodes as drafts.*
    - *Fill in empty podcast settings* copies title, description, short
      description, author, owner name and email, copyright, language,
@@ -430,12 +422,81 @@ import.
 With *Copy audio* on, the Hosting & import screen treats the import as a
 move and finishes it the way [section 6](#6-moving-a-show-to-this-website)
 describes (feed limit, "moved here" flag, feed lock, and *This website*
-mode). In *Another podcast host* mode it asks for confirmation first,
-because the site stops syncing from the host and publishes the feed
-itself once the import finishes. *Stop the import* stops it for good: an
-episode that is being imported at that moment (for example an audio
-file being downloaded) is finished, nothing after it, and nothing
-restarts a cancelled import.
+mode), once every file is here. In *Another podcast host* mode it asks
+for confirmation first, because the site stops syncing from the host and
+publishes the feed itself once the move is finished. *Stop the import*
+stops it for good: an episode that is being imported at that moment is
+finished (a file being downloaded stops at the end of the current
+request, and its partial download is removed), nothing after it, and
+nothing restarts a cancelled import.
+
+### What copying the media does
+
+For every episode in the feed, new or already on this site (mirrored
+earlier, or copied partly by an earlier run), each kind of file that
+still loads from the old host is copied on its own: the WebVTT/SRT
+transcript file, the episode image, the audio. A failure of one kind
+never keeps another from being copied.
+
+- **Only what the import put there is replaced.** The plugin records
+  which addresses the import wrote. An address set on this site, such as
+  a transcript file you linked yourself or audio on your own CDN, stays
+  and is not reported. For transcript addresses imported by 1.3.0, which
+  did not record this, an address the feed item still lists counts as
+  the import's; any other address counts as chosen on this site.
+- **Transcripts.** A copied WebVTT/SRT file replaces the link to the old
+  host; the transcript text (edited or not) is never touched. A
+  transcript in another format, such as Podcasting 2.0 JSON, cannot be
+  copied into the Media Library: its text is already on this site, and
+  the link stays and is listed as still at the old host.
+- **Only what is missing.** A file that is already in the Media Library
+  is not requested again, also when an earlier run copied it from the
+  same address. A second run therefore requests exactly what failed.
+- **Chapters and transcripts first.** They are fetched before any file
+  is copied, so a copy that is interrupted never loses them.
+- **Limits.** At most 1 GB per audio file, 20 MB per image and 5 MB per
+  transcript file (filter `epm_media_max_bytes`), checked while the file
+  arrives, also when the host does not say how large it is. Before and
+  during the download the free disk space of the temp folder and the
+  uploads folder is checked against the file's size. A download slower
+  than 1 KB/s over 15 seconds is stopped (`epm_media_low_speed`) and
+  tried again, three times at most (`epm_media_max_attempts`).
+- **Short requests.** One request spends at most 20 seconds on a
+  download (`epm_media_request_seconds`, never more than 50; the import
+  screen's steps use 8): a file that takes longer is continued by the
+  next request where it stopped (HTTP Range), so no step comes near the
+  60 seconds proxies such as nginx allow, and the import lock is never
+  held for long. A host that cannot continue a download (no Range
+  support) must deliver the file within one request.
+- **What arrives is checked.** A truncated download (fewer bytes than the
+  host announced) is never stored. Audio must be audio WordPress can
+  read (MP3, M4A or WAV); a web page (often a login or consent page),
+  JSON, an XML error message or unknown data is refused, and the reason
+  says what the host returned. Images and transcript files are checked
+  the same way. Audio is stored without WordPress's image probe, which
+  used to read the whole file into memory: a 300 MB file was copied
+  with less than 20 MB of memory.
+- **A host that asks to wait.** HTTP 429 (or 503 with `Retry-After`)
+  puts the import in the state *waiting* until the time the host names
+  (at most six hours, `epm_media_max_wait`); nothing is requested before
+  that, the screen says until when, and the import continues by itself,
+  also with the page closed. After five waits for the same file
+  (`epm_media_max_waits`) it is reported as not copied.
+- **Interrupted requests.** When a request dies during a copy (the PHP
+  memory or time limit, a killed process), its partial download and any
+  file that did not become a Media Library item yet are removed, the
+  attempt is counted with its reason, the lock is released and the
+  import continues in the background. After three interruptions of the
+  same episode the file in progress is reported as not copied. A copy
+  is never stored twice as `name-1.mp3`: an identical file a dead
+  request left in the uploads folder is taken over.
+- **What stays behind is listed.** After the import, Hosting & import
+  and the setup assistant list every file that still loads from the old
+  host, per kind (audio, episode images, transcript files, transcripts
+  in other formats), each episode linked with the reason (for example
+  "The host answered HTTP 404 (Not Found)."). `wp podcast import` prints
+  the same list, and after a move the readiness report on the dashboard
+  keeps it. A plain success is only shown when nothing is left.
 
 Between *Check feed* and the end of the import, the parsed feed is kept
 in the database (non-autoloaded rows `epm_import_chunk_*` of the options
@@ -491,7 +552,11 @@ episode GUIDs do not change, they see the same episodes, not new ones.
    `wp podcast import --resume --move --copy-media --show-details` to read
    the rest again and import, or add `--accept-partial` to move only the
    episodes found (the command then warns instead of reporting
-   success).
+   success). When files stay at the old host, the command lists them
+   and exits with an error: `wp podcast import --resume` copies them
+   again, `wp podcast finish-move` finishes the move anyway (it asks
+   first). `wp podcast status` shows where an import stands and
+   `wp podcast cancel` stops it.
 
 What the import keeps:
 
@@ -510,8 +575,8 @@ What the import keeps:
 - Publish dates, season and episode numbers and episode types.
 
 When a move import finishes (the setup assistant's move path, an import
-on Hosting & import with *Copy audio* on, or `wp podcast import --move`),
-the plugin:
+on Hosting & import with *Copy audio* on, or `wp podcast import --move`)
+with every file on this site, the plugin:
 
 - sets *Feed episode limit* to 0 (unlimited) if the show has more
   published episodes than the limit, because an episode missing from the
@@ -525,8 +590,26 @@ the plugin:
   host*) to *This website*, so it stops syncing and stops redirecting its
   feed to the old host (which will soon redirect back here).
 
-Check the list of episodes whose audio was not copied, if the import
-shows one, and fix those episodes before you continue.
+**When files stay at the old host** (a download failed, a transcript is
+in a format that is not copied) or episodes could not be imported, the
+move is **not finished**: the hosting mode, *This show moved here* and
+the feed lock stay as they were, and the result lists what is still at
+the old host, per kind and episode, with the reason. Then:
+
+- fix the cause (for example a file the old host no longer serves) and
+  choose *Copy the missing files again* (`wp podcast import --resume`):
+  the import goes through the episodes once more and requests only what
+  is missing; when nothing is left, the move is finished as above; or
+- replace those files by hand (open each listed episode) and copy again;
+  or
+- choose *Finish the move* after ticking "Finish the move anyway. These
+  stay at the old host and stop working when that account is closed: …"
+  (`wp podcast finish-move`, which lists them and asks): the move is
+  finished as above and the readiness report keeps listing what stayed
+  behind.
+
+The setup assistant goes on only after one of these. Do not set the
+redirect at the old host while the move is not finished.
 
 ### Verify
 
@@ -581,10 +664,12 @@ Change the feed address in each directory yourself:
   would create a redirect loop. (If it happens anyway, the next sync
   notices the redirect to this site's feed and switches back.)
 - Never change the imported GUIDs, and keep the audio URLs working.
-- If you imported without *Copy audio*, the readiness report on the
-  dashboard shows *Audio at the old host* with the number of episodes
-  whose audio still loads from there. Import again with *Copy audio*
-  before you close the old account.
+- The readiness report on the dashboard lists every file that still
+  loads from the old host, one warning per kind (*Audio at the old
+  host*, *Episode images at the old host*, *Transcript files at the old
+  host*, *Transcripts linked at the old host*), with links to the
+  episodes. Import again with *Copy audio* (it copies only what is
+  missing) or fix the episodes before you close the old account.
 
 ## 7. Moving a show away from this website
 
@@ -685,9 +770,12 @@ after moving *away*, the new host changed them.
 
 ### "An import is running"
 
-Only one import or sync runs at a time. Wait for it to finish or stop it
-on Podcast → Hosting & import. A lock left by a crashed request expires
-after five minutes, or twenty while an import copies audio.
+Only one import or sync runs at a time, also while an import waits for
+its host (HTTP 429). Wait for it to finish or stop it on Podcast →
+Hosting & import or with `wp podcast cancel`; `wp podcast status` shows
+where it stands. A request that dies during a copy releases its lock; a
+lock left by a killed request expires after five minutes, or twenty
+while an import copies media.
 
 ### "The feed could not be read completely"
 
@@ -698,14 +786,26 @@ page keeps failing, open its address in a browser and ask the host. Only
 move part of a show when the missing episodes are gone for good (see
 [section 5](#5-importing-episodes)).
 
-### "The audio of … episodes was not copied"
+### "These files still load from the old host" / "The move is not finished"
 
-The import could not download those files (for example the old host
-answered with an error, the download took longer than 15 minutes, or the
-uploads folder is not writable). The episodes were imported and still play from
-the old host. Open each listed episode and upload the file, or run the
-import again with *Copy audio* on: it only downloads what is still
-missing. Do this before you close the old account.
+The import could not copy those files; each one is listed with the
+reason, for example: the old host answered with an error status, sent a
+web page or other data instead of the file, sent less than it announced,
+stopped sending, the file is larger than the limit for its kind, the
+disk is too small, or the transcript is in a format that is not copied
+(JSON). The episodes were imported and still use the old host for those
+files. Fix the cause, then copy them again (*Copy the missing files
+again*, or import again with *Copy audio* on): only what is still missing
+is downloaded. Or open each listed episode and add the file by hand. Do
+this before you close the old account. For a move, see
+[When files stay at the old host](#import).
+
+### "The old host asked the import to wait"
+
+The host answered HTTP 429 (or 503 with `Retry-After`): it limits how
+many files are downloaded. The import waits until the time shown and
+then continues by itself, also when you leave the page. To stop it, use
+*Stop the import*.
 
 ### *Test feed and audio delivery* reports an error on a local site
 
