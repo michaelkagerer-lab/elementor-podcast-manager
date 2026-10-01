@@ -1,3 +1,79 @@
+# Migration notes — 1.3.0 → next release (unreleased)
+
+Nothing to do for most sites. Episodes, GUIDs, the podcast GUID, URLs,
+settings, local edits and media are not touched. What changes:
+
+## Import data moves from uploads to the database
+
+1.3.0 kept the parsed feed of an import as a JSON file in
+`wp-content/uploads/epm-import/`, protected only by an Apache
+`.htaccess` (nginx and Apache without `AllowOverride` served it). It now
+lives in non-autoloaded rows of the options table named
+`epm_import_chunk_<key>_<id>` (at most 512 KB each), written and read
+directly, never through an options cache.
+
+On the first request after the update (and on admin requests while the
+folder exists):
+
+- an import 1.3.0 was **running** continues: its next step moves the
+  file's items into the database and deletes the file, then carries on
+  at the same position (it finishes as 1.3.0 would have, since 1.3.0 did
+  not record whether the catalog was complete);
+- a feed 1.3.0 **checked but did not import** expires (its completeness
+  is unknown): check the feed again;
+- every other file in `uploads/epm-import/` and the folder are deleted.
+
+## Paged feeds and the completeness of a catalog
+
+- A preview reads a paged feed over several requests and records whether
+  the catalog is complete (`catalog.complete`, `catalog.reason`,
+  `catalog.error`, `catalog.url` in the preview summary and the import
+  state). Integrations that call `epm_import_preview` directly must call
+  `epm_import_more` with the token while `catalog.loading` is true.
+- A **move** of an incomplete catalog is refused (`epm_import_incomplete`)
+  unless `accept_partial` is sent; mirroring is unchanged.
+- **`wp podcast import` exits with an error** when the feed cannot be
+  read completely (1.3.0 reported success with the pages it had read).
+  Scripts that should import a partial catalog anyway need
+  `--accept-partial`; `wp podcast import --resume` continues.
+- New filters: `epm_import_max_bytes` (200 MB), `epm_import_request_seconds`
+  (10), `epm_import_ttl` (one day). `epm_import_max_pages` (50) stays.
+
+## Import lock and job
+
+The lock keeps its option name and value format (`<time>:<owner>`), but
+is only changed with conditional SQL; code that wrote
+`epm_import_lock` with `update_option()` to "borrow" the lock no longer
+works (a lock row it rewrote is not renewed or released by its former
+owner). The job option `epm_import_job` gains `version`, `store`,
+`catalog` and `stats`; it is read from the database on every use and
+saved with compare-and-swap.
+
+## Scheduled events
+
+| Event | Change |
+|---|---|
+| `epm_import_cleanup` | New: a single event a day after a feed is checked; expires the check when nothing was imported and removes data no job uses |
+| `epm_podcast_index_ping` | New name of the Podcast Index notification (1.3.0: `epm_ping_podcast_index`). An event scheduled by 1.3.0 is moved to the new name, keeping its time. `epm_ping_podcast_index` stays the filter that turns the notification off; in 1.3.0 that filter could not stop it, and publishing sent the notification at once |
+
+## Uninstall
+
+Additionally removes every `epm_import_chunk_*` row and the
+`epm_import_cleanup` event, whether or not data deletion is enabled.
+
+## Rollback
+
+Reactivating 1.3.0 is safe: it ignores the new job fields and the
+`epm_import_chunk_*` rows (remove them with the cleanup below), and
+treats a job started by this version as having no stored data (*Check
+the feed again*). Finish or cancel a running import before rolling back.
+
+```sql
+DELETE FROM wp_options WHERE option_name LIKE 'epm\_import\_chunk\_%';
+```
+
+---
+
 # Migration notes — 1.2.0 → 1.3.0
 
 ## Nothing to do for existing sites

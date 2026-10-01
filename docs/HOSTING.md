@@ -325,10 +325,16 @@ sync).
   plugin's admin screens and the WordPress dashboard show an error notice
   with the host's message. A successful run resets the counter.
 - **One job at a time.** An import and a sync never run at the same
-  time. The lock belongs to the request that took it and is renewed while
-  the job runs; a lock left behind by a crashed request expires after
-  five minutes (twenty while an import copies audio, since one file can
-  take that long).
+  time. The lock is a database row that is only ever changed with
+  conditional statements: a free lock is taken only when no request holds
+  it, an abandoned one only by one request, and only the request that
+  took it renews or releases it (also with a persistent object cache).
+  Both the import and the sync check the lock before every episode; when
+  another request took it over (because this one looked abandoned), they
+  stop at once (a sync stopped like this stores nothing as synced, so the
+  next run reads the whole feed). A lock left behind by a crashed request
+  expires after five minutes (twenty while an import copies audio, since
+  one file can take that long).
 
 ### What it does not do
 
@@ -355,13 +361,41 @@ sync).
 any feed you own, in either mode. The setup assistant uses the same
 import.
 
-1. *Check feed* reads the feed once and shows what it found. On a web
+1. *Check feed* reads the feed and shows what it found. On a web
    page that links several feeds, the podcast feed wins over the blog
    feed (listed first on every WordPress site), and comment feeds are
    never taken. Paged feeds (`<atom:link rel="next">`, used for example
-   by SoundCloud) are followed up to 50 pages (filter
-   `epm_import_max_pages`). The response is limited to 50 MB (filter
-   `epm_feed_max_bytes`).
+   by SoundCloud with 500 episodes per page) are read page by page;
+   relative next links are resolved against the page's address. A large
+   feed is read over several requests of about ten seconds each (the
+   screen says which page it is reading), so neither a proxy timeout nor
+   the PHP memory limit stops it. At most 50 pages (filter
+   `epm_import_max_pages`) and 200 MB in all (filter
+   `epm_import_max_bytes`) are read; each response is limited to 50 MB
+   (filter `epm_feed_max_bytes`).
+
+   **When the feed cannot be read completely** (a page answers an HTTP
+   error or cannot be loaded, is no valid feed, lists no episodes but
+   links on, or the page or size limit is reached), the result says so
+   next to the episodes found: which page, its address and the error.
+   Nothing is imported silently as if it were the whole show:
+   - *Try reading the rest again* continues from that page (useful when
+     the host had a temporary problem); pages already read are not read
+     again.
+   - Importing the episodes found as a mirror is allowed: they are
+     imported, and checking the feed again later adds the rest (episodes
+     that exist are updated, never duplicated).
+   - A move (*Copy audio* on, or the setup assistant's move path) needs
+     an explicit confirmation: "Move only the N episodes that were
+     found. The missing episodes stay at the old host and will not be on
+     this website." Without it the import does not start. Only confirm
+     this when those episodes are gone for good; otherwise fix the feed
+     at the old host (or raise the limit) and check it again, because a
+     redirected old feed makes podcast apps treat missing episodes as
+     removed.
+   - After the import, the result says when it covered only part of the
+     feed. `wp podcast import` stops with an error instead (see
+     below).
 2. Options:
    - *Copy audio and episode images to this website* downloads the files
      into the Media Library; for episodes the import creates, the host's
@@ -388,21 +422,30 @@ import.
 3. *Import episodes* runs in batches from the browser. If you leave the
    page, WP-Cron continues it. Episodes that already exist here (same
    GUID, in any status except the trash) are updated, never duplicated;
-   episodes in the trash are skipped.
+   episodes in the trash are skipped. The GUID is checked in the database
+   again right before an episode is created, so two requests working on
+   the same feed (cron and an open import screen, two tabs, WP-CLI) never
+   create an episode twice.
 
 With *Copy audio* on, the Hosting & import screen treats the import as a
 move and finishes it the way [section 6](#6-moving-a-show-to-this-website)
 describes (feed limit, "moved here" flag, feed lock, and *This website*
 mode). In *Another podcast host* mode it asks for confirmation first,
 because the site stops syncing from the host and publishes the feed
-itself once the import finishes. Cancelling an import stops it for good;
-a batch that was still running does not restart it.
+itself once the import finishes. *Stop the import* stops it for good: an
+episode that is being imported at that moment (for example an audio
+file being downloaded) is finished, nothing after it, and nothing
+restarts a cancelled import.
 
-While an import runs, the parsed feed is kept as a JSON file with a
-random name in `wp-content/uploads/epm-import/` (the folder contains an
-`index.php` and an `.htaccess` that denies access on Apache). The file is
-deleted when the import finishes, is cancelled, or another feed is
-checked.
+Between *Check feed* and the end of the import, the parsed feed is kept
+in the database (non-autoloaded rows `epm_import_chunk_*` of the options
+table, at most 512 KB each), never as a file, so no web server can serve
+it. It is removed when the import finishes, fails or is cancelled, when
+another feed is checked, and when a checked feed has not been imported
+for a day (filter `epm_import_ttl`, cron event `epm_import_cleanup`).
+1.3.0 kept it as a JSON file in `wp-content/uploads/epm-import/`; after
+the update an import that was running continues from the database, and
+the folder is removed.
 
 **Locked feeds.** A feed with `<podcast:locked>yes</podcast:locked>`
 asks platforms not to import it without the owner's consent. When you
@@ -442,7 +485,13 @@ episode GUIDs do not change, they see the same episodes, not new ones.
    wp podcast import https://anchor.fm/s/123abc/podcast/rss --move --copy-media --show-details
    ```
 
-   Add `--owner` to confirm ownership of a locked feed.
+   Add `--owner` to confirm ownership of a locked feed. When the feed
+   cannot be read completely, the command imports nothing and exits with
+   an error that names the page and the error. Run
+   `wp podcast import --resume --move --copy-media --show-details` to read
+   the rest again and import, or add `--accept-partial` to move only the
+   episodes found (the command then warns instead of reporting
+   success).
 
 What the import keeps:
 
@@ -639,6 +688,15 @@ after moving *away*, the new host changed them.
 Only one import or sync runs at a time. Wait for it to finish or stop it
 on Podcast → Hosting & import. A lock left by a crashed request expires
 after five minutes, or twenty while an import copies audio.
+
+### "The feed could not be read completely"
+
+A page of a paged feed failed (the message names it, with its address
+and the error), listed no episodes but linked on, or the feed has more
+pages than the import reads. Choose *Try reading the rest again*; if the
+page keeps failing, open its address in a browser and ask the host. Only
+move part of a show when the missing episodes are gone for good (see
+[section 5](#5-importing-episodes)).
 
 ### "The audio of … episodes was not copied"
 
