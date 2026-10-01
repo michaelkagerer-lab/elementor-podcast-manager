@@ -148,35 +148,55 @@ final class EpisodeTemplate {
 	/**
 	 * Player configuration for the episode page.
 	 *
-	 * Uses the site's default player layout (Podcast → Design), except that
-	 * the Minimal and Compact layouts — which hide speed and volume — are
-	 * upgraded to Full: on the episode page listeners need every control.
+	 * Details: Podcast → Design → Details shown by default → Episode pages,
+	 * else the built-in defaults (Details::neutral( 'episode_page' )). The
+	 * title is never shown: the theme prints it as the page heading.
+	 *
+	 * Layout: the site's default player layout (Podcast → Design), except
+	 * that Minimal and Compact — which hide speed, volume, download, share
+	 * and the description — become Full, so listeners get every control.
+	 * When the details hide all of those, there is nothing to make room
+	 * for and the chosen layout stays.
+	 *
+	 * The epm_auto_embed_player_args filter runs last and can change
+	 * anything (layout, details, sticky).
 	 *
 	 * @param array<string, mixed> $episode Episode data.
 	 * @return array<string, mixed>
 	 */
-	private function player_args( array $episode ): array {
+	public static function player_args( array $episode ): array {
+		$args = Details::resolve( 'episode_page' );
+
 		$layout = (string) epm()->design->get( 'default_player_layout' );
 		if ( in_array( $layout, [ 'minimal', 'compact' ], true ) ) {
-			$layout = 'full';
+			$hidden_by_layout = [ 'show_playback_speed', 'show_volume', 'show_download', 'show_share', 'show_description' ];
+			foreach ( $hidden_by_layout as $flag ) {
+				if ( ! empty( $args[ $flag ] ) ) {
+					$layout = 'full';
+					break;
+				}
+			}
 		}
 
-		$args = [
-			'layout'              => $layout,
-			// The theme already prints the episode title as the page heading.
-			'show_title'          => false,
-			'show_episode_number' => true,
-			'show_date'           => true,
-			'show_description'    => false,
-			'show_chapters_link'  => false,
-			'show_download'       => true,
-			// Copy link, copy link at the current position, embed code.
-			'show_share'          => true,
-			// Pause and seek stay at hand while reading the show notes
-			// and transcript below (hidden until something plays).
-			'sticky'              => true,
-		];
+		$args = array_merge(
+			$args,
+			[
+				'layout'             => $layout,
+				// The theme already prints the episode title as the page heading.
+				'show_title'         => false,
+				// Pause and seek stay at hand while reading the show notes
+				// and transcript below (hidden until something plays).
+				'sticky'             => true,
+			]
+		);
 
+		/**
+		 * Player arguments of the automatic episode page, after the
+		 * details were resolved (see Renderer::player()).
+		 *
+		 * @param array $args    Player arguments.
+		 * @param array $episode Episode data.
+		 */
 		return (array) apply_filters( 'epm_auto_embed_player_args', $args, $episode );
 	}
 
@@ -236,7 +256,7 @@ final class EpisodeTemplate {
 		foreach ( $parts as $part ) {
 			switch ( $part ) {
 				case 'player':
-					$html .= $renderer->player( $episode, $this->player_args( $episode ) );
+					$html .= $renderer->player( $episode, self::player_args( $episode ) );
 					break;
 				case 'video':
 					// Click-to-load: nothing loads from the platform before play.

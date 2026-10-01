@@ -31,6 +31,22 @@ final class Integration {
 		add_action( 'elementor/elements/categories', [ $this, 'register_category' ] );
 		add_action( 'elementor/widgets/register', [ $this, 'register_widgets' ] );
 		add_action( 'elementor/controls/register', [ $this, 'register_controls' ] );
+		add_action( 'elementor/editor/after_enqueue_scripts', [ $this, 'enqueue_editor_script' ] );
+	}
+
+	/**
+	 * Editor script: the widgets' "Use Podcast → Design defaults" button.
+	 *
+	 * @return void
+	 */
+	public function enqueue_editor_script(): void {
+		wp_enqueue_script(
+			'epm-elementor-editor',
+			EPM_URL . 'admin/js/epm-elementor-editor.js',
+			[ 'elementor-editor' ],
+			EPM_VERSION,
+			true
+		);
 	}
 
 	/**

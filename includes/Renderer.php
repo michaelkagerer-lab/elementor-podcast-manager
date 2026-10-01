@@ -1622,20 +1622,6 @@ final class Renderer {
 	 * @return string
 	 */
 	public function episode_list( array $posts, array $args = [] ): string {
-		$args = wp_parse_args(
-			$args,
-			[
-				'layout'     => epm()->design->get( 'default_episode_layout' ),
-				'style_vars' => [],
-			]
-		);
-
-		$layout = sanitize_key( $args['layout'] );
-		$valid  = [ 'list', 'editorial-rows', 'cards', 'grid', 'minimal' ];
-		if ( ! in_array( $layout, $valid, true ) ) {
-			$layout = 'list';
-		}
-
 		Assets::mark_player_used();
 
 		if ( empty( $posts ) ) {
@@ -1645,7 +1631,40 @@ final class Renderer {
 		// Prime attachment caches once for the whole list (F18).
 		Episodes::prime_attachments( $posts );
 
-		$episodes = array_filter( array_map( [ epm()->episodes, 'get_data' ], $posts ) );
+		return $this->episode_list_from_data( array_filter( array_map( [ epm()->episodes, 'get_data' ], $posts ) ), $args );
+	}
+
+	/**
+	 * Episode list from episode data (Episodes::get_data()), e.g. the
+	 * Design screen's sample episodes. Same markup as episode_list().
+	 *
+	 * @param array<int, array<string, mixed>> $episodes Episode data.
+	 * @param array<string, mixed>             $args     See episode_list().
+	 * @return string
+	 */
+	public function episode_list_from_data( array $episodes, array $args = [] ): string {
+		$args = wp_parse_args(
+			$args,
+			[
+				'layout'     => epm()->design->get( 'default_episode_layout' ),
+				'style_vars' => [],
+			]
+		);
+
+		$layout = sanitize_key( (string) $args['layout'] );
+		if ( '' === $layout ) {
+			$layout = sanitize_key( (string) epm()->design->get( 'default_episode_layout' ) );
+		}
+		$valid = [ 'list', 'editorial-rows', 'cards', 'grid', 'minimal' ];
+		if ( ! in_array( $layout, $valid, true ) ) {
+			$layout = 'list';
+		}
+
+		Assets::mark_player_used();
+
+		if ( empty( $episodes ) ) {
+			return $this->empty_list( $args );
+		}
 
 		$classes = [ 'epm-episode-list', 'epm-episode-list--' . $layout ];
 		// Numbered row layouts reserve the number column on every row, so

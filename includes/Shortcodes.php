@@ -4,7 +4,7 @@
  * rendering and player used by Elementor widgets.
  *
  * [podcast_player id="123" layout="editorial" share="yes"]
- * [podcast_latest]
+ * [podcast_latest sticky="yes"]
  * [podcast_episodes limit="10" layout="cards" topic="interviews,news" show_topics="yes"]
  * [podcast_video id="123"]
  * [podcast_latest_cta label="Listen now"]
@@ -16,6 +16,13 @@
  *
  * Episode components default to the current episode (the loop's episode
  * or the episode page) and accept id="123" or source="latest".
+ *
+ * Details: players and lists take every detail of their context as an
+ * attribute named like the detail, show_volume="no", show_date="yes"
+ * (see Details::flags(); [podcast_player] also keeps download="…" and
+ * share="…"). An attribute that is present is the shortcode's own choice;
+ * a missing one follows Podcast → Design → Details shown by default, and
+ * without a site choice, what the shortcode showed in 1.3.0.
  *
  * @package EPM
  */
@@ -65,6 +72,36 @@ final class Shortcodes {
 	 */
 	private function is_on( $value ): bool {
 		return in_array( strtolower( trim( (string) $value ) ), [ '1', 'yes', 'true', 'on' ], true );
+	}
+
+	/**
+	 * The details a shortcode chose itself: every detail of the context
+	 * whose attribute is present (null for the others: they inherit).
+	 *
+	 * @param mixed                 $raw     Attributes as written.
+	 * @param string                $context Details context.
+	 * @param array<string, string> $aliases Attribute => detail (older names).
+	 * @return array<string, bool|null>
+	 */
+	private function explicit_details( $raw, string $context, array $aliases = [] ): array {
+		$raw = is_array( $raw ) ? array_change_key_case( $raw, CASE_LOWER ) : [];
+		$out = [];
+
+		foreach ( Details::flags( $context ) as $flag ) {
+			$out[ $flag ] = null;
+		}
+		foreach ( $aliases as $attribute => $flag ) {
+			if ( isset( $raw[ $attribute ] ) && array_key_exists( $flag, $out ) ) {
+				$out[ $flag ] = $this->is_on( $raw[ $attribute ] );
+			}
+		}
+		foreach ( array_keys( $out ) as $flag ) {
+			if ( isset( $raw[ $flag ] ) ) {
+				$out[ $flag ] = $this->is_on( $raw[ $flag ] );
+			}
+		}
+
+		return $out;
 	}
 
 	/**
@@ -196,37 +233,48 @@ final class Shortcodes {
 	}
 
 	/**
-	 * [podcast_player id="123" layout="editorial" source="current"]
+	 * [podcast_player id="123" layout="editorial" source="current" sticky="no"]
+	 *
+	 * Details as attributes (show_volume="no", …; download and share are
+	 * kept as short names). Missing ones follow the site.
 	 *
 	 * @param array $atts Shortcode attributes.
 	 * @return string
 	 */
 	public function player( $atts ): string {
+		$raw  = $atts;
 		$atts = shortcode_atts(
 			[
-				'id'       => 0,
-				'source'   => 'current',
-				'layout'   => '',
-				'sticky'   => 'no',
-				'download' => 'no',
-				'share'    => 'yes',
+				'id'     => 0,
+				'source' => 'current',
+				'layout' => '',
+				'sticky' => 'no',
 			],
 			$atts,
 			'podcast_player'
 		);
 
-		$source = (int) $atts['id'] > 0 ? 'specific' : sanitize_key( $atts['source'] );
+		$source  = (int) $atts['id'] > 0 ? 'specific' : sanitize_key( $atts['source'] );
 		$episode = epm()->renderer->resolve_episode( $source, (int) $atts['id'] );
 
 		if ( ! $episode ) {
 			return '';
 		}
 
-		$args = [
-			'sticky'        => $this->is_on( $atts['sticky'] ),
-			'show_download' => $this->is_on( $atts['download'] ),
-			'show_share'    => $this->is_on( $atts['share'] ),
-		];
+		$args = Details::resolve(
+			'player',
+			$this->explicit_details(
+				$raw,
+				'player',
+				[
+					'download' => 'show_download',
+					'share'    => 'show_share',
+				]
+			),
+			'shortcode'
+		);
+
+		$args['sticky'] = $this->is_on( $atts['sticky'] );
 		if ( '' !== $atts['layout'] ) {
 			$args['layout'] = sanitize_key( $atts['layout'] );
 		}
@@ -237,15 +285,21 @@ final class Shortcodes {
 	}
 
 	/**
-	 * [podcast_latest layout="artwork"]
+	 * [podcast_latest layout="artwork" sticky="no"]
+	 *
+	 * The newest episode with audio. Details as attributes, like
+	 * [podcast_player]; sticky="yes" opens the sticky player when playback
+	 * starts here (off by default, as in 1.3.0).
 	 *
 	 * @param array $atts Shortcode attributes.
 	 * @return string
 	 */
 	public function latest( $atts ): string {
+		$raw  = $atts;
 		$atts = shortcode_atts(
 			[
 				'layout' => '',
+				'sticky' => 'no',
 			],
 			$atts,
 			'podcast_latest'
@@ -257,10 +311,20 @@ final class Shortcodes {
 			return '';
 		}
 
-		$args = [
-			'show_artwork'     => true,
-			'show_description' => true,
-		];
+		$args = Details::resolve(
+			'latest',
+			$this->explicit_details(
+				$raw,
+				'latest',
+				[
+					'download' => 'show_download',
+					'share'    => 'show_share',
+				]
+			),
+			'shortcode'
+		);
+
+		$args['sticky'] = $this->is_on( $atts['sticky'] );
 		if ( '' !== $atts['layout'] ) {
 			$args['layout'] = sanitize_key( $atts['layout'] );
 		}
@@ -297,21 +361,22 @@ final class Shortcodes {
 	 *   season="1" topic="slug,slug" show_topics="no"]
 	 *
 	 * topic limits the list to episodes with any of the given topics;
-	 * show_topics adds topic chips to rows and cards.
+	 * show_topics adds topic chips to rows and cards. Details as attributes
+	 * (show_artwork, show_excerpt, …); missing ones follow the site.
 	 *
 	 * @param array $atts Shortcode attributes.
 	 * @return string
 	 */
 	public function episodes( $atts ): string {
+		$raw  = $atts;
 		$atts = shortcode_atts(
 			[
 				'limit'   => 10,
 				'layout'  => '',
 				'orderby' => 'date',
-				'order'       => 'DESC',
-				'season'      => 0,
-				'topic'       => '',
-				'show_topics' => 'no',
+				'order'   => 'DESC',
+				'season'  => 0,
+				'topic'   => '',
 			],
 			$atts,
 			'podcast_episodes'
@@ -332,14 +397,16 @@ final class Shortcodes {
 
 		$posts = epm()->episodes->get_episodes( $query_args );
 
+		$layout = '' !== $atts['layout'] ? sanitize_key( $atts['layout'] ) : (string) epm()->design->get( 'default_episode_layout' );
+		$rows   = ! in_array( $layout, [ 'cards', 'grid' ], true );
+
+		$args = Details::resolve( 'list', $this->explicit_details( $raw, 'list' ), $rows ? 'shortcode-rows' : 'shortcode' );
+
 		// A season or topic filter that matches nothing gets the "selection"
 		// empty state with a link to all episodes.
-		$args = [
-			'filtered'    => isset( $query_args['season'] ) || ! empty( $topic_args ),
-			'show_topics' => $this->is_on( $atts['show_topics'] ),
-		];
+		$args['filtered'] = isset( $query_args['season'] ) || ! empty( $topic_args );
 		if ( '' !== $atts['layout'] ) {
-			$args['layout'] = sanitize_key( $atts['layout'] );
+			$args['layout'] = $layout;
 		}
 
 		Assets::enqueue();
