@@ -90,6 +90,27 @@ final class Importer {
 	}
 
 	/**
+	 * The episode with a GUID, read from the database (0 when none). Any
+	 * status, the trash included, like guid_map().
+	 *
+	 * @param string $guid GUID.
+	 * @return int
+	 */
+	public static function find_guid( string $guid ): int {
+		global $wpdb;
+
+		// BINARY: GUIDs are compared byte for byte, like guid_map() does.
+		return (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- must see what other requests wrote.
+			$wpdb->prepare(
+				"SELECT pm.post_id FROM {$wpdb->postmeta} pm INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id WHERE pm.meta_key = %s AND BINARY pm.meta_value = %s AND p.post_type = %s ORDER BY pm.post_id LIMIT 1",
+				Episodes::META_PREFIX . 'guid',
+				$guid,
+				EpisodePostType::CPT
+			)
+		);
+	}
+
+	/**
 	 * Load every known episode and its meta in two queries, so checking a
 	 * long feed for changes does not cost queries per item.
 	 *
@@ -168,6 +189,16 @@ final class Importer {
 		$map     = $this->guid_map();
 		$post_id = $map[ $guid ] ?? 0;
 		$fingerprint = md5( (string) wp_json_encode( $item ) );
+
+		// The list was read when this run started: another request may
+		// have created the episode since. Ask the database right before
+		// creating one, so a GUID never gets a second episode.
+		if ( $post_id <= 0 ) {
+			$post_id = self::find_guid( $guid );
+			if ( $post_id > 0 ) {
+				$this->guid_map[ $guid ] = $post_id;
+			}
+		}
 
 		if ( $post_id > 0 ) {
 			$post = get_post( $post_id );

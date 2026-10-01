@@ -41,6 +41,25 @@ final class ImportJob {
 	private static string $lock_owner = '';
 
 	/**
+	 * The lock value this request last wrote ('' when it holds none).
+	 *
+	 * @var string
+	 */
+	private static string $lock_value = '';
+
+	/**
+	 * When this request last wrote its lock.
+	 *
+	 * @var int
+	 */
+	private static int $lock_written = 0;
+
+	/**
+	 * Seconds between two renewals of a held lock (keep_lock()).
+	 */
+	private const LOCK_RENEW = 10;
+
+	/**
 	 * Wire AJAX handlers and the background continuation.
 	 *
 	 * @return void
@@ -65,32 +84,53 @@ final class ImportJob {
 	/**
 	 * Take the import/sync lock. Stale locks (a crashed request) expire.
 	 *
-	 * The lock stores its time and an owner, so only the request that took
-	 * it releases it, and a running import refreshes it before every
-	 * episode (see refresh_lock()).
+	 * The lock is a row in the options table, changed only with conditional
+	 * statements, so two requests can never both hold it: a free lock is
+	 * taken by inserting the row only when it is missing, an abandoned one
+	 * by replacing exactly the value that was read. Option caches are
+	 * bypassed (a persistent object cache or the "not an option" cache of
+	 * a long-running process would otherwise let a request overwrite a
+	 * live lock). The lock stores its time and an owner, so only the
+	 * request that took it renews or releases it.
 	 *
 	 * @return bool
 	 */
 	public static function acquire_lock(): bool {
 		$owner = wp_generate_password( 12, false );
+		$value = time() . ':' . $owner;
 
-		// add_option() fails when the row exists: an atomic test-and-set.
-		if ( add_option( self::LOCK, time() . ':' . $owner, '', false ) ) {
-			self::$lock_owner = $owner;
-			return true;
+		if ( self::lock_insert( $value ) ) {
+			return self::hold_lock( $owner, $value );
 		}
 
-		wp_cache_delete( self::LOCK, 'options' );
-		$since = (int) strtok( (string) get_option( self::LOCK, '' ), ':' );
-		if ( $since > 0 && time() - $since > self::lock_ttl() ) {
-			delete_option( self::LOCK );
-			if ( add_option( self::LOCK, time() . ':' . $owner, '', false ) ) {
-				self::$lock_owner = $owner;
-				return true;
-			}
+		$current = self::lock_read();
+		if ( null === $current ) {
+			// Released in the meantime.
+			return self::lock_insert( $value ) && self::hold_lock( $owner, $value );
 		}
 
-		return false;
+		$since = (int) strtok( $current, ':' );
+		if ( $since > 0 && time() - $since <= self::lock_ttl() ) {
+			return false;
+		}
+
+		// Abandoned: take it over, unless another request just did.
+		return self::lock_replace( $current, $value ) && self::hold_lock( $owner, $value );
+	}
+
+	/**
+	 * Remember the lock this request now holds.
+	 *
+	 * @param string $owner Owner.
+	 * @param string $value Lock value.
+	 * @return bool True.
+	 */
+	private static function hold_lock( string $owner, string $value ): bool {
+		self::$lock_owner   = $owner;
+		self::$lock_value   = $value;
+		self::$lock_written = time();
+
+		return true;
 	}
 
 	/**
@@ -109,20 +149,12 @@ final class ImportJob {
 	}
 
 	/**
-	 * Whether this request holds the lock (read past the request cache).
+	 * Whether this request holds the lock (read from the database).
 	 *
 	 * @return bool
 	 */
 	private static function owns_lock(): bool {
-		if ( '' === self::$lock_owner ) {
-			return false;
-		}
-
-		wp_cache_delete( self::LOCK, 'options' );
-		$value = (string) get_option( self::LOCK, '' );
-		$colon = strpos( $value, ':' );
-
-		return false !== $colon && substr( $value, $colon + 1 ) === self::$lock_owner;
+		return '' !== self::$lock_value && self::lock_read() === self::$lock_value;
 	}
 
 	/**
@@ -132,13 +164,47 @@ final class ImportJob {
 	 * @return bool Whether the lock is still held by this request.
 	 */
 	public static function refresh_lock(): bool {
-		if ( ! self::owns_lock() ) {
+		if ( '' === self::$lock_value ) {
 			return false;
 		}
 
-		update_option( self::LOCK, time() . ':' . self::$lock_owner, false );
+		$value = time() . ':' . self::$lock_owner;
+		if ( $value === self::$lock_value ? self::owns_lock() : self::lock_replace( self::$lock_value, $value ) ) {
+			self::$lock_value   = $value;
+			self::$lock_written = time();
+			return true;
+		}
 
-		return true;
+		// Taken over: this request holds nothing any more.
+		self::$lock_owner = '';
+		self::$lock_value = '';
+
+		return false;
+	}
+
+	/**
+	 * Check the lock before the next piece of work: renewed every few
+	 * seconds, otherwise only verified.
+	 *
+	 * @return bool Whether this request still holds the lock.
+	 */
+	public static function keep_lock(): bool {
+		if ( '' === self::$lock_value ) {
+			return false;
+		}
+
+		if ( time() - self::$lock_written >= self::LOCK_RENEW ) {
+			return self::refresh_lock();
+		}
+
+		if ( self::owns_lock() ) {
+			return true;
+		}
+
+		self::$lock_owner = '';
+		self::$lock_value = '';
+
+		return false;
 	}
 
 	/**
@@ -148,10 +214,97 @@ final class ImportJob {
 	 * @return void
 	 */
 	public static function release_lock(): void {
-		if ( self::owns_lock() ) {
-			delete_option( self::LOCK );
+		if ( '' !== self::$lock_value ) {
+			self::lock_delete( self::$lock_value );
 		}
 		self::$lock_owner = '';
+		self::$lock_value = '';
+	}
+
+	/**
+	 * The lock row's value, read from the database (null when there is none).
+	 *
+	 * @return string|null
+	 */
+	private static function lock_read(): ?string {
+		global $wpdb;
+
+		$value = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s LIMIT 1", self::LOCK ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- the lock must never be read from a cache.
+
+		return null === $value ? null : (string) $value;
+	}
+
+	/**
+	 * Insert the lock row only when it does not exist.
+	 *
+	 * @param string $value Lock value.
+	 * @return bool Whether this request inserted it.
+	 */
+	private static function lock_insert( string $value ): bool {
+		global $wpdb;
+
+		$rows = $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, %s)", self::LOCK, $value, self::no_autoload() ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- atomic test-and-set.
+		self::forget_option( self::LOCK );
+
+		return 1 === (int) $rows;
+	}
+
+	/**
+	 * Replace the lock row's value only while it is $expected.
+	 *
+	 * @param string $expected Value read before.
+	 * @param string $value    New value.
+	 * @return bool Whether the row was replaced.
+	 */
+	private static function lock_replace( string $expected, string $value ): bool {
+		global $wpdb;
+
+		$rows = $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND BINARY option_value = %s", $value, self::LOCK, $expected ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- compare-and-swap.
+		self::forget_option( self::LOCK );
+
+		return 1 === (int) $rows;
+	}
+
+	/**
+	 * Delete the lock row only while it is $expected.
+	 *
+	 * @param string $expected Value this request wrote.
+	 * @return void
+	 */
+	private static function lock_delete( string $expected ): void {
+		global $wpdb;
+
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name = %s AND BINARY option_value = %s", self::LOCK, $expected ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- compare-and-delete.
+		self::forget_option( self::LOCK );
+	}
+
+	/**
+	 * Drop an option from every options cache after a direct write, so the
+	 * next get_option() reads the database.
+	 *
+	 * @param string $name Option.
+	 * @return void
+	 */
+	private static function forget_option( string $name ): void {
+		wp_cache_delete( $name, 'options' );
+
+		foreach ( [ 'notoptions', 'alloptions' ] as $key ) {
+			$cached = wp_cache_get( $key, 'options' );
+			if ( is_array( $cached ) && array_key_exists( $name, $cached ) ) {
+				unset( $cached[ $name ] );
+				wp_cache_set( $key, $cached, 'options' );
+			}
+		}
+	}
+
+	/**
+	 * The "not autoloaded" value of the options table's autoload column.
+	 *
+	 * @return string
+	 */
+	private static function no_autoload(): string {
+		// WordPress 6.6 writes "off"; earlier versions only know "no".
+		return function_exists( 'wp_autoload_values_to_autoload' ) ? 'off' : 'no';
 	}
 
 	/**
@@ -498,7 +651,9 @@ final class ImportJob {
 
 			$done = 0;
 			while ( (int) $job['position'] < $total && $done < $batch && ( microtime( true ) - $started ) < $budget ) {
-				self::refresh_lock();
+				if ( ! self::keep_lock() ) {
+					break;
+				}
 				$item    = $items[ (int) $job['position'] ];
 				$outcome = $importer->import_item( $item );
 

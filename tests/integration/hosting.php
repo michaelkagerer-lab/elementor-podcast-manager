@@ -1991,11 +1991,19 @@ $t->test(
 
 		// Refreshed while held; a running copy of media keeps it for longer.
 		$t->assert( ImportJob::acquire_lock(), 'lock taken once more' );
+		$taken = (int) strtok( (string) get_option( 'epm_import_lock' ), ':' );
+		sleep( 1 );
+		$t->assert( ImportJob::refresh_lock(), 'refreshed' );
+		$t->assert( (int) strtok( (string) get_option( 'epm_import_lock' ), ':' ) > $taken, 'with the current time' );
+		$t->assert( ImportJob::refresh_lock(), 'refreshed again within the same second' );
+		// A lock row someone else rewrote (even with the same owner part)
+		// is not this request's lock any more.
 		$suffix = substr( (string) get_option( 'epm_import_lock' ), strpos( (string) get_option( 'epm_import_lock' ), ':' ) );
 		update_option( 'epm_import_lock', ( time() - 100 ) . $suffix, false );
-		$t->assert( ImportJob::refresh_lock(), 'refreshed' );
-		$t->assert( (int) strtok( (string) get_option( 'epm_import_lock' ), ':' ) >= time() - 5, 'with the current time' );
+		$t->same( false, ImportJob::refresh_lock(), 'a rewritten lock is not renewed' );
 		ImportJob::release_lock();
+		$t->same( ( time() - 100 ) . $suffix, get_option( 'epm_import_lock' ), 'nor released' );
+		delete_option( 'epm_import_lock' );
 
 		$job = get_option( ImportJob::OPTION );
 		update_option(

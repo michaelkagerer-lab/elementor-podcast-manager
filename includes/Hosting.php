@@ -906,8 +906,8 @@ final class Hosting {
 			$guids   = [];
 
 			// Oldest first, so a capped run imports in publishing order.
-			$items     = array_reverse( $parsed['items'] );
-			$refreshed = time();
+			$items = array_reverse( $parsed['items'] );
+			$lost  = false;
 			foreach ( $items as $item ) {
 				$guids[ (string) $item['guid'] ] = true;
 
@@ -917,10 +917,11 @@ final class Hosting {
 				}
 
 				// A long run keeps its lock (new episodes fetch chapters and
-				// transcripts); renewed once a minute at most.
-				if ( time() - $refreshed >= MINUTE_IN_SECONDS ) {
-					ImportJob::refresh_lock();
-					$refreshed = time();
+				// transcripts). When another request took it over (this run
+				// looked abandoned), stop: that request works now.
+				if ( ! ImportJob::keep_lock() ) {
+					$lost = true;
+					break;
 				}
 				$outcome = $importer->import_item( $item );
 				if ( 'created' === $outcome['action'] ) {
@@ -928,6 +929,18 @@ final class Hosting {
 				} elseif ( 'updated' === $outcome['action'] ) {
 					++$result['updated'];
 				}
+			}
+
+			// Stopped half-way: nothing is recorded as synced (no validators,
+			// no drafting of missing episodes), so the next run reads the
+			// whole feed again.
+			if ( $lost ) {
+				if ( $result['created'] || $result['updated'] ) {
+					Feed::flush_cache();
+				}
+				$result['status']  = 'busy';
+				$result['message'] = __( 'Another import or sync took over, so this sync stopped. It runs again on the next schedule.', 'elementor-podcast-manager' );
+				return $result;
 			}
 
 			if ( 'draft' === $settings['missing'] && ! empty( $items ) ) {
