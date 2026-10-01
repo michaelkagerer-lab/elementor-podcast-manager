@@ -339,6 +339,34 @@ $epm_steps = [
 				<label><input type="radio" name="type" value="serial" <?php checked( 'serial', $epm_settings['type'] ); ?> /> <?php esc_html_e( 'Oldest first — listeners should start at episode 1 (stories, courses)', 'elementor-podcast-manager' ); ?></label>
 			</fieldset>
 
+			<?php $epm_previous = \EPM\Feed::previous_plugins(); ?>
+			<?php if ( ! empty( $epm_previous ) ) : ?>
+				<fieldset class="epm-field" data-path-only="new move">
+					<legend class="epm-field__label"><?php esc_html_e( 'Your previous feed address', 'elementor-podcast-manager' ); ?></legend>
+					<label>
+						<input type="checkbox" name="feed_alias" value="1" <?php checked( ! empty( $epm_settings['feed_alias'] ) ); ?> aria-describedby="epm-setup-feed-alias-help" />
+						<?php
+						printf(
+							/* translators: %s: old feed address, e.g. https://example.com/feed/podcast/ */
+							esc_html__( 'Redirect %s to this feed', 'elementor-podcast-manager' ),
+							'<code>' . esc_html( home_url( '/feed/podcast/' ) ) . '</code>'
+						);
+						?>
+					</label>
+					<p class="epm-field__help" id="epm-setup-feed-alias-help">
+						<?php
+						echo esc_html(
+							sprintf(
+								/* translators: %s: plugin names, e.g. "PowerPress" */
+								__( 'This site has settings of %s, whose feed was at /feed/podcast/. Apps and directories subscribed there follow the permanent redirect to the new feed. Turn it on once the old plugin is deactivated.', 'elementor-podcast-manager' ),
+								implode( ', ', $epm_previous )
+							)
+						);
+						?>
+					</p>
+				</fieldset>
+			<?php endif; ?>
+
 			<div class="epm-field">
 				<span class="epm-field__label" id="epm-setup-artwork-label"><?php esc_html_e( 'Podcast artwork', 'elementor-podcast-manager' ); ?></span>
 				<div class="epm-artwork-picker">

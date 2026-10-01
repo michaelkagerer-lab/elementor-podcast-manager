@@ -537,6 +537,69 @@ $t->test(
 	}
 );
 
+$t->test(
+	'FEED-N8: the setup assistant and the settings offer the previous address when PowerPress or Seriously Simple Podcasting left settings',
+	static function ( EPM_Test_Runner $t ) {
+		delete_option( 'powerpress_general' );
+		$t->same( [], Feed::previous_plugins(), 'nothing found' );
+		update_option( 'powerpress_general', [ 'title' => 'Old' ], false );
+		$t->same( [ 'PowerPress' ], Feed::previous_plugins(), 'PowerPress found' );
+
+		ob_start();
+		require EPM_PATH . 'admin/views/setup.php';
+		$html = (string) ob_get_clean();
+		$t->assert( false !== strpos( $html, 'name="feed_alias"' ) && false !== strpos( $html, 'PowerPress' ), 'the setup assistant offers it' );
+
+		$pages = new AdminPages();
+		$pages->save_step( 'show', [ 'title' => 'Test & Talk Podcast', 'feed_alias' => 'true' ] );
+		$t->same( true, (bool) epm()->settings->get( 'feed_alias' ), 'and saves it' );
+		$pages->save_step( 'show', [ 'title' => 'Test & Talk Podcast', 'feed_alias' => 'false' ] );
+		$t->same( false, (bool) epm()->settings->get( 'feed_alias' ), 'or not' );
+		epm_f_restore( 'powerpress_general' );
+	}
+);
+
+$t->test(
+	'FEED-N15: a feed address that changed after it was shown for submission is reported until the new one is confirmed',
+	static function ( EPM_Test_Runner $t ) {
+		global $wp_rewrite;
+
+		delete_option( Feed::ADDRESS_OPTION );
+		wp_set_current_user( (int) ( get_users( [ 'role' => 'administrator', 'number' => 1, 'fields' => 'ID' ] )[0] ?? 1 ) );
+		ob_start();
+		$pages = new AdminPages();
+		$pages->render_distribution();
+		ob_end_clean();
+		wp_set_current_user( 0 );
+		$t->same( Feed::url(), get_option( Feed::ADDRESS_OPTION ), 'the address shown on Distribution is remembered' );
+		$t->same( null, Feed::address_change(), 'unchanged' );
+
+		$wp_rewrite->set_permalink_structure( '' );
+		$change = Feed::address_change();
+		$t->assert( null !== $change && false !== strpos( $change['now'], Feed::QUERY_VAR ), 'plain permalinks: the address changed' );
+		$found = null;
+		foreach ( Readiness::report()['checks'] as $check ) {
+			if ( 'Feed address' === $check['label'] ) {
+				$found = $check;
+			}
+		}
+		$t->assert( null !== $found && 'error' === $found['status'] && false !== strpos( $found['message'], '/podcast/feed/' ), 'the readiness report names both addresses' );
+		$t->same( [ Feed::QUERY_VAR => '1' ], ( static function () {
+			$_SERVER['REQUEST_URI'] = wp_parse_url( home_url( '/podcast/feed/' ), PHP_URL_PATH );
+			return Feed::route_request( [] );
+		} )(), 'the old pretty address still serves the feed under plain permalinks' );
+
+		unset( $_SERVER['REQUEST_URI'] );
+
+		Feed::accept_address();
+		$t->same( null, Feed::address_change(), 'confirmed' );
+
+		$wp_rewrite->set_permalink_structure( '/%postname%/' );
+		epm_f_restore( Feed::ADDRESS_OPTION );
+		epm_f_restore( 'permalink_structure' );
+	}
+);
+
 /* ------------------------------------------------------------------------- */
 /* FEED-N6: GUIDs                                                            */
 /* ------------------------------------------------------------------------- */
@@ -729,6 +792,120 @@ $t->test(
 		);
 		$t->assert( 1 === count( $more ) && false !== strpos( $more[0]['message'], number_format_i18n( $all - 50 ) . ' more' ), 'the rest counted: ' . ( $more[0]['message'] ?? '' ) );
 		epm_perf_catalog_reset();
+	}
+);
+
+/* ------------------------------------------------------------------------- */
+/* FEED-N4: the delivery test                                                */
+/* ------------------------------------------------------------------------- */
+
+$t->test(
+	'FEED-N4: the delivery test checks the first enclosure of the feed (not the newest audio), with the measurement prefix',
+	static function ( EPM_Test_Runner $t ) use ( $fx ) {
+		$label = static function ( array $checks, string $label ): ?array {
+			foreach ( $checks as $check ) {
+				if ( $label === $check['label'] ) {
+					return $check;
+				}
+			}
+			return null;
+		};
+
+		// The newest episode with audio is "WAV only", which is not in the feed.
+		$checks = AdminPages::server_check();
+		$tested = $label( $checks, 'Episode tested' );
+		$t->assert( null !== $tested && false !== strpos( $tested['message'], 'epm-episode-3.mp3' ), 'tests epm-episode-3.mp3: ' . ( $tested['message'] ?? '' ) );
+		$t->same( 'ok', $label( $checks, 'Audio (byte ranges)' )['status'] ?? '', 'ranges ok' );
+
+		// A broken statistics prefix: every enclosure answers 404.
+		$hosting = Hosting::all();
+		update_option( Hosting::OPTION, Hosting::sanitize( array_merge( $hosting, [ 'stats' => 'custom', 'stats_prefix' => 'https://typo-stats.example.test/e/' ] ) ) );
+		$checks = AdminPages::server_check();
+		$t->assert( false !== strpos( (string) ( $label( $checks, 'Episode tested' )['message'] ?? '' ), 'typo-stats.example.test' ), 'tests the prefixed address' );
+		$t->same( 'error', $label( $checks, 'Audio (HEAD)' )['status'] ?? '', 'HEAD 404 is an error' );
+
+		// A prefix that redirects to the file: followed.
+		update_option( Hosting::OPTION, Hosting::sanitize( array_merge( $hosting, [ 'stats' => 'custom', 'stats_prefix' => 'https://redirect-stats.example.test/e/' ] ) ) );
+		$item = epm()->feed->first_item();
+		EPM_Test_HTTP::$routes[ $item['url'] ] = static function ( $args ) use ( $item ) {
+			if ( empty( $args['redirection'] ) ) {
+				return EPM_Test_HTTP::response( 302, '', [ 'location' => 'https://feeds.example.test/media/final.mp3' ] );
+			}
+			$range = (string) ( $args['headers']['Range'] ?? '' );
+			return '' !== $range
+				? EPM_Test_HTTP::response( 206, 'ab', [ 'content-type' => 'audio/mpeg', 'content-range' => 'bytes 0-1/' . $item['length'], 'content-length' => '2' ] )
+				: EPM_Test_HTTP::response( 200, '', [ 'content-type' => 'audio/mpeg', 'content-length' => (string) $item['length'] ] );
+		};
+		$checks = AdminPages::server_check();
+		$t->same( 'ok', $label( $checks, 'Audio (HEAD)' )['status'] ?? '', 'redirect followed for HEAD' );
+		$t->same( 'ok', $label( $checks, 'Audio (byte ranges)' )['status'] ?? '', 'and for the range request' );
+
+		// A server that answers ranges with a wrong Content-Range.
+		EPM_Test_HTTP::$routes[ $item['url'] ] = static function ( $args ) use ( $item ) {
+			$range = (string) ( $args['headers']['Range'] ?? '' );
+			return '' !== $range
+				? EPM_Test_HTTP::response( 206, str_repeat( 'a', 100 ), [ 'content-type' => 'audio/mpeg', 'content-range' => 'bytes 0-99/' . $item['length'], 'content-length' => '100' ] )
+				: EPM_Test_HTTP::response( 200, '', [ 'content-type' => 'audio/mpeg', 'content-length' => (string) ( $item['length'] + 5 ) ] );
+		};
+		$checks = AdminPages::server_check();
+		$t->same( 'warning', $label( $checks, 'Audio (HEAD)' )['status'] ?? '', 'a size other than the feed\'s is a warning' );
+		$t->same( 'error', $label( $checks, 'Audio (byte ranges)' )['status'] ?? '', 'a wrong range is an error' );
+
+		EPM_Test_HTTP::$routes = [];
+		update_option( Hosting::OPTION, $hosting );
+	}
+);
+
+/* ------------------------------------------------------------------------- */
+/* FEED-N13 / N14: distribution                                              */
+/* ------------------------------------------------------------------------- */
+
+$t->test(
+	'FEED-N13: a listing link must be a public link on that platform; dashboards and other platforms are refused and nothing is saved',
+	static function ( EPM_Test_Runner $t ) {
+		$progress = Directories::progress();
+		$settings = epm()->settings->all();
+
+		$result = Directories::save_progress( 'spotify', '', 'https://creators.spotify.com/pod/dashboard/home' );
+		$t->assert( is_wp_error( $result ) && 'epm_listing_dashboard' === $result->get_error_code(), 'Spotify dashboard refused' );
+		$result = Directories::save_progress( 'apple', '', 'https://open.spotify.com/show/abc' );
+		$t->assert( is_wp_error( $result ) && 'epm_listing_platform' === $result->get_error_code(), 'a Spotify link for Apple refused' );
+		$t->same( $progress, Directories::progress(), 'progress unchanged' );
+		$t->same( $settings['platform_links'], epm()->settings->get( 'platform_links' ), 'no subscribe button added' );
+
+		$t->same( [ 'status' => 'listed', 'url' => 'https://music.youtube.com/playlist?list=abc' ], Directories::save_progress( 'youtube', '', 'https://music.youtube.com/playlist?list=abc' ), 'YouTube Music for YouTube' );
+		$t->same( [ 'status' => 'listed', 'url' => 'https://www.audible.com/podcast/abc' ], Directories::save_progress( 'amazon', '', 'https://www.audible.com/podcast/abc' ), 'Audible for Amazon Music & Audible' );
+		$t->same( [ 'status' => 'listed', 'url' => 'https://www.podcast.de/podcast/1/' ], Directories::save_progress( 'podcastde', '', 'https://www.podcast.de/podcast/1/' ), 'podcast.de (no known address)' );
+
+		update_option( Directories::OPTION, $progress, false );
+		update_option( PodcastSettings::OPTION, $settings );
+	}
+);
+
+$t->test(
+	'FEED-N14: YouTube\'s requirements as Google states them; titles with "<" or ">" are reported while YouTube is tracked',
+	static function ( EPM_Test_Runner $t ) {
+		$youtube = Directories::get( 'youtube' );
+		$t->assert( false !== stripos( $youtube['needs'], 'must not contain advertisements' ), 'no advertisements of any kind' );
+		$t->assert( false !== strpos( $youtube['needs'], '“<”' ) && false !== strpos( $youtube['needs'], '“>”' ), '"<" and ">" named' );
+		$t->assert( '' !== $youtube['region'], 'available in select countries and regions' );
+		$t->same( 'recommended', $youtube['priority'], 'not essential for every show' );
+
+		$id       = epm_f_episode( 'Q&A: 1 < 2 > 0', '2026-03-10 10:00:00' );
+		$progress = Directories::progress();
+		$warned   = static function (): bool {
+			foreach ( Readiness::report()['checks'] as $check ) {
+				if ( 'Episode: Q&#038;A: 1 &lt; 2 &gt; 0' === $check['label'] || false !== strpos( $check['message'], 'YouTube does not accept' ) ) {
+					return true;
+				}
+			}
+			return false;
+		};
+		$t->same( false, $warned(), 'no warning while YouTube is not tracked' );
+		update_option( Directories::OPTION, array_merge( $progress, [ 'youtube' => [ 'status' => 'submitted', 'url' => '' ] ] ), false );
+		$t->same( true, $warned(), 'a warning once it is' );
+		update_option( Directories::OPTION, $progress, false );
+		wp_delete_post( $id, true );
 	}
 );
 

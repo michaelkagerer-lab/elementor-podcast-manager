@@ -44,6 +44,7 @@ final class AdminPages {
 		add_action( 'wp_ajax_epm_distribution_save', [ $this, 'ajax_distribution_save' ] );
 		add_action( 'wp_ajax_epm_setup_dismiss', [ $this, 'ajax_setup_dismiss' ] );
 		add_action( 'wp_ajax_epm_server_check', [ $this, 'ajax_server_check' ] );
+		add_action( 'admin_post_epm_feed_address', [ $this, 'accept_feed_address' ] );
 		add_filter( 'plugin_action_links_' . plugin_basename( EPM_FILE ), [ $this, 'plugin_links' ] );
 	}
 
@@ -292,6 +293,26 @@ final class AdminPages {
 			);
 		}
 
+		// The feed address directories know stopped working (the permalink
+		// setting changed): say so where it happens and on podcast screens.
+		$change = Feed::address_change();
+		if ( null !== $change && ( $ours || 'dashboard' === $id || 'options-permalink' === $id ) ) {
+			printf(
+				'<div class="notice notice-error"><p><strong>%1$s</strong> %2$s</p><p><a href="%3$s">%4$s</a></p></div>',
+				esc_html__( 'Your podcast feed has a new address.', 'elementor-podcast-manager' ),
+				esc_html(
+					sprintf(
+						/* translators: 1: feed address submitted to directories, 2: new feed address */
+						__( 'Directories and apps load %1$s, but this site now publishes the feed at %2$s. Change the permalink setting back, or submit the new address to every directory.', 'elementor-podcast-manager' ),
+						$change['shown'],
+						$change['now']
+					)
+				),
+				esc_url( admin_url( 'admin.php?page=epm-distribution' ) ),
+				esc_html__( 'Open Distribution', 'elementor-podcast-manager' )
+			);
+		}
+
 		$state = Hosting::state();
 		if ( Hosting::sync_enabled() && (int) $state['failures'] >= 3 && ( $ours || 'dashboard' === $id ) ) {
 			printf(
@@ -302,6 +323,23 @@ final class AdminPages {
 				esc_html__( 'Check the hosting settings', 'elementor-podcast-manager' )
 			);
 		}
+	}
+
+	/**
+	 * Distribution screen: the new feed address was submitted to the
+	 * directories (or the old one redirects), stop warning.
+	 *
+	 * @return void
+	 */
+	public function accept_feed_address(): void {
+		check_admin_referer( 'epm_feed_address' );
+		if ( ! Capabilities::can_manage_podcast() ) {
+			wp_die( esc_html__( 'You do not have permission to change the podcast setup.', 'elementor-podcast-manager' ), '', [ 'response' => 403 ] );
+		}
+
+		Feed::accept_address();
+		wp_safe_redirect( admin_url( 'admin.php?page=epm-distribution' ) );
+		exit;
 	}
 
 	/**
@@ -396,6 +434,10 @@ final class AdminPages {
 				$allowed  = [ 'title', 'description', 'short_description', 'author', 'host', 'owner_name', 'owner_email', 'category', 'language', 'explicit', 'type', 'artwork_id', 'copyright', 'website_url' ];
 				$current  = $settings->all();
 				$next     = array_merge( $current, array_intersect_key( $data, array_flip( $allowed ) ) );
+				// Offered when an earlier podcast plugin's settings exist.
+				if ( isset( $data['feed_alias'] ) ) {
+					$next['feed_alias'] = in_array( $data['feed_alias'], [ '1', 1, true, 'true', 'on' ], true );
+				}
 				// The select sends "Category::Subcategory"; a changed category
 				// must not keep the old subcategory.
 				if ( isset( $data['category'] ) ) {
@@ -555,11 +597,16 @@ final class AdminPages {
 			wp_send_json_error( [ 'message' => __( 'Unknown platform.', 'elementor-podcast-manager' ) ] );
 		}
 
-		wp_send_json_success( Directories::save_progress( $id, $status, $url ) );
+		$saved = Directories::save_progress( $id, $status, $url );
+		if ( is_wp_error( $saved ) ) {
+			wp_send_json_error( [ 'message' => $saved->get_error_message() ] );
+		}
+
+		wp_send_json_success( $saved );
 	}
 
 	/**
-	 * AJAX: check how the feed and the newest episode's audio are served.
+	 * AJAX: check how the feed and the first episode's audio are served.
 	 *
 	 * @return void
 	 */
@@ -570,9 +617,11 @@ final class AdminPages {
 
 	/**
 	 * Delivery checks directories run before accepting a show: the feed
-	 * answers with XML over HTTPS; the audio answers HEAD with a size and
-	 * an audio type, and byte-range requests with 206 (Apple Podcasts and
-	 * Pandora require both for streaming and seeking).
+	 * answers with XML over HTTPS; the audio of the first episode in the
+	 * feed, at the address the feed gives (download-statistics prefix
+	 * included, redirects followed), answers HEAD with its size and an
+	 * audio type, and byte-range requests with 206 and the right range
+	 * (Apple Podcasts and Pandora require both for streaming and seeking).
 	 *
 	 * Requests use wp_safe_remote_*: the audio URL may be set by any user who
 	 * can publish episodes.
@@ -615,16 +664,28 @@ final class AdminPages {
 			$add( 'warning', __( 'HTTPS', 'elementor-podcast-manager' ), __( 'The feed address uses http://. Apple Podcasts and Spotify expect HTTPS; turn on HTTPS for your site before submitting.', 'elementor-podcast-manager' ) );
 		}
 
-		// --- Audio of the newest episode ---
-		$latest = epm()->episodes->get_latest( true );
-		$data   = $latest ? epm()->episodes->get_public_data( $latest ) : null;
-		if ( null === $data || empty( $data['has_audio'] ) ) {
-			$add( 'warning', __( 'Audio', 'elementor-podcast-manager' ), __( 'Publish an episode with audio to test how the audio is served.', 'elementor-podcast-manager' ) );
+		// --- The audio directories fetch: the first episode in the feed,
+		// at the address the feed gives (with a download-statistics
+		// prefix, after its redirects). ---
+		$item = epm()->feed->first_item();
+		if ( null === $item ) {
+			$add( 'warning', __( 'Audio', 'elementor-podcast-manager' ), __( 'Publish an episode with MP3 or M4A audio to test how the audio is served.', 'elementor-podcast-manager' ) );
 			return $checks;
 		}
 
-		$audio = (string) $data['audio_url'];
-		$head  = wp_safe_remote_head( $audio, $args );
+		$audio = $item['url'];
+		$add(
+			'ok',
+			__( 'Episode tested', 'elementor-podcast-manager' ),
+			sprintf(
+				/* translators: 1: episode title, 2: audio address from the feed */
+				__( '“%1$s”, the first episode in the feed: %2$s', 'elementor-podcast-manager' ),
+				$item['title'],
+				$audio
+			)
+		);
+
+		$head = wp_safe_remote_head( $audio, $args );
 		if ( is_wp_error( $head ) ) {
 			$add( 'error', __( 'Audio (HEAD)', 'elementor-podcast-manager' ), sprintf( /* translators: %s: error */ __( 'The audio did not answer a HEAD request: %s', 'elementor-podcast-manager' ), $head->get_error_message() ) );
 		} else {
@@ -637,6 +698,17 @@ final class AdminPages {
 				$add( 'warning', __( 'Audio (HEAD)', 'elementor-podcast-manager' ), __( 'The server does not report the file size (Content-Length). Apps need it to show download progress.', 'elementor-podcast-manager' ) );
 			} elseif ( '' !== $type && 0 !== strpos( $type, 'audio/' ) && 0 !== strpos( $type, 'video/' ) ) {
 				$add( 'warning', __( 'Audio (HEAD)', 'elementor-podcast-manager' ), sprintf( /* translators: %s: content type */ __( 'The audio is served as %s. It should be served with an audio type such as audio/mpeg.', 'elementor-podcast-manager' ), $type ) );
+			} elseif ( $item['length'] > 0 && $length !== $item['length'] ) {
+				$add(
+					'warning',
+					__( 'Audio (HEAD)', 'elementor-podcast-manager' ),
+					sprintf(
+						/* translators: 1: file size in the feed, 2: file size the server reports */
+						__( 'The feed gives the file size as %1$s bytes, the server as %2$s bytes. Apps may stop the download early or call the file damaged. Attach the file again, or correct the size at the host.', 'elementor-podcast-manager' ),
+						number_format_i18n( $item['length'] ),
+						number_format_i18n( $length )
+					)
+				);
 			} else {
 				$add( 'ok', __( 'Audio (HEAD)', 'elementor-podcast-manager' ), sprintf( /* translators: 1: file size, 2: content type */ __( '%1$s, %2$s.', 'elementor-podcast-manager' ), size_format( $length ), '' !== $type ? $type : '?' ) );
 			}
@@ -646,7 +718,33 @@ final class AdminPages {
 		if ( is_wp_error( $range ) ) {
 			$add( 'error', __( 'Audio (byte ranges)', 'elementor-podcast-manager' ), sprintf( /* translators: %s: error */ __( 'The range request failed: %s', 'elementor-podcast-manager' ), $range->get_error_message() ) );
 		} elseif ( 206 === (int) wp_remote_retrieve_response_code( $range ) ) {
-			$add( 'ok', __( 'Audio (byte ranges)', 'elementor-podcast-manager' ), __( 'Supported: listeners can seek and apps can stream.', 'elementor-podcast-manager' ) );
+			$content_range = trim( (string) wp_remote_retrieve_header( $range, 'content-range' ) );
+			$range_length  = wp_remote_retrieve_header( $range, 'content-length' );
+			if ( ! preg_match( '#^bytes 0-1/(\d+|\*)$#i', $content_range, $m ) || ( '' !== (string) $range_length && 2 !== (int) $range_length ) ) {
+				$add(
+					'error',
+					__( 'Audio (byte ranges)', 'elementor-podcast-manager' ),
+					sprintf(
+						/* translators: 1: Content-Range header, 2: Content-Length header */
+						__( 'The server answers a request for the first two bytes with a wrong range (Content-Range “%1$s”, Content-Length “%2$s”). Apps that seek would get the wrong part of the file. Ask your web host to check byte-range support for audio files.', 'elementor-podcast-manager' ),
+						'' !== $content_range ? $content_range : '–',
+						'' !== (string) $range_length ? (string) $range_length : '–'
+					)
+				);
+			} elseif ( $item['length'] > 0 && '*' !== $m[1] && (int) $m[1] !== $item['length'] ) {
+				$add(
+					'warning',
+					__( 'Audio (byte ranges)', 'elementor-podcast-manager' ),
+					sprintf(
+						/* translators: 1: file size in the feed, 2: file size from the server's Content-Range */
+						__( 'Supported, but the feed gives the file size as %1$s bytes and the server as %2$s bytes.', 'elementor-podcast-manager' ),
+						number_format_i18n( $item['length'] ),
+						number_format_i18n( (int) $m[1] )
+					)
+				);
+			} else {
+				$add( 'ok', __( 'Audio (byte ranges)', 'elementor-podcast-manager' ), __( 'Supported: listeners can seek and apps can stream.', 'elementor-podcast-manager' ) );
+			}
 		} else {
 			$add( 'error', __( 'Audio (byte ranges)', 'elementor-podcast-manager' ), __( 'The server ignores byte-range requests. Apple Podcasts rejects such shows. Ask your web host to enable range requests for audio files, or serve the audio from a CDN or storage bucket.', 'elementor-podcast-manager' ) );
 		}

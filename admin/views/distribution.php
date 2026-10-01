@@ -9,7 +9,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// The address shown here is what gets submitted: remember it, so a later
+// change (the permalink setting) is reported.
+\EPM\Feed::remember_address();
 $epm_feed       = \EPM\Hosting::public_feed_url();
+$epm_moved      = \EPM\Feed::address_change();
 $epm_external   = \EPM\Hosting::is_external();
 $epm_dirs       = \EPM\Directories::all();
 $epm_progress   = \EPM\Directories::progress();
@@ -104,10 +108,31 @@ $epm_icon = static function ( array $dir ): string {
 					esc_html( \EPM\Hosting::provider_name() )
 				);
 			} else {
-				esc_html_e( 'This website publishes your feed. It never changes, even if you change themes or permalinks.', 'elementor-podcast-manager' );
+				esc_html_e( 'This website publishes your feed. Its address stays the same when you change themes; changing the permalink setting to “Plain” changes it, and this screen tells you if that happens.', 'elementor-podcast-manager' );
 			}
 			?>
 		</p>
+		<?php if ( null !== $epm_moved ) : ?>
+			<div class="epm-callout epm-callout--error">
+				<p><strong><?php esc_html_e( 'Your feed has a new address.', 'elementor-podcast-manager' ); ?></strong>
+				<?php
+				echo esc_html(
+					sprintf(
+						/* translators: 1: feed address submitted to directories, 2: new feed address */
+						__( 'Directories and apps load %1$s, which this site no longer uses for the feed. The feed is now at %2$s. Change the permalink setting back, or submit the new address to every directory you listed the show in.', 'elementor-podcast-manager' ),
+						$epm_moved['shown'],
+						$epm_moved['now']
+					)
+				);
+				?>
+				</p>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+					<input type="hidden" name="action" value="epm_feed_address" />
+					<?php wp_nonce_field( 'epm_feed_address' ); ?>
+					<button type="submit" class="button"><?php esc_html_e( 'I submitted the new address', 'elementor-podcast-manager' ); ?></button>
+				</form>
+			</div>
+		<?php endif; ?>
 		<div class="epm-copy">
 			<code class="epm-copy__value"><?php echo esc_html( $epm_feed ); ?></code>
 			<button type="button" class="button button-primary" data-copy="<?php echo esc_attr( $epm_feed ); ?>"><?php esc_html_e( 'Copy feed address', 'elementor-podcast-manager' ); ?></button>
