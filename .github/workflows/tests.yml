@@ -55,6 +55,40 @@ jobs:
         if: failure()
         run: cat /tmp/epm-wp/site/wp-content/debug.log || true
 
+  mariadb:
+    name: Races and import on MariaDB 10.11 (PHP 8.4)
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: epm_test
+          MARIADB_USER: epm
+          MARIADB_PASSWORD: epm
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=24
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mysqli, pdo_mysql, gd, zip, mbstring, intl
+          tools: none
+      - name: Site on MariaDB
+        run: WP_DB=mysql DB_NAME=epm_test DB_USER=epm DB_PASSWORD=epm DB_HOST=127.0.0.1:3306 tests/bin/setup-wp.sh
+      - name: Import integration tests
+        run: |
+          EPM_ALLOW_TEST_SEED=1 /tmp/epm-wp/wp eval-file tests/fixtures/seed.php > /dev/null
+          /tmp/epm-wp/wp eval-file tests/integration/import.php
+      - name: Race tests (two processes, with the stress run)
+        run: STRESS=1 WP_DIR=/tmp/epm-wp tests/concurrency/run.sh
+      - name: Debug log
+        if: failure()
+        run: cat /tmp/epm-wp/site/wp-content/debug.log || true
+
   browser:
     name: Browser (Playwright)
     runs-on: ubuntu-latest

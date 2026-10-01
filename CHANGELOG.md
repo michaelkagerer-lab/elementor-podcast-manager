@@ -119,7 +119,8 @@
   stress run), part of `run-all.sh`. They fail on 1.3.0 and pass now, on
   SQLite and MariaDB.
 - `tests/bin/setup-wp.sh`: `WP_DB=mysql` installs the test site on
-  MySQL/MariaDB (SQLite stays the default).
+  MySQL/MariaDB (SQLite stays the default). CI runs the import suite and
+  the race tests (with the stress run) on MariaDB 10.11 as well.
 - `tests/integration/import.php`: paged feeds (every stop reason, relative
   links, cycle, duplicates, resume), the move guard, `wp podcast import`,
   storage, cleanup, the 1.3.0 migration and uninstall.
