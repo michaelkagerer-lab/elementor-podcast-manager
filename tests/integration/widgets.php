@@ -48,8 +48,7 @@ $titles = static function ( string $html ): array {
  * A control of a widget type.
  */
 $control = static function ( string $type, string $id ): array {
-	$element = \Elementor\Plugin::$instance->elements_manager->create_element_instance( [ 'id' => 'c1', 'elType' => 'widget', 'widgetType' => $type, 'settings' => [], 'elements' => [] ] );
-	return (array) $element->get_controls( $id );
+	return (array) ( epm_test_controls( $type )[ $id ] ?? [] );
 };
 
 /**
@@ -205,11 +204,10 @@ $t->test(
 );
 
 $t->test(
-	'every widget offers only details the renderer has (no dead content controls)',
+	'every detail control is Default / Show / Hide with Default as the default',
 	static function ( EPM_Test_Runner $t ) {
 		foreach ( [ 'epm-podcast-player', 'epm-latest-episode', 'epm-episode-list' ] as $type ) {
-			$element  = \Elementor\Plugin::$instance->elements_manager->create_element_instance( [ 'id' => 'c2', 'elType' => 'widget', 'widgetType' => $type, 'settings' => [], 'elements' => [] ] );
-			$controls = $element->get_controls();
+			$controls = epm_test_controls( $type );
 			foreach ( $controls as $id => $c ) {
 				if ( 0 === strpos( (string) $id, 'show_' ) && 'select' === ( $c['type'] ?? '' ) ) {
 					$t->same( [ '', 'yes', 'no' ], array_keys( (array) $c['options'] ), $type . '.' . $id . ' is Default/Show/Hide' );

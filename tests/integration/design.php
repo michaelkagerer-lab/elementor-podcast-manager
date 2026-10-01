@@ -631,11 +631,11 @@ $t->test(
 	static function ( EPM_Test_Runner $t ) use ( $reset, $player, $new_player ) {
 		try {
 			foreach ( [ 'epm-podcast-player', 'epm-latest-episode', 'epm-episode-list' ] as $type ) {
-				$element = \Elementor\Plugin::$instance->elements_manager->create_element_instance( [ 'id' => 'x1', 'elType' => 'widget', 'widgetType' => $type, 'settings' => [], 'elements' => [] ] );
-				$control = $element->get_controls( 'layout' );
+				$controls = epm_test_controls( $type );
+				$control  = $controls['layout'] ?? [];
 				$t->same( '', $control['default'] ?? null, $type . ': default is ""' );
 				$t->assert( false !== strpos( (string) ( $control['options'][''] ?? '' ), 'Podcast → Design' ), $type . ': the default option names Podcast → Design' );
-				$schema = $element->get_controls( 'epm_schema' );
+				$schema = $controls['epm_schema'] ?? [];
 				$t->assert( ! empty( $schema['save_default'] ) && '2' === ( $schema['default'] ?? '' ), $type . ': schema marker is always saved' );
 			}
 

@@ -411,3 +411,31 @@ if ( ! function_exists( 'epm_test_details_consumers' ) ) {
 		return $consumers;
 	}
 }
+
+if ( ! function_exists( 'epm_test_controls' ) ) {
+
+	/**
+	 * Every control of a widget type with labels, options and
+	 * descriptions, as the editor gets them. (On frontend requests
+	 * Elementor keeps only the parts needed to render.)
+	 *
+	 * @param string $type Widget type.
+	 * @return array<string, array<string, mixed>>
+	 */
+	function epm_test_controls( string $type ): array {
+		$flag = new ReflectionProperty( \Elementor\Core\Frontend\Performance::class, 'is_frontend' );
+		$flag->setAccessible( true );
+		$was = $flag->getValue();
+		$flag->setValue( null, false );
+
+		$element = \Elementor\Plugin::$instance->elements_manager->create_element_instance( [ 'id' => 'ctrl001', 'elType' => 'widget', 'widgetType' => $type, 'settings' => [], 'elements' => [] ] );
+		\Elementor\Plugin::$instance->controls_manager->delete_stack( $element );
+		$controls = (array) $element->get_controls();
+
+		// Back to what rendering uses.
+		$flag->setValue( null, $was );
+		\Elementor\Plugin::$instance->controls_manager->delete_stack( $element );
+
+		return $controls;
+	}
+}
