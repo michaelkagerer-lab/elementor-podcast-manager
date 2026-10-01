@@ -14,6 +14,8 @@
  *                                                    Retry-After: 120)
  * - https://feeds.example.test/media/<name>.png      a generated square PNG (1400 px, or
  *                                                    <name>-<w>x<h>.png)
+ * - https://feeds.example.test/generated/<n>.xml     a generated show of n episodes (at most
+ *                                                    20,000) for catalog-size tests
  * - https://show.example.test/…                      web pages that link to a feed (see page())
  * - https://itunes.apple.com/lookup?id=…             Apple's lookup API for the IDs in APPLE_IDS
  * - https://api.podcastindex.org/…                   Podcast Index (the "feed updated" ping): a
@@ -218,6 +220,16 @@ if ( ! class_exists( 'EPM_Test_HTTP' ) ) {
 				);
 			}
 
+			if ( preg_match( '#^/generated/(\d+)\.xml$#', $path, $m ) ) {
+				$body = self::generated( min( 20000, (int) $m[1] ) );
+				$etag = '"' . md5( $body ) . '"';
+				$sent = (string) ( $args['headers']['If-None-Match'] ?? $args['headers']['if-none-match'] ?? '' );
+				if ( '' !== $sent && $sent === $etag ) {
+					return self::response( 304, '', [ 'etag' => $etag ] );
+				}
+				return self::response( 200, $body, [ 'content-type' => 'application/rss+xml; charset=UTF-8', 'etag' => $etag ] );
+			}
+
 			$file = self::dir() . ltrim( $path, '/' );
 			if ( ! is_file( $file ) ) {
 				return self::response( 404, 'Not found' );
@@ -324,6 +336,33 @@ if ( ! class_exists( 'EPM_Test_HTTP' ) ) {
 			}
 
 			return $response;
+		}
+
+		/**
+		 * A generated show of $count episodes, newest first, one day apart
+		 * (GUIDs gen-1 … gen-<count>), for catalog-size tests such as moving
+		 * a large show (tests/perf/production.sh).
+		 *
+		 * @param int $count Episodes.
+		 * @return string
+		 */
+		public static function generated( int $count ): string {
+			$items = [];
+			for ( $k = $count; $k >= 1; $k-- ) {
+				$items[] = '<item><title>Generated episode ' . $k . '</title><guid isPermaLink="false">gen-' . $k . '</guid>'
+					. '<pubDate>' . gmdate( 'D, d M Y H:i:s', 1262304000 + $k * DAY_IN_SECONDS ) . ' +0000</pubDate>'
+					. '<description><![CDATA[<p>Show notes for generated episode ' . $k . str_repeat( ' lorem ipsum dolor sit amet', 20 ) . '</p>]]></description>'
+					. '<enclosure url="https://feeds.example.test/media/gen-' . $k . '.mp3" length="' . ( 1000000 + $k ) . '" type="audio/mpeg"/>'
+					. '<itunes:duration>10:00</itunes:duration><itunes:episode>' . $k . '</itunes:episode></item>';
+			}
+
+			return '<?xml version="1.0" encoding="UTF-8"?>'
+				. '<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:podcast="https://podcastindex.org/namespace/1.0"><channel>'
+				. '<title>Generated Show</title><link>https://show.example.test/</link><description>A generated show for catalog-size tests.</description>'
+				. '<language>en</language><itunes:author>Generated</itunes:author>'
+				. '<itunes:owner><itunes:name>Generated</itunes:name><itunes:email>owner@example.test</itunes:email></itunes:owner>'
+				. '<itunes:image href="https://feeds.example.test/media/generated.png"/><itunes:category text="Technology"/>'
+				. implode( '', $items ) . '</channel></rss>';
 		}
 
 		/**

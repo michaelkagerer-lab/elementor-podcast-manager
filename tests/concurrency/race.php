@@ -35,6 +35,13 @@
  *   job-stress          (STRESS=1 only) cron loop plus a polling step loop
  *                       without barriers: no duplicates
  *
+ * Upgrade and GUIDs
+ *   upgrade-once        two first requests after a plugin update, then two
+ *                       workers on the queued batches: the requests do no
+ *                       per-episode work, the work is done once
+ *   guid-first-read     two requests read an episode that has no GUID yet
+ *                       and both store one: they serve the same GUID
+ *
  * Episodes use GUIDs starting with "race-"/"second-"/"other-" and are
  * deleted by setup and check. Only for disposable test sites.
  *
@@ -810,6 +817,173 @@ $epm_race_scenarios['job-stress'] = [
 		$t->same( 'done', (string) ( $job['status'] ?? '' ), 'the import finishes' );
 		$counts = epm_race_check_episodes( $t, 'race-', true );
 		$t->same( (int) ( getenv( 'STRESS_ITEMS' ) ?: 200 ), count( $counts ), 'every episode once' );
+	},
+];
+
+/* ------------------------------------------------------------------------- */
+/* Upgrade after a plugin update, GUIDs of new episodes                      */
+/* ------------------------------------------------------------------------- */
+
+/**
+ * Count this process's writes of _epm_duration_seconds (the upgrade's
+ * per-episode work, in 1.3 as in the batches).
+ *
+ * @return void
+ */
+function epm_race_count_duration_writes(): void {
+	$GLOBALS['epm_race_duration_writes'] = 0;
+	foreach ( [ 'added_post_meta', 'updated_post_meta' ] as $hook ) {
+		add_action(
+			$hook,
+			static function ( $meta_id, $object_id, $meta_key ) {
+				if ( '_epm_duration_seconds' === $meta_key ) {
+					++$GLOBALS['epm_race_duration_writes'];
+				}
+			},
+			10,
+			3
+		);
+	}
+}
+
+$epm_race_scenarios['upgrade-once'] = [
+	'roles' => [ 'A', 'B' ],
+	'setup' => static function () {
+		global $wpdb;
+		require_once dirname( __DIR__ ) . '/perf/catalog.php';
+		epm_perf_catalog( 40, 0, false );
+		// Stale durations: whoever does the upgrade's work writes them.
+		$wpdb->query( "UPDATE {$wpdb->postmeta} m INNER JOIN {$wpdb->posts} p ON p.ID = m.post_id SET m.meta_value = '1' WHERE m.meta_key = '_epm_duration_seconds' AND p.post_name LIKE 'perf-cat-%'" );
+		// "Updated from 1.2.0"; WordPress boots the roles with the upgrade
+		// held back (early.php), they start it at the same moment.
+		touch( epm_race_dir() . 'hold-upgrade' );
+		$wpdb->update( $wpdb->options, [ 'option_value' => '1.2.0' ], [ 'option_name' => 'epm_version' ] );
+		if ( class_exists( 'EPM\\Upgrade' ) ) {
+			\EPM\OptionRow::delete( \EPM\Upgrade::STATE );
+			\EPM\OptionRow::delete( \EPM\Upgrade::LOCK );
+		}
+		wp_cache_flush();
+	},
+	'role'  => static function () {
+		epm_race_count_duration_writes();
+		$role = epm_race_role();
+
+		// Two first requests after the update.
+		epm_race_signal( 'ready-' . $role );
+		foreach ( epm_race_peers() as $peer ) {
+			epm_race_wait( 'ready-' . $peer, [ $peer ] );
+		}
+		$GLOBALS['epm_race_hold_upgrade'] = false;
+		wp_cache_delete( 'alloptions', 'options' );
+		wp_cache_delete( 'epm_version', 'options' );
+		epm()->maybe_upgrade();
+		$in_request = $GLOBALS['epm_race_duration_writes'];
+
+		// Then two workers on the queued batches (cron and an admin page).
+		epm_race_signal( 'upgraded-' . $role );
+		foreach ( epm_race_peers() as $peer ) {
+			epm_race_wait( 'upgraded-' . $peer, [ $peer ] );
+		}
+		if ( class_exists( 'EPM\\Upgrade' ) ) {
+			do {
+				$result = \EPM\Upgrade::run( 0 );
+				if ( $result['busy'] ) {
+					usleep( 50000 );
+				}
+			} while ( $result['busy'] && ! empty( \EPM\Upgrade::pending() ) );
+		}
+
+		epm_race_result(
+			[
+				'writes_in_request' => $in_request,
+				'writes'            => $GLOBALS['epm_race_duration_writes'],
+			]
+		);
+	},
+	'check' => static function ( EPM_Test_Runner $t ) {
+		global $wpdb;
+		$a = epm_race_results( 'A' );
+		$b = epm_race_results( 'B' );
+		$t->same( 0, (int) ( $a['writes_in_request'] ?? -1 ) + (int) ( $b['writes_in_request'] ?? -1 ), 'the first requests after the update do no per-episode work' );
+		$t->same( 40, (int) ( $a['writes'] ?? 0 ) + (int) ( $b['writes'] ?? 0 ), 'every episode is written once in all (A ' . ( $a['writes'] ?? '?' ) . ', B ' . ( $b['writes'] ?? '?' ) . ')' );
+		$t->assert( 0 === (int) ( $a['writes'] ?? 0 ) || 0 === (int) ( $b['writes'] ?? 0 ), 'only one of them did the work' );
+		$t->same( 0, (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->postmeta} m INNER JOIN {$wpdb->posts} p ON p.ID = m.post_id WHERE m.meta_key = '_epm_duration_seconds' AND m.meta_value <> '600' AND p.post_name LIKE 'perf-cat-%'" ), 'every duration synced' );
+		$t->same( EPM_VERSION, (string) $wpdb->get_var( "SELECT option_value FROM {$wpdb->options} WHERE option_name = 'epm_version'" ), 'version stored' );
+
+		$wpdb->update( $wpdb->options, [ 'option_value' => EPM_VERSION ], [ 'option_name' => 'epm_version' ] );
+		require_once dirname( __DIR__ ) . '/perf/catalog.php';
+		epm_perf_catalog_reset();
+		@unlink( epm_race_dir() . 'hold-upgrade' ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.unlink_unlink
+	},
+];
+
+$epm_race_scenarios['guid-first-read'] = [
+	'roles' => [ 'A', 'B' ],
+	'setup' => static function () {
+		global $wpdb;
+		// An episode written without WordPress's hooks (a migration script,
+		// an integration writing SQL): no GUID yet.
+		foreach ( $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_name = 'race-no-guid'" ) as $old ) {
+			wp_delete_post( (int) $old, true );
+		}
+		wp_insert_post(
+			[
+				'post_type'   => 'podcast_episode',
+				'post_status' => 'publish',
+				'post_title'  => 'Race without GUID',
+				'post_name'   => 'race-no-guid',
+			]
+		);
+		$id = (int) $wpdb->get_var( "SELECT ID FROM {$wpdb->posts} WHERE post_name = 'race-no-guid'" );
+		$wpdb->delete( $wpdb->postmeta, [ 'post_id' => $id, 'meta_key' => '_epm_guid' ] );
+		wp_cache_flush();
+	},
+	'role'  => static function () {
+		global $wpdb;
+		$id   = (int) $wpdb->get_var( "SELECT ID FROM {$wpdb->posts} WHERE post_name = 'race-no-guid'" );
+		$role = epm_race_role();
+		// Both requests have found no GUID when they store one.
+		add_filter(
+			'query',
+			static function ( $query ) use ( $role ) {
+				static $done = false;
+				if ( ! $done && preg_match( '/^\s*INSERT INTO .*_epm_guid/is', (string) $query ) ) {
+					$done = true;
+					epm_race_signal( 'insert-' . $role );
+					foreach ( epm_race_peers() as $peer ) {
+						epm_race_wait( 'insert-' . $peer, [ $peer ] );
+					}
+				}
+				return $query;
+			}
+		);
+		epm_race_signal( 'go-' . $role );
+		foreach ( epm_race_peers() as $peer ) {
+			epm_race_wait( 'go-' . $peer, [ $peer ] );
+		}
+		// What a feed or page request serves.
+		$served = \EPM\Episodes::get_guid( $id );
+		wp_cache_delete( $id, 'post_meta' );
+		epm_race_result(
+			[
+				'served' => $served,
+				'later'  => (string) get_post_meta( $id, '_epm_guid', true ),
+			]
+		);
+	},
+	'check' => static function ( EPM_Test_Runner $t ) {
+		global $wpdb;
+		$a    = epm_race_results( 'A' );
+		$b    = epm_race_results( 'B' );
+		$id   = (int) $wpdb->get_var( "SELECT ID FROM {$wpdb->posts} WHERE post_name = 'race-no-guid'" );
+		$rows = $wpdb->get_col( $wpdb->prepare( "SELECT meta_value FROM {$wpdb->postmeta} WHERE post_id = %d AND meta_key = '_epm_guid' ORDER BY meta_id", $id ) );
+		wp_cache_delete( $id, 'post_meta' );
+		$now = (string) get_post_meta( $id, '_epm_guid', true );
+		$t->assert( '' !== (string) ( $a['served'] ?? '' ), 'A got a GUID' );
+		$t->same( (string) ( $a['served'] ?? 'A' ), (string) ( $b['served'] ?? 'B' ), 'both requests served the same GUID' );
+		$t->same( (string) ( $a['served'] ?? '' ), $now, 'and it is the GUID from then on' );
+		$t->same( [ $now ], array_values( array_unique( $rows ) ), 'every stored row holds it (' . count( $rows ) . ' rows)' );
+		wp_delete_post( $id, true );
 	},
 ];
 

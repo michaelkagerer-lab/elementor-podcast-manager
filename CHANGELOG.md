@@ -174,6 +174,106 @@
   day (filter `epm_import_ttl`, cron event `epm_import_cleanup`), and the
   data goes when an import finishes, fails or is cancelled. Uninstalling
   removes it too.
+- Plugin update took large sites down (LIFE-N1): the first request after
+  an update ran the whole upgrade, loading the meta of every episode at
+  once, and stored the new version only at the end. With 1,000 episodes
+  that have 40 KB transcripts (nginx + php-fpm, stock 128M), every
+  request answered 500 — home page, feed, `wp-login.php`, `wp-admin` —
+  and kept doing so, because the version was never stored. Now the first
+  request stores the version first (a conditional write: exactly one
+  request upgrades) and does only quick work; the per-episode work
+  (durations in seconds, duplicate GUID rows) is queued and done in
+  batches of 200 by WP-Cron (`epm_upgrade_step`), on admin page loads or
+  with `wp podcast upgrade`, under a lock. Measured on the same site: 12
+  of 12 requests 200 after the update, the version stored by the first,
+  the batches done by the next cron run. Duration syncing reads only the
+  keys it needs.
+- Feed memory grew with the catalog (PERF-01, PERF-N1): the feed loaded
+  every audio episode's post, meta and attachments before applying the
+  episode limit, and cached the document in one transient. A 20-episode
+  feed cost as much as an unlimited one; with a 128M limit the feed failed
+  (HTTP 500) at 1,000 episodes with 40 KB transcripts and at 10,000
+  episodes for every limit, and after moving a 5,000-episode show here
+  (which sets the limit to unlimited) every feed request failed. The
+  window is now applied in SQL and the feed is built a page of episodes at
+  a time (each page's posts, meta and attachments are released before the
+  next; page sizes shrink for episodes with long transcripts), the items
+  are written to the cache as they are built, and the cache is kept in
+  pieces of at most 256 KB (`epm_feed_cache` + `epm_feed_chunk_*`, never
+  a file). A conditional request reads only the pointer. Measured through
+  nginx + php-fpm 128M on MariaDB: 10,000 episodes, unlimited: 7 MB
+  (1.3.0: 500 out of memory); limit 500: 6.9 MB (1.3.0: 114.9 MB on 10,000,
+  59.4 MB on 5,000); 1,000 × 40 KB transcripts: 4.7/6.9/17.3 MB for limits
+  20/500/0 (1.3.0: 500 for every limit); after the 5,000-episode move: 200
+  with every episode, 7 MB, 2.4 s cold, then 54 ms (1.3.0: 500 on every
+  request); 304 in 31–48 ms. The feed's content, order, GUIDs and serial
+  window are unchanged, byte for byte against the 1.3.0 builder; episodes
+  with the same publish time are now ordered by ID (newest first).
+- The readiness report and the Distribution screen loaded every episode
+  (PERF-N4): 1,000 episodes with 40 KB transcripts needed 149 MB, 2,000 broke
+  the dashboard at 256 MB. They now work through the episodes page by page
+  (2–15 MB on 300 to 10,000 episodes, results unchanged against the 1.3.0
+  report) and list the first 50 problems with single episodes, counting
+  the rest in one check that links to the episode list.
+- Archive feeds answered by WordPress first (FEED-N3): `/podcast/rss2/`,
+  `/podcast/feed/atom/` and `?post_type=podcast_episode&feed=rss2` (the
+  archive's discovery link under plain permalinks) got WordPress's own 304
+  for `If-Modified-Since`, judged by the last post change, so such clients
+  missed channel changes and, after a switch to another host, the 301.
+  The plugin now takes these requests before WordPress's feed handling;
+  they carry the feed's own ETag and Last-Modified.
+- *Test feed and audio delivery* tested the wrong file (FEED-N4): the
+  newest episode with any audio (a WAV that is not in the feed) at its
+  raw address, so a broken download-statistics prefix passed. It now
+  tests the first enclosure of the feed at the address the feed gives
+  (prefix included, redirects followed), compares `Content-Length` with
+  the feed's `length` and checks the `Content-Range` of the range answer,
+  and names the episode and address it tested.
+- GUIDs of episodes created outside the editor (FEED-N6): REST, WP-CLI and
+  integrations created episodes without a GUID; the first reads each made
+  a random one, so two concurrent requests could store two and serve
+  different GUIDs (seen in 2 of 8 responses). Every new episode now gets
+  its GUID on creation, derived from the show's `podcast:guid` and the
+  episode ID (UUID v5), so every request computes the same; existing GUIDs
+  stay. The upgrade removes extra GUID rows, keeping the one WordPress
+  returned (the GUID the feed served) and recording the removed values in
+  `epm_removed_guid_rows`.
+- Feed cache missed changes (FEED-N9): replacing an audio file in place
+  (`update_attached_file()`, a media-replace plugin) or its metadata, and
+  renaming the site (the fallback for an empty podcast title or
+  description), left the cached feed unchanged for up to 12 hours.
+- `Last-Modified` could freeze in the future (FEED-N10): an episode
+  published with a future date (or a server clock ahead) moved the build
+  time forward for good, so `If-Modified-Since` clients got 304 for every
+  later change. It is now never later than now; a stored future time is
+  repaired on update.
+- `If-None-Match` (FEED-N11): `*` did not match and any tag that merely
+  contained the ETag did. Lists, weak tags and `*` now match whole tags.
+- One bad character broke the whole feed (FEED-N12): U+FFFE/U+FFFF in any
+  field made the feed invalid XML, and invalid UTF-8 emptied the field.
+  Every character XML does not allow is removed, invalid UTF-8 becomes
+  U+FFFD.
+- Listing links (FEED-N13): any address, even a Spotify for Creators
+  dashboard or another platform's link, marked a platform as *Listed* and
+  could become its public subscribe button. A listing link must now be a
+  public link on that platform; dashboards and other platforms' links are
+  refused with a message.
+- YouTube's requirements (FEED-N14) followed Google's help page only in
+  part ("dynamically inserted ads"): YouTube allows no advertisements of
+  any kind in RSS-delivered episodes, RSS delivery is available in select
+  countries and regions, and titles and descriptions must not contain
+  `<`, `>` or HTML. The texts say so (with the source in
+  docs/DISTRIBUTION.md), YouTube moved from *Start here* to
+  *Recommended*, and the readiness report warns about `<`/`>` in titles
+  and descriptions while YouTube is tracked.
+- The feed address changed silently (FEED-N15): switching to plain
+  permalinks moved the feed to `?epm_podcast_feed=1` while directories
+  kept polling `/podcast/feed/`, which then answered with the home page.
+  The address shown on the Distribution screen is remembered; a later
+  change is reported on the Distribution screen, the dashboard, the
+  Permalinks screen and in the readiness report until the new address is
+  confirmed, and `/podcast/feed/` keeps serving the feed under plain
+  permalinks where the web server passes it to WordPress.
 
 ### Changed
 
@@ -222,6 +322,13 @@
   `epm_media_max_wait`, `epm_media_disk_free` (see MIGRATION.md).
 - An import step handles up to ten episodes also when media are copied
   (1.3.0: one); each media download is bounded by the step's time.
+- New setting *Previous feed address* (FEED-N8; Podcast settings → Feed
+  status, off by default; the setup assistant offers it when PowerPress or
+  Seriously Simple Podcasting left settings): `/feed/podcast/` and
+  `?feed=podcast` answer with a permanent redirect to the feed, for shows
+  that moved here from one of those plugins on the same site.
+- `wp podcast upgrade` finishes queued upgrade work; `wp podcast status`
+  lists it.
 
 ### Tests
 
@@ -388,6 +495,26 @@ PLAY-N1..N11, WID-N5). Regression suite: `tests/e2e/player.mjs`.
   preview now always has the (hidden) shell.
 - Touch: the seek and volume sliders take touches across 28px (the
   visible tracks are unchanged).
+- `tests/integration/feed.php`: the feed built page by page against a
+  frozen copy of the 1.3.0 builder (`integration/reference/Feed-1.3.php`),
+  byte for byte, episodic and serial with several limits; the readiness
+  report against the 1.3.0 report; the cache in pieces, 304 without
+  reading them, one builder, overtaken builds; the upgrade under a tight
+  memory limit; GUIDs, HTTP semantics, routing, delivery test, listing
+  links (FEED-N3 … N15).
+- `tests/concurrency/`: `upgrade-once` (two first requests after an
+  update, then two workers on the batches) and `guid-first-read`;
+  `concurrency/early.php` holds the upgrade back while a role boots.
+- `tests/perf/run.sh`: feed (limits 20, 500, 0; 300 vs. 1,500 episodes,
+  heavy 1,000 vs. 10,000 and 1,000 × 40 KB transcripts), readiness and
+  upgrade budgets under 128M; `tests/perf/catalog.php` builds synthetic
+  catalogs with bulk SQL.
+- `tests/perf/production.sh` (with `fpm.sh` and `probe.php`): the upgrade
+  outage, the feed on 5,000/10,000 episodes and the 5,000-episode move,
+  through nginx + php-fpm with a stock 128M php.ini on MariaDB.
+- `tests/http/run.sh`: conditional requests on every archive feed
+  address, `If-None-Match` lists and `*`, HEAD, a future-dated episode,
+  the previous address, `/podcast/feed/` under plain permalinks.
 
 ### Corrected
 - The 1.1.0 and 1.2.0 entries below claimed a working per-widget

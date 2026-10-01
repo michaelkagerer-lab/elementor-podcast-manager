@@ -63,15 +63,17 @@ final class Directories {
 				'region'     => '',
 				'service'    => 'spotify',
 			],
+			// Requirements from YouTube Help, "Deliver podcasts using an RSS
+			// feed" (support.google.com/youtube/answer/13525207).
 			'youtube'       => [
 				'name'       => 'YouTube & YouTube Music',
 				'icon'       => 'youtube',
-				'priority'   => 'essential',
+				'priority'   => 'recommended',
 				'submit_url' => 'https://studio.youtube.com/',
-				'steps'      => __( 'In YouTube Studio choose Create → New podcast → Submit RSS feed, accept the terms, send the verification code to the feed’s email, pick the episodes and publish the podcast once processing is done (it starts as private).', 'elementor-podcast-manager' ),
-				'needs'      => $owner_email . ' ' . __( 'YouTube turns the artwork into still-image videos. Dynamically inserted ads are not allowed.', 'elementor-podcast-manager' ),
+				'steps'      => __( 'In YouTube Studio choose Create → New podcast → Submit RSS feed, accept the terms, send the verification code to the feed’s email, pick the episodes and publish the podcast once processing is done (episodes start as private videos).', 'elementor-podcast-manager' ),
+				'needs'      => __( 'Episodes must not contain advertisements of any kind, read by the host or inserted by a podcast host (YouTube’s Terms of Service). Titles and descriptions must not contain “<”, “>” or HTML.', 'elementor-podcast-manager' ) . ' ' . $owner_email . ' ' . __( 'YouTube turns the artwork into still-image videos.', 'elementor-podcast-manager' ),
 				'via'        => '',
-				'region'     => '',
+				'region'     => __( 'Select countries and regions', 'elementor-podcast-manager' ),
 				'service'    => 'youtube',
 			],
 			'amazon'        => [
@@ -285,12 +287,16 @@ final class Directories {
 	 * platform links) unless one for that service exists already, so the
 	 * subscribe buttons fill themselves as the show gets listed.
 	 *
+	 * A listing URL must be a public link on that platform: a link to its
+	 * dashboard, or to another platform, would mark the show as listed and
+	 * become a wrong subscribe button.
+	 *
 	 * @param string $id     Directory ID.
 	 * @param string $status ''|submitted|listed.
 	 * @param string $url    Listing URL.
-	 * @return array{status: string, url: string}
+	 * @return array{status: string, url: string}|\WP_Error Error (nothing saved) for a URL that is not a listing on that platform.
 	 */
-	public static function save_progress( string $id, string $status, string $url ): array {
+	public static function save_progress( string $id, string $status, string $url ) {
 		$directory = self::get( $id );
 		if ( null === $directory ) {
 			return [
@@ -301,6 +307,12 @@ final class Directories {
 
 		$status = in_array( $status, [ 'submitted', 'listed' ], true ) ? $status : '';
 		$url    = esc_url_raw( $url, [ 'http', 'https' ] );
+		if ( '' !== $url ) {
+			$problem = self::listing_problem( $directory, $url );
+			if ( null !== $problem ) {
+				return $problem;
+			}
+		}
 		if ( '' !== $url && '' === $status ) {
 			$status = 'listed';
 		}
@@ -323,6 +335,76 @@ final class Directories {
 			'status' => $status,
 			'url'    => $url,
 		];
+	}
+
+	/**
+	 * Hosts of the platforms' own dashboards and submission forms: links
+	 * only the podcaster can open, never a listing.
+	 *
+	 * @return string[]
+	 */
+	public static function dashboard_hosts(): array {
+		return [
+			'creators.spotify.com',
+			'podcasters.spotify.com',
+			'artists.spotify.com',
+			'podcastsconnect.apple.com',
+			'studio.youtube.com',
+			'podcasters.amazon.com',
+			'podcasters.iheart.com',
+			'podcasters.deezer.com',
+			'broadcasters.tunein.com',
+			'auth.simplecast.com',
+			'dashboard.simplecast.com',
+		];
+	}
+
+	/**
+	 * Why a URL cannot be a directory's listing link, or null when it can.
+	 *
+	 * @param array<string, string> $directory Directory (from all()).
+	 * @param string                $url       URL.
+	 * @return \WP_Error|null
+	 */
+	public static function listing_problem( array $directory, string $url ): ?\WP_Error {
+		$host = (string) preg_replace( '/^www\./', '', strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) ) );
+		$name = (string) $directory['name'];
+
+		foreach ( self::dashboard_hosts() as $dashboard ) {
+			if ( $host === $dashboard || str_ends_with( $host, '.' . $dashboard ) ) {
+				return new \WP_Error(
+					'epm_listing_dashboard',
+					sprintf(
+						/* translators: %s: platform name */
+						__( 'This is a link to your %s dashboard, which only you can open. Paste the public link to your show: open it in the app or on the website and copy its share link.', 'elementor-podcast-manager' ),
+						$name
+					)
+				);
+			}
+		}
+
+		$service  = (string) ( $directory['service'] ?? 'custom' );
+		$accepted = [ $service ];
+		if ( 'youtube' === $service ) {
+			$accepted[] = 'youtube-music';
+		} elseif ( 'amazon' === $service ) {
+			$accepted[] = 'audible';
+		}
+
+		// Platforms without a known address (podcast.de, Listen Notes)
+		// accept any link that is not another platform's.
+		if ( ! in_array( self::detect_service( $url ), $accepted, true ) ) {
+			return new \WP_Error(
+				'epm_listing_platform',
+				sprintf(
+					/* translators: %1$s: platform name */
+					__( 'This link does not lead to %1$s. Paste the public link to your show on %1$s.', 'elementor-podcast-manager' ),
+					$name
+				)
+			);
+		}
+
+		return null;
 	}
 
 	/**

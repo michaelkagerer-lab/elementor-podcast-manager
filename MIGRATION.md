@@ -1,7 +1,9 @@
 # Migration notes — 1.3.0 → next release (unreleased)
 
 Nothing to do for most sites. Episodes, GUIDs, the podcast GUID, URLs,
-settings, local edits and media are not touched. What changes:
+settings, local edits and media are not touched (only extra copies of a
+GUID row are removed, keeping the GUID the feed served; see *Duplicate
+GUID rows*). What changes:
 
 ## Import data moves from uploads to the database
 
@@ -109,17 +111,147 @@ Nothing to do; behavior to know when you run imports with *Copy audio*
 - **WP-CLI:** new `wp podcast cancel` and `wp podcast finish-move`;
   `wp podcast status` shows the import.
 
+## The first request after an update
+
+1.3.0 ran its upgrade (rewrite rules, feed cache, durations in seconds for
+every episode) inside the first request after an update, whichever
+visitor sent it, and stored the new version only at the end. It loaded
+the meta of every episode at once: with about 1,000 episodes that have
+transcripts, every request ran out of memory (HTTP 500 for the home
+page, the feed, `wp-login.php` and `wp-admin`) and kept doing so, because
+the version was never stored.
+
+Now the first request **stores the new version first**, with a
+conditional write, so exactly one request upgrades and a request that
+dies does not leave the site upgrading on every request. It does only
+the quick part: rewrite rules, the feed cache (and 1.3.0's
+`epm_feed_cache` transient), a stored feed build time in the future
+(repaired to now), the 1.3.0 import folder, Elementor's widget CSS. Work
+on every episode is **queued** in the option `epm_upgrade_state`:
+
+- `durations`: `_epm_duration_seconds` from the duration (or the audio
+  file's length), reading only those keys, 200 episodes per batch;
+- `guid_rows`: duplicate `_epm_guid` rows (below).
+
+The batches run in WP-Cron (event `epm_upgrade_step`, up to 20 seconds per
+run), one batch per admin page load of an administrator (for sites where
+WP-Cron does not run), or all at once with **`wp podcast upgrade`**. A
+lock row (`epm_upgrade_lock`, taken over after five minutes) keeps two
+requests from working on it at the same time. `wp podcast status` lists
+work that is still queued.
+
+**Recovery:** if a site is stuck (WP-Cron off and nobody opens the
+admin), run `wp podcast upgrade`; it also queues the work of a version
+change no request has seen yet. To start over, delete the rows:
+`DELETE FROM wp_options WHERE option_name IN ('epm_upgrade_state', 'epm_upgrade_lock');`
+and set `epm_version` to the previous version (the next request queues
+the work again). Durations in seconds only matter for sorting; the feed
+does not use them.
+
+## Duplicate GUID rows
+
+Before this version an episode created outside the episode editor (REST,
+WP-CLI, an integration) got a random GUID the first time something read
+it; two requests reading it at the same moment could each store one, so
+the episode had two `_epm_guid` rows and the requests that raced served
+different GUIDs. New episodes now get their GUID when they are created,
+on every path, and it is derived from the show's `podcast:guid` and the
+episode ID (a UUID version 5), so concurrent requests compute the same
+value. Existing GUIDs are not changed.
+
+The upgrade's `guid_rows` task removes the extra rows. **Rule:** the row
+with the lowest `meta_id` stays. That is the value `get_post_meta()`
+returns, so it is the GUID every page, the feed and every rebuild of the
+feed served from the moment the second row appeared; the other value was
+served at most by the requests that raced (and by a feed cached by one of
+them until its next rebuild). Keeping it means no GUID that the feed has
+served since then changes.
+
+**Recovery:** every removed value is recorded in the option
+`epm_removed_guid_rows` (post ID, removed GUID, kept GUID, time; the last
+1,000). If a directory or app shows an episode twice because it stored
+the removed value, restore it as the episode's GUID with
+`wp post meta update <ID> _epm_guid '<removed GUID>'` (only one value can
+be the GUID; the directory then sees the other one as removed).
+
+## The feed cache
+
+The rendered feed was one transient (`epm_feed_cache`), several
+megabytes for a large show (written with every escape copy in memory; at
+5,000 episodes and an unlimited feed it never fit into 128 MB, so every
+request built it again and failed). It is now kept in non-autoloaded
+rows of the options table: `epm_feed_cache` (a few hundred bytes of JSON:
+ETag, Last-Modified, expiry, the build's name and number of pieces) and
+`epm_feed_chunk_<build>_<n>` (pieces of at most 256 KB), written and read
+directly, never through an options or object cache. Older builds' pieces
+are removed by a later build. The 1.3.0 transient is deleted on the
+first request after the update.
+
+- The feed is built a page of episodes at a time; its content, order,
+  GUIDs and serial reversal are unchanged (compared byte for byte with the
+  1.3.0 builder in the tests). Episodes with exactly the same publish
+  time are ordered by ID, newest first (1.3.0 left their order to the
+  database).
+- The ETag is computed differently: clients get one full response after
+  the update, then 304s as before. `If-None-Match` now also matches `*`
+  and weak tags, and no longer matches a tag that merely contains the
+  ETag.
+- `Last-Modified` and `<lastBuildDate>` are never later than now.
+- The filter `epm_feed_cache_enabled` still turns the cache off.
+- `Feed::get_document()` and `Feed::eligible_episodes()` still exist;
+  the second holds every eligible post in memory and should not be used
+  for large shows (`Feed::eligible_ids()` returns IDs).
+
+**Recovery:** the cache is derived data. `wp eval 'EPM\Feed::flush_cache();'`
+forgets it; to remove every row:
+`DELETE FROM wp_options WHERE option_name = 'epm_feed_cache' OR option_name LIKE 'epm\_feed\_chunk\_%';`
+
+## Feed addresses
+
+- `/podcast/rss2/`, `/podcast/feed/atom/` and
+  `?post_type=podcast_episode&feed=rss2` are answered by the plugin
+  before WordPress's own feed handling, with the podcast feed's ETag and
+  Last-Modified (WordPress answered `If-Modified-Since` on them with its
+  own 304, so such clients missed changes and, in external mode, the 301).
+- New setting `feed_alias` (Podcast settings → *Previous feed address*,
+  off by default): `/feed/podcast/` and `?feed=podcast` (PowerPress, Seriously
+  Simple Podcasting) answer with a 301 to the feed. Turning it on or off
+  rebuilds the rewrite rules.
+- Under plain permalinks `/podcast/feed/` serves the feed where the web
+  server passes it to WordPress.
+- New option `epm_feed_address`: the feed address the Distribution screen
+  showed; a later change of the address is reported (confirm the new one
+  on the Distribution screen).
+
+## Distribution
+
+- The delivery test checks the first episode in the feed at the address
+  the feed gives (measurement prefix included) instead of the newest
+  episode with any audio.
+- A listing link must be a public link on that platform; dashboards and
+  other platforms' links are refused (stored progress is not changed).
+- YouTube & YouTube Music moved from *Start here* to *Recommended* (no
+  advertisements allowed, select countries/regions): the header now
+  counts four essential platforms.
+- The readiness report and the Distribution screen work through the
+  episodes page by page; beyond 50 problems with single episodes the rest
+  are counted in one check (the error and warning totals include them).
+
 ## Scheduled events
 
 | Event | Change |
 |---|---|
+| `epm_upgrade_step` | New: a single event after an update while per-episode upgrade work is queued; removed when it is done |
 | `epm_import_cleanup` | New: a single event a day after a feed is checked; expires the check when nothing was imported and removes data no job uses |
 | `epm_podcast_index_ping` | New name of the Podcast Index notification (1.3.0: `epm_ping_podcast_index`). An event scheduled by 1.3.0 is moved to the new name, keeping its time. `epm_ping_podcast_index` stays the filter that turns the notification off; in 1.3.0 that filter could not stop it, and publishing sent the notification at once |
 
 ## Uninstall
 
-Additionally removes every `epm_import_chunk_*` row and the
-`epm_import_cleanup` event, whether or not data deletion is enabled.
+Additionally removes every `epm_import_chunk_*` and `epm_feed_chunk_*`
+row, the `epm_feed_cache`, `epm_upgrade_state` and `epm_upgrade_lock`
+options and the `epm_import_cleanup` and `epm_upgrade_step` events,
+whether or not data deletion is enabled; with data deletion also
+`epm_feed_address` and `epm_removed_guid_rows`.
 
 ## Rollback
 
@@ -133,8 +265,16 @@ picked up by 1.3.0 either, so finish or cancel those too
 entries in `_epm_import_hash` and the `_epm_import_extras` meta are
 ignored by 1.3.0.
 
+Reactivating 1.3.0 also works with the new feed cache and upgrade rows:
+1.3.0 caches the feed in its transient again (and runs its own upgrade
+in the first request, with the memory problem described above). GUIDs
+new episodes got here stay (they are stored); new episodes created under
+1.3.0 get random GUIDs again. Remove the rows:
+
 ```sql
 DELETE FROM wp_options WHERE option_name LIKE 'epm\_import\_chunk\_%';
+DELETE FROM wp_options WHERE option_name = 'epm_feed_cache' OR option_name LIKE 'epm\_feed\_chunk\_%';
+DELETE FROM wp_options WHERE option_name IN ('epm_upgrade_state', 'epm_upgrade_lock');
 ```
 
 ---

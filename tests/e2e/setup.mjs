@@ -623,13 +623,13 @@ console.log('Distribution');
 			primary: Array.from(document.querySelectorAll('[data-epm-distribution] [data-submit-link].button-primary')).map((a) => a.closest('[data-directory]').getAttribute('data-directory')),
 		}));
 	const before = await progress();
-	assert(before.score === '0 of 5' && JSON.stringify(before.primary) === '["apple"]', `one "Submit" button is primary: the next platform (${JSON.stringify(before)})`);
+	assert(before.score === '0 of 4' && JSON.stringify(before.primary) === '["apple"]', `one "Submit" button is primary: the next platform (${JSON.stringify(before)})`);
 	const apple = page.locator('[data-directory="apple"]');
 	await apple.locator('summary').click();
 	await apple.locator('[name="submitted"]').check();
-	await page.waitForFunction(() => document.querySelector('[data-dist-score]').textContent.trim() === '1 of 5', null, { timeout: 10000 }).catch(() => {});
+	await page.waitForFunction(() => document.querySelector('[data-dist-score]').textContent.trim() === '1 of 4', null, { timeout: 10000 }).catch(() => {});
 	const after = await progress();
-	assert(after.score === '1 of 5' && JSON.stringify(after.primary) === '["spotify"]', `the count and the next platform follow at once (${JSON.stringify(after)})`);
+	assert(after.score === '1 of 4' && JSON.stringify(after.primary) === '["spotify"]', `the count and the next platform follow at once (${JSON.stringify(after)})`);
 	const gaps = await page.evaluate(() => {
 		const copy = document.querySelector('[data-epm-distribution] .epm-copy').getBoundingClientRect();
 		const help = document.querySelector('[data-epm-distribution] .epm-copy + .epm-field__help').getBoundingClientRect();

@@ -1,6 +1,6 @@
 <?php
 /**
- * WP-CLI commands: `wp podcast import|cancel|finish-move|sync|status`.
+ * WP-CLI commands: `wp podcast import|cancel|finish-move|sync|status|upgrade`.
  *
  * Useful for very large catalogs (no browser request limits) and for
  * scripted migrations. Uses the same code paths as the admin screens.
@@ -421,5 +421,53 @@ final class Cli {
 		}
 
 		\WP_CLI\Utils\format_items( 'table', $rows, [ 'key', 'value' ] );
+
+		$pending = Upgrade::pending();
+		if ( ! empty( $pending ) ) {
+			\WP_CLI::log( 'Upgrade work still queued: ' . implode( ', ', $pending ) . ' (`wp podcast upgrade` finishes it).' );
+		}
+	}
+
+	/**
+	 * Finish the upgrade work queued after a plugin update.
+	 *
+	 * The first request after an update only does quick work; work on
+	 * every episode (durations in seconds, duplicate GUID rows) is done in
+	 * batches by WP-Cron and admin page loads. This runs all of it now,
+	 * batch by batch, without loading the whole catalog.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp podcast upgrade
+	 *
+	 * @return void
+	 */
+	public function upgrade(): void {
+		// A version stored before this command (an update not yet seen by
+		// any request) queues its work first.
+		epm()->maybe_upgrade();
+
+		$pending = Upgrade::pending();
+		if ( empty( $pending ) ) {
+			\WP_CLI::success( 'Nothing to do: the upgrade is complete.' );
+			return;
+		}
+
+		\WP_CLI::log( 'Queued: ' . implode( ', ', $pending ) );
+		$batches = 0;
+		$removed = 0;
+		do {
+			$result   = Upgrade::run( 10.0 );
+			$batches += $result['batches'];
+			$removed += $result['removed_guids'];
+			if ( $result['busy'] ) {
+				\WP_CLI::log( 'Another request is working on it; waiting …' );
+				sleep( 2 );
+			} elseif ( 0 === $result['batches'] && ! empty( $result['pending'] ) ) {
+				\WP_CLI::error( 'The upgrade made no progress (the database refused a write?). Pending: ' . implode( ', ', $result['pending'] ) );
+			}
+		} while ( ! empty( $result['pending'] ) );
+
+		\WP_CLI::success( sprintf( 'Upgrade complete (%d batches; %d duplicate GUID rows removed).', $batches, $removed ) );
 	}
 }

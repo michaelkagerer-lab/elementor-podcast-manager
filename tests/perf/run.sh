@@ -1,21 +1,37 @@
 #!/usr/bin/env bash
 #
-# Import budget test: a paged feed is checked over several requests, each
-# within a memory and time budget, under the memory_limit of a stock
-# php-fpm (128M); and an import step costs the same memory whatever the
-# size of the catalog. Every request is a PHP process of its own (like one
-# admin-ajax request), so each peak is that request's own.
+# Budget tests: what one request costs, each request a PHP process of its
+# own with the memory_limit of a stock php-fpm (128M).
+#
+# Import:  a paged feed is checked over several requests, each within a
+#          memory and time budget; an import step costs the same memory
+#          whatever the size of the catalog.
+# Feed:    the feed (limits 20, 500 and unlimited) builds within a memory
+#          budget, and for limits 20 and 500 needs the same memory on a
+#          small and a large catalog; a conditional request (304) is cheap.
+# Readiness: the report needs the same memory on both catalogs.
+# Upgrade: the first request after a plugin update stores the version and
+#          does no per-episode work, even with long transcripts; the
+#          queued batches finish it, each within the budget.
 #
 # Usage: WP_DIR=/tmp/epm-wp tests/perf/run.sh
 #        PERF_HEAVY=1 WP_DIR=/tmp/epm-wp tests/perf/run.sh
 #
 # Default (CI):  check 10 pages x 100 items from a slow host (300 ms per
-#                page); steps on 1,000 vs 4,000 items.
+#                page); steps on 1,000 vs 4,000 items; feed and readiness
+#                on 300 vs 1,500 episodes; upgrade with 300 episodes of
+#                200 KB transcripts (60 MB).
 # PERF_HEAVY=1:  check 50 pages x 500 items (25,000 episodes, ~43 MB of XML);
-#                steps on 1,000 vs 10,000 items. Takes a few minutes.
+#                steps on 1,000 vs 10,000 items; feed and readiness on
+#                1,000 vs 10,000 episodes plus 1,000 episodes with 40 KB
+#                transcripts; upgrade with 1,000 episodes of 200 KB
+#                transcripts (200 MB). Takes several minutes.
 # Env: MEMORY_LIMIT (default 128M), BUDGET_MB (peak above the booted
-#      WordPress per request, default 48), STEP_GROWTH_MB (default 2),
-#      PERF_LATENCY_MS (per page while checking; default 300, heavy 0).
+#      WordPress per import request, default 48), STEP_GROWTH_MB (default 2),
+#      PERF_LATENCY_MS (per page while checking; default 300, heavy 0),
+#      FEED_BUDGET_MB (peak of a feed, readiness or upgrade request above
+#      the booted WordPress, default 24), FEED_GROWTH_MB (default 2),
+#      PERF_ONLY (import, feed, readiness or upgrade: run one section).
 #
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -23,6 +39,9 @@ WP_DIR="${WP_DIR:-/tmp/epm-wp}"
 LIMIT="${MEMORY_LIMIT:-128M}"
 BUDGET="${BUDGET_MB:-48}"
 GROWTH="${STEP_GROWTH_MB:-2}"
+FEED_BUDGET="${FEED_BUDGET_MB:-24}"
+FEED_GROWTH="${FEED_GROWTH_MB:-2}"
+ONLY="${PERF_ONLY:-}"
 FAILED=0
 
 if [ -n "${PERF_HEAVY:-}" ]; then
@@ -30,12 +49,18 @@ if [ -n "${PERF_HEAVY:-}" ]; then
 	SMALL="2 500"
 	LARGE="20 500"
 	LATENCY="${PERF_LATENCY_MS:-0}"
+	CATALOGS="1000 10000"
+	HEAVY_CATALOG="1000x40"
+	UPGRADE_CATALOG="1000 200"
 else
 	CHECK="10 100"
 	SMALL="10 100"
 	LARGE="20 200"
 	# A slow host: the check needs several requests.
 	LATENCY="${PERF_LATENCY_MS:-300}"
+	CATALOGS="300 1500"
+	HEAVY_CATALOG=""
+	UPGRADE_CATALOG="300 200"
 fi
 
 pass() { echo "  ✓ $1"; }
@@ -53,7 +78,7 @@ request() {
 	fi
 	grep '^EPM_PERF ' <<< "$out" | head -1 | cut -c10-
 }
-field() { php -r '$d = json_decode($argv[1], true); $v = $d[$argv[2]] ?? ""; echo is_bool($v) ? ($v ? "true" : "false") : $v;' "$1" "$2"; }
+field() { php -r '$d = json_decode($argv[1], true); $v = $d[$argv[2]] ?? ""; echo is_bool($v) ? ($v ? "true" : "false") : (is_array($v) ? implode(",", $v) : $v);' "$1" "$2"; }
 max() { php -r 'echo max(array_map("floatval", array_slice($argv, 1)));' "$@"; }
 
 # Check a feed the way the import screen does; prints the max request peak.
@@ -82,6 +107,7 @@ steps() {
 	request reset "$pages" "$per" > /dev/null
 }
 
+if [ -z "$ONLY" ] || [ "$ONLY" = import ]; then
 read -r pages per <<< "$CHECK"
 echo "Checking a paged feed: $pages pages x $per items, ${LATENCY} ms per page, memory_limit $LIMIT"
 if result="$(EPM_PERF_LATENCY_MS="$LATENCY" check_feed "$pages" "$per")"; then
@@ -117,6 +143,101 @@ else
 	fail "a request failed (memory_limit $LIMIT)"
 fi
 
+fi
+
+# One request of the catalog budget test: prints its EPM_PERF JSON.
+catalog() {
+	local out
+	out="$(EPM_PERF_MEMORY_LIMIT="$LIMIT" php "$WP_DIR/wp-cli.phar" --path="$WP_DIR/site" --allow-root \
+		eval-file "$HERE/catalog-budget.php" "$@" 2>&1)"
+	if ! grep -q '^EPM_PERF ' <<< "$out"; then
+		echo "REQUEST FAILED ($*): $(grep -E 'Fatal|Error|error' <<< "$out" | head -3)" >&2
+		echo '{}'
+		return 1
+	fi
+	grep '^EPM_PERF ' <<< "$out" | head -1 | cut -c10-
+}
+within() { php -r "exit(is_numeric('$1') && $1 <= $2 ? 0 : 1);"; }
+
+if [ -z "$ONLY" ] || [ "$ONLY" = feed ] || [ "$ONLY" = readiness ]; then
+	declare -A FEED_PEAK=()
+	declare -A READY_PEAK=()
+	for spec in $CATALOGS $HEAVY_CATALOG; do
+		n="${spec%x*}"
+		kb=0
+		[[ "$spec" == *x* ]] && kb="${spec#*x}"
+		json="$(catalog catalog "$n" "$kb" 1)" || { fail "catalog $spec"; continue; }
+		distributable="$(field "$json" distributable)"
+		# The seeded site's own episodes are in the feed too.
+		extra="$(catalog feed 0 cold | php -r '$d = json_decode(stream_get_contents(STDIN), true); echo (int) ($d["items"] ?? 0);')"
+		extra=$((extra - distributable))
+		if [ -z "$ONLY" ] || [ "$ONLY" = feed ]; then
+			echo "Feed: $n episodes$([ "$kb" != 0 ] && echo " with $kb KB transcripts") ($distributable with MP3 audio), memory_limit $LIMIT"
+			for lim in 20 500 0; do
+				json="$(catalog feed "$lim" cold)" || { fail "feed $spec limit $lim: request failed (memory_limit $LIMIT)"; continue; }
+				want=$((distributable + extra))
+				[ "$lim" != 0 ] && [ "$lim" -lt "$want" ] && want="$lim"
+				peak="$(field "$json" peak_mb)"
+				FEED_PEAK["$spec-$lim"]="$peak"
+				echo "  limit $lim: $(field "$json" items) items, $(field "$json" bytes) bytes, ${peak} MB, $(field "$json" seconds) s, $(field "$json" queries) queries"
+				[ "$(field "$json" status)" = 200 ] && [ "$(field "$json" well_formed)" = true ] && [ "$(field "$json" items)" = "$want" ] && [ "$(field "$json" unique)" = true ] \
+					&& pass "limit $lim: 200, well-formed, $want items, no GUID twice" || fail "limit $lim: status $(field "$json" status), $(field "$json" items) items (want $want), well-formed $(field "$json" well_formed)"
+				[ "$(field "$json" exact)" = true ] && { within "$peak" "$FEED_BUDGET" && pass "limit $lim: ${peak} MB (budget $FEED_BUDGET MB)" || fail "limit $lim: ${peak} MB (budget $FEED_BUDGET MB)"; }
+				etag="$(field "$json" etag)"
+			done
+			json="$(catalog feed 0 304 "$etag")" || fail "304 request failed"
+			[ "$(field "$json" status)" = 304 ] && within "$(field "$json" peak_mb)" 2 \
+				&& pass "a conditional request answers 304 with $(field "$json" peak_mb) MB, $(field "$json" queries) queries" || fail "conditional request: status $(field "$json" status), $(field "$json" peak_mb) MB"
+		fi
+		if [ -z "$ONLY" ] || [ "$ONLY" = readiness ]; then
+			json="$(catalog readiness)" || { fail "readiness $spec: request failed (memory_limit $LIMIT)"; continue; }
+			READY_PEAK["$spec"]="$(field "$json" peak_mb)"
+			echo "Readiness: $spec episodes: $(field "$json" checks) checks ($(field "$json" errors) errors, $(field "$json" warnings) warnings), $(field "$json" peak_mb) MB, $(field "$json" seconds) s"
+			[ "$(field "$json" exact)" = true ] && { within "$(field "$json" peak_mb)" "$FEED_BUDGET" && pass "readiness within $FEED_BUDGET MB" || fail "readiness: $(field "$json" peak_mb) MB (budget $FEED_BUDGET MB)"; }
+		fi
+	done
+	read -r small large <<< "$CATALOGS"
+	if [ -n "${FEED_PEAK[$small-20]:-}" ] && [ -n "${FEED_PEAK[$large-20]:-}" ]; then
+		for lim in 20 500; do
+			php -r "exit(${FEED_PEAK[$large-$lim]:-999} - ${FEED_PEAK[$small-$lim]:-0} <= $FEED_GROWTH ? 0 : 1);" \
+				&& pass "feed limit $lim: ${FEED_PEAK[$small-$lim]} MB on $small, ${FEED_PEAK[$large-$lim]} MB on $large episodes (at most $FEED_GROWTH MB more)" \
+				|| fail "feed limit $lim grows from ${FEED_PEAK[$small-$lim]} MB ($small) to ${FEED_PEAK[$large-$lim]} MB ($large)"
+		done
+	fi
+	if [ -n "${READY_PEAK[$small]:-}" ] && [ -n "${READY_PEAK[$large]:-}" ]; then
+		php -r "exit(${READY_PEAK[$large]} - ${READY_PEAK[$small]} <= $FEED_GROWTH ? 0 : 1);" \
+			&& pass "readiness: ${READY_PEAK[$small]} MB on $small, ${READY_PEAK[$large]} MB on $large episodes" \
+			|| fail "readiness grows from ${READY_PEAK[$small]} MB ($small) to ${READY_PEAK[$large]} MB ($large)"
+	fi
+	catalog reset > /dev/null
+fi
+
+if [ -z "$ONLY" ] || [ "$ONLY" = upgrade ]; then
+	read -r n kb <<< "$UPGRADE_CATALOG"
+	echo "Upgrade: the first request after a plugin update, $n episodes with $kb KB transcripts, memory_limit $LIMIT"
+	catalog catalog "$n" "$kb" 0 > /dev/null || fail "catalog"
+	if json="$(catalog upgrade)"; then
+		echo "  first request: $(field "$json" peak_mb) MB, $(field "$json" seconds) s, $(field "$json" queries) queries; pending: $(field "$json" pending)"
+		[ "$(field "$json" version)" != "1.2.0" ] && pass "the new version is stored by the first request" || fail "the version is still $(field "$json" version)"
+		[ "$(field "$json" stale)" = "$n" ] && pass "and it did no per-episode work" || fail "$(field "$json" stale) of $n episodes still stale after the first request"
+		[ "$(field "$json" exact)" = true ] && { within "$(field "$json" peak_mb)" "$FEED_BUDGET" && pass "within $FEED_BUDGET MB" || fail "$(field "$json" peak_mb) MB (budget $FEED_BUDGET MB)"; }
+		steps=0
+		peaks=()
+		while [ "$steps" -lt 30 ]; do
+			json="$(catalog upgrade-step)" || { fail "an upgrade step failed (memory_limit $LIMIT)"; break; }
+			steps=$((steps + 1))
+			peaks+=("$(field "$json" peak_mb)")
+			php -r '$d = json_decode($argv[1], true); exit(empty($d["pending"]) ? 0 : 1);' "$json" && break
+		done
+		echo "  $steps step(s), at most $(max "${peaks[@]:-0}") MB each"
+		[ "$(field "$json" stale)" = 0 ] && pass "the queued batches synced every episode" || fail "$(field "$json" stale) episodes still stale after $steps steps"
+		[ "$(field "$json" exact)" = true ] && { within "$(max "${peaks[@]:-0}")" "$FEED_BUDGET" && pass "each step within $FEED_BUDGET MB" || fail "a step used $(max "${peaks[@]:-0}") MB"; }
+	else
+		fail "the first request after the update failed (memory_limit $LIMIT)"
+	fi
+	catalog reset > /dev/null
+fi
+
 echo
-[ "$FAILED" -eq 0 ] && echo "Import budget passed." || echo "Import budget: $FAILED failed."
+[ "$FAILED" -eq 0 ] && echo "Budget tests passed." || echo "Budget tests: $FAILED failed."
 [ "$FAILED" -eq 0 ]

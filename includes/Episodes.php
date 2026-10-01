@@ -23,6 +23,29 @@ final class Episodes {
 	public const META_PREFIX = '_epm_';
 
 	/**
+	 * Option: GUID rows the upgrade removed (duplicates), for recovery.
+	 */
+	public const REMOVED_GUIDS_OPTION = 'epm_removed_guid_rows';
+
+	/**
+	 * Episodes loaded at a time when many are worked through (at most).
+	 */
+	public const PAGE = 100;
+
+	/**
+	 * Memory a page of loaded episodes may take. Pages get smaller when
+	 * the episodes carry a lot of meta (long transcripts).
+	 */
+	private const PAGE_BYTES = 4 * MB_IN_BYTES;
+
+	/**
+	 * Memory one episode took when the last page was loaded (0: none yet).
+	 *
+	 * @var int
+	 */
+	private static int $episode_bytes = 0;
+
+	/**
 	 * Per-request cache of normalized episode data.
 	 *
 	 * @var array<int, array<string, mixed>>
@@ -38,6 +61,10 @@ final class Episodes {
 		add_action( 'init', [ EpisodePostType::class, 'register' ], 5 );
 		add_action( 'init', [ $this, 'maybe_migrate_guids' ], 20 );
 		add_filter( 'posts_clauses', [ $this, 'order_by_number_clauses' ], 10, 2 );
+		// Every new episode gets its GUID when it is created, whatever
+		// created it (editor, REST, WP-CLI, an integration), before the
+		// first read could race to make one.
+		add_action( 'save_post_' . EpisodePostType::CPT, [ self::class, 'assign_guid' ], 1, 1 );
 	}
 
 	/**
@@ -83,29 +110,25 @@ final class Episodes {
 	 * never see a duplicate. New episodes receive domain-independent
 	 * URN GUIDs on save.
 	 *
+	 * Runs in batches of IDs found with SQL (episodes without a GUID row),
+	 * so a large catalog never loads every episode's meta at once.
+	 *
 	 * @return void
 	 */
 	public function maybe_migrate_guids(): void {
+		global $wpdb;
+
 		if ( get_option( 'epm_guids_migrated', false ) ) {
 			return;
 		}
 
-		$ids = get_posts(
-			[
-				'post_type'      => EpisodePostType::CPT,
-				'post_status'    => 'any',
-				'posts_per_page' => -1,
-				'fields'         => 'ids',
-				'no_found_rows'  => true,
-			]
-		);
-
-		foreach ( $ids as $id ) {
-			if ( '' === (string) get_post_meta( $id, self::META_PREFIX . 'guid', true ) ) {
+		do {
+			$ids = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT p.ID FROM {$wpdb->posts} p LEFT JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = %s WHERE p.post_type = %s AND p.post_status NOT IN ('trash', 'auto-draft') AND m.meta_id IS NULL ORDER BY p.ID LIMIT 500", self::META_PREFIX . 'guid', EpisodePostType::CPT ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one-time migration.
+			foreach ( $ids as $id ) {
 				// Preserve the already-issued identity exactly.
-				update_post_meta( $id, self::META_PREFIX . 'guid', home_url( '/?epm_episode_guid=' . (int) $id ) );
+				add_post_meta( $id, self::META_PREFIX . 'guid', home_url( '/?epm_episode_guid=' . $id ), true );
 			}
-		}
+		} while ( count( $ids ) === 500 );
 
 		update_option( 'epm_guids_migrated', true );
 	}
@@ -113,6 +136,11 @@ final class Episodes {
 	/**
 	 * Get the immutable GUID for an episode. Generated once, never changes —
 	 * title, slug, domain and HTTP/HTTPS changes do not regenerate it.
+	 *
+	 * Episodes normally get it when they are created (assign_guid()). One
+	 * created without the hooks gets it on first read; the value is derived
+	 * from the episode (new_guid()), so two requests that create it at the
+	 * same time store and serve the same GUID.
 	 *
 	 * @param int $post_id Episode post ID.
 	 * @return string
@@ -124,11 +152,82 @@ final class Episodes {
 			return $guid;
 		}
 
-		// Domain-independent URN for episodes created after the migration.
-		$guid = 'urn:uuid:' . wp_generate_uuid4();
-		update_post_meta( $post_id, self::META_PREFIX . 'guid', $guid );
+		$guid = self::new_guid( $post_id );
+		add_post_meta( $post_id, self::META_PREFIX . 'guid', $guid, true );
 
 		return $guid;
+	}
+
+	/**
+	 * The GUID a new episode gets: a name-based UUID (version 5) of the
+	 * episode ID in this show's namespace (its podcast:guid). Domain
+	 * independent like the random UUIDs before 1.4, but every request
+	 * computes the same value, so concurrent first reads cannot hand out
+	 * two GUIDs for one episode.
+	 *
+	 * @param int $post_id Episode post ID.
+	 * @return string
+	 */
+	public static function new_guid( int $post_id ): string {
+		return 'urn:uuid:' . Feed::uuid_v5( Feed::podcast_guid(), 'episode:' . $post_id );
+	}
+
+	/**
+	 * save_post: give a new episode its GUID (an imported one already has
+	 * the host's, set before this runs).
+	 *
+	 * @param int $post_id Episode post ID.
+	 * @return void
+	 */
+	public static function assign_guid( $post_id ): void {
+		$post_id = (int) $post_id;
+		if ( $post_id <= 0 || wp_is_post_revision( $post_id ) || EpisodePostType::CPT !== get_post_type( $post_id ) ) {
+			return;
+		}
+
+		self::get_guid( $post_id );
+	}
+
+	/**
+	 * Remove extra _epm_guid rows. Before 1.4 two requests that read a new
+	 * episode at the same time could each store a random GUID. WordPress
+	 * returns the first row (the lowest meta_id) to every reader, so that
+	 * is the GUID apps and directories saw from then on; it stays, the
+	 * others are deleted.
+	 *
+	 * @param int $limit Episodes per call.
+	 * @return int Rows deleted.
+	 */
+	public static function collapse_guid_rows( int $limit ): int {
+		global $wpdb;
+
+		$rows    = (array) $wpdb->get_results( $wpdb->prepare( "SELECT post_id, MIN(meta_id) AS keep_id FROM {$wpdb->postmeta} WHERE meta_key = %s GROUP BY post_id HAVING COUNT(*) > 1 LIMIT %d", self::META_PREFIX . 'guid', $limit ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- upgrade batch.
+		$removed = 0;
+		$record  = get_option( self::REMOVED_GUIDS_OPTION, [] );
+		$record  = is_array( $record ) ? $record : [];
+		foreach ( $rows as $row ) {
+			$post_id = (int) $row->post_id;
+			$keep    = (int) $row->keep_id;
+			$extra   = (array) $wpdb->get_results( $wpdb->prepare( "SELECT meta_id, meta_value FROM {$wpdb->postmeta} WHERE post_id = %d AND meta_key = %s AND meta_id <> %d", $post_id, self::META_PREFIX . 'guid', $keep ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- upgrade batch.
+			foreach ( $extra as $gone ) {
+				// Kept for recovery (MIGRATION.md): which value was removed.
+				$record[] = [
+					'post_id' => $post_id,
+					'guid'    => (string) $gone->meta_value,
+					'kept'    => (string) $wpdb->get_var( $wpdb->prepare( "SELECT meta_value FROM {$wpdb->postmeta} WHERE meta_id = %d", $keep ) ), // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- upgrade batch.
+					'time'    => time(),
+				];
+			}
+			$removed += (int) $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->postmeta} WHERE post_id = %d AND meta_key = %s AND meta_id <> %d", $post_id, self::META_PREFIX . 'guid', $keep ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- upgrade batch.
+			wp_cache_delete( $post_id, 'post_meta' );
+			self::clear_data_cache( $post_id );
+		}
+		if ( $removed > 0 ) {
+			update_option( self::REMOVED_GUIDS_OPTION, array_slice( $record, -1000 ), false );
+			Feed::flush_cache();
+		}
+
+		return $removed;
 	}
 
 	/**
@@ -213,22 +312,226 @@ final class Episodes {
 	 * the human-readable duration, for numeric sorting and integrations.
 	 * Falls back to the length WordPress read from the audio file.
 	 *
+	 * Reads only the keys it needs, never the episode's whole meta (a
+	 * transcript can be megabytes).
+	 *
 	 * @param int $post_id Episode post ID.
 	 * @return int Seconds stored.
 	 */
 	public static function sync_duration_seconds( int $post_id ): int {
-		$duration = (string) get_post_meta( $post_id, self::META_PREFIX . 'duration', true );
-		$seconds  = self::duration_to_seconds( $duration );
+		return self::sync_durations( [ $post_id ] )[ $post_id ] ?? 0;
+	}
 
-		if ( 0 === $seconds ) {
-			$audio_id = (int) get_post_meta( $post_id, self::META_PREFIX . 'audio_id', true );
-			$meta     = $audio_id > 0 ? wp_get_attachment_metadata( $audio_id ) : [];
-			$seconds  = is_array( $meta ) && ! empty( $meta['length'] ) ? (int) $meta['length'] : 0;
+	/**
+	 * sync_duration_seconds() for several episodes: one query for their
+	 * durations, a write only where the stored seconds differ.
+	 *
+	 * @param int[] $ids Episode post IDs.
+	 * @return array<int, int> Seconds per episode.
+	 */
+	public static function sync_durations( array $ids ): array {
+		$ids   = array_values( array_filter( array_map( 'intval', $ids ) ) );
+		$meta  = self::read_meta( $ids, [ 'duration', 'audio_id', 'duration_seconds' ] );
+		$out   = [];
+		$files = [];
+
+		foreach ( $ids as $id ) {
+			$seconds  = self::duration_to_seconds( (string) $meta[ $id ]['duration'] );
+			$audio_id = (int) $meta[ $id ]['audio_id'];
+
+			if ( 0 === $seconds && $audio_id > 0 ) {
+				$file    = wp_get_attachment_metadata( $audio_id );
+				$seconds = is_array( $file ) && ! empty( $file['length'] ) ? (int) $file['length'] : 0;
+				$files[] = $audio_id;
+			}
+
+			$stored = $meta[ $id ]['duration_seconds'];
+			if ( null === $stored ) {
+				add_post_meta( $id, self::META_PREFIX . 'duration_seconds', $seconds, true );
+			} elseif ( (string) $seconds !== (string) $stored ) {
+				update_post_meta( $id, self::META_PREFIX . 'duration_seconds', $seconds );
+			}
+			$out[ $id ] = $seconds;
 		}
 
-		update_post_meta( $post_id, self::META_PREFIX . 'duration_seconds', $seconds );
+		// Batches (the upgrade) keep no audio file meta in memory.
+		if ( count( $ids ) > 1 ) {
+			self::release_caches( $files );
+		}
 
-		return $seconds;
+		return $out;
+	}
+
+	/**
+	 * A few meta keys of episodes, read with one query for just these keys
+	 * (the first row of each, like get_post_meta()), so an episode's other
+	 * meta, transcripts and show notes, is not loaded.
+	 *
+	 * @param int[]    $ids  Episode post IDs.
+	 * @param string[] $keys Keys without the _epm_ prefix.
+	 * @return array<int, array<string, mixed>> ID => key => value (null when missing).
+	 */
+	public static function read_meta( array $ids, array $keys ): array {
+		global $wpdb;
+
+		$out = [];
+		foreach ( $ids as $id ) {
+			$out[ (int) $id ] = array_fill_keys( $keys, null );
+		}
+		if ( empty( $ids ) || empty( $keys ) ) {
+			return $out;
+		}
+
+		$names = array_map(
+			static function ( $key ) {
+				return self::META_PREFIX . $key;
+			},
+			$keys
+		);
+		$rows  = (array) $wpdb->get_results( $wpdb->prepare( "SELECT post_id, meta_key, meta_value FROM {$wpdb->postmeta} WHERE post_id IN (" . implode( ',', array_map( 'intval', $ids ) ) . ') AND meta_key IN (' . implode( ',', array_fill( 0, count( $names ), '%s' ) ) . ') ORDER BY meta_id ASC', $names ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- integers and placeholders.
+		foreach ( $rows as $row ) {
+			$key = substr( (string) $row->meta_key, strlen( self::META_PREFIX ) );
+			$id  = (int) $row->post_id;
+			if ( isset( $out[ $id ] ) && array_key_exists( $key, $out[ $id ] ) && null === $out[ $id ][ $key ] ) {
+				$out[ $id ][ $key ] = maybe_unserialize( $row->meta_value );
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * A page of published, unprotected episodes (what get_public_data()
+	 * returns data for), ordered by date and ID, after a position. The condition on the position is written so the
+	 * database reads the page from its post_type/status/date index instead
+	 * of sorting every episode for every page.
+	 *
+	 * @param string                        $order DESC or ASC.
+	 * @param array{0: string, 1: int}|null $after Date and ID of the last episode of the previous page.
+	 * @param int                           $count Page size.
+	 * @return array<int, array{0: string, 1: string}> Rows of [ ID, post_date ].
+	 */
+	public static function public_page( string $order, ?array $after, int $count ): array {
+		global $wpdb;
+
+		$order = 'ASC' === $order ? 'ASC' : 'DESC';
+		$cmp   = 'ASC' === $order ? '>' : '<';
+		$where = $wpdb->prepare( 'post_type = %s AND post_status = %s AND post_password = %s', EpisodePostType::CPT, 'publish', '' );
+		if ( null !== $after ) {
+			$where .= $wpdb->prepare( " AND post_date {$cmp}= %s AND ( post_date {$cmp} %s OR ID {$cmp} %d )", $after[0], $after[0], $after[1] ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- operator from a fixed list.
+		}
+
+		return (array) $wpdb->get_results( "SELECT ID, post_date FROM {$wpdb->posts} WHERE {$where} ORDER BY post_date {$order}, ID {$order} LIMIT " . (int) $count, ARRAY_N ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- parts prepared above.
+	}
+
+	/**
+	 * Every published, unprotected episode, newest first, loaded a page
+	 * at a time: each page's posts, meta and attachments are released
+	 * when the next page is loaded, so a loop over a large catalog needs
+	 * the memory of one page.
+	 *
+	 * @return \Generator<int, \WP_Post>
+	 */
+	public function each_public(): \Generator {
+		$after = null;
+		do {
+			$rows = self::public_page( 'DESC', $after, self::PAGE );
+			if ( empty( $rows ) ) {
+				return;
+			}
+			$last  = end( $rows );
+			$after = [ (string) $last[1], (int) $last[0] ];
+			$ids   = array_map( 'intval', array_column( $rows, 0 ) );
+
+			foreach ( self::batches( $ids ) as $batch ) {
+				$attachments = self::prime_page( $batch );
+				foreach ( $batch as $id ) {
+					$post = get_post( $id );
+					if ( $post instanceof \WP_Post ) {
+						yield $post;
+					}
+				}
+				self::release_caches( array_merge( $batch, $attachments ) );
+			}
+		} while ( count( $rows ) === self::PAGE );
+	}
+
+	/**
+	 * Split IDs into batches to load at a time: as many episodes as fit
+	 * into PAGE_BYTES, judged by what the last batch took (small at first).
+	 *
+	 * @param int[] $ids Episode IDs.
+	 * @return array<int, int[]>
+	 */
+	public static function batches( array $ids ): array {
+		$size = self::$episode_bytes > 0 ? (int) floor( self::PAGE_BYTES / self::$episode_bytes ) : 25;
+
+		return array_chunk( $ids, max( 10, min( self::PAGE, $size ) ) );
+	}
+
+	/**
+	 * Load a page of episodes for rendering many of them (the feed, the
+	 * readiness report): their posts and meta, and the attachments they
+	 * use (audio, artwork, featured image, transcript file, guest image).
+	 *
+	 * @param int[] $ids Episode post IDs.
+	 * @return int[] Attachment IDs loaded (pass them to release_caches() too).
+	 */
+	public static function prime_page( array $ids ): array {
+		$ids = array_values( array_filter( array_map( 'intval', $ids ) ) );
+		if ( empty( $ids ) ) {
+			return [];
+		}
+
+		$before = memory_get_usage();
+		_prime_post_caches( $ids, false, true );
+
+		$attachments = [];
+		foreach ( $ids as $id ) {
+			foreach ( [ 'audio_id', 'artwork_id', 'transcript_file_id', 'guest_image_id' ] as $key ) {
+				$attachments[] = (int) get_post_meta( $id, self::META_PREFIX . $key, true );
+			}
+			$attachments[] = (int) get_post_meta( $id, '_thumbnail_id', true );
+		}
+		$attachments = array_values( array_unique( array_filter( $attachments ) ) );
+		if ( ! empty( $attachments ) ) {
+			_prime_post_caches( $attachments, false, true );
+		}
+		// The query results stay in $wpdb (and the database driver's
+		// buffer) until the next query: let them go now.
+		$GLOBALS['wpdb']->flush();
+		self::$episode_bytes = max( 1, (int) ( ( memory_get_usage() - $before ) / count( $ids ) ) );
+
+		return $attachments;
+	}
+
+	/**
+	 * Free what a page of episodes put into memory (posts, meta, the
+	 * normalized data), so working through a large catalog page by page
+	 * needs the memory of one page. With a persistent object cache only
+	 * its in-memory copy is dropped, never the stored entries.
+	 *
+	 * @param int[] $ids Post IDs (episodes and attachments).
+	 * @return void
+	 */
+	public static function release_caches( array $ids ): void {
+		foreach ( $ids as $id ) {
+			unset( self::$data_cache[ (int) $id ] );
+		}
+
+		if ( wp_using_ext_object_cache() ) {
+			if ( function_exists( 'wp_cache_supports' ) && function_exists( 'wp_cache_flush_runtime' ) && wp_cache_supports( 'flush_runtime' ) ) {
+				wp_cache_flush_runtime();
+			}
+			$GLOBALS['wpdb']->flush();
+			return;
+		}
+
+		foreach ( $ids as $id ) {
+			wp_cache_delete( (int) $id, 'posts' );
+			wp_cache_delete( (int) $id, 'post_meta' );
+		}
+		$GLOBALS['wpdb']->flush();
 	}
 
 	/**

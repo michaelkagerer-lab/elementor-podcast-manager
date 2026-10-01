@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
-# Two-process race tests for the import/sync lock and the import job.
+# Two-process race tests for the import/sync lock, the import job, the
+# upgrade after a plugin update and new episode GUIDs.
 #
 # Each scenario in race.php runs its roles as separate `wp eval-file`
 # processes at the same time; they meet at barrier files. See race.php for
@@ -46,7 +47,7 @@ for line in "${LIST[@]}"; do
 
 	dir="$(mktemp -d "${TMPDIR:-/tmp}/epm-race-$name-XXXXXX")"
 	echo "-- $name"
-	if ! wpq eval-file "$RACE" "$name" setup > "$dir/setup.out"; then
+	if ! EPM_RACE_DIR="$dir" wpq --require="$HERE/early.php" eval-file "$RACE" "$name" setup > "$dir/setup.out"; then
 		cat "$dir/setup.out"
 		FAILED+=("$name (setup)")
 		continue
@@ -56,7 +57,7 @@ for line in "${LIST[@]}"; do
 	IFS=',' read -r -a role_list <<< "$roles"
 	for role in "${role_list[@]}"; do
 		EPM_RACE_DIR="$dir" EPM_RACE_ROLE="$role" EPM_RACE_ROLES="$roles" \
-			wpq eval-file "$RACE" "$name" "$role" > "$dir/$role.out" &
+			wpq --require="$HERE/early.php" eval-file "$RACE" "$name" "$role" > "$dir/$role.out" &
 		pids+=($!)
 	done
 	for pid in "${pids[@]}"; do
@@ -64,7 +65,7 @@ for line in "${LIST[@]}"; do
 	done
 
 	RAN=$((RAN + 1))
-	if EPM_RACE_DIR="$dir" EPM_RACE_ROLE=check EPM_RACE_ROLES="$roles" wpq eval-file "$RACE" "$name" check > "$dir/check.out"; then
+	if EPM_RACE_DIR="$dir" EPM_RACE_ROLE=check EPM_RACE_ROLES="$roles" wpq --require="$HERE/early.php" eval-file "$RACE" "$name" check > "$dir/check.out"; then
 		grep -E '✓|✗' "$dir/check.out"
 		[ -n "${RACE_KEEP:-}" ] || rm -rf "$dir"
 	else

@@ -1,28 +1,29 @@
 <?php
 /**
- * Distribution readiness report (Layer 1).
+ * Reference copy of the readiness report before it worked through the
+ * episodes page by page: includes/Readiness.php as of commit 89bffa8,
+ * unchanged except for its namespace. Not loaded by the plugin.
  *
- * A nonempty title is not enough: this checks the metadata, artwork,
- * episodes and media that podcast directories actually require, and
- * surfaces actionable errors and warnings. Optional chapters, guests
- * and transcripts never block publishing.
+ * tests/integration/feed.php compares its report with the current one on
+ * a small catalog (they must agree). Do not "fix" this file.
  *
  * @package EPM
  */
 
-namespace EPM;
+namespace EPM\Reference;
+
+use EPM\AudioMetadata;
+use EPM\Capabilities;
+use EPM\Categories;
+use EPM\EpisodePostType;
+use EPM\Episodes;
+use EPM\Hosting;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 final class Readiness {
-
-	/**
-	 * Problems with single episodes listed one by one; more are counted in
-	 * one check.
-	 */
-	private const EPISODE_CHECKS = 50;
 
 	/**
 	 * Apple Podcasts top-level categories (validation reference).
@@ -53,24 +54,20 @@ final class Readiness {
 	 *
 	 * Every check has status, label and message. url / fix_label name the
 	 * screen where the problem is fixed: '' when there is none or the
-	 * current user cannot open it. A check about several episodes lists
-	 * them in `items` (title, url of the editor; at most ten) and how many
-	 * more there are in `more`.
+	 * current user cannot open it.
 	 *
-	 * @return array{ready: bool, errors: int, warnings: int, checks: array<int, array{status: string, label: string, message: string, url: string, fix_label: string, items: array<int, array{title: string, url: string}>, more: int}>}
+	 * @return array{ready: bool, errors: int, warnings: int, checks: array<int, array{status: string, label: string, message: string, url: string, fix_label: string}>}
 	 */
 	public static function report(): array {
 		$checks = [];
 
-		$add = function ( string $status, string $label, string $message, string $url = '', string $fix_label = '', array $items = [], int $more = 0 ) use ( &$checks ) {
+		$add = function ( string $status, string $label, string $message, string $url = '', string $fix_label = '' ) use ( &$checks ) {
 			$checks[] = [
 				'status'    => $status,
 				'label'     => $label,
 				'message'   => $message,
 				'url'       => $url,
 				'fix_label' => '' !== $url ? $fix_label : '',
-				'items'     => $items,
-				'more'      => $more,
 			];
 		};
 
@@ -84,23 +81,6 @@ final class Readiness {
 		// host's job; what matters here is that the site stays in sync.
 		if ( Hosting::is_external() ) {
 			return self::finish( self::external_checks( $add, $checks ) );
-		}
-
-		// --- The address directories know. ---
-		$address = Feed::address_change();
-		if ( null !== $address ) {
-			$add(
-				'error',
-				__( 'Feed address', 'elementor-podcast-manager' ),
-				sprintf(
-					/* translators: 1: feed address submitted to directories, 2: new feed address */
-					__( 'The feed address changed from %1$s to %2$s. Directories and apps keep loading the old address. Change the permalink setting back, or submit the new address to every directory and confirm it on the Distribution screen.', 'elementor-podcast-manager' ),
-					$address['shown'],
-					$address['now']
-				),
-				self::admin_page_url( 'epm-distribution' ),
-				__( 'Open Distribution', 'elementor-podcast-manager' )
-			);
 		}
 
 		// --- Required podcast metadata. ---
@@ -160,7 +140,7 @@ final class Readiness {
 			$add( 'ok', __( 'Category', 'elementor-podcast-manager' ), '' !== $subcategory ? $category . ' › ' . $subcategory : $category );
 		}
 
-		$language = Feed::rss_language( (string) $settings->get( 'language' ) );
+		$language = \EPM\Feed::rss_language( (string) $settings->get( 'language' ) );
 		$add( 'ok', __( 'Language', 'elementor-podcast-manager' ), $language );
 
 		// --- Artwork. ---
@@ -216,21 +196,15 @@ final class Readiness {
 			}
 		}
 
-		// --- Episodes (a page at a time: a large catalog never sits in memory). ---
+		// --- Episodes. ---
+		$episodes    = epm()->episodes->get_episodes( [ 'posts_per_page' => -1 ] );
+		Episodes::prime_attachments( $episodes );
 		$distributable = 0;
 		$seen_urls     = [];
-		// After a move (or one that is not finished): what still loads
-		// from the old host, per kind.
-		$old_host = ! empty( epm()->settings->get( 'moved_in' ) ) || ImportJob::move_unfinished() ? self::old_host( epm()->episodes->each_public() ) : [];
-		// YouTube (when it is tracked on the Distribution screen) rejects
-		// "<" and ">" in titles and descriptions.
-		$youtube = '' !== (string) ( Directories::progress()['youtube']['status'] ?? '' );
-		if ( $youtube && self::has_angle_brackets( Feed::plain_text( (string) $settings->get( 'title' ) ) . Feed::plain_text( (string) $settings->get( 'description' ) ) ) ) {
-			$add( 'warning', __( 'Podcast title and description', 'elementor-podcast-manager' ), __( 'YouTube does not accept “<” or “>” in titles and descriptions. Remove them from the podcast title and description.', 'elementor-podcast-manager' ), $settings_url( 'epm-s-title' ), $fix_here );
-		}
-		$first_episode = count( $checks );
+		$left_at_host  = 0;
+		$moved_in      = ! empty( epm()->settings->get( 'moved_in' ) );
 
-		foreach ( epm()->episodes->each_public() as $post ) {
+		foreach ( $episodes as $post ) {
 			$data = epm()->episodes->get_public_data( $post );
 			if ( ! $data ) {
 				continue;
@@ -239,6 +213,10 @@ final class Readiness {
 			$audio_id  = (int) $data['audio_id'];
 			$external  = $audio_id <= 0 && 'external' === ( $data['audio_source'] ?? '' );
 			$edit_url  = (string) get_edit_post_link( $post->ID, 'raw' );
+
+			if ( $external && $moved_in && 'import' === get_post_meta( $post->ID, Episodes::META_PREFIX . 'source', true ) ) {
+				++$left_at_host;
+			}
 			$edit_text = __( 'Edit episode', 'elementor-podcast-manager' );
 
 			if ( $audio_id <= 0 && ! $external ) {
@@ -313,16 +291,22 @@ final class Readiness {
 			}
 			$seen_urls[ $enclosure['url'] ] = $data['title'];
 
-			if ( $youtube && self::has_angle_brackets( Feed::plain_text( (string) $data['title'] ) . Feed::episode_summary( $post, $data ) ) ) {
-				$add( 'warning', sprintf( __( 'Episode: %s', 'elementor-podcast-manager' ), $data['title'] ), __( 'YouTube does not accept “<” or “>” in titles and descriptions. Remove them from the title and the description.', 'elementor-podcast-manager' ), $edit_url, $edit_text );
-			}
-
 			$distributable++;
 		}
 
-		self::fold_episode_checks( $checks, $first_episode );
-
-		self::old_host_checks( $add, $old_host );
+		if ( $left_at_host > 0 ) {
+			$add(
+				'warning',
+				__( 'Audio at the old host', 'elementor-podcast-manager' ),
+				sprintf(
+					/* translators: %s: number of episodes */
+					_n( 'The audio of %s episode still loads from the old host. Copy it before closing that account.', 'The audio of %s episodes still loads from the old host. Copy it before closing that account.', $left_at_host, 'elementor-podcast-manager' ),
+					number_format_i18n( $left_at_host )
+				),
+				self::admin_page_url( 'epm-hosting' ),
+				__( 'Import with “Copy audio”', 'elementor-podcast-manager' )
+			);
+		}
 
 		if ( 0 === $distributable ) {
 			$add( 'error', __( 'Distributable episodes', 'elementor-podcast-manager' ), __( 'Publish at least one episode with MP3 or M4A audio. Directories reject empty feeds.', 'elementor-podcast-manager' ), admin_url( 'post-new.php?post_type=' . EpisodePostType::CPT ), __( 'Add an episode', 'elementor-podcast-manager' ) );
@@ -398,153 +382,7 @@ final class Readiness {
 			$add( 'ok', __( 'Episodes', 'elementor-podcast-manager' ), sprintf( _n( '%s published episode', '%s published episodes', $count, 'elementor-podcast-manager' ), number_format_i18n( $count ) ) );
 		}
 
-		// A move into this site that is not finished yet.
-		if ( ImportJob::move_unfinished() ) {
-			self::old_host_checks( $add, self::old_host( epm()->episodes->get_episodes( [ 'posts_per_page' => -1 ] ) ) );
-		}
-
 		return $checks;
-	}
-
-	/**
-	 * Episodes with addresses that still point to the host they were
-	 * imported from, per kind (see Importer::old_host_references()).
-	 *
-	 * @param iterable<\WP_Post> $episodes Episodes.
-	 * @return array<string, array{count: int, items: array<int, array{title: string, url: string}>}>
-	 */
-	private static function old_host( iterable $episodes ): array {
-		$out = [];
-		foreach ( $episodes as $post ) {
-			foreach ( Importer::old_host_references( (int) $post->ID ) as $kind => $url ) {
-				$out[ $kind ]['count'] = (int) ( $out[ $kind ]['count'] ?? 0 ) + 1;
-				if ( count( (array) ( $out[ $kind ]['items'] ?? [] ) ) < 10 ) {
-					$out[ $kind ]['items'][] = [
-						'title' => html_entity_decode( get_the_title( $post ), ENT_QUOTES, 'UTF-8' ),
-						'url'   => (string) get_edit_post_link( $post->ID, 'raw' ),
-					];
-				}
-			}
-		}
-
-		return $out;
-	}
-
-	/**
-	 * One warning per kind of file that still loads from the old host,
-	 * listing the episodes; and, while a move is not finished, a warning
-	 * that says so.
-	 *
-	 * @param callable                                                                                $add      Adds a check.
-	 * @param array<string, array{count: int, items: array<int, array{title: string, url: string}>}> $old_host From old_host().
-	 * @return void
-	 */
-	private static function old_host_checks( callable $add, array $old_host ): void {
-		$hosting = self::admin_page_url( 'epm-hosting' );
-
-		if ( ImportJob::move_unfinished() ) {
-			$add(
-				'warning',
-				__( 'Move to this website', 'elementor-podcast-manager' ),
-				__( 'The move is not finished: files listed here still load from the old host. Copy them again, or finish the move knowing they stay there.', 'elementor-podcast-manager' ),
-				$hosting,
-				__( 'Open Hosting & import', 'elementor-podcast-manager' )
-			);
-		}
-
-		foreach ( [ 'audio', 'image', 'transcript_file', 'transcript_link' ] as $kind ) {
-			$count = (int) ( $old_host[ $kind ]['count'] ?? 0 );
-			if ( $count <= 0 ) {
-				continue;
-			}
-			$number = number_format_i18n( $count );
-			$items  = (array) ( $old_host[ $kind ]['items'] ?? [] );
-			$more   = max( 0, $count - count( $items ) );
-			$copy   = __( 'Import with “Copy audio”', 'elementor-podcast-manager' );
-
-			switch ( $kind ) {
-				case 'audio':
-					$label   = __( 'Audio at the old host', 'elementor-podcast-manager' );
-					/* translators: %s: number of episodes */
-					$message = sprintf( _n( 'The audio of %s episode still loads from the old host. Copy it before closing that account.', 'The audio of %s episodes still loads from the old host. Copy it before closing that account.', $count, 'elementor-podcast-manager' ), $number );
-					break;
-				case 'image':
-					$label   = __( 'Episode images at the old host', 'elementor-podcast-manager' );
-					/* translators: %s: number of episodes */
-					$message = sprintf( _n( 'The image of %s episode still loads from the old host. Copy it before closing that account.', 'The images of %s episodes still load from the old host. Copy them before closing that account.', $count, 'elementor-podcast-manager' ), $number );
-					break;
-				case 'transcript_file':
-					$label   = __( 'Transcript files at the old host', 'elementor-podcast-manager' );
-					/* translators: %s: number of episodes */
-					$message = sprintf( _n( 'The WebVTT/SRT transcript file of %s episode is still linked at the old host; podcast apps lose its captions when that account is closed. Copy it before closing that account.', 'The WebVTT/SRT transcript files of %s episodes are still linked at the old host; podcast apps lose their captions when that account is closed. Copy them before closing that account.', $count, 'elementor-podcast-manager' ), $number );
-					break;
-				default:
-					$label   = __( 'Transcripts linked at the old host', 'elementor-podcast-manager' );
-					$copy    = '';
-					/* translators: %s: number of episodes */
-					$message = sprintf( _n( 'The transcript of %s episode is linked at the old host in a format that is not copied (such as JSON). Its text is on this site; replace or remove the link before closing that account.', 'The transcripts of %s episodes are linked at the old host in a format that is not copied (such as JSON). Their text is on this site; replace or remove the links before closing that account.', $count, 'elementor-podcast-manager' ), $number );
-			}
-
-			$add( 'warning', $label, $message, '' !== $copy ? $hosting : '', $copy, $items, $more );
-		}
-	}
-
-	/**
-	 * Whether text contains "<" or ">".
-	 *
-	 * @param string $text Plain text.
-	 * @return bool
-	 */
-	private static function has_angle_brackets( string $text ): bool {
-		return false !== strpbrk( $text, '<>' );
-	}
-
-	/**
-	 * Keep the report readable for large catalogs: after the first
-	 * EPISODE_CHECKS problems with single episodes, the rest become one
-	 * check that counts them and links to the episode list. The counts of
-	 * errors and warnings still include every one of them.
-	 *
-	 * @param array<int, array<string, mixed>> $checks Checks (changed in place).
-	 * @param int                              $first  Index of the first episode check.
-	 * @return void
-	 */
-	private static function fold_episode_checks( array &$checks, int $first ): void {
-		$episode_checks = array_slice( $checks, $first );
-		if ( count( $episode_checks ) <= self::EPISODE_CHECKS ) {
-			return;
-		}
-
-		$rest   = array_slice( $episode_checks, self::EPISODE_CHECKS );
-		$errors = count(
-			array_filter(
-				$rest,
-				static function ( $check ) {
-					return 'error' === $check['status'];
-				}
-			)
-		);
-		$warnings = count( $rest ) - $errors;
-		$url      = admin_url( 'edit.php?post_type=' . EpisodePostType::CPT );
-
-		$checks   = array_slice( $checks, 0, $first + self::EPISODE_CHECKS );
-		$checks[] = [
-			'status'    => $errors > 0 ? 'error' : 'warning',
-			'label'     => __( 'More episodes', 'elementor-podcast-manager' ),
-			'message'   => sprintf(
-				/* translators: 1: number of further episode problems, 2: of them errors, 3: of them warnings */
-				_n( '%1$s more episode problem (%2$s errors, %3$s warnings) is not listed here.', '%1$s more episode problems (%2$s errors, %3$s warnings) are not listed here.', count( $rest ), 'elementor-podcast-manager' ),
-				number_format_i18n( count( $rest ) ),
-				number_format_i18n( $errors ),
-				number_format_i18n( $warnings )
-			),
-			'url'       => $url,
-			'fix_label' => __( 'Open the episode list', 'elementor-podcast-manager' ),
-			'folded'    => [
-				'error'   => $errors,
-				'warning' => $warnings,
-			],
-		];
 	}
 
 	/**
@@ -577,11 +415,7 @@ final class Readiness {
 		$errors   = 0;
 		$warnings = 0;
 		foreach ( $checks as $check ) {
-			if ( isset( $check['folded'] ) ) {
-				// Problems folded into one check count one by one.
-				$errors   += (int) $check['folded']['error'];
-				$warnings += (int) $check['folded']['warning'];
-			} elseif ( 'error' === $check['status'] ) {
+			if ( 'error' === $check['status'] ) {
 				$errors++;
 			} elseif ( 'warning' === $check['status'] ) {
 				$warnings++;
@@ -676,31 +510,6 @@ final class Readiness {
 	}
 
 	/**
-	 * The episodes a check is about, linked to their editor.
-	 *
-	 * @param array<int, array{title: string, url: string}> $items Episodes.
-	 * @param int                                           $more  Episodes not listed.
-	 * @return string
-	 */
-	private static function render_episodes( array $items, int $more ): string {
-		if ( empty( $items ) ) {
-			return '';
-		}
-
-		$out = '<ul class="epm-checklist__episodes">';
-		foreach ( $items as $item ) {
-			$title = '' !== (string) $item['title'] ? (string) $item['title'] : __( '(no title)', 'elementor-podcast-manager' );
-			$out  .= '<li>' . ( '' !== (string) $item['url'] ? '<a href="' . esc_url( (string) $item['url'] ) . '">' . esc_html( $title ) . '</a>' : esc_html( $title ) ) . '</li>';
-		}
-		if ( $more > 0 ) {
-			/* translators: %s: number of episodes */
-			$out .= '<li>' . esc_html( sprintf( _n( 'and %s more', 'and %s more', $more, 'elementor-podcast-manager' ), number_format_i18n( $more ) ) ) . '</li>';
-		}
-
-		return $out . '</ul>';
-	}
-
-	/**
 	 * Checklist items.
 	 *
 	 * @param array<int, array<string, string>> $checks Checks.
@@ -732,9 +541,7 @@ final class Readiness {
 			if ( '' !== $url && '' !== $label ) {
 				$out .= ' <a class="epm-readiness__fix" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '<span class="screen-reader-text">: ' . esc_html( (string) $check['label'] ) . '</span></a>';
 			}
-			$out .= '</p>';
-			$out .= self::render_episodes( (array) ( $check['items'] ?? [] ), (int) ( $check['more'] ?? 0 ) );
-			$out .= '</li>';
+			$out .= '</p></li>';
 		}
 
 		return $out;

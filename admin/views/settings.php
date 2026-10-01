@@ -264,6 +264,35 @@ $epm_public_feed  = \EPM\Hosting::public_feed_url();
 				</td>
 			</tr>
 			<tr>
+				<th scope="row"><?php esc_html_e( 'Previous feed address', 'elementor-podcast-manager' ); ?></th>
+				<td>
+					<label>
+						<input type="checkbox" name="epm_podcast_settings[feed_alias]" value="1" <?php checked( ! empty( $settings['feed_alias'] ) ); ?> aria-describedby="epm-s-feed-alias-help" />
+						<?php
+						printf(
+							/* translators: %s: old feed address, e.g. https://example.com/feed/podcast/ */
+							esc_html__( 'Redirect %s to this feed', 'elementor-podcast-manager' ),
+							'<code>' . esc_html( home_url( '/feed/podcast/' ) ) . '</code>'
+						);
+						?>
+					</label>
+					<p class="description" id="epm-s-feed-alias-help">
+						<?php
+						$epm_previous = \EPM\Feed::previous_plugins();
+						echo esc_html(
+							empty( $epm_previous )
+								? __( 'For shows that moved here from PowerPress or Seriously Simple Podcasting on this website: their feed was at /feed/podcast/ (or ?feed=podcast). Apps and directories subscribed there follow a permanent redirect to this feed. Turn it on once the old plugin is deactivated.', 'elementor-podcast-manager' )
+								: sprintf(
+									/* translators: %s: plugin names, e.g. "PowerPress" */
+									__( 'This site has settings of %s, whose feed was at /feed/podcast/ (or ?feed=podcast). Apps and directories subscribed there follow a permanent redirect to this feed. Turn it on once the old plugin is deactivated.', 'elementor-podcast-manager' ),
+									implode( ', ', $epm_previous )
+								)
+						);
+						?>
+					</p>
+				</td>
+			</tr>
+			<tr>
 				<th scope="row"><?php esc_html_e( 'Directory options', 'elementor-podcast-manager' ); ?></th>
 				<td>
 					<label>

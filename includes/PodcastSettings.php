@@ -43,6 +43,9 @@ final class PodcastSettings {
 			'default_artwork_id'   => 0,
 			'default_author'       => '',
 			'feed_limit'           => 500,
+			// Redirect the address of an earlier WordPress podcast plugin
+			// (/feed/podcast/, ?feed=podcast) to the feed.
+			'feed_alias'           => false,
 			'new_feed_url'         => '',
 			'moved_in'             => false,
 			'itunes_block'         => false,
@@ -164,6 +167,7 @@ final class PodcastSettings {
 		$out['latest_cta_enabled'] = ! empty( $input['latest_cta_enabled'] );
 		$out['latest_cta_label']   = sanitize_text_field( $input['latest_cta_label'] ?? '' );
 
+		$out['feed_alias']    = ! empty( $input['feed_alias'] );
 		$out['new_feed_url']  = esc_url_raw( $input['new_feed_url'] ?? '' );
 		$out['moved_in']      = ! empty( $input['moved_in'] );
 		$out['itunes_block']  = ! empty( $input['itunes_block'] );
