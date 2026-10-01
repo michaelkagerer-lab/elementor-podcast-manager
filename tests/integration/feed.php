@@ -746,6 +746,11 @@ $t->test(
 			epm_f_settings( [ 'moved_in' => $moved_in ] );
 			$new = Readiness::report();
 			$old = \EPM\Reference\Readiness::report();
+			// 1.4 adds the episodes behind a check (items, more) to every check.
+			foreach ( $new['checks'] as &$check ) {
+				unset( $check['items'], $check['more'] );
+			}
+			unset( $check );
 			$t->same( $old, $new, $moved_in ? 'moved in' : 'self-hosted' );
 		}
 		epm_f_settings( [ 'moved_in' => false ] );
