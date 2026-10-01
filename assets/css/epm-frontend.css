@@ -280,6 +280,12 @@ body.epm-custom-font :where(.epm-player, .epm-episode-list, .epm-podcast-hero, .
 	gap: 0.25em 0;
 }
 
+/* Long names and companies (German compounds) wrap inside narrow columns. */
+.epm-meta__item {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
 .epm-meta__sep {
 	margin: 0 0.5em;
 	opacity: 0.6;
@@ -711,19 +717,18 @@ body.epm-custom-font :where(.epm-player, .epm-episode-list, .epm-podcast-hero, .
 	display: flex;
 	flex-direction: column;
 	container: epm-list / inline-size;
-	/* A size container has no content width of its own: where its parent
-	   sizes it by content (an Elementor row container), it asks for this
-	   much and shrinks from there. */
-	contain-intrinsic-inline-size: 40rem;
 }
 
 /*
- * Elementor row containers size widgets by their content and do not let
- * them shrink below it. Podcast widgets may shrink (their lists and
- * players adapt to their own width).
+ * Lists and players are size containers: they have no content width of
+ * their own. In an Elementor row container (which sizes widgets by their
+ * content) they take the free space instead, the way Elementor's own
+ * video, divider and accordion widgets do: Elementor sets these variables
+ * per container direction, and a width chosen for the widget wins.
  */
-.elementor-widget[data-widget_type^="epm-"] {
-	min-inline-size: 0;
+:is(.e-con, .e-con-inner) > .elementor-widget:is(.elementor-widget-epm-podcast-player, .elementor-widget-epm-latest-episode, .elementor-widget-epm-episode-list, .elementor-widget-epm-episode-video) {
+	width: var(--container-widget-width, 100%);
+	--flex-grow: var(--container-widget-flex-grow);
 }
 
 .epm-episode-list--grid {
@@ -1634,8 +1639,11 @@ body:has(.epm-sticky:not([hidden])) {
 
 /* ---------- Latest episode header (no player) ---------- */
 
+/* The text keeps at least 14rem beside the artwork; narrower, the
+   artwork goes on top (a sidebar column, a phone). */
 .epm-latest__header {
 	display: flex;
+	flex-wrap: wrap;
 	gap: var(--epm-gap, 24px);
 	align-items: flex-start;
 	color: var(--epm-text, #111827);
@@ -1656,7 +1664,7 @@ body:has(.epm-sticky:not([hidden])) {
 }
 
 .epm-latest__info {
-	flex: 1 1 auto;
+	flex: 1 1 14rem;
 	min-width: 0;
 }
 
@@ -1898,9 +1906,6 @@ body:has(.epm-sticky:not([hidden])) {
 .epm-player__main {
 	container-type: inline-size;
 	container-name: epm-player-main;
-	/* Content width where the parent sizes the player by content (see the
-	   episode list). */
-	contain-intrinsic-inline-size: 24rem;
 }
 
 @container epm-player-main (max-width: 440px) {

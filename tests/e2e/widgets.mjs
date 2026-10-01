@@ -76,6 +76,7 @@ try {
 			container('n000001', narrow, [
 				widget('n000002', 'epm-episode-list', { layout: 'list', number: 5 }),
 				widget('n000003', 'epm-episode-list', { layout: 'editorial-rows', number: 5 }),
+				widget('n000004', 'epm-latest-episode', { show_player: '' }),
 			]),
 		]);
 		created.push(id);
@@ -86,6 +87,13 @@ try {
 			assert(result.rows >= 8 && result.narrow.length === 0, `${width} px: every title keeps at least half its row (${result.narrow.slice(0, 3).join('; ')})`);
 			assert(result.outside.length === 0, `${width} px: nothing sticks out of the list (${result.outside.slice(0, 3).join('; ')})`);
 			assert(await noOverflow(page), `${width} px: no horizontal scrolling`);
+			const card = await page.evaluate(() => {
+				const root = document.querySelector('.elementor-element-n000004 .epm-latest');
+				const box = root.getBoundingClientRect();
+				const info = root.querySelector('.epm-latest__info').getBoundingClientRect();
+				return { outside: [...root.querySelectorAll('*')].filter((el) => el.getBoundingClientRect().right > box.right + 1).map((el) => el.className).slice(0, 3), info: Math.round(info.width) };
+			});
+			assert(card.outside.length === 0 && card.info >= 150, `${width} px: the Latest Episode card keeps its text readable (${JSON.stringify(card)})`);
 			await page.locator('.elementor-element-n000001').screenshot({ path: `screenshots/widgets-narrow-${width}.png` });
 			await page.context().close();
 		}
