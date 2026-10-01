@@ -67,10 +67,18 @@ Browser screenshots land in `e2e/screenshots/` (not tracked).
 | `WP_VERSION` | `latest` | WordPress version |
 | `ELEMENTOR_VERSION` | `latest-stable` | Elementor version |
 | `WP_THEME` | `hello-elementor` | active theme (`twentytwentyfive` also installed) |
+| `WP_DB` | `sqlite` | `mysql` installs the site on MySQL/MariaDB instead (needs `DB_NAME`; `DB_USER`, `DB_PASSWORD`, `DB_HOST` default to `root`, empty, `localhost`); the database is created when missing and must hold nothing else |
 | `CHROMIUM_PATH` | — | use a specific Chromium binary |
 | `SKIP_E2E` | — | skip the browser suites |
 
 Several sites can run side by side with their own `WP_DIR` and `WP_PORT`.
+A site keeps the database type it was installed with; use another
+`WP_DIR` to switch.
+
+```bash
+WP_DB=mysql DB_NAME=epm_test DB_USER=epm DB_PASSWORD=epm \
+  WP_DIR=/tmp/epm-wp-mysql WP_PORT=8891 tests/run-all.sh
+```
 
 ## Running suites individually
 

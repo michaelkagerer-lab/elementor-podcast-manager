@@ -2,16 +2,20 @@
 #
 # Provision a disposable WordPress + Elementor site for the test suites.
 #
-# Uses SQLite (no database server) and PHP's built-in web server with a
-# router that emulates pretty permalinks and HTTP Range requests (needed
-# for audio seeking). The plugin under test is symlinked, so edits apply
-# immediately.
+# Uses SQLite (no database server) by default, or MySQL/MariaDB with
+# WP_DB=mysql, and PHP's built-in web server with a router that emulates
+# pretty permalinks and HTTP Range requests (needed for audio seeking).
+# The plugin under test is symlinked, so edits apply immediately.
 #
 # Usage: tests/bin/setup-wp.sh
 # Env:   WP_DIR   (default: /tmp/epm-wp)      where to install
 #        WP_PORT  (default: 8889)             local port
 #        WP_VERSION (default: latest)         WordPress version
 #        ELEMENTOR_VERSION (default: latest-stable)
+#        WP_DB    (default: sqlite)           sqlite, or mysql for MySQL/MariaDB:
+#          DB_NAME (required), DB_USER (default: root), DB_PASSWORD (default: ''),
+#          DB_HOST (default: localhost). The database is created when missing;
+#          use a database that holds nothing else (the suites delete episodes).
 #
 set -euo pipefail
 
@@ -20,8 +24,23 @@ WP_DIR="${WP_DIR:-/tmp/epm-wp}"
 WP_PORT="${WP_PORT:-8889}"
 WP_VERSION="${WP_VERSION:-latest}"
 ELEMENTOR_VERSION="${ELEMENTOR_VERSION:-latest-stable}"
+WP_DB="${WP_DB:-sqlite}"
 SITE="$WP_DIR/site"
 URL="http://localhost:$WP_PORT"
+
+case "$WP_DB" in
+	sqlite) ;;
+	mysql)
+		DB_NAME="${DB_NAME:?WP_DB=mysql needs DB_NAME}"
+		DB_USER="${DB_USER:-root}"
+		DB_PASSWORD="${DB_PASSWORD:-}"
+		DB_HOST="${DB_HOST:-localhost}"
+		;;
+	*)
+		echo "WP_DB must be sqlite or mysql, not '$WP_DB'." >&2
+		exit 1
+		;;
+esac
 
 mkdir -p "$WP_DIR"
 cd "$WP_DIR"
@@ -53,8 +72,47 @@ if [ ! -f "$SITE/wp-load.php" ]; then
 	mkdir -p "$SITE/wp-content/plugins" "$SITE/wp-content/themes" "$SITE/wp-content/uploads"
 fi
 
+# A site keeps the database it was installed with.
+if [ -f "$SITE/wp-config.php" ]; then
+	if [ "$WP_DB" = mysql ] && [ -f "$SITE/wp-content/db.php" ]; then
+		echo "$WP_DIR is a SQLite site; use another WP_DIR for WP_DB=mysql." >&2
+		exit 1
+	fi
+	if [ "$WP_DB" = sqlite ] && [ ! -f "$SITE/wp-content/db.php" ]; then
+		echo "$WP_DIR is a MySQL site; set WP_DB=mysql (and DB_NAME …) or use another WP_DIR." >&2
+		exit 1
+	fi
+fi
+
+# MySQL/MariaDB: create the database when it is missing.
+if [ "$WP_DB" = mysql ]; then
+	DB_NAME="$DB_NAME" DB_USER="$DB_USER" DB_PASSWORD="$DB_PASSWORD" DB_HOST="$DB_HOST" php -r '
+		$host = getenv( "DB_HOST" );
+		$port = null;
+		$socket = null;
+		if ( preg_match( "/^(.*):(\d+)$/", $host, $m ) ) {
+			$host = $m[1];
+			$port = (int) $m[2];
+		} elseif ( preg_match( "/^(.*):(\/.*)$/", $host, $m ) ) {
+			$host = $m[1];
+			$socket = $m[2];
+		}
+		mysqli_report( MYSQLI_REPORT_OFF );
+		$db = @new mysqli( $host, getenv( "DB_USER" ), getenv( "DB_PASSWORD" ), "", $port ?? 3306, $socket );
+		if ( $db->connect_errno ) {
+			fwrite( STDERR, "Cannot connect to MySQL: " . $db->connect_error . "\n" );
+			exit( 1 );
+		}
+		$name = str_replace( "`", "``", getenv( "DB_NAME" ) );
+		if ( ! $db->query( "CREATE DATABASE IF NOT EXISTS `$name` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci" ) ) {
+			fwrite( STDERR, "Cannot create the database: " . $db->error . "\n" );
+			exit( 1 );
+		}
+	'
+fi
+
 # SQLite database drop-in.
-if [ ! -f "$SITE/wp-content/db.php" ]; then
+if [ "$WP_DB" = sqlite ] && [ ! -f "$SITE/wp-content/db.php" ]; then
 	retry curl -fsSL -o sqlite.zip https://downloads.wordpress.org/plugin/sqlite-database-integration.latest-stable.zip
 	unzip -q -o sqlite.zip -d "$SITE/wp-content/plugins/"
 	sed -e "s#{SQLITE_IMPLEMENTATION_FOLDER_PATH}#$SITE/wp-content/plugins/sqlite-database-integration#" \
@@ -62,8 +120,13 @@ if [ ! -f "$SITE/wp-content/db.php" ]; then
 		"$SITE/wp-content/plugins/sqlite-database-integration/db.copy" > "$SITE/wp-content/db.php"
 fi
 
+if [ "$WP_DB" = mysql ]; then
+	DB_ARGS=(--dbname="$DB_NAME" --dbuser="$DB_USER" --dbpass="$DB_PASSWORD" --dbhost="$DB_HOST")
+else
+	DB_ARGS=(--dbname=wp --dbuser=wp --dbpass=wp)
+fi
 if [ ! -f "$SITE/wp-config.php" ]; then
-	"$WP" config create --dbname=wp --dbuser=wp --dbpass=wp --skip-check --quiet --extra-php <<'PHP'
+	"$WP" config create "${DB_ARGS[@]}" --skip-check --quiet --extra-php <<'PHP'
 define( 'WP_DEBUG', true );
 define( 'WP_DEBUG_LOG', true );
 define( 'WP_DEBUG_DISPLAY', false );
