@@ -451,7 +451,14 @@ final class Renderer {
 		$heading = $args['heading'] ?? __( 'Chapters', 'elementor-podcast-manager' );
 		$tag     = $this->heading_tag( $args );
 
-		$out = '<div class="epm-chapters" data-epm-chapters data-epm-episode-id="' . esc_attr( (string) ( $episode['id'] ?? 0 ) ) . '" data-epm-src="' . esc_url( (string) ( $episode['audio_url'] ?? '' ) ) . '" data-epm-title="' . esc_attr( (string) ( $episode['title'] ?? '' ) ) . '">';
+		// Everything the player engine needs when playback starts here:
+		// the sticky bar and the lock screen show title and artwork.
+		$out = '<div class="epm-chapters" data-epm-chapters'
+			. ' data-epm-episode-id="' . esc_attr( (string) ( $episode['id'] ?? 0 ) ) . '"'
+			. ' data-epm-src="' . esc_url( (string) ( $episode['audio_url'] ?? '' ) ) . '"'
+			. ' data-epm-title="' . esc_attr( (string) ( $episode['title'] ?? '' ) ) . '"'
+			. ' data-epm-artwork="' . esc_url( $this->artwork_url( $episode, 'medium' ) ) . '"'
+			. ' data-epm-duration="' . esc_attr( (string) (int) ( $episode['duration_seconds'] ?? 0 ) ) . '">';
 		if ( '' !== (string) $heading ) {
 			$out .= '<' . $tag . ' class="epm-chapters__heading">' . esc_html( (string) $heading ) . '</' . $tag . '>';
 		}

@@ -303,63 +303,206 @@
 	/*                                                                     */
 	/* Methods: play, pause, toggle, seekRelative, seekAbsolute,           */
 	/*   seekRatio, cycleSpeed, setVolume, getDuration, getSpeedLabel,     */
-	/*   isPlaying, subscribe, unsubscribe.                                */
-	/* Events: play, pause, time, ended, error, speed, loaded.             */
+	/*   isPlaying, subscribe, unsubscribe, adopt, release.                */
+	/* Events: play, pause, time, ended, error, speed, loaded, source      */
+	/*   (another file took over), meta (title, artwork or duration        */
+	/*   changed).                                                         */
+	/*                                                                     */
+	/* Source identity: a controller plays one file (this.src). A view     */
+	/* that names another file for the same episode (the episode's audio   */
+	/* was replaced or fixed since the page or the editor rendered the     */
+	/* first view) takes over when it binds: the newest render wins. The   */
+	/* same file keeps playing across any number of re-renders.            */
 	/* ------------------------------------------------------------------ */
 
-	function PlaybackController(episodeId, audio, meta) {
+	/**
+	 * Absolute form of an audio address, for comparing sources.
+	 */
+	function absoluteUrl(src) {
+		if (!src) {
+			return '';
+		}
+		try {
+			return new URL(src, window.location.href).href;
+		} catch (e) {
+			return String(src);
+		}
+	}
+
+	/**
+	 * What a view was rendered with: data-epm-src/-title/-artwork/-duration.
+	 */
+	function viewInfo(el) {
+		return {
+			src: el.dataset.epmSrc || '',
+			title: el.dataset.epmTitle || '',
+			artwork: el.dataset.epmArtwork || '',
+			duration: parseFloat(el.dataset.epmDuration) || 0
+		};
+	}
+
+	/**
+	 * The element a controller plays. A full player's own <audio> is used
+	 * when it names the same file: the browser may already have loaded its
+	 * metadata, and its preload (none for audio on another host, see the
+	 * epm_player_preload filter) stays as rendered. Otherwise a detached
+	 * element that loads nothing before the first press.
+	 */
+	function audioFor(src, rendered) {
+		if (rendered && absoluteUrl(rendered.getAttribute('src')) === absoluteUrl(src)) {
+			return rendered;
+		}
+		return makeAudio(src, 'none');
+	}
+
+	/**
+	 * Stop an element from loading or playing (a replaced or extra copy).
+	 */
+	function emptyAudio(audio) {
+		try {
+			audio.pause();
+			audio.removeAttribute('src');
+			audio.preload = 'none';
+			audio.load();
+		} catch (e) { /* best-effort */ }
+	}
+
+	function PlaybackController(episodeId, info, rendered) {
 		this.episodeId = String(episodeId);
-		this.audio = audio;
-		this.meta = meta || {};
+		this.src = absoluteUrl(info.src);
+		this.audio = null;
+		this.meta = { title: '', artwork: '', duration: 0 };
 		this.speedIndex = 0;
 		this.views = [];
 		this._restored = false;
 		this._lastSaved = 0;
 		this._pendingSeek = 0;
-		this._attachAudioEvents();
+		this.mergeMeta(info);
 
 		// Preferred speed carries over between episodes and visits.
-		var speed = parseFloat(Store.get('speed'));
-		var index = SPEEDS.indexOf(speed);
+		var index = SPEEDS.indexOf(parseFloat(Store.get('speed')));
 		if (index > 0) {
 			this.speedIndex = index;
-			this.audio.defaultPlaybackRate = SPEEDS[index];
-			this.audio.playbackRate = SPEEDS[index];
 		}
 
-		// Every controller keeps all card/row buttons and chapter lists of
-		// its episode in sync. documentElement never disconnects, so this
-		// single subscription lives exactly as long as the controller.
-		var self = this;
-		this.subscribe({
-			el: document.documentElement,
-			onEvent: function (controller, eventName) {
-				if (eventName === 'play' || eventName === 'pause' ||
-					eventName === 'ended' || eventName === 'error') {
-					syncCardButtons(self.episodeId);
-				}
-				// A full player of this episode shows a role="alert" box;
-				// everywhere else (cards, rows, sticky bar) say it here.
-				if (eventName === 'error' && self.audio.error && !hasFullPlayer(self.episodeId)) {
-					announce(STR.audioError);
-				}
-				if (eventName === 'time' || eventName === 'loaded' || eventName === 'play') {
-					syncChapters(self);
-				}
-				self._remember(eventName);
-				if (Registry.active === self) {
-					MediaSessionBridge.update(self, eventName);
-				}
-			}
-		});
+		this._setAudio(audioFor(info.src, rendered));
+	}
 
+	/**
+	 * Play this element from now on: listeners, speed, and the remembered
+	 * position once its metadata is known.
+	 */
+	PlaybackController.prototype._setAudio = function (audio) {
+		this.audio = audio;
+		try {
+			audio.defaultPlaybackRate = SPEEDS[this.speedIndex];
+			audio.playbackRate = SPEEDS[this.speedIndex];
+		} catch (e) { /* rate is best-effort */ }
+		this._attachAudioEvents(audio);
 		// Metadata may already be loaded (preload="metadata", audio on this
 		// site). Audio on another host is preload="none": the position is
 		// restored on "loaded", after the first press.
-		if (this.audio.readyState >= 1) {
+		if (audio.readyState >= 1) {
 			this._restorePosition();
 		}
-	}
+	};
+
+	/**
+	 * Take what a view knows: its metadata (non-empty values win, so the
+	 * newest render's title or artwork shows) and, when it names another
+	 * file, its source. rendered is the view's own <audio>, if any.
+	 */
+	PlaybackController.prototype.adopt = function (info, rendered) {
+		var src = absoluteUrl(info.src);
+		var changed = this.mergeMeta(info);
+		if (src && src !== this.src) {
+			var old = this.audio;
+			this.src = src;
+			this._pendingSeek = 0;
+			this._lastSaved = 0;
+			this._restored = false;
+			// The old element's late events are ignored from here on.
+			this._setAudio(audioFor(info.src, rendered));
+			emptyAudio(old);
+			this._emit('source');
+			return;
+		}
+		if (changed) {
+			this._emit('meta');
+		}
+	};
+
+	/**
+	 * Merge title, artwork and duration; true when something changed.
+	 */
+	PlaybackController.prototype.mergeMeta = function (info) {
+		var meta = this.meta;
+		var changed = false;
+		['title', 'artwork'].forEach(function (key) {
+			if (info[key] && info[key] !== meta[key]) {
+				meta[key] = info[key];
+				changed = true;
+			}
+		});
+		var d = parseFloat(info.duration);
+		if (d > 0 && d !== meta.duration) {
+			meta.duration = d;
+			changed = true;
+		}
+		return changed;
+	};
+
+	/**
+	 * Whether anything on the page still shows this episode: a player, a
+	 * card or row button, a chapter list, or the open sticky bar.
+	 */
+	PlaybackController.prototype.inUse = function () {
+		if (Sticky.root && !Sticky.root.hidden && Sticky.controller === this) {
+			return true;
+		}
+		var id = String(this.episodeId).replace(/"/g, '');
+		return !!document.querySelector(
+			'[data-epm-player][data-epm-episode-id="' + id + '"], [data-epm-card-play="' + id + '"], [data-epm-chapters][data-epm-episode-id="' + id + '"]'
+		);
+	};
+
+	/**
+	 * Let go of the audio (the controller is dropped).
+	 */
+	PlaybackController.prototype.release = function () {
+		this.views = [];
+		emptyAudio(this.audio);
+	};
+
+	/**
+	 * Page-wide state of the episode: every card/row button and chapter
+	 * list, the error announcement, the resume position, Media Session.
+	 * Runs before the views on every event.
+	 */
+	PlaybackController.prototype._syncPage = function (eventName) {
+		if (eventName === 'play' || eventName === 'pause' || eventName === 'ended' ||
+			eventName === 'error' || eventName === 'source') {
+			syncCardButtons(this.episodeId);
+		}
+		// A full player of this episode shows a role="alert" box;
+		// everywhere else (cards, rows, sticky bar) say it here.
+		if (eventName === 'error' && this.audio.error && !hasFullPlayer(this.episodeId)) {
+			announce(STR.audioError);
+		}
+		if (eventName === 'time' || eventName === 'loaded' || eventName === 'play' || eventName === 'source') {
+			syncChapters(this);
+		}
+		this._remember(eventName);
+		if (Registry.active === this) {
+			MediaSessionBridge.update(this, eventName);
+		}
+		// Nothing on the page shows this episode any more (its last player
+		// was removed, no sticky bar carries it): it must not play on
+		// where nobody can stop it.
+		if (eventName === 'time' && this.isPlaying() && !this.inUse()) {
+			this.pause();
+		}
+	};
 
 	/**
 	 * Resume where the visitor left off (per episode, per browser).
@@ -397,14 +540,21 @@
 		}
 	};
 
-	PlaybackController.prototype._attachAudioEvents = function () {
+	/**
+	 * Listen to one element. Events of an element the controller no longer
+	 * plays (a replaced source) are ignored.
+	 */
+	PlaybackController.prototype._attachAudioEvents = function (audio) {
 		var self = this;
 		// Registered first: a pending position (retry, ?t= link) is in
 		// place before views hear "loaded", so they never flash 0:00.
-		self.audio.addEventListener('loadedmetadata', function () {
+		audio.addEventListener('loadedmetadata', function () {
+			if (audio !== self.audio) {
+				return;
+			}
 			if (self._pendingSeek > 0) {
 				try {
-					self.audio.currentTime = self._pendingSeek;
+					audio.currentTime = self._pendingSeek;
 				} catch (e) { /* seeking is best-effort */ }
 				self._pendingSeek = 0;
 			}
@@ -418,12 +568,16 @@
 			['durationchange', 'loaded']
 		];
 		map.forEach(function (pair) {
-			self.audio.addEventListener(pair[0], function () {
-				self._emit(pair[1]);
+			audio.addEventListener(pair[0], function () {
+				if (audio === self.audio) {
+					self._emit(pair[1]);
+				}
 			});
 		});
-		self.audio.addEventListener('error', function () {
-			self._emit('error', { kind: 'media' });
+		audio.addEventListener('error', function () {
+			if (audio === self.audio) {
+				self._emit('error', { kind: 'media' });
+			}
 		});
 	};
 
@@ -459,10 +613,21 @@
 		return t;
 	};
 
+	/**
+	 * Views whose DOM is still in the page (removed ones are dropped, so
+	 * many re-renders never pile up views).
+	 */
+	PlaybackController.prototype._prune = function () {
+		this.views = this.views.filter(function (view) {
+			return !!view.el && view.el.isConnected;
+		});
+	};
+
 	PlaybackController.prototype.subscribe = function (view) {
 		if (!view || !view.el || typeof view.onEvent !== 'function') {
 			return;
 		}
+		this._prune();
 		for (var i = 0; i < this.views.length; i++) {
 			if (this.views[i].el === view.el) {
 				return; // already subscribed: idempotent
@@ -479,6 +644,9 @@
 
 	PlaybackController.prototype._emit = function (eventName, detail) {
 		var self = this;
+		try {
+			this._syncPage(eventName);
+		} catch (e) { /* page sync must never break playback */ }
 		// Prune views whose DOM was removed; listeners die with the nodes.
 		this.views = this.views.filter(function (view) {
 			if (!view.el || !view.el.isConnected) {
@@ -626,19 +794,50 @@
 		controllers: {},
 		active: null,
 
-		get: function (episodeId, factory) {
-			var id = String(episodeId);
+		get: function (episodeId) {
+			var id = String(episodeId || '');
+			return (id && this.controllers[id]) || null;
+		},
+
+		/**
+		 * The episode's controller for a view that binds: made from the
+		 * view when there is none, otherwise it adopts the view's metadata
+		 * and, when the view names another file, its source (see
+		 * PlaybackController.adopt). rendered: the view's own <audio>.
+		 */
+		obtain: function (episodeId, info, rendered) {
+			var id = String(episodeId || '');
 			if (!id) {
 				return null;
 			}
 			var controller = this.controllers[id];
-			if (!controller && typeof factory === 'function') {
-				controller = factory();
-				if (controller) {
-					this.controllers[id] = controller;
-				}
+			if (controller) {
+				controller.adopt(info, rendered);
+				return controller;
 			}
-			return controller || null;
+			if (!info.src) {
+				return null;
+			}
+			controller = new PlaybackController(id, info, rendered);
+			this.controllers[id] = controller;
+			return controller;
+		},
+
+		/**
+		 * Drop controllers nothing on the page shows any more and that are
+		 * neither playing nor the active one (the sticky bar's and the
+		 * lock screen's). Editor sessions re-render and switch episodes
+		 * often; their detached audio must not pile up.
+		 */
+		sweep: function () {
+			var self = this;
+			Object.keys(this.controllers).forEach(function (id) {
+				var controller = self.controllers[id];
+				if (controller !== self.active && !controller.isPlaying() && !controller.inUse()) {
+					controller.release();
+					delete self.controllers[id];
+				}
+			});
 		},
 
 		/**
@@ -696,7 +895,7 @@
 			}
 			try {
 				this.bind();
-				if (eventName === 'attach' || eventName === 'play') {
+				if (eventName === 'attach' || eventName === 'play' || eventName === 'meta' || eventName === 'source') {
 					var meta = controller.meta || {};
 					navigator.mediaSession.metadata = new window.MediaMetadata({
 						title: meta.title || '',
@@ -705,7 +904,7 @@
 						artwork: meta.artwork ? [{ src: meta.artwork }] : []
 					});
 				}
-				if (eventName === 'play' || eventName === 'pause' || eventName === 'ended' || eventName === 'error') {
+				if (eventName === 'play' || eventName === 'pause' || eventName === 'ended' || eventName === 'error' || eventName === 'source') {
 					navigator.mediaSession.playbackState = controller.isPlaying() ? 'playing' : 'paused';
 				}
 				var d = controller.getDuration();
@@ -721,9 +920,13 @@
 		}
 	};
 
-	function makeAudio(src) {
+	/**
+	 * A detached audio element (not in the page, so no re-render of any
+	 * view can stop it).
+	 */
+	function makeAudio(src, preload) {
 		var audio = new Audio();
-		audio.preload = 'metadata';
+		audio.preload = preload || 'metadata';
 		if (src) {
 			audio.src = src;
 		}
@@ -763,15 +966,18 @@
 		}
 	}
 
-	function bindTimeline(timeline, controller) {
+	/**
+	 * ctl() returns the episode's controller at the time of the event.
+	 */
+	function bindTimeline(timeline, ctl) {
 		var dragging = false;
 
 		timeline.addEventListener('click', function (e) {
-			controller.seekRatio(clickRatio(e, timeline));
+			ctl().seekRatio(clickRatio(e, timeline));
 		});
 
 		timeline.addEventListener('keydown', function (e) {
-			sliderKeys(e, controller);
+			sliderKeys(e, ctl());
 		});
 
 		timeline.addEventListener('pointerdown', function (e) {
@@ -779,12 +985,12 @@
 			try {
 				timeline.setPointerCapture(e.pointerId);
 			} catch (err) { /* optional */ }
-			controller.seekRatio(clickRatio(e, timeline));
+			ctl().seekRatio(clickRatio(e, timeline));
 		});
 
 		timeline.addEventListener('pointermove', function (e) {
 			if (dragging) {
-				controller.seekRatio(clickRatio(e, timeline));
+				ctl().seekRatio(clickRatio(e, timeline));
 			}
 		});
 
@@ -841,9 +1047,14 @@
 			setSpeedLabel(refs.speed, controller.getSpeedLabel());
 		}
 
-		if (eventName === 'error' && controller.hasError()) {
-			showPlayerError(root, refs, controller);
-		} else if (eventName === 'play') {
+		// The alert appears when loading fails (or when this view binds to
+		// a failed source) and goes as soon as the source works, also when
+		// another view retried or a fixed file took over.
+		if (controller.hasError()) {
+			if (eventName === 'error' || eventName === 'init') {
+				showPlayerError(root, refs);
+			}
+		} else {
 			hidePlayerError(root, refs);
 		}
 
@@ -852,7 +1063,7 @@
 		}
 	}
 
-	function showPlayerError(root, refs, controller) {
+	function showPlayerError(root, refs) {
 		try {
 			if (!refs.error) {
 				var box = document.createElement('div');
@@ -867,7 +1078,7 @@
 				retry.className = 'epm-player__error-retry';
 				retry.textContent = STR.retry;
 				retry.addEventListener('click', function () {
-					controller.retry();
+					refs.ctl().retry();
 				});
 
 				box.appendChild(msg);
@@ -904,14 +1115,48 @@
 		} catch (e) { /* noop */ }
 	}
 
+	/**
+	 * A full player's own <audio> once the player is bound. The element
+	 * the controller plays leaves the view, so re-rendering or removing
+	 * that view never stops it; any other copy is emptied, so one file is
+	 * not loaded twice. Without JavaScript the element stays in place (and
+	 * fallbackToNative() shows it when binding fails).
+	 */
+	function settleRenderedAudio(controller, audio) {
+		if (audio !== controller.audio) {
+			emptyAudio(audio);
+		}
+		if (audio.parentNode) {
+			audio.parentNode.removeChild(audio);
+		}
+	}
+
+	// Bound player roots -> their controller lookup, so a bound player that
+	// comes back into the page (a popup reopened) reconnects.
+	var playerViews = bindings ? new window.WeakMap() : null;
+
 	function bindFullPlayer(root) {
 		if (!root || root.nodeType !== 1) {
 			return;
 		}
-		var audio = root.querySelector('audio');
 		var episodeId = root.dataset.epmEpisodeId || '';
-		if (!audio || !episodeId || !claim(root, 'player')) {
+		if (!episodeId) {
 			return;
+		}
+		if (!claim(root, 'player')) {
+			var reconnect = playerViews && playerViews.get(root);
+			if (reconnect && root.isConnected) {
+				reconnect();
+			}
+			return;
+		}
+		// Absent in a copy of a bound player (a clone): the copy shares the
+		// episode's controller, or makes one from data-epm-src.
+		var audio = root.querySelector('audio');
+		// A copy of a failed player carries its error box, without listeners.
+		var stale = root.querySelector('.epm-player__error');
+		if (stale && stale.parentNode) {
+			stale.parentNode.removeChild(stale);
 		}
 
 		var refs = {
@@ -926,61 +1171,79 @@
 			error: null,
 			errorMsg: null
 		};
+		var bound = null;
+		var view = {
+			el: root,
+			onEvent: function (c, eventName, detail) {
+				updatePlayerUI(root, refs, c, eventName, detail);
+			}
+		};
+
+		// The episode's controller when an event happens. The one this view
+		// was bound to may have been released while the view was out of
+		// the page; then the view finds or makes the current one.
+		function ctl() {
+			var c = Registry.get(episodeId) || Registry.obtain(episodeId, viewInfo(root), null);
+			if (c && c !== bound) {
+				bound = c;
+				c.subscribe(view);
+				updatePlayerUI(root, refs, c, 'init');
+			}
+			return c || bound;
+		}
+		refs.ctl = ctl;
 
 		try {
-			// Share one controller per episode across all representations.
-			var controller = Registry.get(episodeId, function () {
-				return new PlaybackController(episodeId, audio, {
-					title: root.dataset.epmTitle || '',
-					artwork: root.dataset.epmArtwork || '',
-					duration: root.dataset.epmDuration || 0
-				});
-			});
-			if (!controller) {
+			// One controller per episode across all representations. When
+			// this view names another file, its file takes over.
+			bound = Registry.obtain(episodeId, viewInfo(root), audio);
+			if (!bound) {
 				return;
 			}
 
 			if (refs.play) {
 				refs.play.addEventListener('click', function () {
-					controller.toggle();
+					ctl().toggle();
 				});
 			}
 
 			root.querySelectorAll('[data-epm-seek-rel]').forEach(function (btn) {
 				btn.addEventListener('click', function () {
-					controller.seekRelative(parseInt(btn.dataset.epmSeekRel, 10) || 0);
+					ctl().seekRelative(parseInt(btn.dataset.epmSeekRel, 10) || 0);
 				});
 			});
 
 			if (refs.timeline) {
-				bindTimeline(refs.timeline, controller);
+				bindTimeline(refs.timeline, ctl);
 			}
 
 			if (refs.speed) {
 				refs.speed.addEventListener('click', function () {
-					controller.cycleSpeed();
+					ctl().cycleSpeed();
 				});
 			}
 
 			if (refs.volume) {
 				refs.volume.addEventListener('input', function () {
-					controller.setVolume(refs.volume.value);
+					ctl().setVolume(refs.volume.value);
 				});
-				refs.volume.value = String(controller.audio.volume);
+				refs.volume.value = String(bound.audio.volume);
 			}
 
-			controller.subscribe({
-				el: root,
-				onEvent: function (c, eventName, detail) {
-					updatePlayerUI(root, refs, c, eventName, detail);
-				}
-			});
-
-			updatePlayerUI(root, refs, controller, 'init');
+			bound.subscribe(view);
+			updatePlayerUI(root, refs, bound, 'init');
+			if (audio) {
+				settleRenderedAudio(bound, audio);
+			}
+			if (playerViews) {
+				playerViews.set(root, ctl);
+			}
 			root.dataset.epmInitialized = '1';
 		} catch (err) {
 			root.dataset.epmInitialized = '1';
-			fallbackToNative(root, audio);
+			if (audio) {
+				fallbackToNative(root, audio);
+			}
 		}
 	}
 
@@ -1063,21 +1326,17 @@
 			return;
 		}
 
+		// A list rendered after the episode's audio changed brings the new
+		// file (and its metadata) to an existing controller.
+		if (Registry.get(episodeId)) {
+			Registry.obtain(episodeId, viewInfo(btn), null);
+		}
+
 		// Exactly one click listener per button. State sync for all
 		// duplicate buttons of the episode is handled by the controller's
-		// own card-sync subscription (see PlaybackController).
+		// page sync (see PlaybackController._syncPage).
 		btn.addEventListener('click', function () {
-			var controller = Registry.get(episodeId, function () {
-				var src = btn.dataset.epmSrc || '';
-				if (!src) {
-					return null;
-				}
-				return new PlaybackController(episodeId, makeAudio(src), {
-					title: btn.dataset.epmTitle || '',
-					artwork: btn.dataset.epmArtwork || '',
-					duration: btn.dataset.epmDuration || 0
-				});
-			});
+			var controller = Registry.get(episodeId) || Registry.obtain(episodeId, viewInfo(btn), null);
 			if (controller) {
 				controller.toggle();
 			}
@@ -1097,6 +1356,10 @@
 			return;
 		}
 
+		if (Registry.get(episodeId)) {
+			Registry.obtain(episodeId, viewInfo(container), null);
+		}
+
 		// Delegated: exactly one listener per chapter list.
 		container.addEventListener('click', function (e) {
 			var target = e.target instanceof Element ? e.target : null;
@@ -1105,17 +1368,10 @@
 				return;
 			}
 			var seconds = parseInt(btn.dataset.epmSeek, 10) || 0;
-			var controller = Registry.get(episodeId, function () {
-				var src = container.dataset.epmSrc || '';
-				if (!src) {
-					return null;
-				}
-				return new PlaybackController(episodeId, makeAudio(src), {
-					title: container.dataset.epmTitle || '',
-					artwork: '',
-					duration: 0
-				});
-			});
+			// Title, artwork and duration come with the list
+			// (data-epm-title/-artwork/-duration), for the sticky bar and
+			// the lock screen.
+			var controller = Registry.get(episodeId) || Registry.obtain(episodeId, viewInfo(container), null);
 			if (!controller) {
 				return;
 			}
@@ -1304,19 +1560,25 @@
 
 			this.root.hidden = false;
 			this.measure();
-
-			var meta = controller.meta || {};
-			if (this.refs.title) {
-				this.refs.title.textContent = meta.title || '';
-			}
-			if (this.refs.artwork) {
-				var src = meta.artwork || '';
-				this.refs.artwork.innerHTML = src
-					? '<img src="' + String(src).replace(/"/g, '%22') + '" alt="" loading="lazy">'
-					: '';
-			}
-
+			this.showArtwork(controller);
 			this.sync(controller, 'attach');
+		},
+
+		/**
+		 * The episode's artwork (decorative: the title names the episode).
+		 */
+		showArtwork: function (controller) {
+			if (!this.refs.artwork) {
+				return;
+			}
+			var src = (controller.meta && controller.meta.artwork) || '';
+			var img = this.refs.artwork.querySelector('img');
+			if (img && img.getAttribute('src') === src) {
+				return;
+			}
+			this.refs.artwork.innerHTML = src
+				? '<img src="' + String(src).replace(/"/g, '%22') + '" alt="" loading="lazy">'
+				: '';
 		},
 
 		sync: function (controller, eventName) {
@@ -1366,6 +1628,9 @@
 			}
 			if (this.refs.speed) {
 				setSpeedLabel(this.refs.speed, controller.getSpeedLabel());
+			}
+			if (eventName === 'meta' || eventName === 'source') {
+				this.showArtwork(controller);
 			}
 			if (eventName === 'speed') {
 				announce(fill(STR.speedChanged, controller.getSpeedLabel()));
@@ -1821,6 +2086,8 @@
 			findAll(scope, '[data-epm-chapters]').forEach(bindChapters);
 			findAll(scope, '[data-epm-share]').forEach(bindShare);
 			findAll(scope, '[data-epm-video]').forEach(bindVideo);
+			// Content was replaced: controllers of episodes no longer shown go.
+			Registry.sweep();
 		} catch (e) {
 			// Initialization must never break the page.
 		}
