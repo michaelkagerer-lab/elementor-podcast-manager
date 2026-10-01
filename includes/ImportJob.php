@@ -11,6 +11,13 @@
  * 2. start:   apply the show details (optional) and mark the job running.
  * 3. step:    import a few items per request (AJAX from the import screen).
  *    When the browser is closed, a WP-Cron event keeps the job going.
+ *    With "copy media", a file that does not arrive within one request is
+ *    continued by the next one (MediaDownload); a host that asks to wait
+ *    (HTTP 429) puts the job in the state "waiting" until then.
+ * 4. end:     "done", or for a move that left files at the old host (or
+ *    episodes that failed) "done_with_problems": the move is not finished
+ *    until a retry copies them (retry()) or the site owner confirms that
+ *    they stay behind (confirm_move()).
  *
  * Only one import or sync runs at a time (a lock row changed only with
  * conditional statements). The job is one option, read from the database
@@ -83,7 +90,7 @@ final class ImportJob {
 	 * @return void
 	 */
 	public function init(): void {
-		foreach ( [ 'preview', 'more', 'start', 'step', 'cancel', 'status' ] as $action ) {
+		foreach ( [ 'preview', 'more', 'start', 'step', 'cancel', 'status', 'retry', 'confirm' ] as $action ) {
 			add_action( 'wp_ajax_epm_import_' . $action, [ $this, 'ajax_' . $action ] );
 		}
 		add_action( 'wp_ajax_epm_sync_now', [ $this, 'ajax_sync_now' ] );
@@ -154,15 +161,17 @@ final class ImportJob {
 	}
 
 	/**
-	 * Seconds after which a lock counts as stale. One "copy media" step
-	 * downloads a single audio file, which may take up to 15 minutes.
+	 * Seconds after which a lock counts as stale. A "copy media" step is
+	 * bounded like any other (MediaDownload: at most 50 seconds per
+	 * request), plus the time to store a file; the longer lifetime only
+	 * leaves room for slow disks.
 	 *
 	 * @return int
 	 */
 	private static function lock_ttl(): int {
 		$job = self::get();
 
-		return ! empty( $job['options']['download_media'] ) && 'running' === ( $job['status'] ?? '' )
+		return ! empty( $job['options']['download_media'] ) && self::is_active( $job )
 			? 20 * MINUTE_IN_SECONDS
 			: 5 * MINUTE_IN_SECONDS;
 	}
@@ -431,7 +440,7 @@ final class ImportJob {
 	public static function preview( string $url, float $budget = 0.0 ) {
 		$deadline = microtime( true ) + ( $budget > 0 ? $budget : self::request_seconds() );
 
-		if ( 'running' === ( self::get()['status'] ?? '' ) ) {
+		if ( self::is_active( self::get() ) ) {
 			return self::running_error();
 		}
 
@@ -503,7 +512,7 @@ final class ImportJob {
 		$replaced = [];
 		$saved    = self::job_update(
 			static function ( array $current ) use ( $job, &$replaced ) {
-				if ( 'running' === ( $current['status'] ?? '' ) ) {
+				if ( self::is_active( $current ) ) {
 					return null;
 				}
 				$replaced       = $current;
@@ -557,7 +566,7 @@ final class ImportJob {
 		$job      = self::get();
 
 		if ( '' === $token || ( $job['token'] ?? '' ) !== $token || ! in_array( $job['status'] ?? '', [ 'loading', 'ready' ], true ) || empty( $job['catalog'] ) ) {
-			return 'running' === ( $job['status'] ?? '' ) ? self::running_error() : self::expired_error();
+			return self::is_active( $job ) ? self::running_error() : self::expired_error();
 		}
 
 		// Read the missing part again, from the page that was not read.
@@ -1173,6 +1182,7 @@ final class ImportJob {
 
 		self::sweep();
 		self::cleanup_legacy_folder();
+		MediaDownload::cleanup_stale( self::media_files( self::get() ) );
 
 		$job = self::get();
 		if ( in_array( $job['status'] ?? '', [ 'loading', 'ready' ], true ) ) {
@@ -1190,7 +1200,7 @@ final class ImportJob {
 	 */
 	private static function sweep(): void {
 		$job     = self::get();
-		$current = in_array( $job['status'] ?? '', [ 'loading', 'ready', 'running' ], true ) ? (string) ( $job['store'] ?? '' ) : '';
+		$current = in_array( $job['status'] ?? '', [ 'loading', 'ready', 'running', 'waiting', 'done_with_problems' ], true ) ? (string) ( $job['store'] ?? '' ) : '';
 		foreach ( ImportStore::keys() as $key => $created ) {
 			if ( $key !== $current && time() - $created > HOUR_IN_SECONDS ) {
 				ImportStore::purge( $key );
@@ -1445,15 +1455,60 @@ final class ImportJob {
 	}
 
 	/**
+	 * Whether a job is an import in progress (running, or waiting for its
+	 * host).
+	 *
+	 * @param array<string, mixed> $job Job.
+	 * @return bool
+	 */
+	public static function is_active( array $job ): bool {
+		return in_array( $job['status'] ?? '', [ 'running', 'waiting' ], true );
+	}
+
+	/**
+	 * Whether the last import was a move that is not finished because files
+	 * stayed at the old host (or episodes failed).
+	 *
+	 * @return bool
+	 */
+	public static function move_unfinished(): bool {
+		$job = self::get();
+
+		return 'done_with_problems' === ( $job['status'] ?? '' ) && 'move' === ( $job['options']['purpose'] ?? '' );
+	}
+
+	/**
+	 * The step this request is working on: token and position (null when
+	 * none). A request that dies while it is set is noticed by the shutdown
+	 * handler.
+	 *
+	 * @var array{token: string, position: int}|null
+	 */
+	private static ?array $working = null;
+
+	/**
+	 * Whether the shutdown handler is registered in this request.
+	 *
+	 * @var bool
+	 */
+	private static bool $guarded = false;
+
+	/**
 	 * Import the next batch.
 	 *
-	 * @param float $budget Seconds to spend.
+	 * @param float $budget Seconds to spend (a media download of the batch
+	 *                      gets at most this, and at most
+	 *                      MediaDownload::request_seconds()).
 	 * @return array<string, mixed> Client state.
 	 */
 	public static function step( float $budget = 8.0 ) {
 		$job = self::get();
 
-		if ( 'running' !== ( $job['status'] ?? '' ) ) {
+		// The host asked to wait: nothing happens before that time.
+		if ( 'waiting' === ( $job['status'] ?? '' ) && time() < (int) ( $job['wait_until'] ?? 0 ) ) {
+			return self::client_state( $job );
+		}
+		if ( ! self::is_active( $job ) ) {
 			return self::client_state( $job );
 		}
 
@@ -1468,6 +1523,19 @@ final class ImportJob {
 			// read before (another request may have finished, cancelled or
 			// replaced the job meanwhile).
 			$job = self::get();
+			if ( 'waiting' === ( $job['status'] ?? '' ) && time() >= (int) ( $job['wait_until'] ?? 0 ) ) {
+				$token = (string) ( $job['token'] ?? '' );
+				$job   = self::job_update(
+					static function ( array $current ) use ( $token ) {
+						if ( 'waiting' !== ( $current['status'] ?? '' ) || ( $current['token'] ?? '' ) !== $token ) {
+							return null;
+						}
+						$current['status'] = 'running';
+						unset( $current['wait_until'], $current['wait_reason'] );
+						return $current;
+					}
+				) ?? self::get();
+			}
 			if ( 'running' !== ( $job['status'] ?? '' ) ) {
 				return self::client_state( $job );
 			}
@@ -1489,19 +1557,28 @@ final class ImportJob {
 			$total    = (int) ( $job['total'] ?? 0 );
 			$started  = microtime( true );
 			$download = ! empty( $job['options']['download_media'] );
-			$batch    = $download ? 1 : 10;
+			$budget   = max( 1.0, $budget );
 
 			$importer = new Importer(
 				[
 					'feed_url'       => (string) $job['feed_url'],
 					'status'         => (string) ( $job['options']['status'] ?? 'publish' ),
 					'download_media' => $download,
+					// Media downloads of this request end by then; a file that
+					// takes longer is continued by the next request.
+					'deadline'       => $started + min( $budget, MediaDownload::request_seconds() ),
 				]
 			);
 
+			if ( $download ) {
+				// Download files of requests that died (never the one this job continues).
+				MediaDownload::cleanup_stale( self::media_files( $job ) );
+				self::guard_shutdown();
+			}
+
 			$done = 0;
 			$lost = false;
-			while ( (int) $job['position'] < $total && $done < $batch && ( microtime( true ) - $started ) < $budget ) {
+			while ( (int) $job['position'] < $total && $done < 10 && ( microtime( true ) - $started ) < $budget ) {
 				// Before every episode: the lock is still this request's, and
 				// the job is still running, the same job, at the same place
 				// (Cancel or a new preview end the batch here).
@@ -1519,7 +1596,34 @@ final class ImportJob {
 				if ( null === $item ) {
 					return self::fail( $token, __( 'The stored feed data is missing. Check the feed again to restart the import.', 'elementor-podcast-manager' ) );
 				}
-				$outcome = $importer->import_item( $item );
+
+				$resume = [];
+				if ( $download ) {
+					$resume = self::begin_item( $token, $position );
+					if ( null === $resume ) {
+						break;
+					}
+				}
+
+				if ( isset( $resume['outcome'] ) ) {
+					// Interrupted too often: given up, with the reason.
+					$outcome = (array) $resume['outcome'];
+				} else {
+					self::$working = [
+						'token'    => $token,
+						'position' => $position,
+					];
+					try {
+						$outcome = $importer->import_item( $item, $resume );
+					} catch ( \Throwable $e ) {
+						if ( $download ) {
+							self::interrupted( $token, $position, $e->getMessage() );
+						}
+						throw $e;
+					} finally {
+						self::$working = null;
+					}
+				}
 				unset( $item );
 
 				// A request that took the lock over (this episode took longer
@@ -1527,6 +1631,23 @@ final class ImportJob {
 				// this episode counts, not this one.
 				if ( ! self::keep_lock() ) {
 					$lost = true;
+					break;
+				}
+
+				// A copy that continues in the next request (or after the
+				// wait the host asked for): the episode stays in place.
+				if ( ! empty( $outcome['pending'] ) ) {
+					$saved = self::job_update(
+						static function ( array $current ) use ( $token, $position, $outcome, $resume ) {
+							if ( 'running' !== ( $current['status'] ?? '' ) || ( $current['token'] ?? '' ) !== $token || (int) ( $current['position'] ?? -1 ) !== $position ) {
+								return null;
+							}
+							return self::hold( $current, $position, $outcome, $resume );
+						}
+					);
+					if ( null !== $saved ) {
+						$job = $saved;
+					}
 					break;
 				}
 
@@ -1538,6 +1659,7 @@ final class ImportJob {
 						if ( ( $current['token'] ?? '' ) !== $token || (int) ( $current['position'] ?? -1 ) !== $position ) {
 							return null;
 						}
+						unset( $current['media']['inflight'] );
 						return self::record( $current, $outcome );
 					}
 				);
@@ -1554,34 +1676,16 @@ final class ImportJob {
 
 			if ( $lost ) {
 				$state         = self::client_state( self::get() );
-				$state['busy'] = 'running' === $state['status'];
+				$state['busy'] = self::is_active( self::get() );
 				return $state;
 			}
 
-			if ( 'running' === ( $job['status'] ?? '' ) && (int) $job['position'] >= $total ) {
-				// Finished: only by the request that still holds the lock,
-				// and only a job nobody cancelled or replaced meanwhile.
-				$finished = self::keep_lock() ? self::job_update(
-					static function ( array $current ) use ( $token, $total ) {
-						if ( 'running' !== ( $current['status'] ?? '' ) || ( $current['token'] ?? '' ) !== $token || (int) ( $current['position'] ?? 0 ) < $total ) {
-							return null;
-						}
-						$current['status']   = 'done';
-						$current['finished'] = time();
-						return $current;
-					}
-				) : null;
-
-				if ( null !== $finished ) {
-					self::discard( $finished );
-					// A move of an incomplete catalog finishes only when that
-					// was accepted (an import started by 1.3.0 did not know).
-					if ( 'move' === ( $finished['options']['purpose'] ?? '' ) && ( ! empty( $finished['catalog']['complete'] ) || ! empty( $finished['options']['accept_partial'] ) || empty( $finished['catalog'] ) ) ) {
-						self::finish_move();
-					}
-					wp_clear_scheduled_hook( self::CRON_HOOK );
-					Feed::flush_cache();
-				}
+			if ( 'waiting' === ( $job['status'] ?? '' ) ) {
+				// The background run takes over at the time the host named.
+				wp_clear_scheduled_hook( self::CRON_HOOK );
+				wp_schedule_single_event( (int) $job['wait_until'] + 1, self::CRON_HOOK );
+			} elseif ( 'running' === ( $job['status'] ?? '' ) && (int) $job['position'] >= $total ) {
+				self::finish( $token, $total );
 			} elseif ( 'running' === ( $job['status'] ?? '' ) ) {
 				self::schedule_continuation();
 			}
@@ -1590,6 +1694,316 @@ final class ImportJob {
 		} finally {
 			self::release_lock();
 		}
+	}
+
+	/**
+	 * The job went through every episode: done, or for a move that left
+	 * files at the old host (or failed episodes) "done_with_problems",
+	 * which does not finish the move. Only by the request that still holds
+	 * the lock, and only a job nobody cancelled or replaced meanwhile.
+	 *
+	 * @param string $token Job token.
+	 * @param int    $total Episodes.
+	 * @return void
+	 */
+	private static function finish( string $token, int $total ): void {
+		if ( ! self::keep_lock() ) {
+			return;
+		}
+
+		$finished = self::job_update(
+			static function ( array $current ) use ( $token, $total ) {
+				if ( 'running' !== ( $current['status'] ?? '' ) || ( $current['token'] ?? '' ) !== $token || (int) ( $current['position'] ?? 0 ) < $total ) {
+					return null;
+				}
+				$move               = 'move' === ( $current['options']['purpose'] ?? '' );
+				$current['status']  = $move && self::has_problems( $current ) ? 'done_with_problems' : 'done';
+				$current['finished'] = time();
+				unset( $current['media']['inflight'] );
+				return $current;
+			}
+		);
+		if ( null === $finished ) {
+			return;
+		}
+
+		wp_clear_scheduled_hook( self::CRON_HOOK );
+		Feed::flush_cache();
+
+		// Unfinished: the parsed feed stays for a retry.
+		if ( 'done_with_problems' === $finished['status'] ) {
+			return;
+		}
+
+		self::discard( $finished );
+		// A move of an incomplete catalog finishes only when that was
+		// accepted (an import started by 1.3.0 did not know).
+		if ( 'move' === ( $finished['options']['purpose'] ?? '' ) && ( ! empty( $finished['catalog']['complete'] ) || ! empty( $finished['options']['accept_partial'] ) || empty( $finished['catalog'] ) ) ) {
+			self::finish_move();
+		}
+	}
+
+	/**
+	 * Whether a job left episodes behind: failed episodes, or files that
+	 * still load from the old host.
+	 *
+	 * @param array<string, mixed> $job Job.
+	 * @return bool
+	 */
+	private static function has_problems( array $job ): bool {
+		return (int) ( $job['counts']['failed'] ?? 0 ) > 0 || array_sum( array_map( 'intval', (array) ( $job['media']['counts'] ?? [] ) ) ) > 0;
+	}
+
+	/**
+	 * Before an episode of a "copy media" job: mark it as being worked on,
+	 * so a request that dies there (and could not say so) is noticed by the
+	 * next one. An episode interrupted too often is given up.
+	 *
+	 * @param string $token    Job token.
+	 * @param int    $position Position.
+	 * @return array<string, mixed>|null What earlier requests left for this episode
+	 *                                   (with `outcome` when it is given up); null
+	 *                                   when the job changed meanwhile.
+	 */
+	private static function begin_item( string $token, int $position ): ?array {
+		$died  = false;
+		$saved = self::job_update(
+			static function ( array $current ) use ( $token, $position, &$died ) {
+				if ( 'running' !== ( $current['status'] ?? '' ) || ( $current['token'] ?? '' ) !== $token || (int) ( $current['position'] ?? -1 ) !== $position ) {
+					return null;
+				}
+				$inflight = (array) ( $current['media']['inflight'] ?? [] );
+				if ( (int) ( $inflight['position'] ?? -1 ) !== $position ) {
+					$inflight = [ 'position' => $position ];
+				}
+				// Still marked from an earlier request: it died without a word.
+				$died = ! empty( $inflight['running'] );
+				if ( $died ) {
+					$inflight['tries']      = (int) ( $inflight['tries'] ?? 0 ) + 1;
+					$inflight['last_error'] = __( 'The request ended without a response (it was stopped by the server).', 'elementor-podcast-manager' );
+				}
+				$inflight['running']           = true;
+				$current['media']['inflight'] = $inflight;
+				return $current;
+			}
+		);
+		if ( null === $saved ) {
+			return null;
+		}
+
+		$inflight = (array) $saved['media']['inflight'];
+		$tries    = (int) ( $inflight['tries'] ?? 0 );
+		if ( $tries < MediaDownload::max_attempts() ) {
+			return $inflight;
+		}
+
+		// Given up: the kind that was being copied fails with the reason; an
+		// episode that died elsewhere fails as a whole.
+		MediaDownload::discard( (array) ( $inflight['download'] ?? [] ) );
+		$reason = sprintf(
+			/* translators: 1: number of attempts, 2: error message */
+			__( 'The copy was interrupted %1$d times (last: %2$s).', 'elementor-podcast-manager' ),
+			$tries,
+			rtrim( (string) ( $inflight['last_error'] ?? '' ), '.' ) . '.'
+		);
+		$kind = (string) ( $inflight['kind'] ?? '' );
+		if ( '' !== $kind ) {
+			$inflight['done'][ $kind ] = [
+				'state'  => 'failed',
+				'url'    => (string) ( $inflight['download']['url'] ?? '' ),
+				'code'   => 'interrupted',
+				'reason' => $reason,
+			];
+			$inflight['download']      = [];
+			$inflight['kind']          = '';
+			$inflight['tries']         = 0;
+			return $inflight;
+		}
+
+		$inflight['outcome'] = [
+			'action'       => 'failed',
+			'id'           => 0,
+			'title'        => '',
+			'message'      => $reason,
+			'media_failed' => false,
+			'media'        => [],
+			'remaining'    => [],
+			'pending'      => null,
+		];
+
+		return $inflight;
+	}
+
+	/**
+	 * Keep an episode whose copy continues in the next request (or after
+	 * the wait its host asked for) at its place.
+	 *
+	 * @param array<string, mixed> $job      Job.
+	 * @param int                  $position Position.
+	 * @param array<string, mixed> $outcome  Outcome with `pending`.
+	 * @param array<string, mixed> $resume   What earlier requests left.
+	 * @return array<string, mixed>
+	 */
+	private static function hold( array $job, int $position, array $outcome, array $resume ): array {
+		$pending = (array) $outcome['pending'];
+		$settled = [];
+		foreach ( (array) ( $outcome['media'] ?? [] ) as $kind => $media ) {
+			if ( $kind !== ( $pending['kind'] ?? '' ) && in_array( $media['state'] ?? '', [ 'failed', 'busy', 'copied' ], true ) ) {
+				$settled[ $kind ] = $media;
+			}
+		}
+
+		$job['media']['inflight'] = [
+			'position' => $position,
+			'running'  => false,
+			'action'   => in_array( $resume['action'] ?? '', [ 'created', 'updated' ], true ) ? $resume['action'] : (string) $outcome['action'],
+			'id'       => (int) $outcome['id'],
+			'title'    => (string) $outcome['title'],
+			'kind'     => (string) ( $pending['kind'] ?? '' ),
+			'download' => (array) ( $pending['download'] ?? [] ),
+			'done'     => $settled,
+			'tries'    => (int) ( $resume['tries'] ?? 0 ),
+		];
+
+		$until = (int) ( $pending['until'] ?? 0 );
+		if ( $until > time() ) {
+			$job['status']      = 'waiting';
+			$job['wait_until']  = $until;
+			$job['wait_reason'] = (string) ( $pending['reason'] ?? '' );
+		}
+		$job['touched'] = time();
+
+		return $job;
+	}
+
+	/**
+	 * Register the shutdown handler once per request.
+	 *
+	 * @return void
+	 */
+	private static function guard_shutdown(): void {
+		if ( self::$guarded ) {
+			return;
+		}
+		self::$guarded = true;
+		register_shutdown_function( [ self::class, 'on_shutdown' ] );
+
+		// After a fatal error WordPress's own handler (an earlier shutdown
+		// function) ends the request with wp_die(), so later shutdown
+		// functions never run: clean up in its wp_die() handler first.
+		foreach ( [ 'wp_die_handler', 'wp_die_ajax_handler', 'wp_die_json_handler', 'wp_die_jsonp_handler', 'wp_die_xmlrpc_handler', 'wp_die_xml_handler' ] as $hook ) {
+			add_filter( $hook, [ self::class, 'die_handler' ], PHP_INT_MAX );
+		}
+	}
+
+	/**
+	 * The wp_die() handler while a fatal error ends a step: clean up (see
+	 * on_shutdown()), then let the original handler end the request.
+	 *
+	 * @param callable|string $handler Handler.
+	 * @return callable|string
+	 */
+	public static function die_handler( $handler ) {
+		$error = error_get_last();
+		if ( null === self::$working || ! is_array( $error ) || ! in_array( (int) $error['type'], self::FATAL, true ) ) {
+			return $handler;
+		}
+
+		return static function ( ...$args ) use ( $handler ) {
+			self::on_shutdown();
+			return call_user_func_array( $handler, $args );
+		};
+	}
+
+	/**
+	 * Error types that end a request.
+	 */
+	private const FATAL = [ E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR, E_RECOVERABLE_ERROR ];
+
+	/**
+	 * Shutdown: the request is ending in the middle of an episode (a fatal
+	 * error such as the memory limit, the time limit, an exit). The copy's
+	 * files are removed, the attempt is counted with its reason, the lock
+	 * is released and the background run is scheduled, so the import goes
+	 * on.
+	 *
+	 * @return void
+	 */
+	public static function on_shutdown(): void {
+		$working = self::$working;
+		if ( null === $working ) {
+			return;
+		}
+		self::$working = null;
+
+		// Room to clean up after a memory error.
+		if ( function_exists( 'wp_raise_memory_limit' ) ) {
+			wp_raise_memory_limit( 'admin' );
+		}
+
+		$error   = error_get_last();
+		$message = is_array( $error ) && in_array( (int) $error['type'], self::FATAL, true )
+			? (string) $error['message']
+			: __( 'The request ended in the middle of the copy.', 'elementor-podcast-manager' );
+
+		self::interrupted( (string) $working['token'], (int) $working['position'], $message );
+		self::release_lock();
+		wp_clear_scheduled_hook( self::CRON_HOOK );
+		wp_schedule_single_event( time() + MINUTE_IN_SECONDS, self::CRON_HOOK );
+	}
+
+	/**
+	 * An episode's copy was interrupted: remove its files and count the
+	 * attempt with its reason (the episode is tried again, up to
+	 * MediaDownload::max_attempts() times).
+	 *
+	 * @param string $token    Job token.
+	 * @param int    $position Position.
+	 * @param string $message  What happened.
+	 * @return void
+	 */
+	private static function interrupted( string $token, int $position, string $message ): void {
+		$abandoned = MediaCopy::abandon();
+		$kind      = [
+			'audio'      => 'audio',
+			'image'      => 'image',
+			'transcript' => 'transcript_file',
+		][ (string) ( $abandoned['kind'] ?? '' ) ] ?? '';
+
+		self::job_update(
+			static function ( array $current ) use ( $token, $position, $message, $kind, $abandoned ) {
+				if ( 'running' !== ( $current['status'] ?? '' ) || ( $current['token'] ?? '' ) !== $token || (int) ( $current['position'] ?? -1 ) !== $position ) {
+					return null;
+				}
+				$inflight = (array) ( $current['media']['inflight'] ?? [] );
+				if ( (int) ( $inflight['position'] ?? -1 ) !== $position ) {
+					$inflight = [ 'position' => $position ];
+				}
+				MediaDownload::discard( (array) ( $inflight['download'] ?? [] ) );
+				$inflight['running']    = false;
+				$inflight['tries']      = (int) ( $inflight['tries'] ?? 0 ) + 1;
+				$inflight['last_error'] = $message;
+				$inflight['download']   = '' !== $kind ? [ 'url' => (string) ( $abandoned['url'] ?? '' ) ] : [];
+				if ( '' !== $kind ) {
+					$inflight['kind'] = $kind;
+				}
+				$current['media']['inflight'] = $inflight;
+				$current['touched']            = time();
+				return $current;
+			}
+		);
+	}
+
+	/**
+	 * Download files the job still needs (the copy it continues).
+	 *
+	 * @param array<string, mixed> $job Job.
+	 * @return string[]
+	 */
+	private static function media_files( array $job ): array {
+		$file = (string) ( $job['media']['inflight']['download']['file'] ?? '' );
+
+		return '' !== $file && self::is_active( $job ) ? [ $file ] : [];
 	}
 
 	/**
@@ -1613,6 +2027,7 @@ final class ImportJob {
 			}
 		);
 		if ( null !== $failed ) {
+			MediaDownload::discard( (array) ( $failed['media']['inflight']['download'] ?? [] ) );
 			self::discard( $failed );
 			wp_clear_scheduled_hook( self::CRON_HOOK );
 		}
@@ -1621,10 +2036,21 @@ final class ImportJob {
 	}
 
 	/**
+	 * Kinds of files that can stay at the old host, in the order they are
+	 * listed.
+	 */
+	private const REMAINING_KINDS = [ 'audio', 'image', 'transcript_file', 'transcript_link' ];
+
+	/**
+	 * Episodes listed per kind on the job (the counts go on beyond that).
+	 */
+	private const REMAINING_LIST = 500;
+
+	/**
 	 * Record one item's outcome on the job and move past it.
 	 *
-	 * @param array<string, mixed>                                                            $job     Job.
-	 * @param array{action: string, id: int, title: string, message: string, media_failed: bool} $outcome Outcome.
+	 * @param array<string, mixed> $job     Job.
+	 * @param array<string, mixed> $outcome Outcome of Importer::import_item().
 	 * @return array<string, mixed>
 	 */
 	private static function record( array $job, array $outcome ): array {
@@ -1637,6 +2063,23 @@ final class ImportJob {
 			$job['media_failed_ids'] = array_slice( array_merge( (array) ( $job['media_failed_ids'] ?? [] ), [ (int) $outcome['id'] ] ), -500 );
 		}
 
+		// What was copied, and what still points to the old host (and why).
+		$id = (int) $outcome['id'];
+		foreach ( (array) ( $outcome['media'] ?? [] ) as $kind => $media ) {
+			if ( 'copied' === ( $media['state'] ?? '' ) ) {
+				$job['media']['copied'][ $kind ] = (int) ( $job['media']['copied'][ $kind ] ?? 0 ) + 1;
+			}
+		}
+		foreach ( (array) ( $outcome['remaining'] ?? [] ) as $kind => $url ) {
+			$job['media']['counts'][ $kind ] = (int) ( $job['media']['counts'][ $kind ] ?? 0 ) + 1;
+			if ( $id > 0 && ( isset( $job['media']['refs'][ $id ] ) || count( (array) ( $job['media']['refs'] ?? [] ) ) < self::REMAINING_LIST ) ) {
+				$job['media']['refs'][ $id ][ $kind ] = [
+					'url'    => (string) $url,
+					'reason' => (string) ( $outcome['media'][ $kind ]['reason'] ?? self::remaining_reason( $kind ) ),
+				];
+			}
+		}
+
 		$log = (array) ( $job['log'] ?? [] );
 		array_unshift(
 			$log,
@@ -1644,7 +2087,7 @@ final class ImportJob {
 				'title'   => $outcome['title'],
 				'action'  => $action,
 				'message' => $outcome['message'],
-				'id'      => (int) $outcome['id'],
+				'id'      => $id,
 			]
 		);
 		$job['log']      = array_slice( $log, 0, 50 );
@@ -1652,6 +2095,45 @@ final class ImportJob {
 		$job['touched']  = time();
 
 		return $job;
+	}
+
+	/**
+	 * Why a file stayed at the old host when no copy was tried.
+	 *
+	 * @param string $kind Kind.
+	 * @return string
+	 */
+	private static function remaining_reason( string $kind ): string {
+		if ( 'transcript_link' === $kind ) {
+			return __( 'Only WebVTT and SRT transcript files are copied; transcripts in other formats (such as JSON) stay linked at the old host.', 'elementor-podcast-manager' );
+		}
+
+		return __( 'Not copied in this run.', 'elementor-podcast-manager' );
+	}
+
+	/**
+	 * A count of files of a kind, in words ("2 audio files").
+	 *
+	 * @param string $kind  Kind.
+	 * @param int    $count Number.
+	 * @return string
+	 */
+	public static function kind_label( string $kind, int $count ): string {
+		$number = number_format_i18n( $count );
+		switch ( $kind ) {
+			case 'audio':
+				/* translators: %s: number of files */
+				return sprintf( _n( '%s audio file', '%s audio files', $count, 'elementor-podcast-manager' ), $number );
+			case 'image':
+				/* translators: %s: number of images */
+				return sprintf( _n( '%s episode image', '%s episode images', $count, 'elementor-podcast-manager' ), $number );
+			case 'transcript_file':
+				/* translators: %s: number of files */
+				return sprintf( _n( '%s transcript file (WebVTT/SRT)', '%s transcript files (WebVTT/SRT)', $count, 'elementor-podcast-manager' ), $number );
+		}
+
+		/* translators: %s: number of transcripts */
+		return sprintf( _n( '%s transcript in another format (linked)', '%s transcripts in other formats (linked)', $count, 'elementor-podcast-manager' ), $number );
 	}
 
 	/**
@@ -1686,6 +2168,67 @@ final class ImportJob {
 	}
 
 	/**
+	 * Copy again what a move left at the old host: the job goes through
+	 * its episodes once more (from the stored feed, nothing is read again);
+	 * files that are here already are not requested. When nothing is left,
+	 * the move finishes.
+	 *
+	 * @return array<string, mixed>|\WP_Error Client state.
+	 */
+	public static function retry() {
+		$job = self::job_update(
+			static function ( array $current ) {
+				if ( 'done_with_problems' !== ( $current['status'] ?? '' ) || empty( $current['store'] ) ) {
+					return null;
+				}
+				$current['status']   = 'running';
+				$current['position'] = 0;
+				$current['counts']   = self::empty_counts();
+				$current['media']    = [];
+				$current['retries']  = (int) ( $current['retries'] ?? 0 ) + 1;
+				$current['touched']  = time();
+				unset( $current['finished'], $current['media_failed_ids'] );
+				return $current;
+			}
+		);
+		if ( null === $job ) {
+			return new \WP_Error( 'epm_import_retry', __( 'There is nothing to try again. Check the feed again to start a new import.', 'elementor-podcast-manager' ) );
+		}
+
+		self::schedule_continuation();
+
+		return self::client_state( $job );
+	}
+
+	/**
+	 * Finish a move although files stay at the old host: the site owner
+	 * was shown which ones and confirmed.
+	 *
+	 * @return array<string, mixed>|\WP_Error Client state.
+	 */
+	public static function confirm_move() {
+		$job = self::job_update(
+			static function ( array $current ) {
+				if ( 'done_with_problems' !== ( $current['status'] ?? '' ) || 'move' !== ( $current['options']['purpose'] ?? '' ) ) {
+					return null;
+				}
+				$current['status']    = 'done';
+				$current['confirmed'] = time();
+				return $current;
+			}
+		);
+		if ( null === $job ) {
+			return new \WP_Error( 'epm_import_confirm', __( 'There is no unfinished move to confirm.', 'elementor-podcast-manager' ) );
+		}
+
+		self::discard( $job );
+		self::finish_move();
+		Feed::flush_cache();
+
+		return self::client_state( $job );
+	}
+
+	/**
 	 * Cancel the job. Episodes already imported stay.
 	 *
 	 * @return array<string, mixed>
@@ -1693,10 +2236,10 @@ final class ImportJob {
 	public static function cancel(): array {
 		// A batch that is running finishes the episode in flight and then
 		// stops (it checks the job before every episode); a cancelled job
-		// is never started again.
+		// is never started again. An unfinished move stays unfinished.
 		$cancelled = self::job_update(
 			static function ( array $job ) {
-				if ( ! in_array( $job['status'] ?? '', [ 'loading', 'ready', 'running' ], true ) ) {
+				if ( ! in_array( $job['status'] ?? '', [ 'loading', 'ready', 'running', 'waiting', 'done_with_problems' ], true ) ) {
 					return null;
 				}
 				$job['status']   = 'cancelled';
@@ -1706,6 +2249,7 @@ final class ImportJob {
 		);
 
 		if ( null !== $cancelled ) {
+			MediaDownload::discard( (array) ( $cancelled['media']['inflight']['download'] ?? [] ) );
 			self::discard( $cancelled );
 		}
 
@@ -1733,12 +2277,19 @@ final class ImportJob {
 	public static function run_in_background(): void {
 		$job = self::get();
 
-		if ( 'running' !== ( $job['status'] ?? '' ) ) {
+		if ( 'waiting' === ( $job['status'] ?? '' ) && time() < (int) ( $job['wait_until'] ?? 0 ) ) {
+			if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
+				wp_schedule_single_event( (int) $job['wait_until'] + 1, self::CRON_HOOK );
+			}
+			return;
+		}
+
+		if ( ! self::is_active( $job ) ) {
 			return;
 		}
 
 		// The import screen is open and stepping: stay out of its way.
-		if ( time() - (int) ( $job['touched'] ?? 0 ) < 45 ) {
+		if ( 'running' === $job['status'] && time() - (int) ( $job['touched'] ?? 0 ) < 45 ) {
 			self::schedule_continuation();
 			return;
 		}
@@ -1774,8 +2325,10 @@ final class ImportJob {
 		// Episodes whose audio stayed at the old host (newest first).
 		$media_failed = [];
 		$failed_ids   = array_slice( array_reverse( array_unique( array_map( 'intval', (array) ( $job['media_failed_ids'] ?? [] ) ) ) ), 0, 100 );
-		if ( ! empty( $failed_ids ) ) {
-			_prime_post_caches( $failed_ids, false, false );
+		$refs         = (array) ( $job['media']['refs'] ?? [] );
+		$prime        = array_unique( array_merge( $failed_ids, array_map( 'intval', array_keys( $refs ) ) ) );
+		if ( ! empty( $prime ) ) {
+			_prime_post_caches( $prime, false, false );
 		}
 		foreach ( $failed_ids as $id ) {
 			if ( $id <= 0 || ! get_post( $id ) ) {
@@ -1787,12 +2340,15 @@ final class ImportJob {
 			];
 		}
 
-		return [
+		$state = [
 			'status'       => (string) ( $job['status'] ?? 'none' ),
 			'total'        => (int) ( $job['total'] ?? 0 ),
 			'done'         => (int) ( $job['position'] ?? 0 ),
 			'counts'       => wp_parse_args( (array) ( $job['counts'] ?? [] ), self::empty_counts() ),
 			'media_failed' => $media_failed,
+			// What still loads from the old host, per kind, with the reason.
+			'remaining'    => self::remaining( $job ),
+			'copied'       => array_map( 'intval', (array) ( $job['media']['copied'] ?? [] ) ),
 			'log'          => $log,
 			'feed_url'     => (string) ( $job['feed_url'] ?? '' ),
 			'title'        => (string) ( $job['channel']['title'] ?? '' ),
@@ -1802,6 +2358,101 @@ final class ImportJob {
 			// How complete the imported catalog was (null: started by 1.3.0).
 			'catalog'      => self::catalog_state( $job ),
 			'purpose'      => (string) ( $job['options']['purpose'] ?? '' ),
+			'copy_media'   => ! empty( $job['options']['download_media'] ),
+			'wait_until'   => 'waiting' === ( $job['status'] ?? '' ) ? (int) ( $job['wait_until'] ?? 0 ) : 0,
+			'wait_reason'  => 'waiting' === ( $job['status'] ?? '' ) ? (string) ( $job['wait_reason'] ?? '' ) : '',
+			'current'      => self::current_copy( $job ),
+			'confirmed'    => (int) ( $job['confirmed'] ?? 0 ),
+			'can_retry'    => 'done_with_problems' === ( $job['status'] ?? '' ) && ! empty( $job['store'] ),
+		];
+
+		$state['problems'] = 'done_with_problems' === $state['status'] ? self::problems_text( $job, $state['remaining'] ) : '';
+
+		return $state;
+	}
+
+	/**
+	 * What still loads from the old host, per kind: how many episodes, a
+	 * label, and the episodes (title, edit link, address, reason).
+	 *
+	 * @param array<string, mixed> $job Job.
+	 * @return array<string, array{count: int, label: string, episodes: array<int, array<string, string>>}>
+	 */
+	private static function remaining( array $job ): array {
+		$refs = (array) ( $job['media']['refs'] ?? [] );
+		$out  = [];
+		foreach ( self::REMAINING_KINDS as $kind ) {
+			$count = (int) ( $job['media']['counts'][ $kind ] ?? 0 );
+			if ( $count <= 0 ) {
+				continue;
+			}
+			$episodes = [];
+			foreach ( $refs as $id => $kinds ) {
+				if ( ! isset( $kinds[ $kind ] ) || count( $episodes ) >= 100 ) {
+					continue;
+				}
+				$episodes[] = [
+					'title'  => get_post( (int) $id ) ? html_entity_decode( get_the_title( (int) $id ), ENT_QUOTES, 'UTF-8' ) : '',
+					'edit'   => (string) get_edit_post_link( (int) $id, 'raw' ),
+					'url'    => (string) $kinds[ $kind ]['url'],
+					'reason' => (string) $kinds[ $kind ]['reason'],
+				];
+			}
+			$out[ $kind ] = [
+				'count'    => $count,
+				'label'    => self::kind_label( $kind, $count ),
+				'episodes' => $episodes,
+			];
+		}
+
+		return $out;
+	}
+
+	/**
+	 * What an unfinished move leaves behind, in one sentence (also what the
+	 * confirmation names).
+	 *
+	 * @param array<string, mixed>                $job       Job.
+	 * @param array<string, array<string, mixed>> $remaining From remaining().
+	 * @return string
+	 */
+	private static function problems_text( array $job, array $remaining ): string {
+		$parts = array_map(
+			static function ( $group ) {
+				return (string) $group['label'];
+			},
+			$remaining
+		);
+		$failed = (int) ( $job['counts']['failed'] ?? 0 );
+		if ( $failed > 0 ) {
+			/* translators: %s: number of episodes */
+			$parts[] = sprintf( _n( '%s episode that could not be imported', '%s episodes that could not be imported', $failed, 'elementor-podcast-manager' ), number_format_i18n( $failed ) );
+		}
+
+		return sprintf(
+			/* translators: %s: list such as "1 audio file, 2 episode images" */
+			__( 'The move is not finished: %s still depend on the old host. Copy them again, or finish the move and keep them there (they stop working when the old account is closed).', 'elementor-podcast-manager' ),
+			implode( ', ', $parts )
+		);
+	}
+
+	/**
+	 * The copy in progress (a large file over several requests).
+	 *
+	 * @param array<string, mixed> $job Job.
+	 * @return array{title: string, kind: string, bytes: int, total: int}|null
+	 */
+	private static function current_copy( array $job ): ?array {
+		$inflight = (array) ( $job['media']['inflight'] ?? [] );
+		if ( ! self::is_active( $job ) || empty( $inflight['kind'] ) || empty( $inflight['download'] ) ) {
+			return null;
+		}
+
+		return [
+			'title' => (string) ( $inflight['title'] ?? '' ),
+			'kind'  => (string) $inflight['kind'],
+			'bytes' => (int) ( $inflight['download']['bytes'] ?? 0 ),
+			'total' => (int) ( $inflight['download']['total'] ?? 0 ),
 		];
 	}
 
@@ -1910,6 +2561,38 @@ final class ImportJob {
 	public function ajax_cancel(): void {
 		$this->guard();
 		wp_send_json_success( self::cancel() );
+	}
+
+	/**
+	 * AJAX: copy again what a move left at the old host.
+	 *
+	 * @return void
+	 */
+	public function ajax_retry(): void {
+		$this->guard();
+		$state = self::retry();
+		if ( is_wp_error( $state ) ) {
+			wp_send_json_error( [ 'message' => $state->get_error_message() ] );
+		}
+		wp_send_json_success( $state );
+	}
+
+	/**
+	 * AJAX: finish a move although files stay at the old host. The request
+	 * must carry the confirmation the screen asks for.
+	 *
+	 * @return void
+	 */
+	public function ajax_confirm(): void {
+		$this->guard();
+		if ( empty( $_POST['confirm_remaining'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- guard() checked it.
+			wp_send_json_error( [ 'message' => __( 'Confirm that these files may stay at the old host.', 'elementor-podcast-manager' ) ] );
+		}
+		$state = self::confirm_move();
+		if ( is_wp_error( $state ) ) {
+			wp_send_json_error( [ 'message' => $state->get_error_message() ] );
+		}
+		wp_send_json_success( $state );
 	}
 
 	/**

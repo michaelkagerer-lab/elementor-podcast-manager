@@ -182,14 +182,31 @@ if ( ! class_exists( 'EPM_Test_HTTP' ) ) {
 				return self::response( 404, 'Not found' );
 			}
 
+			// Like a real server, files come with their length.
 			if ( preg_match( '#^/media/([a-z0-9_-]+)\.(mp3|m4a)$#i', $path, $m ) ) {
-				return self::response( 200, self::mp3( 5 ), [ 'content-type' => 'mp3' === strtolower( $m[2] ) ? 'audio/mpeg' : 'audio/mp4' ] );
+				$body = self::mp3( 5 );
+				return self::response(
+					200,
+					$body,
+					[
+						'content-type'   => 'mp3' === strtolower( $m[2] ) ? 'audio/mpeg' : 'audio/mp4',
+						'content-length' => (string) strlen( $body ),
+					]
+				);
 			}
 
 			if ( preg_match( '#^/media/([a-z0-9_-]+?)(?:-(\d+)x(\d+))?\.png$#i', $path, $m ) ) {
 				$width  = isset( $m[2] ) ? (int) $m[2] : 1400;
 				$height = isset( $m[3] ) ? (int) $m[3] : 1400;
-				return self::response( 200, self::png( $width, $height ), [ 'content-type' => 'image/png' ] );
+				$body   = self::png( $width, $height );
+				return self::response(
+					200,
+					$body,
+					[
+						'content-type'   => 'image/png',
+						'content-length' => (string) strlen( $body ),
+					]
+				);
 			}
 
 			$file = self::dir() . ltrim( $path, '/' );
@@ -220,9 +237,10 @@ if ( ! class_exists( 'EPM_Test_HTTP' ) ) {
 				$status,
 				$body,
 				[
-					'content-type'  => $types[ strtolower( pathinfo( $file, PATHINFO_EXTENSION ) ) ] ?? 'application/octet-stream',
-					'etag'          => $etag,
-					'last-modified' => 'Wed, 30 Sep 2026 06:00:00 GMT',
+					'content-type'   => $types[ strtolower( pathinfo( $file, PATHINFO_EXTENSION ) ) ] ?? 'application/octet-stream',
+					'content-length' => (string) strlen( $body ),
+					'etag'           => $etag,
+					'last-modified'  => 'Wed, 30 Sep 2026 06:00:00 GMT',
 				]
 			);
 		}
