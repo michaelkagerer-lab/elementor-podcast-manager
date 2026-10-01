@@ -744,14 +744,18 @@ final class Hosting {
 				: ( 401 === $status || 403 === $status ? 'epm_feed_http_access'
 				: ( 429 === $status ? 'epm_feed_http_rate_limited'
 				: ( $status >= 500 ? 'epm_feed_http_temporary' : 'epm_feed_http' ) ) );
-			$message = 404 === $status || 410 === $status
+			$message = $status >= 500
+				? sprintf(
+					/* translators: %d: HTTP status code */
+					__( 'The podcast host returned HTTP %d and is temporarily unavailable. The feed will be checked again.', 'elementor-podcast-manager' ),
+					$status
+				)
+				: ( 404 === $status || 410 === $status
 				? __( 'The host feed address returned 404 or 410. Check the RSS address in your host dashboard.', 'elementor-podcast-manager' )
 				: ( 401 === $status || 403 === $status
 				? __( 'The host denied access to this feed. Check its privacy and access settings.', 'elementor-podcast-manager' )
 				: ( 429 === $status
 				? __( 'The host is rate limiting feed checks. The next check will wait for the host’s Retry-After time.', 'elementor-podcast-manager' )
-				: ( $status >= 500
-				? __( 'The podcast host is temporarily unavailable. The feed will be checked again.', 'elementor-podcast-manager' )
 				: sprintf( __( 'The feed address answered with HTTP status %d.', 'elementor-podcast-manager' ), $status ) ) ) );
 			$error = new \WP_Error(
 				$code,

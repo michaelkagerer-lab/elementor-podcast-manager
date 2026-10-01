@@ -89,7 +89,7 @@ final class Importer {
 	public function __construct( array $options = [] ) {
 		$source_feed = (string) ( $options['feed_url'] ?? '' );
 		$this->options = [
-			'feed_url'       => Hosting::has_url_secret( $source_feed ) ? 'private:' . hash( 'sha256', $source_feed ) : $source_feed,
+			'feed_url'       => $source_feed,
 			'status'         => 'draft' === ( $options['status'] ?? '' ) ? 'draft' : 'publish',
 			'download_media' => ! empty( $options['download_media'] ),
 			'fetch_extras'   => ! isset( $options['fetch_extras'] ) || ! empty( $options['fetch_extras'] ),
@@ -417,7 +417,8 @@ final class Importer {
 		];
 
 		if ( '' !== $this->options['feed_url'] ) {
-			$postarr['meta_input'][ Episodes::META_PREFIX . 'source_feed' ] = $this->options['feed_url'];
+			$source_feed = $this->options['feed_url'];
+			$postarr['meta_input'][ Episodes::META_PREFIX . 'source_feed' ] = Hosting::has_url_secret( $source_feed ) ? 'private:' . hash( 'sha256', $source_feed ) : $source_feed;
 		}
 
 		if ( $timestamp > 0 ) {

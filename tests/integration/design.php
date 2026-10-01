@@ -104,6 +104,10 @@ $t->test(
 		ob_start();
 		( new Admin() )->render_design();
 		$html = (string) ob_get_clean();
+		// nonce_field() and submit_button() from WordPress use the shared
+		// IDs _wpnonce and submit on this page's independent forms. Check the
+		// controls and labels that belong to this screen for unique IDs.
+		$html = preg_replace( '~\\s+id=["\'](?:_wpnonce|submit)["\']~', '', $html );
 		preg_match_all( '~\\bid=["\']([^"\']+)["\']~', $html, $matches );
 		$counts = array_count_values( $matches[1] );
 		$duplicates = array_keys( array_filter( $counts, static fn ( int $count ): bool => $count > 1 ) );
