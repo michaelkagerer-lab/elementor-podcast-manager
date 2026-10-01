@@ -11,6 +11,11 @@
  *   lazily, so removed DOM nodes never leak listeners.
  * - init(scope) is idempotent: per-element flags guarantee exactly one
  *   binding per element, no matter how often Elementor re-renders.
+ * - Initialization paths: init(document) on DOMContentLoaded; Elementor's
+ *   "frontend/element_ready/widget" hook for widgets Elementor renders
+ *   (editor preview, popups, loops); a MutationObserver as the fallback
+ *   for markup other code inserts; window.epmPlayerEngine.init(element)
+ *   for integrations.
  *
  * Markup contract (see Renderer::player(), frozen):
  *   [data-epm-player]            root, data-epm-episode-id/src/title/artwork/duration
@@ -1801,11 +1806,30 @@
 		start();
 	}
 
+	var PLAYER_SELECTOR = '[data-epm-player], [data-epm-card-play], [data-epm-chapters], [data-epm-share], [data-epm-video]';
+
 	// Elementor: initialize per widget scope only. Never rebind document-wide.
+	// Elementor fires "frontend/element_ready/{widget type}" with the skin
+	// as a suffix ("epm-podcast-player.default"), plus
+	// "frontend/element_ready/widget" for every widget. One handler on the
+	// latter covers every skin, every podcast widget and podcast markup in
+	// any other widget (a shortcode widget, a loop template), on the page
+	// and in the editor preview (first render, insert, re-render, undo).
 	// This script usually loads before elementor-frontend.js, whose hooks
 	// only exist after it fires "elementor/frontend/init" — so bind now if
 	// possible, otherwise on that event.
 	var elementorHooksBound = false;
+
+	function onElementorWidget($scope) {
+		var el = $scope && $scope[0] ? $scope[0] : $scope;
+		if (!el || el.nodeType !== 1) {
+			return;
+		}
+		var type = el.getAttribute('data-widget_type') || '';
+		if (/^epm-/.test(type) || el.querySelector(PLAYER_SELECTOR)) {
+			init(el);
+		}
+	}
 
 	function bindElementorHooks() {
 		var frontend = window.elementorFrontend;
@@ -1813,14 +1837,7 @@
 			return elementorHooksBound;
 		}
 		elementorHooksBound = true;
-		['epm-podcast-player', 'epm-episode-list', 'epm-latest-episode', 'epm-chapters', 'epm-episode-video'].forEach(function (widgetName) {
-			frontend.hooks.addAction(
-				'frontend/element_ready/' + widgetName,
-				function ($scope) {
-					init($scope && $scope[0] ? $scope[0] : $scope);
-				}
-			);
-		});
+		frontend.hooks.addAction('frontend/element_ready/widget', onElementorWidget);
 		return true;
 	}
 
@@ -1828,10 +1845,10 @@
 		window.jQuery(window).on('elementor/frontend/init', bindElementorHooks);
 	}
 
-	// Content inserted later (AJAX pagination, "load more", popups, page
-	// builders' live previews) initializes too. init() is idempotent.
-	var PLAYER_SELECTOR = '[data-epm-player], [data-epm-card-play], [data-epm-chapters], [data-epm-share], [data-epm-video]';
-
+	// Fallback for everything Elementor does not announce: content inserted
+	// later by other code (AJAX pagination, "load more", popups, page
+	// builders' live previews). It also runs for Elementor widgets the hook
+	// already initialized; init() is idempotent, so nothing binds twice.
 	if (typeof window.MutationObserver === 'function') {
 		var pendingNodes = [];
 		var flushScheduled = false;
