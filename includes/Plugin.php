@@ -111,6 +111,7 @@ final class Plugin {
 		$this->assets->init();
 		( new Hosting() )->init();
 		( new ImportJob() )->init();
+		Upgrade::init();
 		Cli::register();
 		( new StructuredData() )->init();
 		Transcripts::init();
@@ -119,7 +120,8 @@ final class Plugin {
 		( new EpisodeTemplate() )->init();
 		( new Embed() )->init();
 
-		// One-time upgrade tasks (rewrite rules) after a plugin update.
+		// One-time upgrade tasks after a plugin update (cheap; per-episode
+		// work is queued, see Upgrade).
 		add_action( 'init', [ $this, 'maybe_upgrade' ], 99 );
 
 		// Canonical URL behavior: an explicit per-episode canonical URL wins.
@@ -151,9 +153,14 @@ final class Plugin {
 	/**
 	 * Run one-time upgrade tasks when the stored version differs.
 	 *
-	 * Rewrite rules are flushed so installs updated in place (activation
-	 * hooks do not run on update) pick up the corrected rule order that
-	 * lets /podcast/feed/ serve the podcast feed.
+	 * This runs in the first request after an update, which may be any
+	 * visitor's, so it does only cheap work: rewrite rules (installs
+	 * updated in place never run the activation hook), the feed cache, the
+	 * 1.3.0 import folder and Elementor's widget CSS. The new version is
+	 * stored first, with a conditional write, so exactly one request does
+	 * this and a request that dies does not leave the site upgrading on
+	 * every request. Work on every episode is queued (Upgrade) and done in
+	 * batches by WP-Cron, admin page loads or `wp podcast upgrade`.
 	 *
 	 * @return void
 	 */
@@ -164,28 +171,20 @@ final class Plugin {
 			return;
 		}
 
+		if ( ! self::claim_version( $stored ) ) {
+			// Another request is upgrading (or did already).
+			return;
+		}
+
 		flush_rewrite_rules( false );
 		Feed::flush_cache();
+		// 1.3.0 kept the feed in one transient row.
+		delete_transient( 'epm_feed_cache' );
+		Feed::repair_build_time();
 
 		// 1.3.0 kept the parsed feed of an import in uploads/epm-import/:
 		// move a running import to the database, remove the rest.
 		ImportJob::cleanup();
-
-		// 1.2.0: numeric durations for sorting.
-		$ids = get_posts(
-			[
-				'post_type'      => EpisodePostType::CPT,
-				'post_status'    => 'any',
-				'posts_per_page' => -1,
-				'fields'         => 'ids',
-				'no_found_rows'  => true,
-			]
-		);
-		$ids = array_map( 'intval', $ids );
-		update_meta_cache( 'post', $ids );
-		foreach ( $ids as $id ) {
-			Episodes::sync_duration_seconds( $id );
-		}
 
 		// Widget CSS is generated from control selectors and cached by
 		// Elementor per page; regenerate it so updated selectors apply.
@@ -193,7 +192,30 @@ final class Plugin {
 			\Elementor\Plugin::$instance->files_manager->clear_cache();
 		}
 
-		update_option( 'epm_version', EPM_VERSION );
+		// Durations in seconds (1.2.0) and duplicate GUID rows: per episode,
+		// in batches.
+		Upgrade::queue( $stored );
+	}
+
+	/**
+	 * Store the running version in place of $stored, only if no other
+	 * request did so first.
+	 *
+	 * @param string $stored Version read before ('' when none is stored).
+	 * @return bool Whether this request stored it.
+	 */
+	private static function claim_version( string $stored ): bool {
+		$claimed = OptionRow::replace( 'epm_version', $stored, EPM_VERSION );
+
+		if ( ! $claimed && '' === $stored ) {
+			$claimed = OptionRow::insert( 'epm_version', EPM_VERSION, true );
+		}
+
+		// Either way, the next get_option() reads the database (a cache
+		// may have served an older value).
+		OptionRow::forget( 'epm_version' );
+
+		return $claimed;
 	}
 
 	/**

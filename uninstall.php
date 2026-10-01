@@ -15,7 +15,7 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 
 // Scheduled events never outlive the plugin, whatever happens to the data.
 // (epm_ping_podcast_index: the Podcast Index event's name in 1.3.0.)
-foreach ( [ 'epm_sync_feed', 'epm_import_continue', 'epm_import_cleanup', 'epm_podcast_index_ping', 'epm_ping_podcast_index' ] as $epm_hook ) {
+foreach ( [ 'epm_sync_feed', 'epm_import_continue', 'epm_import_cleanup', 'epm_podcast_index_ping', 'epm_ping_podcast_index', 'epm_upgrade_step' ] as $epm_hook ) {
 	wp_clear_scheduled_hook( $epm_hook );
 }
 
@@ -34,6 +34,8 @@ if ( empty( $epm_uploads['error'] ) && is_dir( $epm_import ) ) {
 	}
 	@rmdir( $epm_import ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
 }
+delete_option( 'epm_upgrade_state' );
+delete_option( 'epm_upgrade_lock' );
 delete_option( 'epm_import_job' );
 delete_option( 'epm_import_lock' );
 delete_option( 'epm_activation_redirect' );
@@ -57,6 +59,7 @@ delete_option( 'epm_sync_state' );
 delete_option( 'epm_setup' );
 delete_option( 'epm_distribution' );
 delete_option( 'epm_feed_build' );
+delete_option( 'epm_removed_guid_rows' );
 delete_transient( 'epm_feed_cache' );
 
 // The plugin is not loaded here: register the Topics taxonomy so that

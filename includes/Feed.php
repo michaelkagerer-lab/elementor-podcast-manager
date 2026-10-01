@@ -496,6 +496,21 @@ final class Feed {
 	}
 
 	/**
+	 * A build time in the future (a post dated ahead, a server clock
+	 * that was ahead) would answer every If-Modified-Since with 304 until
+	 * that date: bring a stored one back to now (after an update).
+	 *
+	 * @return void
+	 */
+	public static function repair_build_time(): void {
+		$built = get_option( self::BUILD_OPTION, [] );
+		if ( is_array( $built ) && (int) ( $built['modified'] ?? 0 ) > time() ) {
+			$built['modified'] = time();
+			update_option( self::BUILD_OPTION, $built, false );
+		}
+	}
+
+	/**
 	 * Flush the cache when an episode or attachment is saved or deleted.
 	 *
 	 * @param int $post_id Post ID.
@@ -538,6 +553,12 @@ final class Feed {
 		$meta_key = (string) $meta_key;
 
 		if ( 0 !== strpos( $meta_key, Episodes::META_PREFIX ) && '_thumbnail_id' !== $meta_key ) {
+			return;
+		}
+
+		// Derived from the duration, not in the feed: the upgrade writes it
+		// for every episode.
+		if ( Episodes::META_PREFIX . 'duration_seconds' === $meta_key ) {
 			return;
 		}
 
