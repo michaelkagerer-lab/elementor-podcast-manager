@@ -1,6 +1,6 @@
 <?php
 /**
- * WP-CLI commands: `wp podcast import|sync|status`.
+ * WP-CLI commands: `wp podcast import|cancel|finish-move|sync|status`.
  *
  * Useful for very large catalogs (no browser request limits) and for
  * scripted migrations. Uses the same code paths as the admin screens.
@@ -45,7 +45,7 @@ final class Cli {
 	 * : Take the show over: adopt its podcast:guid, lift the feed episode limit, announce the new home and lock the feed when done.
 	 *
 	 * [--copy-media]
-	 * : Download audio and episode images into the Media Library.
+	 * : Copy audio, episode images and WebVTT/SRT transcript files into the Media Library (also for episodes that exist already). A --move that leaves files at the old host is not finished: see `wp podcast finish-move`.
 	 *
 	 * [--draft]
 	 * : Create new episodes as drafts.
@@ -60,7 +60,7 @@ final class Cli {
 	 * : Import even when the feed could not be read completely: only the episodes found (a --move is then finished anyway).
 	 *
 	 * [--resume]
-	 * : Continue the last import: read the rest of a feed that could not be read completely, or keep an interrupted import going.
+	 * : Continue the last import: read the rest of a feed that could not be read completely, keep an interrupted (or waiting) import going, or copy again what a move left at the old host.
 	 *
 	 * ## EXAMPLES
 	 *
@@ -76,10 +76,22 @@ final class Cli {
 		$resume = isset( $assoc_args['resume'] );
 		$job    = ImportJob::get();
 
-		// An import that was interrupted (or is waiting for WP-Cron).
-		if ( $resume && 'running' === ( $job['status'] ?? '' ) ) {
+		// An import that was interrupted (or is waiting for WP-Cron, or for
+		// its host).
+		if ( $resume && ImportJob::is_active( $job ) ) {
 			$state = ImportJob::client_state( $job );
 			\WP_CLI::log( sprintf( 'Continuing the import of %s (%d of %d done).', '' !== $state['title'] ? $state['title'] : $state['feed_url'], (int) $state['done'], (int) $state['total'] ) );
+			self::report( self::run( $state ) );
+			return;
+		}
+
+		// A move that left files at the old host: copy them again.
+		if ( $resume && 'done_with_problems' === ( $job['status'] ?? '' ) ) {
+			$state = ImportJob::retry();
+			if ( is_wp_error( $state ) ) {
+				\WP_CLI::error( $state->get_error_message() );
+			}
+			\WP_CLI::log( 'Copying again what is still at the old host.' );
 			self::report( self::run( $state ) );
 			return;
 		}
@@ -157,7 +169,16 @@ final class Cli {
 		$done     = (int) $state['done'];
 		$progress->tick( $done );
 
-		while ( 'running' === $state['status'] ) {
+		while ( ImportJob::is_active( $state ) ) {
+			// The host asked to wait: wait here when it is not long.
+			if ( 'waiting' === $state['status'] ) {
+				$wait = (int) $state['wait_until'] - time();
+				if ( $wait > self::MAX_WAIT ) {
+					break;
+				}
+				\WP_CLI::log( sprintf( 'The old host asked to wait %d seconds (%s).', max( 0, $wait ), $state['wait_reason'] ) );
+				sleep( max( 1, $wait + 1 ) );
+			}
 			$state = ImportJob::step( 20.0 );
 			if ( ! empty( $state['busy'] ) ) {
 				sleep( 2 );
@@ -172,13 +193,28 @@ final class Cli {
 	}
 
 	/**
+	 * Longest wait for a host (seconds) the command sits through.
+	 */
+	private const MAX_WAIT = 600;
+
+	/**
 	 * Report a finished import (an error when it did not finish).
 	 *
 	 * @param array<string, mixed> $state Final client state.
 	 * @return void
 	 */
 	private static function report( array $state ): void {
-		if ( 'done' !== $state['status'] ) {
+		if ( 'waiting' === $state['status'] ) {
+			\WP_CLI::error(
+				sprintf(
+					'The old host asked to wait until %s UTC (%s). The import continues in the background then (WP-Cron), or run `wp podcast import --resume` after that time.',
+					gmdate( 'Y-m-d H:i:s', (int) $state['wait_until'] ),
+					$state['wait_reason']
+				)
+			);
+		}
+
+		if ( ! in_array( $state['status'], [ 'done', 'done_with_problems' ], true ) ) {
 			\WP_CLI::error( '' !== $state['error'] ? $state['error'] : 'The import stopped: ' . $state['status'] );
 		}
 
@@ -192,34 +228,98 @@ final class Cli {
 			(int) $counts['failed']
 		);
 
-		// Never a plain success for part of a catalog.
-		$catalog = $state['catalog'] ?? null;
-		if ( is_array( $catalog ) && empty( $catalog['complete'] ) ) {
+		// Never a plain success for part of a catalog, or for a move that
+		// left files at the old host.
+		$catalog    = $state['catalog'] ?? null;
+		$incomplete = is_array( $catalog ) && empty( $catalog['complete'] );
+		if ( $incomplete ) {
 			\WP_CLI::warning( 'Imported from an incomplete feed: ' . $catalog['message'] );
+		}
+		if ( $incomplete || ! empty( $state['remaining'] ) || 'done_with_problems' === $state['status'] ) {
 			\WP_CLI::log( 'Imported: ' . $line );
 		} else {
 			\WP_CLI::success( $line );
 		}
 
-		// Audio that stayed at the old host must be copied before that
-		// account is closed.
-		if ( (int) ( $counts['media_failed'] ?? 0 ) > 0 ) {
-			\WP_CLI::warning(
-				sprintf(
-					'The audio of %d episode(s) was not copied and still loads from the old host: %s',
-					(int) $counts['media_failed'],
-					implode(
-						', ',
-						array_map(
-							static function ( $episode ) {
-								return (string) $episode['title'];
-							},
-							(array) ( $state['media_failed'] ?? [] )
-						)
-					)
-				)
-			);
+		// Files that still load from the old host must be copied before
+		// that account is closed: each one, with its episode and why.
+		self::print_remaining( $state );
+
+		if ( 'done_with_problems' === $state['status'] ) {
+			\WP_CLI::error( "The move is not finished.\n" . $state['problems'] . "\nRun `wp podcast import --resume` to copy them again, or `wp podcast finish-move` to finish the move and keep them at the old host." );
 		}
+	}
+
+	/**
+	 * Print what still loads from the old host, per kind.
+	 *
+	 * @param array<string, mixed> $state Client state.
+	 * @return void
+	 */
+	private static function print_remaining( array $state ): void {
+		foreach ( (array) ( $state['remaining'] ?? [] ) as $group ) {
+			\WP_CLI::warning( 'Still at the old host: ' . $group['label'] . ':' );
+			foreach ( (array) $group['episodes'] as $episode ) {
+				\WP_CLI::log( sprintf( '  - %s: %s (%s)%s', $episode['title'], $episode['url'], rtrim( (string) $episode['reason'], '.' ), '' !== $episode['edit'] ? ' ' . $episode['edit'] : '' ) );
+			}
+			$more = (int) $group['count'] - count( (array) $group['episodes'] );
+			if ( $more > 0 ) {
+				\WP_CLI::log( sprintf( '  … and %d more', $more ) );
+			}
+		}
+	}
+
+	/**
+	 * Cancel the import (also a check that waits to be imported, or a move
+	 * that was not finished). Episodes already imported stay.
+	 *
+	 * @return void
+	 */
+	public function cancel(): void {
+		$job = ImportJob::get();
+		if ( ! in_array( $job['status'] ?? '', [ 'loading', 'ready', 'running', 'waiting', 'done_with_problems' ], true ) ) {
+			\WP_CLI::error( 'There is no import to cancel.' );
+		}
+
+		$state = ImportJob::cancel();
+		if ( 'cancelled' !== $state['status'] ) {
+			\WP_CLI::error( 'The import could not be cancelled: ' . $state['status'] );
+		}
+
+		\WP_CLI::success( sprintf( 'The import was cancelled (%d of %d episodes done). Episodes already imported stay.', (int) $state['done'], (int) $state['total'] ) );
+	}
+
+	/**
+	 * Finish a move whose import left files at the old host: this site
+	 * becomes the show's home although those files stay there. Lists them
+	 * and asks first.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--yes]
+	 * : Do not ask.
+	 *
+	 * @subcommand finish-move
+	 *
+	 * @param array<int, string>    $args       Positional arguments.
+	 * @param array<string, string> $assoc_args Options.
+	 * @return void
+	 */
+	public function finish_move( array $args, array $assoc_args ): void {
+		if ( ! ImportJob::move_unfinished() ) {
+			\WP_CLI::error( 'There is no unfinished move.' );
+		}
+
+		$state = ImportJob::client_state( ImportJob::get() );
+		self::print_remaining( $state );
+		\WP_CLI::confirm( 'These stay at the old host and stop working when that account is closed. Finish the move anyway?', $assoc_args );
+
+		$done = ImportJob::confirm_move();
+		if ( is_wp_error( $done ) ) {
+			\WP_CLI::error( $done->get_error_message() );
+		}
+
+		\WP_CLI::success( 'The move is finished: this website hosts the show now.' );
 	}
 
 	/**
@@ -249,7 +349,7 @@ final class Cli {
 	}
 
 	/**
-	 * Show where the podcast is hosted and the last sync.
+	 * Show where the podcast is hosted, the last sync and the import.
 	 *
 	 * @return void
 	 */
@@ -285,6 +385,39 @@ final class Cli {
 				'key'   => 'next sync',
 				'value' => $next ? gmdate( 'Y-m-d H:i:s', (int) $next ) . ' UTC' : 'off',
 			];
+		}
+
+		$job = ImportJob::get();
+		if ( ! empty( $job['status'] ) ) {
+			$state  = ImportJob::client_state( $job );
+			$rows[] = [
+				'key'   => 'import',
+				'value' => sprintf( '%s — %s (%d of %d episodes)', $state['status'], '' !== $state['title'] ? $state['title'] : $state['feed_url'], (int) $state['done'], (int) $state['total'] ),
+			];
+			if ( 'waiting' === $state['status'] ) {
+				$rows[] = [
+					'key'   => 'import waits until',
+					'value' => gmdate( 'Y-m-d H:i:s', (int) $state['wait_until'] ) . ' UTC — ' . $state['wait_reason'],
+				];
+			}
+			if ( is_array( $state['current'] ) ) {
+				$rows[] = [
+					'key'   => 'copying',
+					'value' => sprintf( '%s (%s): %s of %s', $state['current']['title'], $state['current']['kind'], size_format( (int) $state['current']['bytes'] ), (int) $state['current']['total'] > 0 ? size_format( (int) $state['current']['total'] ) : '?' ),
+				];
+			}
+			foreach ( (array) $state['remaining'] as $group ) {
+				$rows[] = [
+					'key'   => 'still at the old host',
+					'value' => $group['label'] . ': ' . implode( ', ', array_column( (array) $group['episodes'], 'title' ) ) . ( (int) $group['count'] > count( (array) $group['episodes'] ) ? ' …' : '' ),
+				];
+			}
+			if ( '' !== $state['error'] ) {
+				$rows[] = [
+					'key'   => 'import error',
+					'value' => $state['error'],
+				];
+			}
 		}
 
 		\WP_CLI\Utils\format_items( 'table', $rows, [ 'key', 'value' ] );
