@@ -9,8 +9,12 @@ if [ ! -f "$WP_DIR/.epm-test-site" ]; then
  exit 2
 fi
 FAILED=0
-trash="$("$WP_CLI" post create --post_type=podcast_episode --post_status=trash --post_title='Disposable trash probe' --porcelain)" || exit 1
-draft="$("$WP_CLI" post create --post_type=podcast_episode --post_status=auto-draft --post_title='Disposable auto-draft probe' --porcelain)" || exit 1
+trash="$("$WP_CLI" post create --post_type=podcast_episode --post_status=trash --post_title='Disposable trash probe' --porcelain | awk '!found && /^[0-9]+$/ {print; found=1}')" || exit 1
+draft="$("$WP_CLI" post create --post_type=podcast_episode --post_status=auto-draft --post_title='Disposable auto-draft probe' --porcelain | awk '!found && /^[0-9]+$/ {print; found=1}')" || exit 1
+if [[ ! "$trash" =~ ^[0-9]+$ || ! "$draft" =~ ^[0-9]+$ ]]; then
+ echo 'FAIL: WP-CLI did not return valid probe IDs.' >&2
+ exit 1
+fi
 if env -u EPM_ALLOW_TEST_SEED "$WP_CLI" eval-file "$ROOT/tests/fixtures/seed.php" > "$WP_DIR/seed-refusal.log" 2>&1; then
  echo 'FAIL: seeding without the explicit runner flag was accepted.' >&2
  FAILED=1
