@@ -354,3 +354,10 @@ redirects permanently to the site, whose feed initially redirects to the
 host. The sync stops before following the loop, switches to local hosting,
 removes the redirect and stops host synchronization. The media runner
 includes this case; it passes on WordPress 6.2 and 7.1.2.
+
+SYNC-N8 coverage verifies refreshed signed enclosure URLs, unchanged edit
+timestamps and update counts, compatibility with the original raw URL hash,
+local URL and token-only edits, and the expiry warning. The hosting suite now
+passes 1,193 assertions on WordPress 6.2 and 7.1.2. Its uninstall probe parks
+non-probe episodes because the bounded uninstaller uses direct SQL; it
+verifies those episodes survive and restores their original type in `finally`.

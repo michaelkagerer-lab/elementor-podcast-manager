@@ -363,6 +363,10 @@ final class Readiness {
 
 		$add( 'ok', __( 'Host feed', 'elementor-podcast-manager' ), Hosting::has_url_secret( $feed ) ? __( 'A private feed address is configured and is not shown here.', 'elementor-podcast-manager' ) : $feed );
 
+		if ( ! empty( $state['expiring_audio'] ) ) {
+			$add( 'warning', __( 'Audio addresses', 'elementor-podcast-manager' ), __( 'Your host uses signed or tokenized audio addresses that may expire between syncs. Ask the host for permanent enclosure addresses, or copy the audio when moving the show here.', 'elementor-podcast-manager' ), $hosting_url, $hosting_fix );
+		}
+
 		if ( ! Hosting::get( 'sync' ) ) {
 			$add( 'warning', __( 'Automatic sync', 'elementor-podcast-manager' ), __( 'Off. New episodes from your host only appear here after “Sync now”.', 'elementor-podcast-manager' ), $hosting_url, $hosting_fix );
 		}

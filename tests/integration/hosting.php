@@ -1970,7 +1970,7 @@ $t->test(
 );
 
 $t->test(
-	'signed enclosure URL rotation does not update an episode each sync',
+	'SYNC-N8: signed enclosure rotation refreshes managed audio without post updates and warns about expiry',
 	static function ( EPM_Test_Runner $t ) {
 		$url = epm_h_url( 'signed.xml' );
 		$signature = 'one';
@@ -1987,6 +1987,32 @@ $t->test(
 		$result = Hosting::sync( true );
 		$t->same( 0, $result['updated'], $result['message'] );
 		$t->same( $modified, get_post_modified_time( 'U', true, $id ), 'post timestamp remains unchanged' );
+		$t->assert( false !== strpos( (string) get_post_meta( $id, '_epm_audio_url', true ), 'X-Amz-Signature=two' ), 'the current signed URL is stored, rather than the expired first URL' );
+		$t->assert( ! empty( Hosting::state()['expiring_audio'] ), 'the host uses signed or tokenized media addresses' );
+		$warnings = array_filter( EPM\Readiness::report()['checks'], static fn( $check ) => 'warning' === $check['status'] && false !== strpos( $check['message'], 'may expire' ) );
+		$t->assert( ! empty( $warnings ), 'readiness warns that mirroring cannot prevent signed URLs from expiring' );
+		// Original releases recorded the raw URL hash, without the new
+		// auxiliary key. Preserve that ownership across signature rotation.
+		$hashes = get_post_meta( $id, '_epm_import_hash', true );
+		unset( $hashes['audio_url_raw'] );
+		$hashes['audio_url'] = md5( (string) get_post_meta( $id, '_epm_audio_url', true ) );
+		update_post_meta( $id, '_epm_import_hash', $hashes );
+		$signature = 'legacy-four';
+		$legacy = Hosting::sync( true );
+		$t->same( 0, $legacy['updated'], 'legacy raw hashes refresh without an editorial update' );
+		$t->assert( false !== strpos( (string) get_post_meta( $id, '_epm_audio_url', true ), 'X-Amz-Signature=legacy-four' ), 'original 1.3.0 hashes retain managed ownership' );
+		$managed_url = get_post_meta( $id, '_epm_audio_url', true );
+		$local_token = str_replace( 'X-Amz-Signature=legacy-four', 'X-Amz-Signature=local-choice', $managed_url );
+		update_post_meta( $id, '_epm_audio_url', $local_token );
+		$signature = 'three';
+		Hosting::sync( true );
+		$t->same( $local_token, get_post_meta( $id, '_epm_audio_url', true ), 'even a local token-only edit is retained' );
+		update_post_meta( $id, '_epm_audio_url', $managed_url );
+		update_post_meta( $id, '_epm_audio_url', 'https://local-choice.example.test/edited.mp3' );
+		$signature = 'three';
+		Hosting::sync( true );
+		$t->same( 'https://local-choice.example.test/edited.mp3', get_post_meta( $id, '_epm_audio_url', true ), 'a locally chosen audio address is kept' );
+		update_post_meta( $id, '_epm_audio_url', $managed_url );
 		unset( EPM_Test_HTTP::$routes[ $url ] );
 		// Restore the suite's sync feed so later tests do not inherit a URL
 		// whose temporary route has just been removed.
@@ -3281,7 +3307,7 @@ $t->test(
 
 $t->test(
 	'uninstalling with data deletion removes the topics and their relationships (the plugin is not loaded then)',
-	static function ( EPM_Test_Runner $t ) {
+	static function ( EPM_Test_Runner $t ) use ( $fx ) {
 		global $wpdb;
 
 		$episode = (int) wp_insert_post(
@@ -3303,16 +3329,17 @@ $t->test(
 		$options = $wpdb->get_results( "SELECT option_name, option_value, autoload FROM {$wpdb->options} WHERE option_name LIKE 'epm%'", ARRAY_A );
 		$rewrite_rules = get_option( 'rewrite_rules', false );
 		update_option( 'rewrite_rules', [ 'podcast/feed/?$' => 'index.php?epm_feed=1' ] );
-		$posts   = static function ( $pre, $query ) use ( $episode ) {
-			return EpisodePostType::CPT === $query->get( 'post_type' ) && get_post( $episode ) ? [ $episode ] : $pre;
-		};
+		// The bounded uninstaller queries SQL directly, so posts_pre_query
+		// cannot constrain it. Temporarily park every non-probe episode.
+		$hold_type = 'epm_hold_' . substr( str_replace( '-', '', wp_generate_uuid4() ), 0, 8 );
+		$wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->posts} SET post_type = %s WHERE post_type = %s AND ID <> %d", $hold_type, EpisodePostType::CPT, $episode ) );
+		wp_cache_flush();
 		// Only the "all topics" query (not term lookups WordPress makes).
 		$terms   = static function ( $pre, $query ) use ( $term_id ) {
 			$vars = $query->query_vars;
 			$all  = in_array( EpisodePostType::TOPIC, (array) ( $vars['taxonomy'] ?? [] ), true ) && 'ids' === ( $vars['fields'] ?? '' ) && empty( $vars['object_ids'] ) && empty( $vars['include'] ) && empty( $vars['name'] ) && empty( $vars['slug'] );
 			return $all ? [ $term_id ] : $pre;
 		};
-		add_filter( 'posts_pre_query', $posts, 10, 2 );
 		add_filter( 'terms_pre_query', $terms, 10, 2 );
 		add_filter( 'epm_delete_data_on_uninstall', '__return_true' );
 		unregister_taxonomy( EpisodePostType::TOPIC );
@@ -3325,11 +3352,14 @@ $t->test(
 			} )();
 
 			$t->same( null, get_post( $episode ), 'episode deleted' );
+			$t->assert( get_post( (int) $fx['ep1'] ) instanceof WP_Post, 'the uninstall probe must preserve episodes outside its scope' );
 			$t->same( false, get_option( 'rewrite_rules', false ), 'LIFE-N3: uninstall invalidates the podcast routes' );
 			$t->same( 0, (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->term_relationships} WHERE object_id = %d OR term_taxonomy_id = %d", $episode, $tt_id ) ), 'no topic relationships left' );
 			$t->same( 0, (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->term_taxonomy} WHERE term_taxonomy_id = %d", $tt_id ) ), 'topic deleted' );
 		} finally {
-			remove_filter( 'posts_pre_query', $posts, 10 );
+			$wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->posts} SET post_type = %s WHERE post_type = %s", EpisodePostType::CPT, $hold_type ) );
+			wp_cache_flush();
+			$t->same( EpisodePostType::CPT, get_post_type( (int) $fx['ep1'] ), 'protected episodes have their original type restored' );
 			remove_filter( 'terms_pre_query', $terms, 10 );
 			remove_filter( 'epm_delete_data_on_uninstall', '__return_true' );
 			if ( false === $rewrite_rules ) {

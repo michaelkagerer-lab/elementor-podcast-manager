@@ -523,6 +523,7 @@ final class Hosting {
 				'retry_at'      => 0,
 				'items'         => 0,
 				'feed_title'    => '',
+				'expiring_audio' => false,
 			]
 		);
 	}
@@ -1142,6 +1143,7 @@ final class Hosting {
 				]
 			);
 
+			$expiring_audio = false;
 			[ $unique ] = Importer::dedupe( $parsed['items'] );
 			$parsed['items'] = $unique;
 
@@ -1155,6 +1157,7 @@ final class Hosting {
 			$lost  = false;
 			foreach ( $items as $item ) {
 				$guids[ (string) $item['guid'] ] = true;
+				$expiring_audio = $expiring_audio || Importer::has_expiring_audio_url( (string) ( $item['audio_url'] ?? '' ) );
 
 				if ( $result['created'] >= $limit && ! $importer->exists( (string) $item['guid'] ) ) {
 					$pending = true;
@@ -1268,6 +1271,7 @@ final class Hosting {
 					'drafted'       => $result['drafted'],
 					'pending'       => $pending,
 					'feed_title'    => (string) $parsed['channel']['title'],
+					'expiring_audio' => $expiring_audio,
 					'failures'      => $pending ? ( (int) $state['failures'] + 1 ) : 0,
 					'items'         => count( $parsed['items'] ),
 				]

@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-02T09:15:19+00:00\n"
+"POT-Creation-Date: 2026-10-02T09:28:36+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: elementor-podcast-manager\n"
@@ -1015,7 +1015,7 @@ msgid "Check it with an independent validator: %1$s or %2$s."
 msgstr ""
 
 #: admin/views/distribution.php:154
-#: includes/Readiness.php:686
+#: includes/Readiness.php:690
 msgid "Test feed and audio delivery"
 msgstr ""
 
@@ -1287,7 +1287,7 @@ msgstr ""
 
 #: admin/views/hosting.php:243
 #: admin/views/setup.php:221
-#: includes/Readiness.php:397
+#: includes/Readiness.php:401
 msgid "Import episodes"
 msgstr ""
 
@@ -1727,8 +1727,8 @@ msgstr ""
 #: includes/Admin.php:338
 #: includes/Admin.php:339
 #: includes/EpisodePostType.php:136
-#: includes/Readiness.php:397
-#: includes/Readiness.php:400
+#: includes/Readiness.php:401
+#: includes/Readiness.php:404
 msgid "Episodes"
 msgstr ""
 
@@ -2067,7 +2067,7 @@ msgid "This site’s old feed address"
 msgstr ""
 
 #: admin/views/setup.php:507
-#: includes/Readiness.php:392
+#: includes/Readiness.php:396
 msgid "Redirects permanently to your host’s feed."
 msgstr ""
 
@@ -2822,7 +2822,7 @@ msgstr ""
 
 #. translators: %s: error message from the HTTP client
 #: includes/AdminPages.php:682
-#: includes/Hosting.php:770
+#: includes/Hosting.php:771
 #, php-format
 msgid "The feed could not be loaded: %s"
 msgstr ""
@@ -3562,7 +3562,7 @@ msgstr ""
 #: includes/Elementor/Widgets/ChaptersWidget.php:122
 #: includes/Elementor/Widgets/ChaptersWidget.php:145
 #: includes/EpisodeMeta.php:315
-#: includes/Importer.php:1365
+#: includes/Importer.php:1401
 #: includes/Renderer.php:454
 #: includes/Renderer.php:1252
 #: includes/Shortcodes.php:205
@@ -4355,7 +4355,7 @@ msgstr ""
 #: includes/Elementor/Widgets/TranscriptWidget.php:100
 #: includes/Elementor/Widgets/TranscriptWidget.php:124
 #: includes/EpisodeMeta.php:342
-#: includes/Importer.php:1456
+#: includes/Importer.php:1492
 #: includes/Renderer.php:508
 #: includes/Renderer.php:517
 #: includes/Shortcodes.php:235
@@ -5150,132 +5150,132 @@ msgstr ""
 msgid "This feed address contains credentials. Its public redirect is turned off so credentials are not sent to listeners."
 msgstr ""
 
-#: includes/Hosting.php:713
-#: includes/Hosting.php:884
+#: includes/Hosting.php:714
+#: includes/Hosting.php:885
 msgid "Enter the RSS feed address (it starts with https://)."
 msgstr ""
 
-#: includes/Hosting.php:759
+#: includes/Hosting.php:760
 msgid "Your host now sends podcast apps to this website’s feed."
 msgstr ""
 
 #. translators: %s: response size limit in bytes
-#: includes/Hosting.php:781
+#: includes/Hosting.php:782
 #, php-format
 msgid "The feed exceeds the %s-byte size limit. Ask the host for a smaller or paged feed, or adjust epm_feed_max_bytes."
 msgstr ""
 
-#: includes/Hosting.php:789
-#: includes/Hosting.php:912
+#: includes/Hosting.php:790
+#: includes/Hosting.php:913
 msgid "The server answered with a bot-protection page instead of the feed. Ask the site owner to allow podcast apps to read the feed, or use the feed address from your podcast host."
 msgstr ""
 
 #. translators: %d: HTTP status code
-#: includes/Hosting.php:799
+#: includes/Hosting.php:800
 #, php-format
 msgid "The podcast host returned HTTP %d and is temporarily unavailable. The feed will be checked again."
 msgstr ""
 
-#: includes/Hosting.php:803
+#: includes/Hosting.php:804
 msgid "The host feed address returned 404 or 410. Check the RSS address in your host dashboard."
 msgstr ""
 
-#: includes/Hosting.php:805
+#: includes/Hosting.php:806
 msgid "The host denied access to this feed. Check its privacy and access settings."
 msgstr ""
 
-#: includes/Hosting.php:807
+#: includes/Hosting.php:808
 msgid "The host is rate limiting feed checks. The next check will wait for the host’s Retry-After time."
 msgstr ""
 
-#: includes/Hosting.php:808
+#: includes/Hosting.php:809
 #, php-format
 msgid "The feed address answered with HTTP status %d."
 msgstr ""
 
-#: includes/Hosting.php:895
+#: includes/Hosting.php:896
 msgid "Apple Podcasts did not return a feed address for this show. Paste the RSS feed address from your host instead."
 msgstr ""
 
-#: includes/Hosting.php:899
+#: includes/Hosting.php:900
 msgid "Spotify show links do not reveal the RSS feed. In Spotify for Creators, open Settings → Availability and copy the RSS feed link (it looks like https://anchor.fm/s/…/podcast/rss)."
 msgstr ""
 
-#: includes/Hosting.php:914
+#: includes/Hosting.php:915
 msgid "This address is a web page, not an RSS feed, and the page does not link to one. Copy the RSS feed address from your host’s dashboard."
 msgstr ""
 
-#: includes/Hosting.php:1024
+#: includes/Hosting.php:1025
 msgid "No host feed address is set."
 msgstr ""
 
-#: includes/Hosting.php:1030
+#: includes/Hosting.php:1031
 msgid "An import is running. The sync will run after it finishes."
 msgstr ""
 
-#: includes/Hosting.php:1035
+#: includes/Hosting.php:1036
 msgid "Checking the podcast host feed."
 msgstr ""
 
-#: includes/Hosting.php:1048
-#: includes/Hosting.php:1254
+#: includes/Hosting.php:1049
+#: includes/Hosting.php:1257
 msgid "Your host now sends podcast apps to this website’s feed, so hosting switched to “This website”: the feed here is no longer redirected and syncing stopped."
 msgstr ""
 
-#: includes/Hosting.php:1067
+#: includes/Hosting.php:1068
 msgid "The host feed exceeded the configured response size limit, so nothing was synchronized."
 msgstr ""
 
-#: includes/Hosting.php:1074
+#: includes/Hosting.php:1075
 msgid "No new episodes."
 msgstr ""
 
-#: includes/Hosting.php:1106
+#: includes/Hosting.php:1107
 msgid "The host feed contains channel text that exceeds safe size limits. Nothing was synchronized."
 msgstr ""
 
-#: includes/Hosting.php:1116
+#: includes/Hosting.php:1117
 msgid "The host’s feed lists no episodes right now, so nothing was changed."
 msgstr ""
 
 #. translators: 1: episodes in the feed now, 2: episodes in the feed before
-#: includes/Hosting.php:1119
+#: includes/Hosting.php:1120
 #, php-format
 msgid "The host’s feed suddenly lists %1$d episodes instead of %2$d, so nothing was changed. If you removed episodes on purpose, run “Sync now”."
 msgstr ""
 
-#: includes/Hosting.php:1180
+#: includes/Hosting.php:1183
 msgid "An episode could not be synchronized."
 msgstr ""
 
-#: includes/Hosting.php:1198
+#: includes/Hosting.php:1201
 msgid "Another import or sync took over, so this sync stopped. It runs again on the next schedule."
 msgstr ""
 
-#: includes/Hosting.php:1228
+#: includes/Hosting.php:1231
 msgid "The announced feed address could not be verified."
 msgstr ""
 
 #. translators: %s: verified new RSS feed address
-#: includes/Hosting.php:1235
+#: includes/Hosting.php:1238
 #, php-format
 msgid "The host announced a new feed address. It was verified as this show and adopted: %s."
 msgstr ""
 
-#: includes/Hosting.php:1239
+#: includes/Hosting.php:1242
 msgid "The host announced a new feed address, but it did not verify as the same show. The current address was kept."
 msgstr ""
 
-#: includes/Hosting.php:1248
+#: includes/Hosting.php:1251
 msgid "Some episodes could not be synchronized; the feed will be checked again."
 msgstr ""
 
-#: includes/Hosting.php:1251
+#: includes/Hosting.php:1254
 msgid "Only the first page of this feed was checked. Re-import the feed to update older episodes. Episodes from other pages were kept."
 msgstr ""
 
 #. translators: %s: number of episodes
-#: includes/Hosting.php:1322
+#: includes/Hosting.php:1326
 #, php-format
 msgid "%s new episode"
 msgid_plural "%s new episodes"
@@ -5283,7 +5283,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: number of episodes
-#: includes/Hosting.php:1326
+#: includes/Hosting.php:1330
 #, php-format
 msgid "%s episode updated"
 msgid_plural "%s episodes updated"
@@ -5291,57 +5291,57 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: number of episodes
-#: includes/Hosting.php:1330
+#: includes/Hosting.php:1334
 #, php-format
 msgid "%s episode moved to drafts"
 msgid_plural "%s episodes moved to drafts"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/Hosting.php:1333
+#: includes/Hosting.php:1337
 msgid "Up to date."
 msgstr ""
 
-#: includes/Importer.php:256
+#: includes/Importer.php:283
 msgid "The item has no identifier."
 msgstr ""
 
-#: includes/Importer.php:261
+#: includes/Importer.php:288
 msgid "Untitled episode"
 msgstr ""
 
-#: includes/Importer.php:289
+#: includes/Importer.php:316
 msgid "Deleted on this site; not imported again."
 msgstr ""
 
 #. translators: %s: why the file was not copied
-#: includes/Importer.php:389
+#: includes/Importer.php:418
 #, php-format
 msgid "Audio stays on the host: %s"
 msgstr ""
 
 #. translators: %s: why the file was not copied
-#: includes/Importer.php:391
+#: includes/Importer.php:420
 #, php-format
 msgid "Episode image stays on the host: %s"
 msgstr ""
 
 #. translators: %s: why the file was not copied
-#: includes/Importer.php:393
+#: includes/Importer.php:422
 #, php-format
 msgid "Transcript file stays on the host: %s"
 msgstr ""
 
-#: includes/Importer.php:966
+#: includes/Importer.php:1002
 msgid "Another request is copying this file right now."
 msgstr ""
 
-#: includes/Importer.php:1293
+#: includes/Importer.php:1329
 msgid "The file did not arrive in time."
 msgstr ""
 
 #. translators: 1: chapters or transcript, 2: response size limit in bytes
-#: includes/Importer.php:1327
+#: includes/Importer.php:1363
 #, php-format
 msgid "%1$s was skipped because it exceeds the %2$s-byte size limit."
 msgstr ""
@@ -6074,178 +6074,186 @@ msgid "A private feed address is configured and is not shown here."
 msgstr ""
 
 #: includes/Readiness.php:367
-#: includes/Readiness.php:409
-msgid "Automatic sync"
+msgid "Audio addresses"
 msgstr ""
 
 #: includes/Readiness.php:367
+msgid "Your host uses signed or tokenized audio addresses that may expire between syncs. Ask the host for permanent enclosure addresses, or copy the audio when moving the show here."
+msgstr ""
+
+#: includes/Readiness.php:371
+#: includes/Readiness.php:413
+msgid "Automatic sync"
+msgstr ""
+
+#: includes/Readiness.php:371
 msgid "Off. New episodes from your host only appear here after “Sync now”."
 msgstr ""
 
-#: includes/Readiness.php:371
 #: includes/Readiness.php:375
-#: includes/Readiness.php:386
+#: includes/Readiness.php:379
+#: includes/Readiness.php:390
 msgid "Last sync"
 msgstr ""
 
-#: includes/Readiness.php:371
+#: includes/Readiness.php:375
 msgid "Check hosting settings"
 msgstr ""
 
 #. translators: 1: time difference, 2: sync summary
-#: includes/Readiness.php:378
+#: includes/Readiness.php:382
 #, php-format
 msgid "%1$s ago — %2$s"
 msgstr ""
 
-#: includes/Readiness.php:386
+#: includes/Readiness.php:390
 msgid "Connected. The first automatic sync runs within the hour."
 msgstr ""
 
-#: includes/Readiness.php:386
+#: includes/Readiness.php:390
 msgid "Not synced yet. Run “Sync now” or import the show."
 msgstr ""
 
-#: includes/Readiness.php:390
-#: includes/Readiness.php:392
+#: includes/Readiness.php:394
+#: includes/Readiness.php:396
 msgid "Site feed"
 msgstr ""
 
-#: includes/Readiness.php:390
+#: includes/Readiness.php:394
 msgid "This site still publishes its own feed. If apps find both, listeners may see the show twice; turn on the redirect to your host’s feed."
 msgstr ""
 
-#: includes/Readiness.php:397
+#: includes/Readiness.php:401
 msgid "No episodes on this site yet. Import them from your host’s feed."
 msgstr ""
 
 #. translators: %s: number of episodes
-#: includes/Readiness.php:400
+#: includes/Readiness.php:404
 #, php-format
 msgid "%s published episode"
 msgid_plural "%s published episodes"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/Readiness.php:409
+#: includes/Readiness.php:413
 msgid "The scheduled sync is overdue. Check WP-Cron or set up a server cron to request wp-cron.php regularly."
 msgstr ""
 
-#: includes/Readiness.php:414
+#: includes/Readiness.php:418
 msgid "Move not finished"
 msgstr ""
 
-#: includes/Readiness.php:414
+#: includes/Readiness.php:418
 #, php-format
 msgid "%1$d of %2$d episodes have been imported. Resume the move before changing the feed redirect."
 msgstr ""
 
-#: includes/Readiness.php:414
+#: includes/Readiness.php:418
 msgid "Resume the move"
 msgstr ""
 
-#: includes/Readiness.php:459
+#: includes/Readiness.php:463
 msgid "Move to this website"
 msgstr ""
 
-#: includes/Readiness.php:460
+#: includes/Readiness.php:464
 msgid "The move is not finished: files listed here still load from the old host. Copy them again, or finish the move knowing they stay there."
 msgstr ""
 
-#: includes/Readiness.php:462
+#: includes/Readiness.php:466
 msgid "Open Hosting & import"
 msgstr ""
 
-#: includes/Readiness.php:474
+#: includes/Readiness.php:478
 msgid "Import with “Copy audio”"
 msgstr ""
 
-#: includes/Readiness.php:478
+#: includes/Readiness.php:482
 msgid "Audio at the old host"
 msgstr ""
 
 #. translators: %s: number of episodes
-#: includes/Readiness.php:480
+#: includes/Readiness.php:484
 #, php-format
 msgid "The audio of %s episode still loads from the old host. Copy it before closing that account."
 msgid_plural "The audio of %s episodes still loads from the old host. Copy it before closing that account."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/Readiness.php:483
+#: includes/Readiness.php:487
 msgid "Episode images at the old host"
 msgstr ""
 
 #. translators: %s: number of episodes
-#: includes/Readiness.php:485
+#: includes/Readiness.php:489
 #, php-format
 msgid "The image of %s episode still loads from the old host. Copy it before closing that account."
 msgid_plural "The images of %s episodes still load from the old host. Copy them before closing that account."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/Readiness.php:488
+#: includes/Readiness.php:492
 msgid "Transcript files at the old host"
 msgstr ""
 
 #. translators: %s: number of episodes
-#: includes/Readiness.php:490
+#: includes/Readiness.php:494
 #, php-format
 msgid "The WebVTT/SRT transcript file of %s episode is still linked at the old host; podcast apps lose its captions when that account is closed. Copy it before closing that account."
 msgid_plural "The WebVTT/SRT transcript files of %s episodes are still linked at the old host; podcast apps lose their captions when that account is closed. Copy them before closing that account."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/Readiness.php:493
+#: includes/Readiness.php:497
 msgid "Transcripts linked at the old host"
 msgstr ""
 
 #. translators: %s: number of episodes
-#: includes/Readiness.php:496
+#: includes/Readiness.php:500
 #, php-format
 msgid "The transcript of %s episode is linked at the old host in a format that is not copied (such as JSON). Its text is on this site; replace or remove the link before closing that account."
 msgid_plural "The transcripts of %s episodes are linked at the old host in a format that is not copied (such as JSON). Their text is on this site; replace or remove the links before closing that account."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/Readiness.php:544
+#: includes/Readiness.php:548
 msgid "More episodes"
 msgstr ""
 
 #. translators: 1: number of further episode problems, 2: of them errors, 3: of them warnings
-#: includes/Readiness.php:547
+#: includes/Readiness.php:551
 #, php-format
 msgid "%1$s more episode problem (%2$s errors, %3$s warnings) is not listed here."
 msgid_plural "%1$s more episode problems (%2$s errors, %3$s warnings) are not listed here."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/Readiness.php:553
+#: includes/Readiness.php:557
 msgid "Open the episode list"
 msgstr ""
 
-#: includes/Readiness.php:636
+#: includes/Readiness.php:640
 msgid "Connected"
 msgstr ""
 
-#: includes/Readiness.php:636
+#: includes/Readiness.php:640
 msgid "In sync"
 msgstr ""
 
-#: includes/Readiness.php:636
+#: includes/Readiness.php:640
 msgid "Ready for distribution"
 msgstr ""
 
-#: includes/Readiness.php:639
+#: includes/Readiness.php:643
 msgid "Sync overdue"
 msgstr ""
 
-#: includes/Readiness.php:644
+#: includes/Readiness.php:648
 msgid "Not ready"
 msgstr ""
 
 #. translators: %s: number of problems
-#: includes/Readiness.php:650
+#: includes/Readiness.php:654
 #, php-format
 msgid "%s problem"
 msgid_plural "%s problems"
@@ -6253,50 +6261,50 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: number of warnings
-#: includes/Readiness.php:654
+#: includes/Readiness.php:658
 #, php-format
 msgid "%s warning"
 msgid_plural "%s warnings"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/Readiness.php:662
+#: includes/Readiness.php:666
 msgid "No problems found. Everything that is checked here is in place."
 msgstr ""
 
 #. translators: %s: number of passed checks
-#: includes/Readiness.php:672
+#: includes/Readiness.php:676
 #, php-format
 msgid "Show %s passed check"
 msgid_plural "Show %s passed checks"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/Readiness.php:684
+#: includes/Readiness.php:688
 msgid "Directories also check that your server delivers the audio correctly."
 msgstr ""
 
-#: includes/Readiness.php:710
+#: includes/Readiness.php:714
 msgid "(no title)"
 msgstr ""
 
 #. translators: %s: number of episodes
-#: includes/Readiness.php:715
+#: includes/Readiness.php:719
 #, php-format
 msgid "and %s more"
 msgid_plural "and %s more"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/Readiness.php:729
+#: includes/Readiness.php:733
 msgid "Problem:"
 msgstr ""
 
-#: includes/Readiness.php:730
+#: includes/Readiness.php:734
 msgid "Warning:"
 msgstr ""
 
-#: includes/Readiness.php:731
+#: includes/Readiness.php:735
 msgid "Passed:"
 msgstr ""
 

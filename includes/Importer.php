@@ -70,6 +70,33 @@ final class Importer {
 		return '' !== $query_string ? $clean . '?' . $query_string : $clean;
 	}
 
+	/** Whether media credentials or signatures can expire between syncs. */
+	public static function has_expiring_audio_url( string $url ): bool {
+		parse_str( (string) wp_parse_url( $url, PHP_URL_QUERY ), $query );
+		foreach ( array_keys( $query ) as $key ) {
+			if ( preg_match( '/^(?:x-amz-|x-goog-|expires$|signature$|sig$|token$|auth$|key-pair-id$|policy$|hdnts$)/i', (string) $key ) ) { return true; }
+		}
+		return false;
+	}
+
+	/** Refresh a managed signed address without treating it as an editorial update. */
+	private function refresh_signed_audio_url( int $post_id, array $item ): void {
+		$current = (string) get_post_meta( $post_id, Episodes::META_PREFIX . 'audio_url', true );
+		$next = esc_url_raw( (string) ( $item['audio_url'] ?? '' ), [ 'http', 'https' ] );
+		if ( $current === $next || ! self::has_expiring_audio_url( $next ) || self::stable_media_url( $current ) !== self::stable_media_url( $next ) || (int) get_post_meta( $post_id, Episodes::META_PREFIX . 'audio_id', true ) > 0 ) { return; }
+		$hashes = get_post_meta( $post_id, Episodes::META_PREFIX . 'import_hash', true );
+		$hashes = is_array( $hashes ) ? $hashes : [];
+		// Original 1.3.0 hashes use raw bytes. New imports also record them,
+		// so a local token-only edit cannot be mistaken for a managed URL.
+		$raw_hash = $hashes['audio_url_raw'] ?? ( $hashes['audio_url'] ?? '' );
+		if ( self::legacy_hash( $current ) !== $raw_hash ) { return; }
+		update_post_meta( $post_id, Episodes::META_PREFIX . 'audio_url', wp_slash( $next ) );
+		$hashes['audio_url'] = self::hash( $next, 'audio_url' );
+		$hashes['audio_url_raw'] = self::legacy_hash( $next );
+		update_post_meta( $post_id, Episodes::META_PREFIX . 'import_hash', $hashes );
+		Episodes::clear_data_cache( $post_id );
+	}
+
 	/**
 	 * Options.
 	 *
@@ -302,6 +329,8 @@ final class Importer {
 			if ( '' !== $next_source_feed && '' !== $source_feed && $source_feed !== $next_source_feed ) {
 				update_post_meta( $post_id, Episodes::META_PREFIX . 'source_feed', $next_source_feed );
 			}
+
+			$this->refresh_signed_audio_url( $post_id, $item );
 
 			// Changed at the host since the last import.
 			if ( get_post_meta( $post_id, Episodes::META_PREFIX . 'import_fingerprint', true ) !== $fingerprint ) {
@@ -611,6 +640,7 @@ final class Importer {
 		$values      = $this->values( $item );
 		$post_update = [];
 		$owned       = []; // Fields whose value now comes from the host.
+		$written     = []; // Fields whose bytes were replaced in this call.
 		$changed     = false;
 
 		foreach ( $values as $field => $value ) {
@@ -661,6 +691,7 @@ final class Importer {
 			}
 
 			$owned[] = $field;
+			$written[ $field ] = true;
 			$changed = true;
 		}
 
@@ -672,7 +703,12 @@ final class Importer {
 		// Remember what the site holds now (after sanitizers ran), so the
 		// next sync can tell importer-written values from local edits.
 		foreach ( $owned as $field ) {
-			$hashes[ $field ] = self::hash( $this->current( $post_id, $field ), $field );
+			$current = $this->current( $post_id, $field );
+			$raw_hash = $hashes['audio_url_raw'] ?? ( $hashes['audio_url'] ?? '' );
+			$hashes[ $field ] = self::hash( $current, $field );
+			if ( 'audio_url' === $field && ( $is_new || isset( $written[ $field ] ) || $raw_hash === self::legacy_hash( $current ) ) ) {
+				$hashes['audio_url_raw'] = self::legacy_hash( $current );
+			}
 		}
 		update_post_meta( $post_id, Episodes::META_PREFIX . 'import_hash', $hashes );
 

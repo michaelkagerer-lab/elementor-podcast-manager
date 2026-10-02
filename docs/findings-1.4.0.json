@@ -184,7 +184,7 @@
     "id": "SYNC-N8",
     "title": "Signed/expiring enclosure URLs make every sync 'update' all episodes and store URLs that expire",
     "priority": "P3",
-    "status": "fix implemented; regression tests not run in this environment",
+    "status": "fixed and tested",
     "evidence": "includes/Importer.php:170 $fingerprint = md5( wp_json_encode( $item ) ) and 206 comparison: any change of the signature query changes the fingerprint.\nImporter.php:326 'audio_url' => esc_url_raw( item audio_url ) is stored verbatim.\nHosting.php:985-987 flushes the feed cache on every update.",
     "reproduction": "`$S/wpq eval-file $S/sync-audit.php signed` (enclosures with ?Expires=…&Signature=<random> per response):\n- scheduled sync #1 '5 new episodes.';\n- #2 '5 episodes updated.';\n- #3 '5 episodes updated.';\n- stored audio_url '…/ssg-001.mp3?Expires=1790804088&Signature=YeYjFuQ2AVfGvt09'.",
     "user_impact": "For hosts or CDNs that sign enclosure URLs per request: every hourly sync rewrites every episode and invalidates this site's feed cache and ETag, causing unnecessary load and 'N episodes updated' noise. The stored audio URL stops working when the signature expires.",
@@ -194,7 +194,7 @@
     "refs": [
       "includes/Importer.php:170"
     ],
-    "notes": "Rotating signed enclosure URL test is pending."
+    "notes": "tests/integration/hosting.php (managed signed URLs refresh without edit timestamps or update counts; original raw hashes and local token-only edits are preserved; readiness warns about expiry)"
   },
   {
     "id": "IMP-03",

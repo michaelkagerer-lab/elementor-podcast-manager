@@ -487,6 +487,13 @@ never keeps another from being copied.
   transcript in another format, such as Podcasting 2.0 JSON, cannot be
   copied into the Media Library: its text is already on this site, and
   the link stays and is listed as still at the old host.
+- **Signed audio addresses.** Some hosts issue enclosure addresses with
+  signatures or tokens that may expire. Sync refreshes an address still
+  managed by the importer without changing the episode's edit timestamp.
+  Addresses edited on this site are kept, including token-only edits.
+  Readiness warns about these hosts: sync cannot keep a short-lived address
+  playable between runs. Ask for permanent enclosure addresses, or copy the
+  audio when moving the show here.
 - **Only what is missing.** A file that is already in the Media Library
   is not requested again, also when an earlier run copied it from the
   same address. A second run therefore requests exactly what failed.
