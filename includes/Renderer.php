@@ -443,15 +443,26 @@ final class Renderer {
 		}
 
 		// A chapter list can start playback on a page without any player:
-		// the sticky bar then carries pause and seek.
+		// the sticky bar then carries pause and seek. Inside a player
+		// (sticky false) the list carries no preference of its own and
+		// follows the player's.
+		$sticky = '';
 		if ( $args['sticky'] ?? true ) {
-			$this->request_sticky_for_lists();
+			$sticky = ' data-epm-sticky-player="' . ( $this->request_sticky_for_lists() ? '1' : '0' ) . '"';
 		}
 
 		$heading = $args['heading'] ?? __( 'Chapters', 'elementor-podcast-manager' );
 		$tag     = $this->heading_tag( $args );
 
-		$out = '<div class="epm-chapters" data-epm-chapters data-epm-episode-id="' . esc_attr( (string) ( $episode['id'] ?? 0 ) ) . '" data-epm-src="' . esc_url( (string) ( $episode['audio_url'] ?? '' ) ) . '" data-epm-title="' . esc_attr( (string) ( $episode['title'] ?? '' ) ) . '">';
+		// Everything the player engine needs when playback starts here:
+		// the sticky bar and the lock screen show title and artwork.
+		$out = '<div class="epm-chapters" data-epm-chapters'
+			. ' data-epm-episode-id="' . esc_attr( (string) ( $episode['id'] ?? 0 ) ) . '"'
+			. ' data-epm-src="' . esc_url( (string) ( $episode['audio_url'] ?? '' ) ) . '"'
+			. ' data-epm-title="' . esc_attr( (string) ( $episode['title'] ?? '' ) ) . '"'
+			. ' data-epm-artwork="' . esc_url( $this->artwork_url( $episode, 'medium' ) ) . '"'
+			. ' data-epm-duration="' . esc_attr( (string) (int) ( $episode['duration_seconds'] ?? 0 ) ) . '"'
+			. $sticky . '>';
 		if ( '' !== (string) $heading ) {
 			$out .= '<' . $tag . ' class="epm-chapters__heading">' . esc_html( (string) $heading ) . '</' . $tag . '>';
 		}
@@ -859,7 +870,9 @@ final class Renderer {
 
 		$extension = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
 		if ( in_array( $extension, [ 'mp4', 'm4v', 'webm', 'mov', 'ogv' ], true ) ) {
-			return [ 'kind' => 'file', 'id' => '', 'src' => esc_url_raw( $url ), 'host' => '' ];
+			$file_host = strtolower( (string) $parts['host'] );
+			$site_host = strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) );
+			return [ 'kind' => 'file', 'id' => '', 'src' => esc_url_raw( $url ), 'host' => $file_host === $site_host ? '' : $file_host ];
 		}
 
 		return [ 'kind' => 'link', 'id' => '', 'src' => esc_url_raw( $url ), 'host' => '' ];
@@ -1048,6 +1061,7 @@ final class Renderer {
 				'player_id'            => 'epm-player-' . (int) ( $episode['id'] ?? 0 ) . '-' . wp_unique_id(),
 				'label'                => '',
 				'title_url'            => '',
+				'title_new_window'     => false,
 				'class'                => '',
 			]
 		);
@@ -1085,6 +1099,9 @@ final class Renderer {
 			. ' data-epm-title="' . esc_attr( (string) ( $episode['title'] ?? '' ) ) . '"'
 			. ' data-epm-artwork="' . esc_url( $this->artwork_url( $episode, 'medium' ) ) . '"'
 			. ' data-epm-src="' . esc_url( (string) $episode['audio_url'] ) . '"'
+			// Whether playback started here opens the sticky bar (the bar's
+			// shell may be on the page for a list even when this is off).
+			. ' data-epm-sticky-player="' . ( $args['sticky'] ? '1' : '0' ) . '"'
 			// The episode this page is about: a ?t= link starts it there.
 			. ( $this->is_page_episode( $episode ) ? ' data-epm-page-episode' : '' )
 			. $this->style_vars( (array) $args['style_vars'] )
@@ -1133,7 +1150,8 @@ final class Renderer {
 		if ( $args['show_title'] ) {
 			$title = esc_html( (string) ( $episode['title'] ?? '' ) );
 			if ( '' !== (string) $args['title_url'] ) {
-				$title = '<a class="epm-player__title-link" href="' . esc_url( (string) $args['title_url'] ) . '" target="_top">' . $title . '</a>';
+				$title = '<a class="epm-player__title-link" href="' . esc_url( (string) $args['title_url'] ) . '"'
+					. ( $args['title_new_window'] ? ' target="_blank" rel="noopener"' : ' target="_top"' ) . '>' . $title . '</a>';
 			}
 			$out .= '<p class="epm-player__title">' . $title . '</p>';
 		}
@@ -1200,8 +1218,10 @@ final class Renderer {
 				. '<span data-epm-speed-value>1×</span></button>';
 		}
 		if ( $args['show_volume'] ) {
-			$secondary .= '<label class="epm-player__volume"><span class="epm-sr-only">' . esc_html__( 'Volume', 'elementor-podcast-manager' ) . '</span>'
-				. '<input type="range" min="0" max="1" step="0.05" value="1" data-epm-volume aria-label="' . esc_attr__( 'Volume', 'elementor-podcast-manager' ) . '" /></label>';
+			// Named once: a hidden label around it as well made screen
+			// readers read "Volume" as text and again as the slider's name.
+			$secondary .= '<span class="epm-player__volume">'
+				. '<input type="range" min="0" max="1" step="0.05" value="1" data-epm-volume aria-label="' . esc_attr__( 'Volume', 'elementor-podcast-manager' ) . '" /></span>';
 		}
 		if ( $args['show_download'] && ! empty( $episode['audio_url'] ) ) {
 			$secondary .= '<a class="epm-player__download" href="' . esc_url( (string) $episode['audio_url'] ) . '" download aria-label="' . esc_attr__( 'Download episode', 'elementor-podcast-manager' ) . '">'
@@ -1350,10 +1370,11 @@ final class Renderer {
 		$title = (string) ( $episode['title'] ?? '' );
 
 		// Once scrolled away from the list, playback keeps its controls.
-		$this->request_sticky_for_lists();
+		$sticky = $this->request_sticky_for_lists();
 
 		return '<button type="button" class="' . esc_attr( $class ) . '"'
 			. ' data-epm-card-play="' . esc_attr( (string) $episode['id'] ) . '"'
+			. ' data-epm-sticky-player="' . ( $sticky ? '1' : '0' ) . '"'
 			. ' data-epm-src="' . esc_url( (string) $episode['audio_url'] ) . '"'
 			. ' data-epm-title="' . esc_attr( $title ) . '"'
 			. ' data-epm-artwork="' . esc_url( $this->artwork_url( $episode, 'medium' ) ) . '"'
@@ -1378,17 +1399,20 @@ final class Renderer {
 	 * player (card and row buttons, chapter lists). The shell stays hidden
 	 * until something plays.
 	 *
-	 * @return void
+	 * @return bool Whether they bring it (the markup says so, so playback
+	 *              started there opens the bar).
 	 */
-	private function request_sticky_for_lists(): void {
+	private function request_sticky_for_lists(): bool {
 		/**
 		 * Whether list play buttons and chapter lists bring the sticky player.
 		 *
 		 * @param bool $enabled Default true.
 		 */
-		if ( apply_filters( 'epm_sticky_player_for_lists', true ) ) {
-			Assets::request_sticky_player();
+		if ( ! apply_filters( 'epm_sticky_player_for_lists', true ) ) {
+			return false;
 		}
+		Assets::request_sticky_player();
+		return true;
 	}
 
 	/**
@@ -1604,20 +1628,6 @@ final class Renderer {
 	 * @return string
 	 */
 	public function episode_list( array $posts, array $args = [] ): string {
-		$args = wp_parse_args(
-			$args,
-			[
-				'layout'     => epm()->design->get( 'default_episode_layout' ),
-				'style_vars' => [],
-			]
-		);
-
-		$layout = sanitize_key( $args['layout'] );
-		$valid  = [ 'list', 'editorial-rows', 'cards', 'grid', 'minimal' ];
-		if ( ! in_array( $layout, $valid, true ) ) {
-			$layout = 'list';
-		}
-
 		Assets::mark_player_used();
 
 		if ( empty( $posts ) ) {
@@ -1627,7 +1637,40 @@ final class Renderer {
 		// Prime attachment caches once for the whole list (F18).
 		Episodes::prime_attachments( $posts );
 
-		$episodes = array_filter( array_map( [ epm()->episodes, 'get_data' ], $posts ) );
+		return $this->episode_list_from_data( array_filter( array_map( [ epm()->episodes, 'get_data' ], $posts ) ), $args );
+	}
+
+	/**
+	 * Episode list from episode data (Episodes::get_data()), e.g. the
+	 * Design screen's sample episodes. Same markup as episode_list().
+	 *
+	 * @param array<int, array<string, mixed>> $episodes Episode data.
+	 * @param array<string, mixed>             $args     See episode_list().
+	 * @return string
+	 */
+	public function episode_list_from_data( array $episodes, array $args = [] ): string {
+		$args = wp_parse_args(
+			$args,
+			[
+				'layout'     => epm()->design->get( 'default_episode_layout' ),
+				'style_vars' => [],
+			]
+		);
+
+		$layout = sanitize_key( (string) $args['layout'] );
+		if ( '' === $layout ) {
+			$layout = sanitize_key( (string) epm()->design->get( 'default_episode_layout' ) );
+		}
+		$valid = [ 'list', 'editorial-rows', 'cards', 'grid', 'minimal' ];
+		if ( ! in_array( $layout, $valid, true ) ) {
+			$layout = 'list';
+		}
+
+		Assets::mark_player_used();
+
+		if ( empty( $episodes ) ) {
+			return $this->empty_list( $args );
+		}
 
 		$classes = [ 'epm-episode-list', 'epm-episode-list--' . $layout ];
 		// Numbered row layouts reserve the number column on every row, so

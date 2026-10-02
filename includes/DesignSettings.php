@@ -2,29 +2,36 @@
 /**
  * Global Podcast Styles (Podcast → Design). Layer 2.
  *
- * Design tokens only — no content, no episode data. Widgets may inherit
- * these values ("Use Global Podcast Styles") or override them per widget.
+ * Design tokens — colors, sizes, shapes, fonts, layout names — and the
+ * site's "Details shown by default". No content, no episode data.
  *
- * Precedence (lowest wins → highest wins):
- *   1. Theme / Elementor Site Settings (inherited by the frontend CSS)
- *   2. Global Podcast Styles — this option (CSS custom properties on :root)
- *   3. Selected preset — initializes the option values below on "Apply Preset";
- *      values stay editable afterwards and customizations are preserved.
- *   4. Individual widget overrides ("Custom" style source in Elementor).
+ * Two separate inheritances live in this option:
  *
- * Consumer API for widgets (inheritance defaults):
- *   epm()->design->get( 'default_player_layout' )        — token / default layout
- *   epm()->design->get_preset_value( 'visibility', 'show_artwork', true )
- *   epm()->design->get_preset_value( 'player', 'show_volume', true )
- *   epm()->design->get_preset_value( 'episodeList', '<key>', $default )
- * These return the values the active preset installed (or the site's
- * customizations of them); widgets use them as their "inherit" state.
+ * 1. Looks (tokens). Precedence, lowest to highest:
+ *    theme / Elementor Site Settings → these tokens (CSS custom properties
+ *    on :root) → a widget's own style values (Style Source "Custom").
+ *    A widget with "Use Podcast → Design styles" emits nothing and so
+ *    inherits. Applying a preset fills the tokens; they stay editable.
  *
- * Portability: the option holds visual tokens ONLY — colors, sizes, layout
- * names, preset id, and the preset's visibility/player/episodeList maps.
- * It never holds attachment IDs, post IDs, URLs or content, so the whole
- * option is safe to export/import between sites (see EXPORT_VERSION and
- * Admin::handle_design_export()/handle_design_import()).
+ * 2. Which details show (Details): explicit local value (a widget's
+ *    Show/Hide, a shortcode attribute) → the site's details for the
+ *    context ('details', sparse) → the built-in default of the consumer
+ *    (what 1.3.0 showed). See Details::resolve(). Applying a preset
+ *    replaces the site's details with the preset's.
+ *
+ * Option keys besides the tokens:
+ *   details            Active site details, [ context => [ detail => bool ] ].
+ *   details_suggested  Details a 1.1–1.3 preset stored but never applied
+ *                      (or a format-1 design file carried); offered on the
+ *                      Design screen until applied or dismissed.
+ *   details_version    1 once the 1.1–1.3 maps were moved to suggestions.
+ *   preset_visibility, preset_player, preset_episode_list
+ *                      1.1–1.3 maps, kept untouched for a rollback; never
+ *                      read for rendering.
+ *
+ * Portability: the option never holds attachment IDs, post IDs, URLs or
+ * content, so it is safe to export/import between sites (see
+ * EXPORT_VERSION and Admin::design_export_payload()).
  *
  * @package EPM
  */
@@ -43,8 +50,17 @@ final class DesignSettings {
 	 * Version of the design export/import format (epm-design).
 	 * Bump when the payload structure changes; the importer rejects
 	 * payloads with a higher (unknown future) version.
+	 *
+	 * 1: tokens and the preset maps (preset_extras, never applied).
+	 * 2: tokens and the site's details ('details', applied on import).
+	 *    Format-1 maps import as suggestions.
 	 */
-	public const EXPORT_VERSION = 1;
+	public const EXPORT_VERSION = 2;
+
+	/**
+	 * Option keys of the 1.1–1.3 preset maps (kept for a rollback only).
+	 */
+	private const LEGACY_MAPS = [ 'preset_visibility', 'preset_player', 'preset_episode_list' ];
 
 	/**
 	 * Whether the token block was already printed on this request.
@@ -81,11 +97,9 @@ final class DesignSettings {
 			// Unplayed part of timelines; '' derives it from the muted color.
 			'track_color'          => '',
 			'preset'               => 'neutral',
-			// Preset-installed behavior maps (visibility/player/episodeList).
-			// Written by apply_preset(); remain editable as plain option values.
-			'preset_visibility'    => [],
-			'preset_player'        => [],
-			'preset_episode_list'  => [],
+			// "Details shown by default" (see Details): active and suggested.
+			'details'              => [],
+			'details_suggested'    => [],
 		];
 	}
 
@@ -192,6 +206,8 @@ final class DesignSettings {
 	 */
 	public function init(): void {
 		add_action( 'admin_init', [ $this, 'register_settings' ] );
+		// The 1.1–1.3 preset maps become suggestions once (cheap check).
+		add_action( 'init', [ $this, 'maybe_migrate' ], 20 );
 		// The stylesheet's fallback tokens use :where(:root) (specificity 0),
 		// so these :root tokens win regardless of document order. Printed once
 		// in the head; the footer hook only covers themes without wp_head.
@@ -324,17 +340,24 @@ final class DesignSettings {
 			$out['preset'] = $stored_preset;
 		}
 
-		// Preset-installed behavior maps: arrays of boolean flags.
-		// Explicit input wins (apply preset, import); otherwise the stored
-		// maps are preserved so a normal token save cannot wipe them.
 		$stored_maps = is_array( $stored ) ? $stored : [];
-		foreach ( [ 'preset_visibility', 'preset_player', 'preset_episode_list' ] as $map_key ) {
-			if ( array_key_exists( $map_key, $input ) ) {
-				$out[ $map_key ] = $this->sanitize_flag_map( $input[ $map_key ] );
-			} elseif ( isset( $stored_maps[ $map_key ] ) && is_array( $stored_maps[ $map_key ] ) ) {
+
+		// Site details: explicit input wins (details form, preset, import);
+		// otherwise the stored values stay, so a token save never changes
+		// which details show.
+		foreach ( [ 'details', 'details_suggested' ] as $map_key ) {
+			$out[ $map_key ] = Details::sanitize_map( array_key_exists( $map_key, $input ) ? $input[ $map_key ] : ( $stored_maps[ $map_key ] ?? [] ) );
+		}
+		$version = $input['details_version'] ?? ( $stored_maps['details_version'] ?? null );
+		if ( null !== $version ) {
+			$out['details_version'] = absint( $version );
+		}
+
+		// The 1.1–1.3 maps are kept exactly as stored (for a rollback); no
+		// form, preset or import writes them any more.
+		foreach ( self::LEGACY_MAPS as $map_key ) {
+			if ( isset( $stored_maps[ $map_key ] ) && is_array( $stored_maps[ $map_key ] ) ) {
 				$out[ $map_key ] = $this->sanitize_flag_map( $stored_maps[ $map_key ] );
-			} else {
-				$out[ $map_key ] = [];
 			}
 		}
 
@@ -368,9 +391,9 @@ final class DesignSettings {
 	}
 
 	/**
-	 * Sanitize a preset behavior map: string keys, boolean values.
-	 * Used for the preset_visibility / preset_player / preset_episode_list
-	 * option keys and for validating imported payloads.
+	 * Sanitize a 1.1–1.3 preset map: string keys, boolean values. Used to
+	 * keep the stored preset_visibility / preset_player /
+	 * preset_episode_list maps intact.
 	 *
 	 * @param mixed $value Raw input.
 	 * @return array<string, bool>
@@ -399,6 +422,9 @@ final class DesignSettings {
 	 * @return bool
 	 */
 	private function to_bool( $value ): bool {
+		if ( ! is_scalar( $value ) ) {
+			return false;
+		}
 		if ( is_bool( $value ) ) {
 			return $value;
 		}
@@ -413,10 +439,13 @@ final class DesignSettings {
 	}
 
 	/**
-	 * Apply a preset: fills the design tokens AND the preset's behavior
-	 * maps (visibility, player, episodeList) with the preset's values.
-	 * Never locks styling — values remain editable afterwards as plain
-	 * option values.
+	 * Apply a preset: fills the design tokens and replaces the site's
+	 * details with the preset's (Presets::details()). Never locks
+	 * anything: every value stays editable. Suggestions from a 1.1–1.3
+	 * preset are cleared (they belonged to the preset this replaces).
+	 *
+	 * A preset's 'layout' key (used by presets written for 1.1–1.3) sets
+	 * the player layout when its tokens do not name one.
 	 *
 	 * @param string $preset_id Preset identifier.
 	 * @return bool
@@ -428,11 +457,20 @@ final class DesignSettings {
 			return false;
 		}
 
-		$values = array_merge( self::defaults(), $preset['tokens'] ?? [] );
-		$values['preset']             = $preset_id;
-		$values['preset_visibility']   = $preset['visibility'] ?? [];
-		$values['preset_player']       = $preset['player'] ?? [];
-		$values['preset_episode_list'] = $preset['episodeList'] ?? [];
+		$tokens = (array) ( $preset['tokens'] ?? [] );
+		if ( ! isset( $tokens['default_player_layout'] ) && ! empty( $preset['layout'] ) && is_string( $preset['layout'] ) ) {
+			$tokens['default_player_layout'] = $preset['layout'];
+		}
+
+		$stored = get_option( self::OPTION, [] );
+		$values = array_merge( self::defaults(), $tokens );
+		foreach ( self::LEGACY_MAPS as $map_key ) {
+			unset( $values[ $map_key ] );
+		}
+		$values['preset']            = $preset_id;
+		$values['details']           = Presets::details( $preset );
+		$values['details_suggested'] = [];
+		$values['details_version']   = max( 1, absint( is_array( $stored ) ? ( $stored['details_version'] ?? 1 ) : 1 ) );
 
 		update_option( self::OPTION, $this->sanitize( $values ) );
 
@@ -440,36 +478,138 @@ final class DesignSettings {
 	}
 
 	/**
-	 * Get one value from a preset-installed behavior map.
+	 * Save the site's details.
 	 *
-	 * Consumer API for the "inherit global styles" state of widgets, e.g.:
-	 *   epm()->design->get_preset_value( 'visibility', 'show_artwork', true )
-	 *   epm()->design->get_preset_value( 'player', 'show_volume', true )
-	 *   epm()->design->get_preset_value( 'episodeList', 'show_guest', true )
+	 * @param array<string, array<string, mixed>> $submitted Per-context details.
+	 * @param bool                                $form      True for the Design
+	 *        screen form: a detail is stored when it was stored before or
+	 *        differs from what the site shows now; an unchanged checkbox
+	 *        leaves the detail to each consumer's built-in default.
+	 * @return void
+	 */
+	public function update_details( array $submitted, bool $form = false ): void {
+		$stored  = Details::sanitize_map( $this->get( 'details' ) );
+		$details = $stored;
+
+		foreach ( Details::sanitize_map( $submitted ) as $context => $flags ) {
+			$now = Details::effective( $context );
+			foreach ( $flags as $flag => $value ) {
+				if ( ! $form || array_key_exists( $flag, $stored[ $context ] ?? [] ) || $value !== $now[ $flag ] ) {
+					$details[ $context ][ $flag ] = $value;
+				}
+			}
+		}
+
+		$this->update_keys( [ 'details' => $details ] );
+	}
+
+	/**
+	 * Forget every site detail: each consumer shows its built-in defaults.
 	 *
-	 * @param string $group   visibility|player|episodeList.
-	 * @param string $key     Behavior key, e.g. show_artwork.
-	 * @param mixed  $default Fallback when the group/key is unknown.
+	 * @return void
+	 */
+	public function reset_details(): void {
+		$this->update_keys( [ 'details' => [] ] );
+	}
+
+	/**
+	 * Apply the suggested details (see Details::suggested_changes()).
+	 *
+	 * @return void
+	 */
+	public function apply_suggested_details(): void {
+		$details = Details::sanitize_map( $this->get( 'details' ) );
+		foreach ( Details::suggested_changes() as $change ) {
+			$details[ $change['context'] ][ $change['flag'] ] = $change['suggested'];
+		}
+
+		$this->update_keys(
+			[
+				'details'           => $details,
+				'details_suggested' => [],
+			]
+		);
+	}
+
+	/**
+	 * Drop the suggested details; nothing changes on the site.
+	 *
+	 * @return void
+	 */
+	public function dismiss_suggested_details(): void {
+		$this->update_keys( [ 'details_suggested' => [] ] );
+	}
+
+	/**
+	 * Move the preset maps stored by 1.1–1.3 into the suggestions, once.
+	 *
+	 * Those maps were never applied to anything, so they must not start
+	 * changing the site now: nothing becomes active, the Design screen
+	 * offers them instead. The maps stay in the option as they were (a
+	 * rollback to 1.3.0 reads them as before).
+	 *
+	 * @return void
+	 */
+	public function maybe_migrate(): void {
+		$stored = get_option( self::OPTION, null );
+
+		if ( ! is_array( $stored ) || isset( $stored['details_version'] ) ) {
+			return;
+		}
+
+		$stored['details_suggested'] = Details::from_legacy_maps(
+			$stored['preset_visibility'] ?? [],
+			$stored['preset_player'] ?? [],
+			$stored['preset_episode_list'] ?? []
+		);
+		$stored['details']           = Details::sanitize_map( $stored['details'] ?? [] );
+		$stored['details_version']   = 1;
+
+		update_option( self::OPTION, $stored );
+	}
+
+	/**
+	 * Store some keys of the option, keeping every other stored value.
+	 *
+	 * @param array<string, mixed> $values Keys to change.
+	 * @return void
+	 */
+	private function update_keys( array $values ): void {
+		$stored = get_option( self::OPTION, [] );
+		$stored = is_array( $stored ) ? $stored : [];
+
+		if ( empty( $stored ) ) {
+			// A site without design settings keeps the defaults it had.
+			$stored = self::defaults();
+		}
+		$stored['details_version'] = max( 1, absint( $stored['details_version'] ?? 1 ) );
+
+		update_option( self::OPTION, $this->sanitize( array_merge( $stored, $values ) ) );
+	}
+
+	/**
+	 * One stored detail of the site.
+	 *
+	 * @deprecated Never had a caller. Use Details::resolve() (or
+	 *             Details::site()) instead.
+	 *
+	 * @param string $group   visibility|player (player context) or episodeList (lists).
+	 * @param string $key     Detail key, e.g. show_artwork.
+	 * @param mixed  $default Fallback when the site has not set it.
 	 * @return mixed
 	 */
 	public function get_preset_value( string $group, string $key, $default = null ) {
-		$map = [
-			'visibility'  => 'preset_visibility',
-			'player'      => 'preset_player',
-			'episodeList' => 'preset_episode_list',
+		$contexts = [
+			'visibility'  => 'player',
+			'player'      => 'player',
+			'episodeList' => 'list',
 		];
 
-		if ( ! isset( $map[ $group ] ) ) {
+		if ( ! isset( $contexts[ $group ] ) ) {
 			return $default;
 		}
 
-		$values = $this->get( $map[ $group ] );
-
-		if ( ! is_array( $values ) ) {
-			return $default;
-		}
-
-		return $values[ $key ] ?? $default;
+		return Details::site( $contexts[ $group ] )[ $key ] ?? $default;
 	}
 
 	/**
@@ -514,7 +654,8 @@ final class DesignSettings {
 	/**
 	 * Output the design tokens as CSS custom properties on :root.
 	 *
-	 * Printed once per request (wp_head, or wp_footer as a fallback). The
+	 * Printed once per request (wp_head, or wp_footer as a fallback), and
+	 * only on pages that use podcast styles. The
 	 * static fallback in epm-frontend.css is :where(:root) with specificity
 	 * 0, so these tokens win regardless of document order. Specificity
 	 * stays low (:root); widget overrides on {{WRAPPER}} win by specificity.
@@ -523,6 +664,14 @@ final class DesignSettings {
 	 */
 	public function output_tokens(): void {
 		if ( $this->tokens_printed ) {
+			return;
+		}
+
+		// Only where podcast styles are used: enqueued for <head> (Elementor
+		// widgets, the episode page, shortcodes in the content), or used by
+		// something rendered so far (footer fallback, before the late
+		// stylesheet).
+		if ( ! Assets::is_used() && ! wp_style_is( 'epm-frontend', 'enqueued' ) && ! wp_style_is( 'epm-frontend', 'done' ) ) {
 			return;
 		}
 		$this->tokens_printed = true;

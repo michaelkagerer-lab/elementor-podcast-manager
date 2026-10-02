@@ -13,9 +13,12 @@
  *   still matches that hash; anything edited on this site is kept.
  * - Fields the importer never wrote are only filled when empty, so an
  *   episode created on this site is never overwritten by a matching item.
- * - Media stays on the host (audio and image URLs) unless "copy media" is
- *   chosen, which downloads audio and episode images into the Media
- *   Library (moving a show to this site).
+ * - Media stays on the host (audio, image and transcript URLs) unless
+ *   "copy media" is chosen, which copies the audio, the episode images and
+ *   WebVTT/SRT transcript files into the Media Library (moving a show to
+ *   this site), each kind on its own and also for episodes that exist
+ *   already. Only addresses the importer wrote are replaced; what still
+ *   points to the host is reported (old_host_references()).
  *
  * @package EPM
  */
@@ -27,11 +30,77 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class Importer {
+	/** Keep a stable feed identifier without persisting URL credentials. */
+	public static function source_feed_identifier( $value ): string {
+		$value = (string) $value;
+		if ( preg_match( '/^private:[a-f0-9]{64}$/D', $value ) ) {
+			return $value;
+		}
+		return Hosting::has_url_secret( $value ) ? 'private:' . hash( 'sha256', $value ) : esc_url_raw( $value );
+	}
+	/**
+	 * Default post author for non-interactive imports.
+	 *
+	 * @return int
+	 */
+	private static function default_author(): int {
+		$users = get_users( [ 'role' => 'administrator', 'number' => 1, 'fields' => 'ID', 'orderby' => 'ID', 'order' => 'ASC' ] );
+		return ! empty( $users ) ? (int) $users[0] : 1;
+	}
+
+	/**
+	 * Normalize volatile URL parameters used by signed media URLs.
+	 *
+	 * @param string $url Media URL.
+	 * @return string
+	 */
+	private static function stable_media_url( string $url ): string {
+		$parts = wp_parse_url( $url );
+		if ( ! is_array( $parts ) || empty( $parts['query'] ) ) {
+			return $url;
+		}
+		parse_str( (string) $parts['query'], $query );
+		foreach ( array_keys( $query ) as $key ) {
+			if ( preg_match( '/^(?:x-amz-|x-goog-|expires$|signature$|sig$|token$|auth$|key-pair-id$|policy$|hdnts$)/i', (string) $key ) ) {
+				unset( $query[ $key ] );
+			}
+		}
+		$clean = (string) ( $parts['scheme'] ?? 'https' ) . '://' . (string) ( $parts['host'] ?? '' ) . (string) ( isset( $parts['port'] ) ? ':' . (int) $parts['port'] : '' ) . (string) ( $parts['path'] ?? '' );
+		$query_string = http_build_query( $query );
+		return '' !== $query_string ? $clean . '?' . $query_string : $clean;
+	}
+
+	/** Whether media credentials or signatures can expire between syncs. */
+	public static function has_expiring_audio_url( string $url ): bool {
+		parse_str( (string) wp_parse_url( $url, PHP_URL_QUERY ), $query );
+		foreach ( array_keys( $query ) as $key ) {
+			if ( preg_match( '/^(?:x-amz-|x-goog-|expires$|signature$|sig$|token$|auth$|key-pair-id$|policy$|hdnts$)/i', (string) $key ) ) { return true; }
+		}
+		return false;
+	}
+
+	/** Refresh a managed signed address without treating it as an editorial update. */
+	private function refresh_signed_audio_url( int $post_id, array $item ): void {
+		$current = (string) get_post_meta( $post_id, Episodes::META_PREFIX . 'audio_url', true );
+		$next = esc_url_raw( (string) ( $item['audio_url'] ?? '' ), [ 'http', 'https' ] );
+		if ( $current === $next || ! self::has_expiring_audio_url( $next ) || self::stable_media_url( $current ) !== self::stable_media_url( $next ) || (int) get_post_meta( $post_id, Episodes::META_PREFIX . 'audio_id', true ) > 0 ) { return; }
+		$hashes = get_post_meta( $post_id, Episodes::META_PREFIX . 'import_hash', true );
+		$hashes = is_array( $hashes ) ? $hashes : [];
+		// Original 1.3.0 hashes use raw bytes. New imports also record them,
+		// so a local token-only edit cannot be mistaken for a managed URL.
+		$raw_hash = $hashes['audio_url_raw'] ?? ( $hashes['audio_url'] ?? '' );
+		if ( self::legacy_hash( $current ) !== $raw_hash ) { return; }
+		update_post_meta( $post_id, Episodes::META_PREFIX . 'audio_url', wp_slash( $next ) );
+		$hashes['audio_url'] = self::hash( $next, 'audio_url' );
+		$hashes['audio_url_raw'] = self::legacy_hash( $next );
+		update_post_meta( $post_id, Episodes::META_PREFIX . 'import_hash', $hashes );
+		Episodes::clear_data_cache( $post_id );
+	}
 
 	/**
 	 * Options.
 	 *
-	 * @var array{feed_url: string, status: string, download_media: bool, fetch_extras: bool}
+	 * @var array{feed_url: string, status: string, download_media: bool, fetch_extras: bool, deadline: float}
 	 */
 	private array $options;
 
@@ -41,19 +110,28 @@ final class Importer {
 	 * @var array<string, int>|null
 	 */
 	private ?array $guid_map = null;
+	private bool $guid_map_loaded = false;
+	/** Remote extras skipped during this item's import, for its log. */
+	private array $extra_messages = [];
 
 	/**
 	 * Constructor.
 	 *
 	 * @param array<string, mixed> $options feed_url, status (publish|draft),
-	 *                                      download_media, fetch_extras.
+	 *                                      download_media, fetch_extras,
+	 *                                      deadline (microtime() by which media
+	 *                                      downloads of a call stop; 0: the
+	 *                                      default time per request).
 	 */
 	public function __construct( array $options = [] ) {
+		$source_feed = (string) ( $options['feed_url'] ?? '' );
 		$this->options = [
-			'feed_url'       => (string) ( $options['feed_url'] ?? '' ),
+			'feed_url'       => $source_feed,
 			'status'         => 'draft' === ( $options['status'] ?? '' ) ? 'draft' : 'publish',
 			'download_media' => ! empty( $options['download_media'] ),
 			'fetch_extras'   => ! isset( $options['fetch_extras'] ) || ! empty( $options['fetch_extras'] ),
+			'deadline'       => (float) ( $options['deadline'] ?? 0 ),
+			'author'         => max( 0, (int) ( $options['author'] ?? 0 ) ),
 		];
 	}
 
@@ -64,7 +142,12 @@ final class Importer {
 	 * @return array<string, int>
 	 */
 	public function guid_map(): array {
-		if ( null !== $this->guid_map ) {
+		if ( $this->guid_map_loaded ) {
+			return $this->guid_map;
+		}
+		$this->guid_map_loaded = true;
+		if ( isset( $GLOBALS['epm_import_guid_map'] ) && is_array( $GLOBALS['epm_import_guid_map'] ) ) {
+			$this->guid_map = $GLOBALS['epm_import_guid_map'];
 			return $this->guid_map;
 		}
 
@@ -85,8 +168,32 @@ final class Importer {
 		}
 
 		$this->guid_map = $map;
+		if ( ! empty( $GLOBALS['epm_import_step_active'] ) ) {
+			$GLOBALS['epm_import_guid_map'] = $map;
+		}
 
 		return $map;
+	}
+
+	/**
+	 * The episode with a GUID, read from the database (0 when none). Any
+	 * status, the trash included, like guid_map().
+	 *
+	 * @param string $guid GUID.
+	 * @return int
+	 */
+	public static function find_guid( string $guid ): int {
+		global $wpdb;
+
+		// BINARY: GUIDs are compared byte for byte, like guid_map() does.
+		return (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- must see what other requests wrote.
+			$wpdb->prepare(
+				"SELECT pm.post_id FROM {$wpdb->postmeta} pm INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id WHERE pm.meta_key = %s AND BINARY pm.meta_value = %s AND p.post_type = %s ORDER BY pm.post_id LIMIT 1",
+				Episodes::META_PREFIX . 'guid',
+				$guid,
+				EpisodePostType::CPT
+			)
+		);
 	}
 
 	/**
@@ -139,10 +246,21 @@ final class Importer {
 	/**
 	 * Import or update one parsed item.
 	 *
-	 * @param array<string, mixed> $item Item from FeedParser.
-	 * @return array{action: string, id: int, title: string, message: string, media_failed: bool}
+	 * With "copy media", every file of the episode that still loads from
+	 * the host is copied, each kind on its own (audio, episode image,
+	 * WebVTT/SRT transcript file): also for episodes that exist already
+	 * (mirrored before, or a copy that failed earlier). Only addresses the
+	 * importer wrote are replaced; an address chosen on this site stays.
+	 * A large file may take several calls: the outcome's `pending` holds
+	 * where the copy stands, and the next call continues it when it gets
+	 * that back as $resume.
+	 *
+	 * @param array<string, mixed> $item   Item from FeedParser.
+	 * @param array<string, mixed> $resume What an earlier call for this item left (action, kind, download, done).
+	 * @return array{action: string, id: int, title: string, message: string, media_failed: bool, media: array<string, array<string, string>>, remaining: array<string, string>, pending: array<string, mixed>|null}
 	 */
-	public function import_item( array $item ): array {
+	public function import_item( array $item, array $resume = [] ): array {
+		$this->extra_messages = [];
 		$guid  = trim( (string) ( $item['guid'] ?? '' ) );
 		$title = sanitize_text_field( (string) ( $item['title'] ?? '' ) );
 
@@ -153,6 +271,12 @@ final class Importer {
 			'message'      => '',
 			// "Copy media" was chosen, but the audio stayed at the host.
 			'media_failed' => false,
+			// Per kind: what the copy did (copied, failed, busy) and why.
+			'media'        => [],
+			// Per kind: the address that still points to the host.
+			'remaining'    => [],
+			// A copy that continues in the next call.
+			'pending'      => null,
 		];
 
 		if ( '' === $guid ) {
@@ -165,10 +289,25 @@ final class Importer {
 			$result['title'] = $title;
 		}
 
-		$map     = $this->guid_map();
-		$post_id = $map[ $guid ] ?? 0;
-		$fingerprint = md5( (string) wp_json_encode( $item ) );
+		// A step handles at most ten items. Avoid materializing every GUID in
+		// a large existing catalog just to locate this one episode. Callers
+		// that explicitly primed a bulk map may still use it.
+		$post_id = $this->guid_map[ $guid ] ?? 0;
+		$fingerprint_item = $item;
+		$fingerprint_item['audio_url'] = self::stable_media_url( (string) ( $item['audio_url'] ?? '' ) );
+		$fingerprint = md5( (string) wp_json_encode( $fingerprint_item ) );
 
+		// The list was read when this run started: another request may
+		// have created the episode since. Ask the database right before
+		// creating one, so a GUID never gets a second episode.
+		if ( $post_id <= 0 ) {
+			$post_id = self::find_guid( $guid );
+			if ( $post_id > 0 ) {
+				$this->guid_map[ $guid ] = $post_id;
+			}
+		}
+
+		$changed = false;
 		if ( $post_id > 0 ) {
 			$post = get_post( $post_id );
 
@@ -186,72 +325,111 @@ final class Importer {
 			// lists, so "unpublish episodes the host removed" keeps finding
 			// them. Episodes created on this site stay untagged.
 			$source_feed = (string) get_post_meta( $post_id, Episodes::META_PREFIX . 'source_feed', true );
-			if ( '' !== $this->options['feed_url'] && '' !== $source_feed && $source_feed !== $this->options['feed_url'] ) {
-				update_post_meta( $post_id, Episodes::META_PREFIX . 'source_feed', $this->options['feed_url'] );
+			$next_source_feed = self::source_feed_identifier( $this->options['feed_url'] );
+			if ( '' !== $next_source_feed && '' !== $source_feed && $source_feed !== $next_source_feed ) {
+				update_post_meta( $post_id, Episodes::META_PREFIX . 'source_feed', $next_source_feed );
 			}
 
-			// Moving a show that was mirrored before (or a copy that was
-			// interrupted): bring the audio over for existing episodes too.
-			// Not while another request is still downloading it.
-			$copied = false;
-			if ( $this->options['download_media'] && (int) get_post_meta( $post_id, Episodes::META_PREFIX . 'audio_id', true ) <= 0 && '' !== (string) ( $item['audio_url'] ?? '' ) && ! self::copy_in_progress( $post_id ) ) {
-				$problem                = $this->copy_media( $post_id, $item );
-				$copied                 = '' === $problem;
-				$result['message']      = $problem;
-				$result['media_failed'] = ! $copied;
-				Episodes::clear_data_cache( $post_id );
-			}
+			$this->refresh_signed_audio_url( $post_id, $item );
 
-			// Nothing changed at the host since the last import.
-			if ( get_post_meta( $post_id, Episodes::META_PREFIX . 'import_fingerprint', true ) === $fingerprint ) {
-				$result['action'] = $copied ? 'updated' : 'unchanged';
-				$result['id']     = $post_id;
+			// Changed at the host since the last import.
+			if ( get_post_meta( $post_id, Episodes::META_PREFIX . 'import_fingerprint', true ) !== $fingerprint ) {
+				$changed = $this->write( $post_id, $item, false );
+				update_post_meta( $post_id, Episodes::META_PREFIX . 'import_fingerprint', $fingerprint );
+			}
+			$action = $changed ? 'updated' : 'unchanged';
+		} else {
+			$post_id = $this->create( $item, $title, $guid );
+			if ( is_wp_error( $post_id ) ) {
+				$result['action']  = 'failed';
+				$result['message'] = $post_id->get_error_message();
 				return $result;
 			}
 
-			$changed = $this->write( $post_id, $item, false );
+			$this->write( $post_id, $item, true );
 			update_post_meta( $post_id, Episodes::META_PREFIX . 'import_fingerprint', $fingerprint );
-
-			$result['action'] = ( $changed || $copied ) ? 'updated' : 'unchanged';
-			$result['id']     = $post_id;
-
-			return $result;
+			$this->guid_map[ $guid ] = $post_id;
+			if ( $this->guid_map_loaded && ! empty( $GLOBALS['epm_import_step_active'] ) ) {
+				$GLOBALS['epm_import_guid_map'] = $this->guid_map;
+			}
+			$action                  = 'created';
 		}
 
-		$post_id = $this->create( $item, $title, $guid );
-		if ( is_wp_error( $post_id ) ) {
-			$result['action']  = 'failed';
-			$result['message'] = $post_id->get_error_message();
-			return $result;
+		// A copy that took several calls is one outcome: the first call's.
+		if ( 'unchanged' === $action && in_array( $resume['action'] ?? '', [ 'created', 'updated' ], true ) ) {
+			$action = (string) $resume['action'];
 		}
+		$result['id'] = $post_id;
 
-		$this->write( $post_id, $item, true );
-		update_post_meta( $post_id, Episodes::META_PREFIX . 'import_fingerprint', $fingerprint );
-
-		if ( $this->options['download_media'] ) {
-			$media = $this->copy_media( $post_id, $item );
-			if ( '' !== $media ) {
-				$result['message']      = $media;
-				$result['media_failed'] = true;
+		// Chapters and transcripts before any copy, so an interrupted copy
+		// never loses them. The marker is set when the episode is created
+		// and removed once they are fetched: an episode whose import died
+		// before that gets them on the next run.
+		if ( '' !== (string) get_post_meta( $post_id, Episodes::META_PREFIX . 'import_extras', true ) ) {
+			if ( $this->options['fetch_extras'] || ! empty( $item['chapters'] ) ) {
+				$this->fetch_chapters( $post_id, $item );
+			}
+			if ( $this->options['fetch_extras'] ) {
+				$this->fetch_transcript( $post_id, $item );
+			}
+			delete_post_meta( $post_id, Episodes::META_PREFIX . 'import_extras' );
+			if ( 'unchanged' === $action ) {
+				$action = 'updated';
 			}
 		}
 
-		if ( $this->options['fetch_extras'] || ! empty( $item['chapters'] ) ) {
-			$this->fetch_chapters( $post_id, $item );
+		// Where the transcript address came from, for episodes imported
+		// before that was recorded.
+		$this->record_transcript_provenance( $post_id, $item );
+
+		if ( $this->options['download_media'] ) {
+			$copy              = $this->copy_files( $post_id, $item, $resume );
+			$result['media']   = $copy['media'];
+			$result['pending'] = $copy['pending'];
+			if ( $copy['copied'] && 'unchanged' === $action ) {
+				$action = 'updated';
+			}
+
+			$result['remaining']    = self::old_host_references( $post_id, $item );
+			$result['media_failed'] = isset( $result['remaining']['audio'] );
+			$result['message']      = self::media_message( $result['media'] );
 		}
-		if ( $this->options['fetch_extras'] ) {
-			$this->fetch_transcript( $post_id, $item );
+
+		if ( 'unchanged' !== $action ) {
+			Episodes::sync_duration_seconds( $post_id );
+			Episodes::clear_data_cache( $post_id );
 		}
 
-		Episodes::sync_duration_seconds( $post_id );
-		Episodes::clear_data_cache( $post_id );
-
-		$this->guid_map[ $guid ] = $post_id;
-
-		$result['action'] = 'created';
-		$result['id']     = $post_id;
+		$result['action'] = $action;
+		$result['message'] = trim( implode( ' ', array_merge( [ $result['message'] ], $this->extra_messages ) ) );
 
 		return $result;
+	}
+
+	/**
+	 * The problems of a copy in words, for the import log.
+	 *
+	 * @param array<string, array<string, string>> $media Per kind: state and reason.
+	 * @return string
+	 */
+	private static function media_message( array $media ): string {
+		$labels = [
+			/* translators: %s: why the file was not copied */
+			'audio'           => __( 'Audio stays on the host: %s', 'elementor-podcast-manager' ),
+			/* translators: %s: why the file was not copied */
+			'image'           => __( 'Episode image stays on the host: %s', 'elementor-podcast-manager' ),
+			/* translators: %s: why the file was not copied */
+			'transcript_file' => __( 'Transcript file stays on the host: %s', 'elementor-podcast-manager' ),
+		];
+
+		$out = [];
+		foreach ( $labels as $kind => $label ) {
+			if ( in_array( $media[ $kind ]['state'] ?? '', [ 'failed', 'busy' ], true ) ) {
+				$out[] = sprintf( $label, (string) $media[ $kind ]['reason'] );
+			}
+		}
+
+		return implode( ' ', $out );
 	}
 
 	/**
@@ -271,16 +449,19 @@ final class Importer {
 			'post_title'   => $title,
 			'post_content' => self::content_html( (string) ( $item['html'] ?? '' ) ),
 			'post_status'  => $status,
+			'post_author'  => $this->options['author'] > 0 ? $this->options['author'] : self::default_author(),
 			'meta_input'   => [
 				// Identity first: the GUID must exist before anything
 				// (save_post handlers) could generate a new one.
-				Episodes::META_PREFIX . 'guid'   => $guid,
-				Episodes::META_PREFIX . 'source' => 'import',
+				Episodes::META_PREFIX . 'guid'          => $guid,
+				Episodes::META_PREFIX . 'source'        => 'import',
+				// Chapters and transcripts still to fetch (see import_item()).
+				Episodes::META_PREFIX . 'import_extras' => 1,
 			],
 		];
 
 		if ( '' !== $this->options['feed_url'] ) {
-			$postarr['meta_input'][ Episodes::META_PREFIX . 'source_feed' ] = $this->options['feed_url'];
+			$postarr['meta_input'][ Episodes::META_PREFIX . 'source_feed' ] = self::source_feed_identifier( $this->options['feed_url'] );
 		}
 
 		if ( $timestamp > 0 ) {
@@ -318,6 +499,7 @@ final class Importer {
 	private function values( array $item ): array {
 		$explicit = (string) ( $item['explicit'] ?? '' );
 		$seconds  = (int) ( $item['duration'] ?? 0 );
+		$date     = (int) ( $item['pub_date'] ?? 0 );
 
 		$values = [
 			'post_title'        => sanitize_text_field( (string) ( $item['title'] ?? '' ) ),
@@ -334,6 +516,7 @@ final class Importer {
 			'artwork_url'       => esc_url_raw( (string) ( $item['image'] ?? '' ) ),
 			'source_link'       => esc_url_raw( (string) ( $item['link'] ?? '' ) ),
 			'guest_name'        => self::first_person( (array) ( $item['persons'] ?? [] ), 'guest' ),
+			'post_date'         => $date > 0 ? get_date_from_gmt( gmdate( 'Y-m-d H:i:s', $date ) ) : '',
 		];
 
 		if ( '' === $values['post_title'] ) {
@@ -421,6 +604,12 @@ final class Importer {
 			$value = (string) preg_replace( '/\s+/', ' ', $value );
 			$value = trim( (string) preg_replace( '#\s*(</?(?:p|br|ul|ol|li|h[1-6]|blockquote|div|pre|table|tr|td|th)\b[^>]*>)\s*#i', '$1', $value ) );
 		}
+		if ( 'audio_url' === $field ) {
+			$value = self::stable_media_url( (string) $value );
+		}
+		if ( 'post_date' === $field ) {
+			$value = str_replace( ' ', 'T', (string) $value );
+		}
 
 		return md5( $value );
 	}
@@ -451,6 +640,7 @@ final class Importer {
 		$values      = $this->values( $item );
 		$post_update = [];
 		$owned       = []; // Fields whose value now comes from the host.
+		$written     = []; // Fields whose bytes were replaced in this call.
 		$changed     = false;
 
 		foreach ( $values as $field => $value ) {
@@ -465,16 +655,34 @@ final class Importer {
 				$untouched = isset( $hashes[ $field ] )
 					? in_array( $hashes[ $field ], [ self::hash( $current, $field ), self::legacy_hash( $current ) ], true )
 					: ( '' === $current || null === $current || false === $current );
+				// Import hashes account for the site's timezone conversion.
+				if ( 'post_date' === $field && isset( $hashes[ $field ] ) && self::hash( $current, $field ) === $hashes[ $field ] ) {
+					$untouched = true;
+				}
 
 				if ( ! $untouched ) {
 					continue; // Edited on this site: keep it.
 				}
 			}
 
+			// A published import whose host date changes must move between
+			// published and scheduled status along with its managed date.
+			if ( ! $is_new && 'post_date' === $field && '' !== $value && ! isset( $post_update['post_status'] ) ) {
+				$timestamp = strtotime( (string) $value );
+				if ( $timestamp && in_array( get_post_status( $post_id ), [ 'publish', 'future' ], true ) ) {
+					$post_update['post_status'] = $timestamp > current_time( 'timestamp' ) ? 'future' : 'publish';
+				}
+			}
+
 			if ( 0 === strpos( $field, 'post_' ) ) {
 				// The post was created with these values; only updates write.
-				if ( ! $is_new ) {
-					$post_update[ $field ] = $value;
+				if ( ! $is_new && ( '' !== $value || 'post_date' === $field ) ) {
+					if ( 'post_date' === $field ) {
+						$post_update['post_date']     = $value;
+						$post_update['post_date_gmt'] = get_gmt_from_date( $value );
+					} else {
+						$post_update[ $field ] = $value;
+					}
 				}
 			} elseif ( '' === $value ) {
 				delete_post_meta( $post_id, Episodes::META_PREFIX . $field );
@@ -483,6 +691,7 @@ final class Importer {
 			}
 
 			$owned[] = $field;
+			$written[ $field ] = true;
 			$changed = true;
 		}
 
@@ -494,7 +703,12 @@ final class Importer {
 		// Remember what the site holds now (after sanitizers ran), so the
 		// next sync can tell importer-written values from local edits.
 		foreach ( $owned as $field ) {
-			$hashes[ $field ] = self::hash( $this->current( $post_id, $field ), $field );
+			$current = $this->current( $post_id, $field );
+			$raw_hash = $hashes['audio_url_raw'] ?? ( $hashes['audio_url'] ?? '' );
+			$hashes[ $field ] = self::hash( $current, $field );
+			if ( 'audio_url' === $field && ( $is_new || isset( $written[ $field ] ) || $raw_hash === self::legacy_hash( $current ) ) ) {
+				$hashes['audio_url_raw'] = self::legacy_hash( $current );
+			}
 		}
 		update_post_meta( $post_id, Episodes::META_PREFIX . 'import_hash', $hashes );
 
@@ -516,7 +730,7 @@ final class Importer {
 	 * @param int                 $oldest Oldest item date in the feed.
 	 * @return int Episodes moved to drafts.
 	 */
-	public function draft_missing( array $guids, int $oldest ): int {
+	public function draft_missing( array $guids, int $oldest, bool $future_only = false ): int {
 		if ( '' === $this->options['feed_url'] || empty( $guids ) ) {
 			return 0;
 		}
@@ -524,14 +738,15 @@ final class Importer {
 		$ids = get_posts(
 			[
 				'post_type'      => EpisodePostType::CPT,
-				'post_status'    => 'publish',
+			'post_status'    => [ 'publish', 'future' ],
 				'posts_per_page' => -1,
 				'fields'         => 'ids',
 				'no_found_rows'  => true,
 				'meta_query'     => [
 					[
 						'key'   => Episodes::META_PREFIX . 'source_feed',
-						'value' => $this->options['feed_url'],
+						'value' => array_values( array_unique( [ self::source_feed_identifier( $this->options['feed_url'] ), esc_url_raw( $this->options['feed_url'] ) ] ) ),
+						'compare' => 'IN',
 					],
 				],
 			]
@@ -539,31 +754,40 @@ final class Importer {
 
 		$count = 0;
 		foreach ( $ids as $id ) {
-			$guid = (string) get_post_meta( (int) $id, Episodes::META_PREFIX . 'guid', true );
-			if ( '' === $guid || isset( $guids[ $guid ] ) ) {
-				continue;
+			try {
+				$is_future = 'future' === get_post_status( (int) $id );
+				if ( $future_only && ! $is_future ) {
+					continue;
+				}
+				$guid = (string) get_post_meta( (int) $id, Episodes::META_PREFIX . 'guid', true );
+				if ( '' === $guid || isset( $guids[ $guid ] ) ) {
+					continue;
+				}
+				if ( ! $is_future && $oldest > 0 && (int) get_post_time( 'U', true, (int) $id ) < $oldest ) {
+					continue;
+				}
+				// Only after it stayed missing for a day: a host's hiccup or a
+				// truncated response must not unpublish anything.
+				$since = (int) get_post_meta( (int) $id, Episodes::META_PREFIX . 'missing_since', true );
+				if ( 0 === $since ) {
+					update_post_meta( (int) $id, Episodes::META_PREFIX . 'missing_since', time() );
+					continue;
+				}
+				if ( time() - $since < DAY_IN_SECONDS ) {
+					continue;
+				}
+				delete_post_meta( (int) $id, Episodes::META_PREFIX . 'missing_since' );
+				wp_update_post(
+					[
+						'ID'          => (int) $id,
+						'post_status' => 'draft',
+					]
+				);
+				++$count;
+			} finally {
+				wp_cache_delete( (int) $id, 'posts' );
+				wp_cache_delete( (int) $id, 'post_meta' );
 			}
-			if ( $oldest > 0 && (int) get_post_time( 'U', true, (int) $id ) < $oldest ) {
-				continue;
-			}
-			// Only after it stayed missing for a day: a host's hiccup or a
-			// truncated response must not unpublish anything.
-			$since = (int) get_post_meta( (int) $id, Episodes::META_PREFIX . 'missing_since', true );
-			if ( 0 === $since ) {
-				update_post_meta( (int) $id, Episodes::META_PREFIX . 'missing_since', time() );
-				continue;
-			}
-			if ( time() - $since < DAY_IN_SECONDS ) {
-				continue;
-			}
-			delete_post_meta( (int) $id, Episodes::META_PREFIX . 'missing_since' );
-			wp_update_post(
-				[
-					'ID'          => (int) $id,
-					'post_status' => 'draft',
-				]
-			);
-			++$count;
 		}
 
 		return $count;
@@ -733,49 +957,331 @@ final class Importer {
 	}
 
 	/**
-	 * Download audio and the episode image into the Media Library.
+	 * The kinds of files a move copies, in the order they are copied (small
+	 * files first, so a long audio download never holds them up).
+	 */
+	private const COPY_KINDS = [ 'transcript_file', 'image', 'audio' ];
+
+	/**
+	 * Copy every file of an episode that still loads from the host, each
+	 * kind on its own; a failure of one kind never keeps another from being
+	 * copied.
 	 *
 	 * @param int                  $post_id Episode ID.
 	 * @param array<string, mixed> $item    Item.
-	 * @return string Problem description, or '' when everything was copied.
+	 * @param array<string, mixed> $resume  Where an earlier call stopped (kind, download, done).
+	 * @return array{media: array<string, array<string, string>>, pending: array<string, mixed>|null, copied: bool}
 	 */
-	private function copy_media( int $post_id, array $item ): string {
-		$problems = [];
+	private function copy_files( int $post_id, array $item, array $resume ): array {
+		$out = [
+			// Kinds settled by an earlier call for this item are not tried again.
+			'media'   => (array) ( $resume['done'] ?? [] ),
+			'pending' => null,
+			'copied'  => false,
+		];
+		$title    = (string) ( $item['title'] ?? '' );
+		$deadline = $this->options['deadline'] > 0 ? $this->options['deadline'] : microtime( true ) + MediaDownload::request_seconds();
 
-		$audio_url = (string) ( $item['audio_url'] ?? '' );
-		if ( '' !== $audio_url && (int) get_post_meta( $post_id, Episodes::META_PREFIX . 'audio_id', true ) <= 0 ) {
-			// Marks the download in progress for other requests (a retried
-			// import step must not download the same file twice).
-			update_post_meta( $post_id, Episodes::META_PREFIX . 'copying', time() );
-			$attachment = self::sideload( $audio_url, $post_id, (string) ( $item['title'] ?? '' ), 'audio' );
-			delete_post_meta( $post_id, Episodes::META_PREFIX . 'copying' );
-			if ( is_wp_error( $attachment ) ) {
-				$problems[] = sprintf(
-					/* translators: %s: error message */
-					__( 'Audio stays on the host: %s', 'elementor-podcast-manager' ),
-					$attachment->get_error_message()
-				);
-			} else {
-				update_post_meta( $post_id, Episodes::META_PREFIX . 'audio_id', $attachment );
-				$detected = AudioMetadata::detect( $attachment );
-				if ( $detected['size'] > 0 ) {
-					update_post_meta( $post_id, Episodes::META_PREFIX . 'audio_size', $detected['size'] );
-				}
-				if ( '' === (string) get_post_meta( $post_id, Episodes::META_PREFIX . 'duration', true ) && '' !== $detected['duration'] ) {
-					update_post_meta( $post_id, Episodes::META_PREFIX . 'duration', $detected['duration'] );
+		foreach ( self::COPY_KINDS as $kind ) {
+			if ( isset( $out['media'][ $kind ] ) ) {
+				continue;
+			}
+			$url = self::copy_source( $post_id, $kind );
+			if ( '' === $url ) {
+				continue;
+			}
+
+			// Another request downloads this audio right now (a run of its
+			// own; never the copy this job continues, or one of its own
+			// requests that died).
+			$ours = 'audio' === ( $resume['kind'] ?? '' ) || (int) ( $resume['tries'] ?? 0 ) > 0;
+			if ( 'audio' === $kind && ! $ours && self::copy_in_progress( $post_id ) ) {
+				$out['media'][ $kind ] = [
+					'state'  => 'busy',
+					'url'    => $url,
+					'reason' => __( 'Another request is copying this file right now.', 'elementor-podcast-manager' ),
+				];
+				continue;
+			}
+
+			// No time left in this request: the next one starts this file.
+			if ( $deadline - microtime( true ) < 1.0 ) {
+				$out['pending'] = [
+					'kind'     => $kind,
+					'download' => [],
+				];
+				break;
+			}
+
+			if ( 'audio' === $kind ) {
+				update_post_meta( $post_id, Episodes::META_PREFIX . 'copying', time() );
+			}
+			$copy = MediaCopy::copy(
+				$url,
+				'transcript_file' === $kind ? 'transcript' : $kind,
+				$post_id,
+				$title,
+				[
+					'deadline' => $deadline,
+					'download' => ( $resume['kind'] ?? '' ) === $kind ? (array) ( $resume['download'] ?? [] ) : [],
+					'hint'     => 'audio' === $kind ? (int) get_post_meta( $post_id, Episodes::META_PREFIX . 'audio_length', true ) : 0,
+				]
+			);
+			if ( 'audio' === $kind ) {
+				delete_post_meta( $post_id, Episodes::META_PREFIX . 'copying' );
+			}
+
+			if ( 'copied' === $copy['result'] ) {
+				$this->apply_copy( $post_id, $kind, (int) $copy['attachment'] );
+				$out['media'][ $kind ] = [
+					'state' => 'copied',
+					'url'   => $url,
+				];
+				$out['copied']         = true;
+				continue;
+			}
+
+			if ( 'failed' === $copy['result'] ) {
+				$out['media'][ $kind ] = [
+					'state'  => 'failed',
+					'url'    => $url,
+					'code'   => (string) $copy['reason'],
+					'reason' => (string) $copy['message'],
+				];
+				continue;
+			}
+
+			// Not finished in this request (or the host asked to wait).
+			$out['pending'] = [
+				'kind'     => $kind,
+				'download' => (array) $copy['download'],
+				'until'    => (int) $copy['until'],
+				'reason'   => (string) $copy['message'],
+			];
+			break;
+		}
+
+		if ( $out['copied'] ) {
+			Episodes::clear_data_cache( $post_id );
+		}
+
+		return $out;
+	}
+
+	/**
+	 * The address to copy a kind of file from ('' when there is nothing to
+	 * copy: the file is local already, the episode has none, the address was
+	 * chosen on this site, or the format is not copied).
+	 *
+	 * @param int    $post_id Episode ID.
+	 * @param string $kind    audio, image or transcript_file.
+	 * @return string
+	 */
+	private static function copy_source( int $post_id, string $kind ): string {
+		$refs = self::old_host_references( $post_id );
+
+		return (string) ( $refs[ $kind ] ?? '' );
+	}
+
+	/**
+	 * Use a copied file for an episode.
+	 *
+	 * @param int    $post_id    Episode ID.
+	 * @param string $kind       audio, image or transcript_file.
+	 * @param int    $attachment Attachment ID.
+	 * @return void
+	 */
+	private function apply_copy( int $post_id, string $kind, int $attachment ): void {
+		if ( 'audio' === $kind ) {
+			update_post_meta( $post_id, Episodes::META_PREFIX . 'audio_id', $attachment );
+			$detected = AudioMetadata::detect( $attachment );
+			if ( $detected['size'] > 0 ) {
+				update_post_meta( $post_id, Episodes::META_PREFIX . 'audio_size', $detected['size'] );
+			}
+			if ( '' === (string) get_post_meta( $post_id, Episodes::META_PREFIX . 'duration', true ) && '' !== $detected['duration'] ) {
+				update_post_meta( $post_id, Episodes::META_PREFIX . 'duration', $detected['duration'] );
+			}
+			return;
+		}
+
+		if ( 'image' === $kind ) {
+			update_post_meta( $post_id, Episodes::META_PREFIX . 'artwork_id', $attachment );
+			return;
+		}
+
+		// The copy replaces the link: the feed lists the file from this site.
+		update_post_meta( $post_id, Episodes::META_PREFIX . 'transcript_file_id', $attachment );
+		delete_post_meta( $post_id, Episodes::META_PREFIX . 'transcript_url' );
+		delete_post_meta( $post_id, Episodes::META_PREFIX . 'transcript_type' );
+		self::remember( $post_id, 'transcript_url', null );
+	}
+
+	/**
+	 * Addresses of an episode that still point to the host it was imported
+	 * from, per kind:
+	 *
+	 * - audio:           the audio URL, when no Media Library file is attached;
+	 * - image:           the episode image URL, when no image is attached;
+	 * - transcript_file: a WebVTT/SRT transcript linked at the host (copyable);
+	 * - transcript_link: a transcript in another format linked at the host
+	 *                    (JSON, HTML, text: not copied, the link stays).
+	 *
+	 * Only addresses the importer wrote count. An address set on this site
+	 * (a local edit, a deliberately chosen external file) is no dependency on
+	 * the old host and is never replaced.
+	 *
+	 * @param int                       $post_id Episode ID.
+	 * @param array<string, mixed>|null $item    Feed item, when known (decides for transcript addresses imported before 1.4).
+	 * @return array<string, string> Kind => URL.
+	 */
+	public static function old_host_references( int $post_id, ?array $item = null ): array {
+		$meta = static function ( string $key ) use ( $post_id ): string {
+			return (string) get_post_meta( $post_id, Episodes::META_PREFIX . $key, true );
+		};
+		$out  = [];
+
+		$audio_id = (int) $meta( 'audio_id' );
+		if ( ( $audio_id <= 0 || 'attachment' !== get_post_type( $audio_id ) ) && '' !== $meta( 'audio_url' ) && self::owns( $post_id, 'audio_url' ) ) {
+			$out['audio'] = $meta( 'audio_url' );
+		}
+
+		$artwork_id = (int) $meta( 'artwork_id' );
+		if ( ( $artwork_id <= 0 || 'attachment' !== get_post_type( $artwork_id ) ) && ! has_post_thumbnail( $post_id ) && '' !== $meta( 'artwork_url' ) && self::owns( $post_id, 'artwork_url' ) ) {
+			$out['image'] = $meta( 'artwork_url' );
+		}
+
+		$link = $meta( 'transcript_url' );
+		if ( '' !== $link && self::owns_transcript( $post_id, $item ) ) {
+			$type   = Transcripts::normalize_type( $meta( 'transcript_type' ), $link );
+			$timed  = in_array( $type, [ 'text/vtt', 'application/x-subrip' ], true );
+			$file   = (int) $meta( 'transcript_file_id' );
+			$listed = ! ( $file > 0 && 'attachment' === get_post_type( $file ) && Transcripts::mime( (string) get_attached_file( $file ) ) === $type );
+			if ( $listed ) {
+				if ( ! $timed ) {
+					$out['transcript_link'] = $link;
+				} elseif ( $file <= 0 || 'attachment' !== get_post_type( $file ) ) {
+					$out['transcript_file'] = $link;
 				}
 			}
 		}
 
-		$image = (string) ( $item['image'] ?? '' );
-		if ( '' !== $image && (int) get_post_meta( $post_id, Episodes::META_PREFIX . 'artwork_id', true ) <= 0 ) {
-			$attachment = self::sideload_image( $image, $post_id, (string) ( $item['title'] ?? '' ) );
-			if ( $attachment > 0 ) {
-				update_post_meta( $post_id, Episodes::META_PREFIX . 'artwork_id', $attachment );
+		return $out;
+	}
+
+	/**
+	 * Whether a field's current value is the one the importer wrote (not
+	 * edited on this site).
+	 *
+	 * @param int    $post_id Episode ID.
+	 * @param string $field   Managed meta field.
+	 * @return bool
+	 */
+	private static function owns( int $post_id, string $field ): bool {
+		$hashes = get_post_meta( $post_id, Episodes::META_PREFIX . 'import_hash', true );
+		if ( ! is_array( $hashes ) || ! isset( $hashes[ $field ] ) ) {
+			// No record (the importer records every value it writes): an
+			// imported episode's address still counts as the import's, so a
+			// dependency on the old host is never hidden.
+			return 'import' === get_post_meta( $post_id, Episodes::META_PREFIX . 'source', true );
+		}
+		$value = get_post_meta( $post_id, Episodes::META_PREFIX . $field, true );
+
+		return in_array( $hashes[ $field ], [ self::hash( $value, $field ), self::legacy_hash( $value ) ], true );
+	}
+
+	/**
+	 * Whether the episode's transcript address is the one the import wrote.
+	 *
+	 * Recorded since 1.4 (the import hash of transcript_url). For an
+	 * address 1.3.0 wrote, nothing was recorded: it counts as the import's
+	 * when the feed item lists it, otherwise as chosen on this site. Without
+	 * the item (Readiness), such an address of an imported episode counts as
+	 * the import's, so a possible dependency is never hidden.
+	 *
+	 * @param int                       $post_id Episode ID.
+	 * @param array<string, mixed>|null $item    Feed item.
+	 * @return bool
+	 */
+	private static function owns_transcript( int $post_id, ?array $item ): bool {
+		$url    = (string) get_post_meta( $post_id, Episodes::META_PREFIX . 'transcript_url', true );
+		$hashes = get_post_meta( $post_id, Episodes::META_PREFIX . 'import_hash', true );
+		if ( '' === $url ) {
+			return false;
+		}
+		if ( is_array( $hashes ) && isset( $hashes['transcript_url'] ) ) {
+			return self::hash( $url, 'transcript_url' ) === $hashes['transcript_url'];
+		}
+		if ( null === $item ) {
+			return 'import' === get_post_meta( $post_id, Episodes::META_PREFIX . 'source', true );
+		}
+
+		return in_array( $url, self::item_transcript_urls( $item ), true );
+	}
+
+	/**
+	 * Whether an episode's transcript address came with the import (not
+	 * chosen on this site), for the editor.
+	 *
+	 * @param int $post_id Episode ID.
+	 * @return bool
+	 */
+	public static function transcript_from_import( int $post_id ): bool {
+		return self::owns_transcript( $post_id, null );
+	}
+
+	/**
+	 * Record where a transcript address that has no record yet came from:
+	 * the import (it is one of the feed item's own), or this site.
+	 *
+	 * @param int                  $post_id Episode ID.
+	 * @param array<string, mixed> $item    Feed item.
+	 * @return void
+	 */
+	private function record_transcript_provenance( int $post_id, array $item ): void {
+		$url    = (string) get_post_meta( $post_id, Episodes::META_PREFIX . 'transcript_url', true );
+		$hashes = get_post_meta( $post_id, Episodes::META_PREFIX . 'import_hash', true );
+		if ( '' === $url || ( is_array( $hashes ) && isset( $hashes['transcript_url'] ) ) ) {
+			return;
+		}
+
+		self::remember( $post_id, 'transcript_url', in_array( $url, self::item_transcript_urls( $item ), true ) ? self::hash( $url, 'transcript_url' ) : 'local' );
+	}
+
+	/**
+	 * Transcript addresses a feed item lists.
+	 *
+	 * @param array<string, mixed> $item Item.
+	 * @return string[]
+	 */
+	private static function item_transcript_urls( array $item ): array {
+		$urls = [];
+		foreach ( (array) ( $item['transcripts'] ?? [] ) as $transcript ) {
+			$url = esc_url_raw( (string) ( $transcript['url'] ?? '' ) );
+			if ( '' !== $url ) {
+				$urls[] = $url;
 			}
 		}
 
-		return implode( ' ', $problems );
+		return $urls;
+	}
+
+	/**
+	 * Set (or with null remove) one entry of the import hashes.
+	 *
+	 * @param int         $post_id Episode ID.
+	 * @param string      $field   Field.
+	 * @param string|null $hash    Hash, 'local', or null.
+	 * @return void
+	 */
+	private static function remember( int $post_id, string $field, ?string $hash ): void {
+		$hashes = get_post_meta( $post_id, Episodes::META_PREFIX . 'import_hash', true );
+		$hashes = is_array( $hashes ) ? $hashes : [];
+		if ( null === $hash ) {
+			unset( $hashes[ $field ] );
+		} else {
+			$hashes[ $field ] = $hash;
+		}
+		update_post_meta( $post_id, Episodes::META_PREFIX . 'import_hash', $hashes );
 	}
 
 	/**
@@ -787,36 +1293,15 @@ final class Importer {
 	 * @return int Attachment ID or 0.
 	 */
 	public static function sideload_image( string $url, int $post_id, string $title ): int {
-		$url = esc_url_raw( $url );
-		if ( '' === $url ) {
-			return 0;
-		}
-
-		$existing = get_posts(
-			[
-				'post_type'      => 'attachment',
-				'post_status'    => 'inherit',
-				'posts_per_page' => 1,
-				'fields'         => 'ids',
-				'no_found_rows'  => true,
-				'meta_key'       => '_epm_source_url', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
-				'meta_value'     => $url, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
-			]
-		);
-		if ( ! empty( $existing ) ) {
-			return (int) $existing[0];
-		}
-
 		$attachment = self::sideload( $url, $post_id, $title, 'image' );
 
 		return is_wp_error( $attachment ) ? 0 : $attachment;
 	}
 
 	/**
-	 * Download a remote file into the Media Library.
-	 *
-	 * Handles extension-less URLs (common for CDN and tracking links) by
-	 * naming the file after its detected type.
+	 * Download a remote file into the Media Library in one go (show
+	 * artwork; within MediaDownload's time per request). A copy of the same
+	 * URL that exists already is reused.
 	 *
 	 * @param string $url     Remote URL.
 	 * @param int    $post_id Parent post.
@@ -825,82 +1310,23 @@ final class Importer {
 	 * @return int|\WP_Error Attachment ID.
 	 */
 	public static function sideload( string $url, int $post_id, string $title, string $kind ) {
-		if ( ! function_exists( 'download_url' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/file.php';
-		}
-		if ( ! function_exists( 'media_handle_sideload' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/media.php';
-			require_once ABSPATH . 'wp-admin/includes/image.php';
-		}
-
-		$timeout = 'audio' === $kind ? 900 : 60;
-
-		// Transcript files are only copied when the URL names their format:
-		// their content cannot be sniffed reliably.
-		if ( 'transcript' === $kind && ! in_array( Transcripts::mime( $url ), [ 'text/vtt', 'application/x-subrip' ], true ) ) {
-			return new \WP_Error( 'epm_transcript_type', __( 'Only WebVTT (.vtt) and SRT (.srt) transcript files are copied.', 'elementor-podcast-manager' ) );
-		}
-		if ( function_exists( 'set_time_limit' ) ) {
-			@set_time_limit( $timeout + 60 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- may be disabled by the host.
-		}
-
-		$tmp = download_url( $url, $timeout );
-		if ( is_wp_error( $tmp ) ) {
-			return $tmp;
-		}
-
-		$path = (string) wp_parse_url( $url, PHP_URL_PATH );
-		$name = sanitize_file_name( wp_basename( $path ) );
-		$ext  = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
-
-		$allowed = [
-			'audio'      => array_keys( AudioMetadata::allowed_mimes() ),
-			'image'      => [ 'jpg', 'jpeg', 'png', 'gif', 'webp' ],
-			'transcript' => [ 'vtt', 'srt' ],
-		][ $kind ] ?? [];
-
-		if ( ! in_array( $ext, $allowed, true ) ) {
-			$detected = '';
-			if ( 'image' === $kind && function_exists( 'wp_get_image_mime' ) ) {
-				$detected = (string) wp_get_image_mime( $tmp );
-			} elseif ( function_exists( 'mime_content_type' ) ) {
-				$detected = (string) mime_content_type( $tmp );
-			}
-			$by_mime = [
-				'image/jpeg' => 'jpg',
-				'image/png'  => 'png',
-				'image/gif'  => 'gif',
-				'image/webp' => 'webp',
-				'audio/mpeg' => 'mp3',
-				'audio/mp4'  => 'm4a',
-				'audio/x-m4a' => 'm4a',
-				'video/mp4'  => 'm4a',
-				'audio/wav'  => 'wav',
-				'audio/x-wav' => 'wav',
-			];
-			$ext = $by_mime[ $detected ] ?? ( 'audio' === $kind ? 'mp3' : 'jpg' );
-			$base = '' !== $name ? pathinfo( $name, PATHINFO_FILENAME ) : sanitize_title( $title );
-			$name = ( '' !== $base ? $base : 'podcast-' . $kind ) . '.' . $ext;
-		}
-
-		$attachment = media_handle_sideload(
-			[
-				'name'     => $name,
-				'tmp_name' => $tmp,
-			],
+		$copy = MediaCopy::copy(
+			$url,
+			$kind,
 			$post_id,
-			'' !== $title ? $title : null
+			$title,
+			[ 'deadline' => microtime( true ) + MediaDownload::request_seconds() ]
 		);
 
-
-		if ( is_wp_error( $attachment ) ) {
-			wp_delete_file( $tmp );
-			return $attachment;
+		if ( 'copied' === $copy['result'] ) {
+			return (int) $copy['attachment'];
 		}
 
-		update_post_meta( (int) $attachment, '_epm_source_url', $url );
+		if ( 'failed' !== $copy['result'] ) {
+			MediaDownload::discard( (array) $copy['download'] );
+		}
 
-		return (int) $attachment;
+		return new \WP_Error( 'epm_media_' . ( '' !== $copy['reason'] ? $copy['reason'] : 'pending' ), '' !== $copy['message'] ? (string) $copy['message'] : __( 'The file did not arrive in time.', 'elementor-podcast-manager' ) );
 	}
 
 	/**
@@ -910,23 +1336,31 @@ final class Importer {
 	 * @param int    $bytes Size cap.
 	 * @return string Body or '' on failure.
 	 */
-	private static function fetch_text( string $url, int $bytes ): string {
+	private function fetch_text( string $url, int $bytes, string $label ): string {
 		$url = esc_url_raw( $url );
 		if ( '' === $url ) {
 			return '';
 		}
 
-		$response = wp_safe_remote_get(
+		$response = SafeHttp::get(
 			$url,
 			[
 				'timeout'             => 15,
 				'redirection'         => 5,
-				'limit_response_size' => $bytes,
+				'limit_response_size' => $bytes + 1,
 				'user-agent'          => 'ElementorPodcastManager/' . EPM_VERSION . '; ' . home_url( '/' ),
 			]
 		);
 
 		if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
+			if ( is_wp_error( $response ) && 'epm_insecure_redirect' === $response->get_error_code() ) {
+				$this->extra_messages[] = $label . ': ' . $response->get_error_message();
+			}
+			return '';
+		}
+		if ( SafeHttp::exceeds_limit( $response, $bytes ) ) {
+			/* translators: 1: chapters or transcript, 2: response size limit in bytes */
+			$this->extra_messages[] = sprintf( __( '%1$s was skipped because it exceeds the %2$s-byte size limit.', 'elementor-podcast-manager' ), $label, number_format_i18n( $bytes ) );
 			return '';
 		}
 
@@ -964,7 +1398,7 @@ final class Importer {
 			return;
 		}
 
-		$chapters = self::parse_chapters_json( self::fetch_text( $url, 512 * KB_IN_BYTES ) );
+		$chapters = self::parse_chapters_json( $this->fetch_text( $url, 512 * KB_IN_BYTES, __( 'Chapters', 'elementor-podcast-manager' ) ) );
 		if ( ! empty( $chapters ) ) {
 			update_post_meta( $post_id, Episodes::META_PREFIX . 'chapters', wp_slash( $chapters ) );
 		}
@@ -1029,7 +1463,7 @@ final class Importer {
 			return;
 		}
 
-		$this->keep_transcript_file( $post_id, $transcripts, (string) ( $item['title'] ?? '' ) );
+		$this->keep_transcript_file( $post_id, $transcripts );
 
 		if ( '' !== trim( (string) get_post_meta( $post_id, Episodes::META_PREFIX . 'transcript', true ) ) ) {
 			return;
@@ -1055,7 +1489,7 @@ final class Importer {
 			return;
 		}
 
-		$body = self::fetch_text( $best['url'], 2 * MB_IN_BYTES );
+		$body = $this->fetch_text( $best['url'], 2 * MB_IN_BYTES, __( 'Transcript', 'elementor-podcast-manager' ) );
 		if ( '' === trim( $body ) ) {
 			return;
 		}
@@ -1068,15 +1502,15 @@ final class Importer {
 
 	/**
 	 * Keep the host's timed transcript (WebVTT, then SRT, then JSON) so the
-	 * feed can list it for captions. Copied into the Media Library along
-	 * with the audio, otherwise linked where it is.
+	 * feed can list it for captions: linked where it is, and remembered as
+	 * the import's (a move copies a WebVTT/SRT file into the Media Library,
+	 * see copy_files()).
 	 *
 	 * @param int                                           $post_id     Episode ID.
 	 * @param array<int, array{url: string, type: string}> $transcripts Normalized transcripts.
-	 * @param string                                        $title       Episode title.
 	 * @return void
 	 */
-	private function keep_transcript_file( int $post_id, array $transcripts, string $title ): void {
+	private function keep_transcript_file( int $post_id, array $transcripts ): void {
 		if ( (int) get_post_meta( $post_id, Episodes::META_PREFIX . 'transcript_file_id', true ) > 0
 			|| '' !== (string) get_post_meta( $post_id, Episodes::META_PREFIX . 'transcript_url', true ) ) {
 			return;
@@ -1097,16 +1531,9 @@ final class Importer {
 			return;
 		}
 
-		if ( $this->options['download_media'] && in_array( Transcripts::mime( $best['url'] ), [ 'text/vtt', 'application/x-subrip' ], true ) ) {
-			$attachment = self::sideload( $best['url'], $post_id, $title, 'transcript' );
-			if ( ! is_wp_error( $attachment ) ) {
-				update_post_meta( $post_id, Episodes::META_PREFIX . 'transcript_file_id', $attachment );
-				return;
-			}
-		}
-
 		update_post_meta( $post_id, Episodes::META_PREFIX . 'transcript_url', $best['url'] );
 		update_post_meta( $post_id, Episodes::META_PREFIX . 'transcript_type', $best['type'] );
+		self::remember( $post_id, 'transcript_url', self::hash( (string) get_post_meta( $post_id, Episodes::META_PREFIX . 'transcript_url', true ), 'transcript_url' ) );
 	}
 
 	/**

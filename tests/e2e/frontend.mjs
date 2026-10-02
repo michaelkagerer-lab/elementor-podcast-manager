@@ -120,7 +120,7 @@ console.log('Share menu');
 	await page.click('[data-epm-share-action="embed"]');
 	await page.waitForTimeout(200);
 	const embed = await page.evaluate(() => navigator.clipboard.readText());
-	assert(/^<iframe src="[^"]+\/embed\/" title="[^"]+" width="640" height="200"/.test(embed), `Copy embed code copies an iframe (${embed.slice(0, 90)}…)`);
+	assert(/<iframe src="[^"]+\/embed\/" title="[^"]+" width="640" height="200"/.test(embed) && /^<p><a href=/.test(embed), `Copy embed code includes a fallback link and iframe (${embed.slice(0, 90)}…)`);
 
 	// Copying blocked: the text is offered, selected, in a labelled field.
 	await page.evaluate(() => {
@@ -266,12 +266,38 @@ console.log('Embed');
 				resolve(e.data);
 			}
 		});
-		document.body.innerHTML = `<iframe sandbox="allow-scripts" src="${src}#?secret=abcdefghij" width="600" height="200"></iframe>`;
+		document.body.innerHTML = `<iframe sandbox="allow-scripts" src="${src}#?secret=oldsecret1#?secret=abcdefghij" width="600" height="200"></iframe>`;
 		setTimeout(() => resolve(null), 5000);
 	}), embedUrl);
 	assert(message && message.secret === 'abcdefghij' && message.value === 200, `the frame reports its height to a WordPress host (${JSON.stringify(message)})`);
+	const embedFrame = page.frames().find((frame) => frame.url().includes('/embed/'));
+	const clickIntercepted = () => embedFrame.evaluate(() => {
+		const link = document.querySelector('.epm-player__title a');
+		let intercepted;
+		document.addEventListener('click', (event) => {
+			intercepted = event.defaultPrevented;
+			event.preventDefault(); // Keep this test on the same document.
+		}, { once: true });
+		link.click();
+		return intercepted;
+	});
+	assert(!(await clickIntercepted()), 'UX-N1: without a handshake the title link keeps its native behavior');
+	await page.evaluate(() => document.querySelector('iframe').contentWindow.postMessage({ message: 'ready', secret: 'oldsecret1' }, '*'));
+	await embedFrame.evaluate(() => new Promise((resolve) => setTimeout(resolve, 100)));
+	assert(!(await clickIntercepted()), 'an obsolete secret cannot enable link interception');
+	await page.evaluate(() => document.querySelector('iframe').contentWindow.postMessage({ message: 'ready', secret: 'abcdefghij' }, '*'));
+	await embedFrame.evaluate(() => new Promise((resolve) => setTimeout(resolve, 100)));
+	assert(await clickIntercepted(), 'a matching parent handshake enables WordPress link messages');
+	await embedFrame.evaluate(() => { window.location.hash = '?secret=newsecret1'; });
+	await embedFrame.evaluate(() => new Promise((resolve) => setTimeout(resolve, 100)));
+	assert(!(await clickIntercepted()), 'changing the secret requires a new handshake');
 	assert(page.problems.length === 0, `no browser errors ${page.problems.join('; ')}`);
 	await page.context().close();
+	const noScripts = await newPage({ width: 320, height: 200 }, { javaScriptEnabled: false });
+	await noScripts.goto(embedUrl);
+	assert(await noScripts.locator('noscript audio[controls]').isVisible(), 'UX-N13: the embed offers native audio with scripts disabled');
+	assert(await noScripts.locator('.epm-player--embed').isHidden(), 'inactive scripted controls are hidden when scripts are disabled');
+	await noScripts.context().close();
 }
 
 // ---------------------------------------------------------------------------
@@ -435,8 +461,11 @@ console.log('Remote audio');
 		await page.goto(permalink(fixtures.ep2));
 		await page.waitForTimeout(800);
 		const audio = await page.evaluate(() => {
-			const el = document.querySelector('[data-epm-player] audio');
-			return { preload: el.getAttribute('preload'), src: el.getAttribute('src'), total: document.querySelector('[data-epm-player] [data-epm-total]').textContent };
+			// The element that plays: the player's own <audio>, which the
+			// engine keeps outside the player's DOM once bound.
+			const player = document.querySelector('[data-epm-player]');
+			const el = window.epmPlayerEngine.getController(player.dataset.epmEpisodeId).audio;
+			return { preload: el.getAttribute('preload'), src: el.getAttribute('src'), total: player.querySelector('[data-epm-total]').textContent };
 		});
 		assert(audio.src === remote && audio.preload === 'none', `remote audio is preload="none" (${JSON.stringify(audio)})`);
 		assert(!page.thirdParty.some((u) => u.includes('podtrac')), `no request to the host or tracking prefix before play (${page.thirdParty.join(', ')})`);
@@ -456,6 +485,7 @@ console.log('Remote audio');
 console.log('Design system on the page');
 {
 	const listPage = createPage('EPM Row List', '[podcast_episodes limit="10" layout="list"]\n\n[podcast_episodes topic="epm-no-such-topic"]');
+	const germanList = createPage('EPM German Row List', '[podcast_episodes limit="10" layout="editorial-rows" show_episode_number="yes"]');
 	try {
 		const page = await newPage({ width: 1280, height: 900 });
 
@@ -550,6 +580,28 @@ console.log('Design system on the page');
 		assert(empty === 'underline', `the empty-state link is underlined, not marked by color alone (${empty})`);
 		await page.setViewportSize({ width: 390, height: 844 });
 		assert(await noOverflow(page), 'the row list fits 390px');
+		const originalTitle = wp(['post', 'get', String(fixtures.ep1), '--field=post_title']).trim();
+		try {
+			wp(['post', 'update', String(fixtures.ep1), '--post_title=Folge 12: Nachhaltigkeit und Digitalisierung im Mittelstand']);
+			wp(['post', 'meta', 'update', String(fixtures.ep1), '_epm_episode_number', '12']);
+			for (const preset of ['business-tuning', 'editorial', 'warm-paper', 'neutral']) {
+				wp(['eval', `epm()->design->apply_preset( "${preset}" );`]);
+				await page.setViewportSize({ width: 320, height: 740 });
+				await page.goto(permalink(germanList));
+				const phoneRows = await page.evaluate(() => [...document.querySelectorAll('.epm-episode-row')].map((row) => {
+					const title = row.querySelector('.epm-episode-row__title');
+					const content = row.querySelector('.epm-episode-row__content');
+					return { width: content.clientWidth, height: title.clientHeight, title: title.innerText };
+				}));
+				assert(phoneRows.every((row) => row.width >= 150 && row.height > 0) && await noOverflow(page), `${preset} numbered German rows keep a usable full-width title at 320px (${JSON.stringify(phoneRows)})`);
+				await page.setViewportSize({ width: 390, height: 844 });
+				assert(await noOverflow(page), `${preset} numbered rows fit 390px`);
+			}
+		} finally {
+			wp(['post', 'update', String(fixtures.ep1), `--post_title=${originalTitle}`]);
+			wp(['post', 'meta', 'update', String(fixtures.ep1), '_epm_episode_number', '1']);
+		}
+		wp(['option', 'delete', 'epm_design_settings']);
 		await page.setViewportSize({ width: 1280, height: 900 });
 
 		// Dark design on the light theme page: sections get the design surface.
@@ -577,6 +629,7 @@ console.log('Design system on the page');
 		await page.context().close();
 	} finally {
 		wp(['post', 'delete', String(listPage), '--force']);
+		wp(['post', 'delete', String(germanList), '--force']);
 	}
 }
 

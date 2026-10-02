@@ -96,7 +96,7 @@ $epm_steps = [
 					<span class="epm-choice__text"><?php esc_html_e( 'Your host keeps publishing the feed. This website shows every episode with its own pages and player, and picks up new episodes automatically.', 'elementor-podcast-manager' ); ?></span>
 				</label>
 			</fieldset>
-			<p class="epm-field__error" id="epm-setup-path-error" data-error hidden></p>
+			<div class="epm-field__error" id="epm-setup-path-error" data-error hidden></div>
 
 			<div class="epm-card__footer">
 				<button type="submit" class="button button-primary button-large"><?php esc_html_e( 'Continue', 'elementor-podcast-manager' ); ?></button>
@@ -144,11 +144,12 @@ $epm_steps = [
 			<div class="epm-field">
 				<label class="epm-field__label" for="epm-setup-feed"><?php esc_html_e( 'RSS feed address', 'elementor-podcast-manager' ); ?></label>
 				<div class="epm-inline-form">
-					<input type="url" id="epm-setup-feed" name="feed_url" value="<?php echo esc_attr( (string) $epm_hosting['feed_url'] ); ?>" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://" aria-describedby="epm-setup-feed-help epm-setup-feed-error" />
+					<input type="url" id="epm-setup-feed" name="feed_url" value="<?php echo esc_attr( (string) $epm_hosting['feed_url'] ); ?>" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://" aria-describedby="epm-setup-feed-help epm-setup-feed-progress epm-setup-feed-error" />
 					<button type="button" class="button" data-action="check-feed"><?php esc_html_e( 'Check feed', 'elementor-podcast-manager' ); ?></button>
 				</div>
 				<p class="epm-field__help" id="epm-setup-feed-help" data-feed-help></p>
-				<p class="epm-field__error" id="epm-setup-feed-error" data-error hidden></p>
+				<p class="epm-field__help" id="epm-setup-feed-progress" data-preview-progress hidden></p>
+				<div class="epm-field__error" id="epm-setup-feed-error" data-error hidden></div>
 			</div>
 
 			<div class="epm-stack" data-preview hidden>
@@ -158,7 +159,7 @@ $epm_steps = [
 						<p class="epm-preview__title" data-preview-title></p>
 						<p class="epm-preview__meta" data-preview-meta></p>
 						<ul class="epm-facts">
-							<li><strong data-preview-episodes></strong><span><?php esc_html_e( 'episodes', 'elementor-podcast-manager' ); ?></span></li>
+							<li><strong data-preview-episodes></strong> <span data-preview-episode-label><?php esc_html_e( 'episodes', 'elementor-podcast-manager' ); ?></span></li>
 							<li><strong data-preview-newest></strong><span><?php esc_html_e( 'latest episode', 'elementor-podcast-manager' ); ?></span></li>
 							<li><strong data-preview-oldest></strong><span><?php esc_html_e( 'first episode', 'elementor-podcast-manager' ); ?></span></li>
 						</ul>
@@ -171,6 +172,14 @@ $epm_steps = [
 				<div class="epm-callout" data-preview-existing hidden><p></p></div>
 				<div class="epm-callout epm-callout--warn" data-preview-moved hidden><p></p></div>
 				<div class="epm-callout" data-preview-notes hidden><p></p></div>
+				<div class="epm-callout epm-callout--warn" data-preview-incomplete hidden>
+					<p><strong><?php esc_html_e( 'The feed could not be read completely.', 'elementor-podcast-manager' ); ?></strong> <span data-preview-incomplete-text></span></p>
+					<div data-preview-incomplete-details></div>
+					<p data-path-only="external"><?php esc_html_e( 'You can connect the show with the episodes that were found; the regular sync and a later import add the rest. Episodes that are already here are updated, never duplicated.', 'elementor-podcast-manager' ); ?></p>
+					<div class="epm-callout__actions" data-retry-wrap>
+						<button type="button" class="button" data-action="retry-feed"><?php esc_html_e( 'Try reading the rest again', 'elementor-podcast-manager' ); ?></button>
+					</div>
+				</div>
 
 				<fieldset class="epm-stack--tight" data-path-only="move">
 					<legend class="epm-field__label"><?php esc_html_e( 'Moving options', 'elementor-podcast-manager' ); ?></legend>
@@ -185,6 +194,12 @@ $epm_steps = [
 						<span class="epm-choice__text"><?php esc_html_e( 'Required for locked feeds.', 'elementor-podcast-manager' ); ?></span>
 					</label>
 					<p class="epm-field__error" id="epm-setup-confirm-error" data-error-for="confirm_owner" hidden><?php esc_html_e( 'Confirm that you own this podcast to move it.', 'elementor-podcast-manager' ); ?></p>
+					<label class="epm-choice" data-accept-partial hidden>
+						<input type="checkbox" name="accept_partial" value="1" aria-describedby="epm-setup-partial-error" />
+						<span class="epm-choice__title" data-accept-partial-label></span>
+						<span class="epm-choice__text"><?php esc_html_e( 'Only if those episodes are gone for good. Otherwise try reading the rest of the feed again, or fix the feed at your old host first.', 'elementor-podcast-manager' ); ?></span>
+					</label>
+					<p class="epm-field__error" id="epm-setup-partial-error" data-error-for="accept_partial" hidden><?php esc_html_e( 'Confirm that the missing episodes may stay behind, or try reading the rest of the feed again first.', 'elementor-podcast-manager' ); ?></p>
 				</fieldset>
 
 				<fieldset class="epm-stack--tight" data-path-only="external">
@@ -224,12 +239,11 @@ $epm_steps = [
 			</div>
 		</div>
 
-		<div class="epm-callout epm-callout--error" data-import-error hidden><p></p></div>
+		<div class="epm-callout epm-callout--error" data-import-error role="alert" hidden><p></p></div>
+		<button type="button" class="button" data-action="retry-import" hidden><?php esc_html_e( 'Retry progress check', 'elementor-podcast-manager' ); ?></button>
+		<div class="epm-callout epm-callout--warn" data-import-incomplete hidden><p></p></div>
 
-		<div class="epm-callout epm-callout--warn" data-media-failed hidden>
-			<p><strong data-media-failed-title></strong> <?php esc_html_e( 'These episodes still play from the old host. Open each one to add the audio file, or run the import again, before you close the old account.', 'elementor-podcast-manager' ); ?></p>
-			<ul class="epm-callout__list" data-media-failed-list></ul>
-		</div>
+		<?php require EPM_PATH . 'admin/views/partials/import-result.php'; ?>
 
 		<details class="epm-details" data-import-details>
 			<summary><?php esc_html_e( 'Show the import log', 'elementor-podcast-manager' ); ?></summary>
@@ -276,11 +290,11 @@ $epm_steps = [
 					<select id="epm-setup-category" name="category">
 						<option value=""><?php esc_html_e( 'Choose a category', 'elementor-podcast-manager' ); ?></option>
 						<?php foreach ( \EPM\Categories::all() as $epm_cat => $epm_subs ) : ?>
-							<optgroup label="<?php echo esc_attr( $epm_cat ); ?>">
-								<option value="<?php echo esc_attr( $epm_cat ); ?>" <?php selected( $epm_category, $epm_cat ); ?>><?php echo esc_html( $epm_cat ); ?></option>
+							<optgroup label="<?php echo esc_attr( \EPM\Categories::label( $epm_cat ) ); ?>">
+								<option value="<?php echo esc_attr( $epm_cat ); ?>" <?php selected( $epm_category, $epm_cat ); ?>><?php echo esc_html( \EPM\Categories::label( $epm_cat ) ); ?></option>
 								<?php foreach ( $epm_subs as $epm_sub ) : ?>
 									<?php $epm_value = \EPM\Categories::encode( $epm_cat, $epm_sub ); ?>
-									<option value="<?php echo esc_attr( $epm_value ); ?>" <?php selected( $epm_category, $epm_value ); ?>><?php echo esc_html( $epm_cat . ' › ' . $epm_sub ); ?></option>
+									<option value="<?php echo esc_attr( $epm_value ); ?>" <?php selected( $epm_category, $epm_value ); ?>><?php echo esc_html( \EPM\Categories::label( $epm_cat ) . ' › ' . \EPM\Categories::label( $epm_sub ) ); ?></option>
 								<?php endforeach; ?>
 							</optgroup>
 						<?php endforeach; ?>
@@ -324,6 +338,34 @@ $epm_steps = [
 				<label><input type="radio" name="type" value="serial" <?php checked( 'serial', $epm_settings['type'] ); ?> /> <?php esc_html_e( 'Oldest first — listeners should start at episode 1 (stories, courses)', 'elementor-podcast-manager' ); ?></label>
 			</fieldset>
 
+			<?php $epm_previous = \EPM\Feed::previous_plugins(); ?>
+			<?php if ( ! empty( $epm_previous ) ) : ?>
+				<fieldset class="epm-field" data-path-only="new move">
+					<legend class="epm-field__label"><?php esc_html_e( 'Your previous feed address', 'elementor-podcast-manager' ); ?></legend>
+					<label>
+						<input type="checkbox" name="feed_alias" value="1" <?php checked( ! empty( $epm_settings['feed_alias'] ) ); ?> aria-describedby="epm-setup-feed-alias-help" />
+						<?php
+						printf(
+							/* translators: %s: old feed address, e.g. https://example.com/feed/podcast/ */
+							esc_html__( 'Redirect %s to this feed', 'elementor-podcast-manager' ),
+							'<code>' . esc_html( home_url( '/feed/podcast/' ) ) . '</code>'
+						);
+						?>
+					</label>
+					<p class="epm-field__help" id="epm-setup-feed-alias-help">
+						<?php
+						echo esc_html(
+							sprintf(
+								/* translators: %s: plugin names, e.g. "PowerPress" */
+								__( 'This site has settings of %s, whose feed was at /feed/podcast/. Apps and directories subscribed there follow the permanent redirect to the new feed. Turn it on once the old plugin is deactivated.', 'elementor-podcast-manager' ),
+								implode( ', ', $epm_previous )
+							)
+						);
+						?>
+					</p>
+				</fieldset>
+			<?php endif; ?>
+
 			<div class="epm-field">
 				<span class="epm-field__label" id="epm-setup-artwork-label"><?php esc_html_e( 'Podcast artwork', 'elementor-podcast-manager' ); ?></span>
 				<div class="epm-artwork-picker">
@@ -349,7 +391,7 @@ $epm_steps = [
 				</div>
 			</div>
 
-			<p class="epm-field__error" data-error hidden></p>
+			<div class="epm-field__error" data-error hidden></div>
 
 			<div class="epm-card__footer epm-card__footer--split">
 				<button type="button" class="epm-button-link epm-button-link--muted" data-action="back"><?php esc_html_e( 'Back', 'elementor-podcast-manager' ); ?></button>
@@ -408,7 +450,7 @@ $epm_steps = [
 				</label>
 			<?php endif; ?>
 
-			<p class="epm-field__error" data-error hidden></p>
+			<div class="epm-field__error" data-error hidden></div>
 
 			<div class="epm-card__footer epm-card__footer--split">
 				<button type="button" class="epm-button-link epm-button-link--muted" data-action="back"><?php esc_html_e( 'Back', 'elementor-podcast-manager' ); ?></button>
@@ -429,7 +471,7 @@ $epm_steps = [
 			<p class="epm-panel__lede"><?php esc_html_e( 'Publish your first episode, then submit this feed address once to each platform. New episodes reach them automatically after that.', 'elementor-podcast-manager' ); ?></p>
 			<div class="epm-copy">
 				<code class="epm-copy__value"><?php echo esc_html( \EPM\Feed::url() ); ?></code>
-				<button type="button" class="button" data-copy="<?php echo esc_attr( \EPM\Feed::url() ); ?>"><?php esc_html_e( 'Copy feed address', 'elementor-podcast-manager' ); ?></button>
+				<button type="button" class="button" data-epm-copy="<?php echo esc_attr( \EPM\Feed::url() ); ?>"><?php esc_html_e( 'Copy feed address', 'elementor-podcast-manager' ); ?></button>
 			</div>
 		</div>
 
@@ -441,7 +483,7 @@ $epm_steps = [
 					<span class="epm-checklist__label"><?php esc_html_e( 'Copy this site’s feed address', 'elementor-podcast-manager' ); ?></span>
 					<div class="epm-checklist__text epm-copy">
 						<code class="epm-copy__value"><?php echo esc_html( \EPM\Feed::url() ); ?></code>
-						<button type="button" class="button" data-copy="<?php echo esc_attr( \EPM\Feed::url() ); ?>"><?php esc_html_e( 'Copy feed address', 'elementor-podcast-manager' ); ?></button>
+						<button type="button" class="button" data-epm-copy="<?php echo esc_attr( \EPM\Feed::url() ); ?>"><?php esc_html_e( 'Copy feed address', 'elementor-podcast-manager' ); ?></button>
 					</div>
 				</li>
 				<li class="epm-checklist__item">

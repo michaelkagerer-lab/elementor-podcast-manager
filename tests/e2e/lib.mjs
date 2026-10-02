@@ -43,9 +43,11 @@ export const assert = (condition, message) => {
 	}
 };
 
-export const launch = () =>
+/** Chromium; args are extra command-line switches. */
+export const launch = (args = []) =>
 	chromium.launch({
 		headless: true,
+		args,
 		...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}),
 	});
 
@@ -145,6 +147,19 @@ export async function tabTo(page, predicate, { back = false, max = 80 } = {}) {
 		}
 	}
 	return false;
+}
+
+/**
+ * Run one part of a suite: a thrown error fails that part only, so the
+ * parts after it still run.
+ */
+export async function section(title, fn) {
+	console.log(title);
+	try {
+		await fn();
+	} catch (error) {
+		assert(false, `${title}: ran to the end (${error && error.stack ? error.stack.split('\n').slice(0, 3).join(' | ') : error})`);
+	}
 }
 
 export function finish(name) {

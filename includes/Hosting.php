@@ -139,6 +139,7 @@ final class Hosting {
 	 * @return void
 	 */
 	public function register_settings(): void {
+		add_filter( 'pre_update_option_' . self::OPTION, [ self::class, 'validate_settings_save' ], 10, 2 );
 		register_setting(
 			'epm_hosting_group',
 			self::OPTION,
@@ -150,6 +151,35 @@ final class Hosting {
 		);
 
 		add_filter( 'option_page_capability_epm_hosting_group', [ Capabilities::class, 'manage_podcast' ] );
+	}
+
+	/**
+	 * Verify a changed external feed before WordPress persists a redirect.
+	 *
+	 * @param mixed $new New sanitized settings.
+	 * @param mixed $old Stored settings.
+	 * @return array<string, mixed>
+	 */
+	public static function validate_settings_save( $new, $old ): array {
+		$new = is_array( $new ) ? $new : self::defaults();
+		$old = is_array( $old ) ? $old : self::defaults();
+		if ( 'external' !== ( $new['mode'] ?? '' ) || empty( $new['feed_url'] ) || ( 'external' === ( $old['mode'] ?? '' ) && ( $old['feed_url'] ?? '' ) === $new['feed_url'] ) ) {
+			return $new;
+		}
+		$fetch = self::fetch( (string) $new['feed_url'] );
+		$parsed = is_wp_error( $fetch ) || 200 !== (int) ( $fetch['status'] ?? 0 )
+			? new \WP_Error( 'epm_feed_unverified', __( 'The host feed could not be verified. Hosting and redirects stay as they are until the address is checked.', 'elementor-podcast-manager' ) )
+			: ( new FeedParser() )->parse( (string) $fetch['body'] );
+		if ( is_wp_error( $parsed ) || empty( $parsed['items'] ) ) {
+			$error_message = is_wp_error( $parsed ) ? $parsed->get_error_message() : __( 'The address does not contain podcast episodes.', 'elementor-podcast-manager' );
+			self::report( 'epm_hosting_unverified_feed', sprintf( __( '%1$s Hosting and redirects stay as they are.', 'elementor-podcast-manager' ), $error_message ) );
+			return $old;
+		}
+		if ( self::has_url_secret( (string) $new['feed_url'] ) ) {
+			self::report( 'epm_hosting_private_feed', __( 'This feed address contains credentials. The address is kept private and the public 301 redirect is turned off so those credentials are not sent to listeners.', 'elementor-podcast-manager' ) );
+			$new['redirect'] = false;
+		}
+		return $new;
 	}
 
 	/**
@@ -222,6 +252,15 @@ final class Hosting {
 					: __( 'Enter your host’s RSS feed address (it starts with https://). The address saved before is kept.', 'elementor-podcast-manager' )
 			);
 		}
+		if ( 'external' === $out['mode'] && self::is_own_feed( (string) $out['feed_url'] ) ) {
+			$out['mode'] = 'self';
+			$out['redirect'] = false;
+			self::report( 'epm_hosting_loop', __( 'This address is this website’s own podcast feed. Choose the host’s feed address to avoid a redirect loop.', 'elementor-podcast-manager' ) );
+		}
+		if ( 'external' === $out['mode'] && self::has_url_secret( (string) $out['feed_url'] ) ) {
+			$out['redirect'] = false;
+			self::report( 'epm_hosting_private_feed', __( 'This feed address contains credentials. Its public redirect is turned off so credentials are not sent to listeners.', 'elementor-podcast-manager' ) );
+		}
 
 		// Detect the host from the feed address when none was chosen.
 		if ( '' === $out['provider'] && '' !== $out['feed_url'] ) {
@@ -284,10 +323,36 @@ final class Hosting {
 		}
 
 		$url = esc_url_raw( $url, [ 'http', 'https' ] );
-
+		$parts = wp_parse_url( $url );
+		if ( ! is_array( $parts ) ) {
+			return '';
+		}
+		// Retain authentication for server-side fetches. Public output uses
+		// has_url_secret() to avoid publishing signed/private addresses.
 		// Requests go through wp_safe_remote_get, which rejects private
 		// network targets; here only the shape is checked.
 		return '' !== (string) wp_parse_url( $url, PHP_URL_HOST ) ? $url : '';
+	}
+
+	/**
+	 * Build an HTTP URL from parsed components after removing credentials.
+	 *
+	 * @param array<string, mixed> $parts Parsed URL components.
+	 * @return string
+	 */
+	private static function unparse_url( array $parts ): string {
+		$url = (string) ( $parts['scheme'] ?? 'https' ) . '://' . (string) ( $parts['host'] ?? '' );
+		if ( isset( $parts['port'] ) ) {
+			$url .= ':' . (int) $parts['port'];
+		}
+		$url .= (string) ( $parts['path'] ?? '' );
+		if ( isset( $parts['query'] ) && '' !== (string) $parts['query'] ) {
+			$url .= '?' . $parts['query'];
+		}
+		if ( isset( $parts['fragment'] ) && '' !== (string) $parts['fragment'] ) {
+			$url .= '#' . $parts['fragment'];
+		}
+		return $url;
 	}
 
 	/**
@@ -316,8 +381,55 @@ final class Hosting {
 	 */
 	public static function public_feed_url(): string {
 		$source = self::source_feed_url();
+		return '' !== $source ? ( self::has_url_secret( $source ) ? '' : $source ) : Feed::url();
+	}
 
-		return '' !== $source ? $source : Feed::url();
+	/** Whether a URL contains credentials that must not be published. */
+	public static function has_url_secret( string $url ): bool {
+		$parts = wp_parse_url( $url );
+		if ( ! is_array( $parts ) ) {
+			return false;
+		}
+		if ( isset( $parts['user'] ) || isset( $parts['pass'] ) ) {
+			return true;
+		}
+		parse_str( (string) ( $parts['query'] ?? '' ), $query );
+		foreach ( array_keys( $query ) as $key ) {
+			if ( preg_match( '/(?:auth|token|key|secret|signature|sig|credential|password|api[-_]?key)/i', (string) $key ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Remove authentication data from URLs that can be shown to visitors.
+	 *
+	 * @param string $url Feed URL.
+	 * @return string
+	 */
+	public static function public_safe_url( string $url ): string {
+		if ( self::has_url_secret( $url ) ) {
+			return '';
+		}
+		$parts = wp_parse_url( $url );
+		if ( ! is_array( $parts ) ) {
+			return '';
+		}
+		unset( $parts['user'], $parts['pass'] );
+		if ( ! empty( $parts['query'] ) ) {
+			parse_str( (string) $parts['query'], $query );
+			foreach ( array_keys( $query ) as $key ) {
+				if ( preg_match( '/(?:auth|token|key|secret|signature|sig|credential|password|api[-_]?key)/i', (string) $key ) ) {
+					unset( $query[ $key ] );
+				}
+			}
+			$parts['query'] = http_build_query( $query );
+			if ( '' === $parts['query'] ) {
+				unset( $parts['query'] );
+			}
+		}
+		return self::unparse_url( $parts );
 	}
 
 	/**
@@ -338,7 +450,7 @@ final class Hosting {
 		$target = (string) self::get( 'feed_url' );
 
 		// Never redirect the feed to itself.
-		if ( '' === $target || self::is_own_feed( $target ) ) {
+		if ( '' === $target || self::is_own_feed( $target ) || self::has_url_secret( $target ) ) {
 			return '';
 		}
 
@@ -408,8 +520,10 @@ final class Hosting {
 				'drafted'       => 0,
 				'pending'       => false,
 				'failures'      => 0,
+				'retry_at'      => 0,
 				'items'         => 0,
 				'feed_title'    => '',
+				'expiring_audio' => false,
 			]
 		);
 	}
@@ -470,6 +584,55 @@ final class Hosting {
 		return self::is_external() && '' !== (string) self::get( 'feed_url' ) && (bool) self::get( 'sync' );
 	}
 
+	/** Whether automatic syncing has missed its configured interval. */
+	public static function sync_is_overdue(): bool {
+		if ( ! self::sync_enabled() ) {
+			return false;
+		}
+		$state = self::state();
+		$intervals = [ 'hourly' => HOUR_IN_SECONDS, 'twicedaily' => 12 * HOUR_IN_SECONDS, 'daily' => DAY_IN_SECONDS ];
+		$interval = (int) ( $intervals[ (string) self::get( 'interval' ) ] ?? HOUR_IN_SECONDS );
+		$success = (int) $state['last_success'];
+		$next = wp_next_scheduled( self::CRON_HOOK );
+		return ( $success > 0 && time() - $success > 2 * $interval ) || ( false !== $next && time() - $next > $interval );
+	}
+
+	/**
+	 * Whether two parsed RSS documents have evidence of the same show.
+	 *
+	 * @param array<string, mixed> $old Previous feed.
+	 * @param array<string, mixed> $new Announced feed.
+	 * @return bool
+	 */
+	private static function same_show( array $old, array $new ): bool {
+		$old_guid = trim( (string) ( $old['channel']['podcast_guid'] ?? '' ) );
+		$new_guid = trim( (string) ( $new['channel']['podcast_guid'] ?? '' ) );
+		if ( '' !== $old_guid && '' !== $new_guid ) {
+			return hash_equals( $old_guid, $new_guid );
+		}
+		$guids = array_fill_keys( array_filter( array_map( static function ( $item ) {
+			return trim( (string) ( $item['guid'] ?? '' ) );
+		}, (array) ( $old['items'] ?? [] ) ) ), true );
+		foreach ( (array) ( $new['items'] ?? [] ) as $item ) {
+			$guid = trim( (string) ( $item['guid'] ?? '' ) );
+			if ( '' !== $guid && isset( $guids[ $guid ] ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** Administrator used for episodes created by scheduled sync. */
+	private static function author_id(): int {
+		$state = self::state();
+		if ( ! empty( $state['author'] ) && get_user_by( 'id', (int) $state['author'] ) ) {
+			return (int) $state['author'];
+		}
+		$users = get_users( [ 'role' => 'administrator', 'number' => 1, 'fields' => 'ID', 'orderby' => 'ID', 'order' => 'ASC' ] );
+		return ! empty( $users ) ? (int) $users[0] : 1;
+	}
+
+
 	/**
 	 * Make the cron schedule match the settings.
 	 *
@@ -502,7 +665,10 @@ final class Hosting {
 	public static function unschedule_all(): void {
 		wp_clear_scheduled_hook( self::CRON_HOOK );
 		wp_clear_scheduled_hook( ImportJob::CRON_HOOK );
+		wp_clear_scheduled_hook( ImportJob::CLEANUP_HOOK );
 		wp_clear_scheduled_hook( Feed::PING_HOOK );
+		wp_clear_scheduled_hook( Feed::PING_FILTER );
+		wp_clear_scheduled_hook( Upgrade::HOOK );
 	}
 
 	/**
@@ -518,6 +684,9 @@ final class Hosting {
 		// Back off after repeated failures: 1, 2, 4 … up to 24 hours.
 		$state    = self::state();
 		$failures = (int) $state['failures'];
+		if ( time() < (int) ( $state['retry_at'] ?? 0 ) ) {
+			return;
+		}
 		if ( $failures >= 3 ) {
 			$wait = min( DAY_IN_SECONDS, HOUR_IN_SECONDS * ( 2 ** min( 5, $failures - 3 ) ) );
 			if ( time() - (int) $state['last_run'] < $wait ) {
@@ -555,29 +724,57 @@ final class Hosting {
 			$headers['If-Modified-Since'] = (string) $validators['last_modified'];
 		}
 
-		$response = wp_safe_remote_get(
-			$url,
-			[
-				'timeout'             => 30,
-				'redirection'         => 5,
-				'headers'             => $headers,
-				'user-agent'          => 'ElementorPodcastManager/' . EPM_VERSION . '; ' . home_url( '/' ),
-				'limit_response_size' => (int) apply_filters( 'epm_feed_max_bytes', 50 * MB_IN_BYTES ),
-			]
-		);
+		$max_bytes = max( 1, (int) apply_filters( 'epm_feed_max_bytes', 50 * MB_IN_BYTES ) );
+		// Stop a host -> local feed redirect before the local feed can send
+		// it back to the host. A completed response cannot expose this loop.
+		$moved_here = false;
+		$guard = static function ( $location, $redirect_headers, $data, $options, $previous ) use ( &$moved_here ): void {
+			if ( ! self::is_own_feed( (string) $location ) || ! in_array( (int) ( $previous->status_code ?? 0 ), [ 301, 308 ], true ) ) {
+				return;
+			}
+			foreach ( (array) ( $previous->history ?? [] ) as $hop ) {
+				if ( ! in_array( (int) $hop->status_code, [ 301, 308 ], true ) ) { return; }
+			}
+			$moved_here = true;
+			throw new \WpOrg\Requests\Exception( 'Permanent feed move to this website.', 'epm_feed_moved_here' );
+		};
+		add_action( 'requests-requests.before_redirect', $guard, 0, 5 );
+		try {
+			$response = SafeHttp::get(
+				$url,
+				[
+					'timeout'             => 30,
+					'redirection'         => 5,
+					'headers'             => $headers,
+					'user-agent'          => 'ElementorPodcastManager/' . EPM_VERSION . '; ' . home_url( '/' ),
+					'limit_response_size' => $max_bytes + 1,
+				]
+			);
+		} catch ( \WpOrg\Requests\Exception $error ) {
+			if ( ! $moved_here ) { throw $error; }
+			$response = new \WP_Error( 'epm_feed_moved_here' );
+		} finally {
+			remove_action( 'requests-requests.before_redirect', $guard, 0 );
+		}
+		if ( $moved_here ) {
+			return new \WP_Error( 'epm_feed_moved_here', __( 'Your host now sends podcast apps to this website’s feed.', 'elementor-podcast-manager' ) );
+		}
 
 		if ( is_wp_error( $response ) ) {
-			return new \WP_Error(
-				'epm_feed_unreachable',
-				sprintf(
-					/* translators: %s: error message from the HTTP client */
-					__( 'The feed could not be loaded: %s', 'elementor-podcast-manager' ),
-					$response->get_error_message()
-				)
-			);
+			if ( 'epm_insecure_redirect' === $response->get_error_code() ) {
+				return $response;
+			}
+			return self::transport_error( $response );
 		}
 
 		$status = (int) wp_remote_retrieve_response_code( $response );
+		if ( 200 === $status && SafeHttp::exceeds_limit( $response, $max_bytes ) ) {
+			return new \WP_Error(
+				'epm_feed_too_large',
+				/* translators: %s: response size limit in bytes */
+				sprintf( __( 'The feed exceeds the %s-byte size limit. Ask the host for a smaller or paged feed, or adjust epm_feed_max_bytes.', 'elementor-podcast-manager' ), number_format_i18n( $max_bytes ) )
+			);
+		}
 
 		// 202 and friends are not a feed (seen: bot-protection pages).
 		if ( 304 !== $status && 200 !== $status ) {
@@ -586,14 +783,33 @@ final class Hosting {
 				return new \WP_Error( 'epm_feed_blocked', __( 'The server answered with a bot-protection page instead of the feed. Ask the site owner to allow podcast apps to read the feed, or use the feed address from your podcast host.', 'elementor-podcast-manager' ) );
 			}
 
-			return new \WP_Error(
-				'epm_feed_http',
-				sprintf(
+			$code = 404 === $status || 410 === $status ? 'epm_feed_http_address'
+				: ( 401 === $status || 403 === $status ? 'epm_feed_http_access'
+				: ( 429 === $status ? 'epm_feed_http_rate_limited'
+				: ( $status >= 500 ? 'epm_feed_http_temporary' : 'epm_feed_http' ) ) );
+			$message = $status >= 500
+				? sprintf(
 					/* translators: %d: HTTP status code */
-					__( 'The feed address answered with HTTP status %d. Check the address in your host’s dashboard.', 'elementor-podcast-manager' ),
+					__( 'The podcast host returned HTTP %d and is temporarily unavailable. The feed will be checked again.', 'elementor-podcast-manager' ),
 					$status
 				)
+				: ( 404 === $status || 410 === $status
+				? __( 'The host feed address returned 404 or 410. Check the RSS address in your host dashboard.', 'elementor-podcast-manager' )
+				: ( 401 === $status || 403 === $status
+				? __( 'The host denied access to this feed. Check its privacy and access settings.', 'elementor-podcast-manager' )
+				: ( 429 === $status
+				? __( 'The host is rate limiting feed checks. The next check will wait for the host’s Retry-After time.', 'elementor-podcast-manager' )
+				: sprintf( __( 'The feed address answered with HTTP status %d.', 'elementor-podcast-manager' ), $status ) ) ) );
+			$error = new \WP_Error(
+				$code,
+				$message
 			);
+			if ( 429 === $status || $status >= 500 ) {
+				$retry = self::header( $response, 'retry-after' );
+				$retry_after = is_numeric( $retry ) ? (int) $retry : ( is_string( $retry ) && '' !== $retry ? max( 0, strtotime( $retry ) - time() ) : 0 );
+				$error->add_data( [ 'retry_after' => max( 0, $retry_after ), 'status' => $status ] );
+			}
+			return $error;
 		}
 
 		// Follow permanent moves (301/308 only) like podcast apps do.
@@ -810,6 +1026,7 @@ final class Hosting {
 		}
 
 		try {
+			self::update_state( [ 'last_run' => $now, 'status' => 'running', 'message' => __( 'Checking the podcast host feed.', 'elementor-podcast-manager' ) ] );
 			$validators = ( $force || $state['feed_url'] !== $url ) ? [] : [
 				'etag'          => (string) $state['etag'],
 				'last_modified' => (string) $state['last_modified'],
@@ -818,15 +1035,31 @@ final class Hosting {
 			$fetched = self::fetch( $url, $validators );
 
 			if ( is_wp_error( $fetched ) ) {
+				if ( 'epm_feed_moved_here' === $fetched->get_error_code() && 'external' === $settings['mode'] ) {
+					$settings['mode'] = 'self';
+					update_option( self::OPTION, $settings );
+					$result['status'] = 'ok';
+					$result['message'] = __( 'Your host now sends podcast apps to this website’s feed, so hosting switched to “This website”: the feed here is no longer redirected and syncing stopped.', 'elementor-podcast-manager' );
+					self::update_state( [ 'last_run' => $now, 'status' => 'ok', 'message' => $result['message'], 'failures' => 0, 'retry_at' => 0 ] );
+					return $result;
+				}
 				$result['message'] = $fetched->get_error_message();
+				$error_data = $fetched->get_error_data();
+				$error_data = is_array( $error_data ) ? $error_data : [];
 				self::update_state(
 					[
 						'last_run' => $now,
 						'status'   => 'error',
 						'message'  => $result['message'],
 						'failures' => (int) $state['failures'] + 1,
+						'retry_at' => $now + max( 0, (int) ( $error_data['retry_after'] ?? 0 ) ),
 					]
 				);
+				return $result;
+			}
+			if ( 200 === (int) $fetched['status'] && strlen( (string) $fetched['body'] ) > (int) apply_filters( 'epm_feed_max_bytes', 50 * MB_IN_BYTES ) ) {
+				$result['message'] = __( 'The host feed exceeded the configured response size limit, so nothing was synchronized.', 'elementor-podcast-manager' );
+				self::update_state( [ 'last_run' => $now, 'status' => 'error', 'message' => $result['message'], 'failures' => (int) $state['failures'] + 1, 'retry_at' => $now + HOUR_IN_SECONDS ] );
 				return $result;
 			}
 
@@ -858,8 +1091,14 @@ final class Hosting {
 						'status'   => 'error',
 						'message'  => $result['message'],
 						'failures' => (int) $state['failures'] + 1,
+						'retry_at' => $now + HOUR_IN_SECONDS,
 					]
 				);
+				return $result;
+			}
+			if ( strlen( (string) $parsed['channel']['title'] ) > 4096 || strlen( (string) $parsed['channel']['description'] ) > 32768 ) {
+				$result['message'] = __( 'The host feed contains channel text that exceeds safe size limits. Nothing was synchronized.', 'elementor-podcast-manager' );
+				self::update_state( [ 'last_run' => $now, 'status' => 'error', 'message' => $result['message'], 'failures' => (int) $state['failures'] + 1, 'retry_at' => $now + HOUR_IN_SECONDS ] );
 				return $result;
 			}
 
@@ -881,7 +1120,8 @@ final class Hosting {
 							'last_run' => $now,
 							'status'   => 'error',
 							'message'  => $result['message'],
-							'failures' => (int) $state['failures'] + 1,
+						'failures' => (int) $state['failures'] + 1,
+						'retry_at' => $now + HOUR_IN_SECONDS,
 						]
 					);
 					return $result;
@@ -892,23 +1132,25 @@ final class Hosting {
 				[
 					'feed_url' => $url,
 					'status'   => (string) $settings['new_status'],
+					'author'   => self::author_id(),
 				]
 			);
 
+			$expiring_audio = false;
 			[ $unique ] = Importer::dedupe( $parsed['items'] );
 			$parsed['items'] = $unique;
 
-			$importer->prime();
 
 			$limit   = max( 1, (int) apply_filters( 'epm_sync_batch_limit', 25 ) );
 			$pending = false;
 			$guids   = [];
 
 			// Oldest first, so a capped run imports in publishing order.
-			$items     = array_reverse( $parsed['items'] );
-			$refreshed = time();
+			$items = array_reverse( $parsed['items'] );
+			$lost  = false;
 			foreach ( $items as $item ) {
 				$guids[ (string) $item['guid'] ] = true;
+				$expiring_audio = $expiring_audio || Importer::has_expiring_audio_url( (string) ( $item['audio_url'] ?? '' ) );
 
 				if ( $result['created'] >= $limit && ! $importer->exists( (string) $item['guid'] ) ) {
 					$pending = true;
@@ -916,12 +1158,24 @@ final class Hosting {
 				}
 
 				// A long run keeps its lock (new episodes fetch chapters and
-				// transcripts); renewed once a minute at most.
-				if ( time() - $refreshed >= MINUTE_IN_SECONDS ) {
-					ImportJob::refresh_lock();
-					$refreshed = time();
+				// transcripts). When another request took it over (this run
+				// looked abandoned), stop: that request works now.
+				if ( ! ImportJob::keep_lock() ) {
+					$lost = true;
+					break;
 				}
 				$outcome = $importer->import_item( $item );
+				// Transcripts may be large. Keep only the current episode's
+				// metadata in this request, including skipped/failed outcomes.
+				if ( ! empty( $outcome['id'] ) ) {
+					wp_cache_delete( (int) $outcome['id'], 'posts' );
+					wp_cache_delete( (int) $outcome['id'], 'post_meta' );
+				}
+				if ( 'failed' === ( $outcome['action'] ?? '' ) ) {
+					$pending          = true;
+					$result['message'] = (string) ( $outcome['message'] ?? __( 'An episode could not be synchronized.', 'elementor-podcast-manager' ) );
+					continue;
+				}
 				if ( 'created' === $outcome['action'] ) {
 					++$result['created'];
 				} elseif ( 'updated' === $outcome['action'] ) {
@@ -929,8 +1183,24 @@ final class Hosting {
 				}
 			}
 
-			if ( 'draft' === $settings['missing'] && ! empty( $items ) ) {
-				$result['drafted'] = $importer->draft_missing( $guids, self::oldest_date( $parsed['items'] ) );
+			// Stopped half-way: nothing is recorded as synced (no validators,
+			// no drafting of missing episodes), so the next run reads the
+			// whole feed again.
+			if ( $lost ) {
+				if ( $result['created'] || $result['updated'] ) {
+					Feed::flush_cache();
+				}
+				$result['status']  = 'busy';
+				$result['message'] = __( 'Another import or sync took over, so this sync stopped. It runs again on the next schedule.', 'elementor-podcast-manager' );
+				return $result;
+			}
+
+			$paged = ! empty( $parsed['channel']['next'] );
+			if ( ! $pending && ! $paged && ! empty( $items ) ) {
+				if ( 'draft' === $settings['missing'] ) {
+					$result['drafted'] += $importer->draft_missing( $guids, self::oldest_date( $parsed['items'] ) );
+				}
+				$result['drafted'] += $importer->draft_missing( $guids, self::oldest_date( $parsed['items'] ), true );
 			}
 
 			// The host announced a new address: follow it, like apps do.
@@ -948,13 +1218,34 @@ final class Hosting {
 				$settings['mode'] = 'self';
 				update_option( self::OPTION, $settings );
 			} elseif ( ! $own_feed && '' !== $next_url && $next_url !== $url && ( 0 !== stripos( $url, 'https://' ) || 0 === stripos( $next_url, 'https://' ) ) ) {
-				// Never adopt a move from https to http (fetch() has the same rule).
-				$settings['feed_url'] = $next_url;
-				update_option( self::OPTION, $settings );
+				// Verify the destination is a usable podcast feed before
+				// publishing it as the permanent redirect target.
+				$verified = self::fetch( $next_url );
+				$verified_feed = ! is_wp_error( $verified ) && 200 === (int) $verified['status'] ? ( new FeedParser() )->parse( $verified['body'] ) : new \WP_Error( 'epm_feed_unverified', __( 'The announced feed address could not be verified.', 'elementor-podcast-manager' ) );
+				$same_show = ! is_wp_error( $verified_feed ) && self::same_show( $parsed, $verified_feed );
+				if ( $same_show ) {
+					$settings['feed_url'] = $next_url;
+					update_option( self::OPTION, $settings );
+					$result['message'] = sprintf(
+						/* translators: %s: verified new RSS feed address */
+						__( 'The host announced a new feed address. It was verified as this show and adopted: %s.', 'elementor-podcast-manager' ),
+						$next_url
+					);
+				} else {
+					$result['message'] = __( 'The host announced a new feed address, but it did not verify as the same show. The current address was kept.', 'elementor-podcast-manager' );
+				}
 			}
 
-			$result['status']  = 'ok';
-			$result['message'] = self::summary( $result );
+			$result['status']  = $pending ? 'partial' : 'ok';
+			if ( '' === $result['message'] ) {
+				$result['message'] = self::summary( $result );
+			}
+			if ( $pending ) {
+				$result['message'] .= ' ' . __( 'Some episodes could not be synchronized; the feed will be checked again.', 'elementor-podcast-manager' );
+			}
+			if ( $paged ) {
+				$result['message'] .= ' ' . __( 'Only the first page of this feed was checked. Re-import the feed to update older episodes. Episodes from other pages were kept.', 'elementor-podcast-manager' );
+			}
 			if ( $moved_here ) {
 				$result['message'] .= ' ' . __( 'Your host now sends podcast apps to this website’s feed, so hosting switched to “This website”: the feed here is no longer redirected and syncing stopped.', 'elementor-podcast-manager' );
 			}
@@ -962,8 +1253,8 @@ final class Hosting {
 			self::update_state(
 				[
 					'last_run'      => $now,
-					'last_success'  => $now,
-					'status'        => 'ok',
+					'last_success'  => $pending ? (int) $state['last_success'] : $now,
+					'status'        => $pending ? 'partial' : 'ok',
 					'message'       => $result['message'],
 					'etag'          => $pending ? '' : $fetched['etag'],
 					'last_modified' => $pending ? '' : $fetched['last_modified'],
@@ -973,7 +1264,8 @@ final class Hosting {
 					'drafted'       => $result['drafted'],
 					'pending'       => $pending,
 					'feed_title'    => (string) $parsed['channel']['title'],
-					'failures'      => 0,
+					'expiring_audio' => $expiring_audio,
+					'failures'      => $pending ? ( (int) $state['failures'] + 1 ) : 0,
 					'items'         => count( $parsed['items'] ),
 				]
 			);
@@ -984,6 +1276,9 @@ final class Hosting {
 
 			if ( $result['created'] || $result['updated'] || $result['drafted'] ) {
 				Feed::flush_cache();
+			}
+			if ( ! $pending ) {
+				self::update_state( [ 'retry_at' => 0 ] );
 			}
 
 			return $result;
@@ -1034,4 +1329,17 @@ final class Hosting {
 
 		return empty( $parts ) ? __( 'Up to date.', 'elementor-podcast-manager' ) : implode( ', ', $parts ) . '.';
 	}
+
+	/** Actionable transport failure, with diagnostic text kept separate. */
+	public static function transport_error( \WP_Error $response ): \WP_Error {
+		$details = $response->get_error_message();
+		$message = __( 'The podcast host could not be reached. Check the feed address and your connection, then try again.', 'elementor-podcast-manager' );
+		if ( preg_match( '/timed? ?out|timeout|cURL error 28/i', $details ) ) {
+			$message = __( 'The podcast host did not answer in time. Try again in a few minutes. If this continues, ask your host whether the feed is available.', 'elementor-podcast-manager' );
+		} elseif ( $details === translate( 'A valid URL was not provided.', 'default' ) || preg_match( '/valid URL|unsafe|blocked host|disallowed/i', $details ) ) {
+			$message = __( 'Use a public feed address starting with https://. Addresses on a private network cannot be imported.', 'elementor-podcast-manager' );
+		}
+		return new \WP_Error( 'epm_feed_unreachable', $message, [ 'details' => $details ] );
+	}
+
 }

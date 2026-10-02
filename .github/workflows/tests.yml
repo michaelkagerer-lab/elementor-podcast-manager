@@ -17,6 +17,7 @@ jobs:
   lint:
     name: Lint (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     strategy:
       fail-fast: false
       matrix:
@@ -35,6 +36,7 @@ jobs:
   integration:
     name: WordPress + Elementor (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -55,9 +57,111 @@ jobs:
         if: failure()
         run: cat /tmp/epm-wp/site/wp-content/debug.log || true
 
+  mariadb:
+    name: Races, import and media on MariaDB 10.11 (PHP 8.4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: epm_test
+          MARIADB_USER: epm
+          MARIADB_PASSWORD: epm
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=24
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mysqli, pdo_mysql, gd, zip, mbstring, intl
+          tools: none
+      - name: Site on MariaDB
+        run: WP_DB=mysql DB_NAME=epm_test DB_USER=epm DB_PASSWORD=epm DB_HOST=127.0.0.1:3306 tests/bin/setup-wp.sh
+      - name: Import integration tests
+        run: |
+          EPM_ALLOW_TEST_SEED=1 /tmp/epm-wp/wp eval-file tests/fixtures/seed.php > /dev/null
+          /tmp/epm-wp/wp eval-file tests/integration/import.php
+      - name: Media integration tests
+        run: |
+          EPM_ALLOW_TEST_SEED=1 /tmp/epm-wp/wp eval-file tests/fixtures/seed.php > /dev/null
+          /tmp/epm-wp/wp eval-file tests/integration/media.php
+      - name: Media downloads (local media host, real sockets)
+        run: WP_DIR=/tmp/epm-wp tests/media/run.sh
+      - name: Race tests (two processes, with the stress run)
+        run: STRESS=1 WP_DIR=/tmp/epm-wp tests/concurrency/run.sh
+      - name: Network lifecycle on the disposable MariaDB site
+        timeout-minutes: 3
+        run: WP_DIR=/tmp/epm-wp tests/multisite/run.sh
+      - name: Explicit data deletion budget
+        timeout-minutes: 1
+        run: EPM_TEST_SITE=1 timeout 35 /tmp/epm-wp/wp eval-file tests/perf/uninstall.php
+      - name: Debug log
+        if: failure()
+        run: cat /tmp/epm-wp/site/wp-content/debug.log || true
+
+  compatibility:
+    name: Compatibility (${{ matrix.profile }}, ${{ matrix.database }}, Elementor ${{ matrix.elementor }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {profile: minimum, database: mysql, elementor: 'on', elementor_off: '0'}
+          - {profile: minimum, database: sqlite, elementor: 'on', elementor_off: '0'}
+          - {profile: current, database: sqlite, elementor: 'off', elementor_off: '1'}
+    services:
+      mariadb:
+        image: ${{ matrix.database == 'mysql' && 'mariadb:10.11' || '' }}
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: epm_test
+          MARIADB_USER: epm
+          MARIADB_PASSWORD: epm
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=24
+    env:
+      EPM_TEST_PROFILE: ${{ matrix.profile }}
+      EPM_ELEMENTOR_OFF: ${{ matrix.elementor_off }}
+      WP_DB: ${{ matrix.database }}
+      DB_NAME: epm_test
+      DB_USER: epm
+      DB_PASSWORD: epm
+      DB_HOST: 127.0.0.1:3306
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mysqli, pdo_mysql, pdo_sqlite, sqlite3, gd, zip, mbstring, intl
+          tools: none
+      - name: Pinned disposable site
+        run: tests/bin/setup-wp.sh
+      - name: Compatibility and fixture safety
+        run: tests/compat/run.sh
+      - name: Dependency versions and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compatibility-${{ matrix.profile }}-${{ matrix.database }}-${{ matrix.elementor }}
+          path: |
+            tests/versions.json
+            /tmp/epm-wp/versions-actual.json
+            /tmp/epm-wp/site/wp-content/debug.log
+            /tmp/epm-wp/server.log
+          if-no-files-found: ignore
+
   browser:
     name: Browser (Playwright)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -69,12 +173,21 @@ jobs:
         with:
           node-version: '22'
       - name: Install Playwright
+        timeout-minutes: 5
         working-directory: tests/e2e
         run: |
-          npm install --no-audit --no-fund
-          npx playwright install --with-deps chromium
-      - name: All suites
-        run: tests/run-all.sh
+          npm ci --no-audit --no-fund
+          PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT=30000 npx playwright install --with-deps chromium firefox webkit
+      - name: All browser suites
+        run: EPM_E2E_ONLY=1 tests/run-all.sh
+      - name: Firefox and WebKit playback and keyboard checks
+        timeout-minutes: 3
+        working-directory: tests/e2e
+        run: |
+          for engine in firefox webkit; do
+            EPM_ALLOW_TEST_SEED=1 /tmp/epm-wp/wp eval-file ../fixtures/seed.php > /dev/null
+            WP_CLI=/tmp/epm-wp/wp EPM_BROWSER="$engine" timeout 75 node browser-compat.mjs
+          done
       - name: Debug log
         if: failure()
         run: cat /tmp/epm-wp/site/wp-content/debug.log || true

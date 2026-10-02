@@ -112,7 +112,7 @@ final class PodcastHeroWidget extends Widget_Base {
 		$this->add_toggle( 'show_title', __( 'Title', 'elementor-podcast-manager' ), true );
 		$this->add_toggle( 'show_description', __( 'Description', 'elementor-podcast-manager' ), true );
 		$this->add_toggle( 'show_host', __( 'Host', 'elementor-podcast-manager' ), true );
-		$this->add_toggle( 'show_cta', __( 'Call to Action', 'elementor-podcast-manager' ), false );
+		$this->add_toggle( 'show_cta', __( 'Call to Action', 'elementor-podcast-manager' ), false, [ 'description' => __( 'A button next to the platform links. Shown once it has a text and a link.', 'elementor-podcast-manager' ) ] );
 		$this->add_toggle( 'show_platform_links', __( 'Platform Links', 'elementor-podcast-manager' ), true );
 		$this->add_toggle( 'show_rss', __( 'RSS Link', 'elementor-podcast-manager' ), true );
 
@@ -287,6 +287,8 @@ final class PodcastHeroWidget extends Widget_Base {
 				$rel    = ! empty( $cta_url['nofollow'] ) ? ' rel="nofollow"' : '';
 
 				echo '<a class="epm-podcast-hero__cta" href="' . esc_url( $url ) . '"' . $target . $rel . '>' . esc_html( $text ) . '</a>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- target/rel are hardcoded attribute strings.
+			} else {
+				$this->editor_placeholder( __( 'The call to action shows once it has a text and a link (CTA URL).', 'elementor-podcast-manager' ) );
 			}
 		}
 

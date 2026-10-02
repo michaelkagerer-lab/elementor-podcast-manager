@@ -21,6 +21,7 @@ use EPM\EpisodePostType;
 use EPM\Episodes;
 use EPM\Feed;
 use EPM\PodcastSettings;
+use EPM\Plugin;
 use EPM\Readiness;
 
 require_once __DIR__ . '/lib.php';
@@ -42,6 +43,17 @@ add_action(
 );
 
 $t = new EPM_Test_Runner();
+
+$t->test(
+	'QA-N2: the fixture transport refuses unmocked remote requests by default',
+	static function ( EPM_Test_Runner $t ) {
+		$t->assert( class_exists( 'EPM_Test_HTTP' ), 'test transport is installed' );
+		$response = apply_filters( 'pre_http_request', false, [], 'https://unmocked.example.invalid/feed.xml' );
+		$t->assert( is_wp_error( $response ) && false !== strpos( $response->get_error_message(), 'Offline test run:' ), 'unknown hosts cannot leave the test site' );
+		$local = apply_filters( 'pre_http_request', false, [], home_url( '/podcast/feed/' ) );
+		$t->same( false, $local, 'local socket tests can still reach the test server' );
+	}
+);
 
 WP_CLI::log( 'Routing & capabilities' );
 
@@ -211,6 +223,55 @@ $t->test(
 		$t->same( '', $clean['subcategory'] );
 		$clean = epm()->settings->sanitize( [ 'category' => 'Legacy Free Text' ] );
 		$t->same( 'Legacy Free Text', $clean['category'], 'legacy values are kept' );
+		$clean = epm()->settings->sanitize( [ 'artwork_id' => 99999999, 'default_artwork_id' => 99999999 ] );
+		$t->same( [ 0, 0 ], [ $clean['artwork_id'], $clean['default_artwork_id'] ], 'non-attachment artwork IDs are rejected' );
+	}
+);
+
+$t->test(
+	'REST structured meta sanitizers reject unsafe links, markup and malformed chapters',
+	static function ( EPM_Test_Runner $t ) {
+		$t->same( [ [ 'time' => '01:02', 'title' => 'Chapter', 'url' => '' ] ], Plugin::sanitize_rest_chapters( [ [ 'time' => 'bad', 'title' => 'Bad' ], [ 'time' => '01:02', 'title' => '<b>Chapter</b>', 'url' => 'javascript:alert(1)' ] ] ) );
+		$t->same( [], Plugin::sanitize_rest_platform_urls( [ [ 'service' => 'custom', 'label' => '<script>x</script>', 'url' => 'javascript:alert(1)' ] ] ) );
+	}
+);
+
+$t->test(
+	'SEC-N4: REST writes sanitize structured metadata before anonymous reads',
+	static function ( EPM_Test_Runner $t ) {
+		$previous_user = get_current_user_id();
+		wp_set_current_user( 1 );
+		$id = wp_insert_post( [ 'post_type' => EpisodePostType::CPT, 'post_status' => 'publish', 'post_title' => 'REST structured metadata test' ] );
+		try {
+			$request = new WP_REST_Request( 'POST', '/wp/v2/' . EpisodePostType::CPT . '/' . $id );
+			$request->set_param( 'meta', [
+				'_epm_chapters' => [
+					[ 'time' => '01:02', 'title' => '<b>Chapter</b>', 'url' => 'javascript:alert(1)' ],
+					[ 'time' => '01:99', 'title' => 'Invalid seconds', 'url' => '' ],
+					[ 'time' => '1:99:00', 'title' => 'Invalid minutes', 'url' => '' ],
+					[ 'time' => 'bad', 'title' => 'Invalid clock', 'url' => '' ],
+				],
+				'_epm_platform_urls' => [
+					[ 'service' => 'custom', 'label' => '<b>Safe</b>', 'url' => 'https://listen.example.com/show' ],
+					[ 'service' => 'custom', 'label' => 'Unsafe', 'url' => 'javascript:alert(1)' ],
+				],
+			] );
+			$t->same( 200, rest_do_request( $request )->get_status(), 'real REST write succeeds' );
+			$chapters = [ [ 'time' => '01:02', 'title' => 'Chapter', 'url' => '' ] ];
+			$links = [ [ 'service' => 'custom', 'label' => 'Safe', 'url' => 'https://listen.example.com/show' ] ];
+			$t->same( $chapters, get_post_meta( $id, '_epm_chapters', true ), 'database contains valid chapters only' );
+			$t->same( $links, get_post_meta( $id, '_epm_platform_urls', true ), 'database contains safe links only' );
+			wp_set_current_user( 0 );
+			$response = rest_do_request( new WP_REST_Request( 'GET', '/wp/v2/' . EpisodePostType::CPT . '/' . $id ) );
+			$t->same( 200, $response->get_status(), 'anonymous client can read the public episode' );
+			$data = $response->get_data();
+			$t->same( $chapters, $data['meta']['_epm_chapters'] ?? null, 'anonymous chapters are sanitized' );
+			$t->same( $links, $data['meta']['_epm_platform_urls'] ?? null, 'anonymous links are sanitized' );
+		} finally {
+			wp_set_current_user( 1 );
+			wp_delete_post( $id, true );
+			wp_set_current_user( $previous_user );
+		}
 	}
 );
 
@@ -357,13 +418,99 @@ $t->test(
 	static function ( EPM_Test_Runner $t ) use ( $fx ) {
 		Feed::flush_cache();
 		$first = epm()->feed->get_document();
-		$t->assert( false !== get_transient( 'epm_feed_cache' ), 'cached' );
+		$t->assert( null !== \EPM\FeedStore::current(), 'cached' );
 		$t->same( $first['etag'], epm()->feed->get_document()['etag'], 'stable etag' );
 		update_post_meta( $fx['ep1'], '_edit_lock', time() . ':1' );
-		$t->assert( false !== get_transient( 'epm_feed_cache' ), 'editor heartbeats keep the cache' );
+		$t->assert( null !== \EPM\FeedStore::current(), 'editor heartbeats keep the cache' );
 		wp_update_post( [ 'ID' => $fx['ep3'], 'post_excerpt' => 'changed' ] );
-		$t->same( false, get_transient( 'epm_feed_cache' ), 'episode save flushes the cache' );
+		$t->same( null, \EPM\FeedStore::current(), 'episode save flushes the cache' );
 		wp_update_post( [ 'ID' => $fx['ep3'], 'post_excerpt' => '' ] );
+	}
+);
+
+$t->test(
+	'Podcast Index ping: the opt-out filter stops it, and by default publishing schedules one deferred ping without a request',
+	static function ( EPM_Test_Runner $t ) {
+		$hooks = [ 'epm_ping_podcast_index', 'epm_podcast_index_ping' ];
+		$pings = static function (): array {
+			return array_values(
+				array_filter(
+					EPM_Test_HTTP::$log,
+					static function ( $entry ) {
+						return 'api.podcastindex.org' === wp_parse_url( $entry['url'], PHP_URL_HOST );
+					}
+				)
+			);
+		};
+		$scheduled = static function () use ( $hooks ): array {
+			$found = [];
+			foreach ( $hooks as $hook ) {
+				if ( wp_next_scheduled( $hook ) ) {
+					$found[] = $hook;
+				}
+			}
+			return $found;
+		};
+		$publish = static function ( string $title ): int {
+			return (int) wp_insert_post(
+				[
+					'post_type'   => EpisodePostType::CPT,
+					'post_title'  => $title,
+					'post_status' => 'publish',
+				]
+			);
+		};
+		$clear = static function () use ( $hooks ): void {
+			foreach ( $hooks as $hook ) {
+				wp_clear_scheduled_hook( $hook );
+			}
+		};
+		$public = get_option( 'blog_public' );
+		update_option( 'blog_public', '1' );
+		$ids = [];
+		$clear();
+		EPM_Test_HTTP::$log = [];
+		try {
+			add_filter( 'epm_ping_podcast_index', '__return_false' );
+			$ids[] = $publish( 'Ping opt-out' );
+			remove_filter( 'epm_ping_podcast_index', '__return_false' );
+			$t->same( [], $pings(), 'opted out: no request to Podcast Index' );
+			$t->same( [], $scheduled(), 'opted out: nothing scheduled' );
+
+			$ids[] = $publish( 'Ping default' );
+			$t->same( [], $pings(), 'default: no request while the episode is published' );
+			$t->same( 1, count( $scheduled() ), 'default: one deferred ping' );
+			$ids[] = $publish( 'Ping burst' );
+			$t->same( 1, count( $scheduled() ), 'a burst of publishes still schedules one ping' );
+
+			// The cron event sends the notification.
+			EPM_Test_HTTP::$log = [];
+			do_action( (string) ( $scheduled()[0] ?? Feed::PING_HOOK ) );
+			$sent = $pings();
+			$t->same( 1, count( $sent ), 'the scheduled event pings once' );
+			$t->assert( false !== strpos( $sent[0]['url'] ?? '', rawurlencode( Feed::url() ) ), 'with this site\'s feed address' );
+
+			// An event 1.3.0 scheduled under the filter's name still pings:
+			// it is moved to the ping event.
+			$clear();
+			EPM_Test_HTTP::$log = [];
+			$when               = time() + 30;
+			wp_schedule_single_event( $when, 'epm_ping_podcast_index' );
+			if ( is_callable( [ Feed::class, 'adopt_legacy_ping' ] ) ) {
+				Feed::adopt_legacy_ping();
+			}
+			$t->same( false, wp_next_scheduled( 'epm_ping_podcast_index' ), 'the old event is moved' );
+			$t->same( $when, wp_next_scheduled( 'epm_podcast_index_ping' ), 'to the ping event, same time' );
+			$t->same( [], $pings(), 'without a request' );
+		} finally {
+			remove_filter( 'epm_ping_podcast_index', '__return_false' );
+			$clear();
+			foreach ( $ids as $id ) {
+				wp_delete_post( $id, true );
+			}
+			update_option( 'blog_public', $public );
+			EPM_Test_HTTP::$log = [];
+		}
 	}
 );
 
@@ -483,11 +630,27 @@ $t->test(
 $t->test(
 	'the latest-episode CTA shortcode loads the stylesheet but not the player script',
 	static function ( EPM_Test_Runner $t ) {
+		$option  = \EPM\PodcastSettings::OPTION;
+		$enabled = static function ( $value ) {
+			$value                       = is_array( $value ) ? $value : [];
+			$value['latest_cta_enabled'] = true;
+			return $value;
+		};
 		wp_dequeue_script( 'epm-player' );
 		wp_dequeue_style( 'epm-frontend' );
+		// Disabled (the default): nothing renders, nothing loads (WID-N9).
 		do_shortcode( '[podcast_latest_cta]' );
-		$t->assert( wp_style_is( 'epm-frontend', 'enqueued' ), 'stylesheet enqueued' );
-		$t->assert( ! wp_script_is( 'epm-player', 'enqueued' ), 'player script not enqueued' );
+		$t->assert( ! wp_style_is( 'epm-frontend', 'enqueued' ), 'disabled: no stylesheet' );
+		add_filter( 'option_' . $option, $enabled );
+		add_filter( 'default_option_' . $option, $enabled );
+		try {
+			$t->assert( '' !== do_shortcode( '[podcast_latest_cta]' ), 'enabled: the button renders' );
+			$t->assert( wp_style_is( 'epm-frontend', 'enqueued' ), 'stylesheet enqueued' );
+			$t->assert( ! wp_script_is( 'epm-player', 'enqueued' ), 'player script not enqueued' );
+		} finally {
+			remove_filter( 'option_' . $option, $enabled );
+			remove_filter( 'default_option_' . $option, $enabled );
+		}
 	}
 );
 
@@ -525,6 +688,26 @@ $t->test(
 	'no plugin-triggered _doing_it_wrong notices during the run',
 	static function ( EPM_Test_Runner $t ) {
 		$t->same( [], $GLOBALS['epm_test_doing_it_wrong'] );
+	}
+);
+
+$t->test(
+	'LIFE-N3: deactivation invalidates rewrite rules without persisting active plugin routes',
+	static function ( EPM_Test_Runner $t ) {
+		$rules = get_option( 'rewrite_rules', false );
+		$cron = get_option( 'cron', [] );
+		try {
+			update_option( 'rewrite_rules', [ 'podcast/feed/?$' => 'index.php?epm_feed=1' ] );
+			do_action( 'deactivate_' . plugin_basename( EPM_FILE ) );
+			$t->same( false, get_option( 'rewrite_rules', false ), 'the next request must build rules without EPM loaded' );
+		} finally {
+			update_option( 'cron', $cron );
+			if ( false === $rules ) {
+				delete_option( 'rewrite_rules' );
+			} else {
+				update_option( 'rewrite_rules', $rules );
+			}
+		}
 	}
 );
 

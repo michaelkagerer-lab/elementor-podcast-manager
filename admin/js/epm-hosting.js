@@ -6,8 +6,10 @@
 
 	var root = document.querySelector( '[data-epm-hosting]' );
 	var app = window.epmApp;
+	// The import result (admin/js/epm-import-result.js).
+	var importResult = window.epmImportResult;
 
-	if ( ! root || ! app ) {
+	if ( ! root || ! app || ! importResult ) {
 		return;
 	}
 
@@ -20,7 +22,9 @@
 	};
 
 	var announcer = root.querySelector( '[data-epm-announce]' );
-	var state = { preview: null, stepping: false };
+	// check: bumped when the address changes, so a feed that is still
+	// being read page by page stops updating the screen.
+	var state = { preview: null, stepping: false, check: 0 };
 
 	function $( selector, scope ) {
 		return ( scope || root ).querySelector( selector );
@@ -67,6 +71,14 @@
 					throw error;
 				}
 				return json.data;
+			} )
+			.catch( function ( failure ) {
+				if ( failure instanceof window.TypeError ) {
+					var error = new Error( app.strings.failed );
+					error.data = { details: failure.message };
+					throw error;
+				}
+				throw failure;
 			} );
 	}
 
@@ -154,14 +166,38 @@
 
 	function showImportError( message ) {
 		var el = $( '[data-error]', importForm );
-		el.textContent = message || '';
-		el.hidden = ! message;
+		message = importResult.error( el, message );
 		var input = importForm.querySelector( '[name="url"]' );
 		if ( message ) {
 			input.setAttribute( 'aria-invalid', 'true' );
 		} else {
 			input.removeAttribute( 'aria-invalid' );
 		}
+	}
+
+	function showProgress( message ) {
+		var el = $( '[data-preview-progress]', importForm );
+		el.textContent = message || '';
+		el.hidden = ! message;
+	}
+
+	/**
+	 * A paged feed is read over several requests: keep asking for the
+	 * next pages while the server says it is still reading.
+	 */
+	function readAll( result, run ) {
+		if ( run !== state.check ) {
+			return Promise.reject( null );
+		}
+		if ( ! result.catalog || ! result.catalog.loading ) {
+			showProgress( '' );
+			return Promise.resolve( result );
+		}
+		showProgress( result.catalog.message );
+		announce( result.catalog.message );
+		return request( 'epm_import_more', { token: result.token } ).then( function ( next ) {
+			return readAll( next, run );
+		} );
 	}
 
 	function check( button ) {
@@ -176,20 +212,119 @@
 		$( '[data-preview]', importForm ).hidden = true;
 		busy( button, true );
 		announce( app.strings.checking );
+		var run = ++state.check;
 
 		request( 'epm_import_preview', { url: input.value.trim() } )
+			.then( function ( result ) {
+				return readAll( result, run );
+			} )
 			.then( function ( result ) {
 				state.preview = result;
 				input.value = result.feed_url;
 				renderPreview( result );
 			} )
 			.catch( function ( error ) {
-				showImportError( error.message );
+				if ( ! error || run !== state.check ) {
+					return;
+				}
+				showProgress( '' );
+				showImportError( error );
 				announce( error.message );
+				input.focus();
 			} )
 			.then( function () {
 				busy( button, false );
 			} );
+	}
+
+	/**
+	 * "Try reading the rest again": continue from the page that failed.
+	 */
+	function retry( button ) {
+		if ( ! state.preview ) {
+			return;
+		}
+		busy( button, true );
+		announce( app.strings.checking );
+		var run = ++state.check;
+		var error = $( '[data-error-for="accept_partial"]', importForm );
+
+		request( 'epm_import_more', { token: state.preview.token } )
+			.then( function ( result ) {
+				return readAll( result, run );
+			} )
+			.then( function ( result ) {
+				state.preview = result;
+				error.hidden = true;
+				renderPreview( result );
+				// The callout (and this button) may be gone: focus the result.
+				var target = result.catalog && ! result.catalog.complete ? $( '[data-preview-incomplete]', importForm ) : $( '[data-preview-title]', importForm );
+				target.setAttribute( 'tabindex', '-1' );
+				target.focus();
+			} )
+			.catch( function ( failure ) {
+				if ( ! failure || run !== state.check ) {
+					return;
+				}
+				showProgress( '' );
+				var text = $( '[data-preview-incomplete-text]', importForm );
+				text.textContent = failure.message;
+				announce( failure.message );
+			} )
+			.then( function () {
+				busy( button, false );
+			} );
+	}
+
+	/**
+	 * The incomplete-feed callout and, when the audio is copied (a move),
+	 * the confirmation that names what is missing.
+	 */
+	function renderCompleteness( result ) {
+		var catalog = result.catalog || { complete: true };
+		var incomplete = ! catalog.complete;
+		var box = $( '[data-preview-incomplete]', importForm );
+
+		box.hidden = ! incomplete;
+		$( '[data-preview-incomplete-text]', importForm ).textContent = incomplete ? catalog.message : '';
+		importResult.details( $( '[data-preview-incomplete-details]', importForm ), incomplete ? catalog.details : '' );
+		$( '[data-retry-wrap]', importForm ).hidden = ! ( incomplete && catalog.retry );
+
+		var accept = importForm.querySelector( '[name="accept_partial"]' );
+		accept.checked = false;
+		$( '[data-accept-partial-label]', importForm ).textContent = incomplete
+			? format(
+					/* translators: %1$s: number of episodes found in the feed */
+					_n( 'Move only the %1$s episode that was found. The missing episodes stay at the old host and will not be on this website.', 'Move only the %1$s episodes that were found. The missing episodes stay at the old host and will not be on this website.', result.episodes, 'elementor-podcast-manager' ),
+					importResult.number( result.episodes )
+			  )
+			: '';
+		updateAccept();
+	}
+
+	// The confirmation matters for a move only (copying the audio).
+	function updateAccept() {
+		var incomplete = state.preview && state.preview.catalog && ! state.preview.catalog.complete;
+		var move = importForm.querySelector( '[name="download_media"]' ).checked;
+		$( '[data-accept-partial]', importForm ).hidden = ! ( incomplete && move );
+		$( '[data-preview-incomplete-mirror]', importForm ).hidden = move;
+		if ( ! move ) {
+			fieldError( 'accept_partial', false );
+		}
+	}
+
+	function fieldError( name, show ) {
+		var field = importForm.querySelector( '[name="' + name + '"]' );
+		var error = $( '[data-error-for="' + name + '"]', importForm );
+		if ( error ) {
+			error.hidden = ! show;
+		}
+		if ( show ) {
+			field.setAttribute( 'aria-invalid', 'true' );
+		} else {
+			field.removeAttribute( 'aria-invalid' );
+		}
+		return field;
 	}
 
 	function renderPreview( result ) {
@@ -211,10 +346,12 @@
 			format(
 				/* translators: %1$s: number of episodes */
 				_n( '%1$s episode', '%1$s episodes', result.episodes, 'elementor-podcast-manager' ),
-				result.episodes
+				importResult.number( result.episodes )
 			),
 			result.provider_name,
-			result.newest && result.oldest ? result.oldest + ' – ' + result.newest : '',
+			result.newest && result.oldest ? format(
+				/* translators: %1$s: oldest episode date; %2$s: newest episode date */
+				__( '%1$s – %2$s', 'elementor-podcast-manager' ), result.oldest, result.newest ) : '',
 		]
 			.filter( Boolean )
 			.join( ' · ' );
@@ -225,7 +362,7 @@
 				format(
 					/* translators: %1$s: number of episodes */
 					_n( '%1$s of these episodes is already on this website and is updated, not duplicated.', '%1$s of these episodes are already on this website and are updated, not duplicated.', result.existing, 'elementor-podcast-manager' ),
-					result.existing
+					importResult.number( result.existing )
 				)
 			);
 		}
@@ -243,7 +380,7 @@
 				format(
 					/* translators: %1$s: number of episodes */
 					_n( '%1$s episode shares its ID with another one and is skipped.', '%1$s episodes share their ID with another one and are skipped.', result.duplicates.length, 'elementor-podcast-manager' ),
-					result.duplicates.length
+					importResult.number( result.duplicates.length )
 				)
 			);
 		}
@@ -252,13 +389,14 @@
 		$( 'p', box ).textContent = notes.join( ' ' );
 
 		$( '[data-confirm-owner]', importForm ).hidden = ! result.locked;
+		renderCompleteness( result );
 		$( '[data-preview]', importForm ).hidden = false;
 		announce(
 			format(
 				/* translators: 1: podcast title, 2: number of episodes */
 				_n( '%1$s: %2$s episode found.', '%1$s: %2$s episodes found.', result.episodes, 'elementor-podcast-manager' ),
 				channel.title || result.feed_url,
-				result.episodes
+				importResult.number( result.episodes )
 			)
 		);
 	}
@@ -272,7 +410,17 @@
 			draft: importForm.querySelector( '[name="draft"]' ).checked,
 			apply_channel: importForm.querySelector( '[name="apply_channel"]' ).checked,
 			confirm_owner: importForm.querySelector( '[name="confirm_owner"]' ).checked,
+			accept_partial: importForm.querySelector( '[name="accept_partial"]' ).checked,
 		};
+		var incomplete = state.preview.catalog && ! state.preview.catalog.complete;
+
+		// A move of part of a show only after the informed confirmation;
+		// the message sits under the checkbox, which gets focus.
+		if ( values.download_media && incomplete && ! values.accept_partial ) {
+			fieldError( 'accept_partial', true ).focus();
+			return;
+		}
+		fieldError( 'accept_partial', false );
 
 		// Copying the audio moves the show here: a site that mirrors its
 		// host stops syncing and redirecting when the import finishes.
@@ -294,6 +442,7 @@
 			status: values.draft ? 'draft' : 'publish',
 			download_media: values.download_media,
 			confirm_owner: values.confirm_owner || ! state.preview.locked,
+			accept_partial: values.download_media && incomplete && values.accept_partial,
 			apply_channel: values.apply_channel,
 			overwrite_channel: false,
 		} )
@@ -306,7 +455,11 @@
 				loop();
 			} )
 			.catch( function ( error ) {
-				showImportError( error.message );
+				if ( error.data && error.data.code === 'epm_import_incomplete' ) {
+					fieldError( 'accept_partial', true ).focus();
+					return;
+				}
+				showImportError( error );
 				announce( error.message );
 			} )
 			.then( function () {
@@ -319,6 +472,15 @@
 			return;
 		}
 		jobBox.hidden = false;
+		var retryProgress = $( '[data-action="retry-progress"]', jobBox );
+		var retryFocus = state.retrying && ( ! document.activeElement || document.activeElement === document.body || document.activeElement === retryProgress );
+		state.retrying = false;
+		retryProgress.hidden = true;
+		busy( retryProgress, false );
+		if ( retryFocus ) {
+			jobBox.setAttribute( 'tabindex', '-1' );
+			jobBox.focus();
+		}
 
 		var total = Math.max( 0, job.total || 0 );
 		var done = Math.min( total, job.done || 0 );
@@ -326,31 +488,9 @@
 
 		$( '.epm-progress__bar', jobBox ).style.setProperty( '--epm-progress', String( ratio ) );
 		$( '.epm-progress__track', jobBox ).setAttribute( 'aria-valuenow', String( Math.round( ratio * 100 ) ) );
-		$( '[data-job-count]', jobBox ).textContent = format( app.strings.progress, done, total );
+		$( '[data-job-count]', jobBox ).textContent = importResult.progress( done, total );
 
-		var labels = {
-			/* translators: import result label, e.g. "12 new" */
-			created: __( 'new', 'elementor-podcast-manager' ),
-			/* translators: import result label, e.g. "3 updated" */
-			updated: __( 'updated', 'elementor-podcast-manager' ),
-			/* translators: import result label, e.g. "40 unchanged" */
-			unchanged: __( 'unchanged', 'elementor-podcast-manager' ),
-			/* translators: import result label, e.g. "1 skipped" */
-			skipped: __( 'skipped', 'elementor-podcast-manager' ),
-			/* translators: import result label, e.g. "1 failed" */
-			failed: __( 'failed', 'elementor-podcast-manager' ),
-			/* translators: import result label, e.g. "2 audio not copied" */
-			media_failed: __( 'audio not copied', 'elementor-podcast-manager' ),
-		};
-		var counts = job.counts || {};
-		$( '[data-job-summary]', jobBox ).textContent = Object.keys( labels )
-			.filter( function ( key ) {
-				return counts[ key ] > 0;
-			} )
-			.map( function ( key ) {
-				return counts[ key ] + ' ' + labels[ key ];
-			} )
-			.join( ' · ' );
+		$( '[data-job-summary]', jobBox ).textContent = importResult.summary( job.counts );
 
 		var log = $( '[data-job-log]', jobBox );
 		log.textContent = '';
@@ -358,7 +498,7 @@
 			var li = document.createElement( 'li' );
 			var badge = document.createElement( 'span' );
 			badge.className = 'epm-badge' + ( entry.action === 'failed' ? ' epm-badge--error' : entry.action === 'created' ? ' epm-badge--ok' : '' );
-			badge.textContent = labels[ entry.action ] || entry.action;
+			badge.textContent = importResult.action( entry.action );
 			var title = document.createElement( entry.edit ? 'a' : 'span' );
 			title.className = 'epm-log__title';
 			title.textContent = entry.title;
@@ -382,66 +522,84 @@
 			$( 'p', error ).textContent = job.error;
 		}
 
-		var running = job.status === 'running';
-		$( '[data-action="cancel"]', jobBox ).hidden = ! running;
-		$( '[data-job-episodes]', jobBox ).hidden = running;
+		// Imported from part of the feed: say so, also after the import.
+		var partial = $( '[data-job-incomplete]', jobBox );
+		var incomplete = job.catalog && ! job.catalog.complete && job.catalog.message;
+		partial.hidden = ! incomplete;
+		if ( incomplete ) {
+			$( 'p', partial ).textContent = format(
+				/* translators: %1$s: why the feed could not be read completely */
+				__( 'This import covers only part of the feed. %1$s', 'elementor-podcast-manager' ),
+				job.catalog.message
+			);
+		}
 
-		var media = renderMediaFailed( job );
+		var stopped = job.status === 'cancelled' || job.status === 'failed';
+		var stoppedBox = $( '[data-job-stopped]', jobBox );
+		stoppedBox.hidden = ! stopped;
+		if ( stopped ) {
+			state.stepping = false;
+			var stoppedMessage = format( app.strings.stopped, importResult.number( done ), importResult.number( total ) );
+			$( 'p', stoppedBox ).textContent = stoppedMessage;
+			announce( stoppedMessage );
+		}
 
-		if ( job.status === 'done' ) {
-			announce( format( app.strings.progress, done, total ) + ( media ? ' ' + media : '' ) );
+		var active = importResult.active( job );
+		$( '[data-action="cancel"]', jobBox ).hidden = ! active;
+		$( '[data-job-episodes]', jobBox ).hidden = active;
+
+		// Waiting, the file in progress, what is still at the old host.
+		var media = importResult.render( jobBox, job );
+
+		if ( job.status === 'done' || job.status === 'done_with_problems' || job.status === 'waiting' ) {
+			announce( importResult.progress( done, total ) + ( media ? ' ' + media : '' ) + ( incomplete ? ' ' + $( 'p', partial ).textContent : '' ) );
 		}
 	}
 
-	/**
-	 * After an import: the episodes whose audio stayed at the old host,
-	 * with links to fix them (the log only keeps the latest entries).
-	 *
-	 * @return {string} The callout's heading, '' when hidden.
-	 */
-	function renderMediaFailed( job ) {
-		var box = $( '[data-media-failed]', jobBox );
-		if ( ! box ) {
-			return '';
+	/* ---------- an unfinished move ---------- */
+
+	function retryCopies( button ) {
+		busy( button, true );
+		request( 'epm_import_retry', {} )
+			.then( function ( job ) {
+				renderJob( job );
+				jobBox.setAttribute( 'tabindex', '-1' );
+				jobBox.focus();
+				loop();
+			} )
+			.catch( function ( error ) {
+				announce( error.message );
+			} )
+			.then( function () {
+				busy( button, false );
+			} );
+	}
+
+	function confirmMove( button ) {
+		var box = $( '[data-confirm-move]', jobBox );
+		var field = $( '[name="confirm_remaining"]', box );
+		var error = $( '[data-error-for="confirm_remaining"]', box );
+		if ( ! field.checked ) {
+			error.hidden = false;
+			field.setAttribute( 'aria-invalid', 'true' );
+			field.focus();
+			return;
 		}
-		var count = ( job.counts && job.counts.media_failed ) || 0;
-		var episodes = job.media_failed || [];
-
-		box.hidden = ! ( job.status !== 'running' && count > 0 );
-		if ( box.hidden ) {
-			return '';
-		}
-
-		var title = format(
-			/* translators: %1$s: number of episodes */
-			_n( 'The audio of %1$s episode was not copied.', 'The audio of %1$s episodes was not copied.', count, 'elementor-podcast-manager' ),
-			count
-		);
-		$( '[data-media-failed-title]', box ).textContent = title;
-
-		var list = $( '[data-media-failed-list]', box );
-		list.textContent = '';
-		episodes.forEach( function ( episode ) {
-			var li = document.createElement( 'li' );
-			var link = document.createElement( episode.edit ? 'a' : 'span' );
-			link.textContent = episode.title;
-			if ( episode.edit ) {
-				link.href = episode.edit;
-			}
-			li.appendChild( link );
-			list.appendChild( li );
-		} );
-		if ( count > episodes.length ) {
-			var more = document.createElement( 'li' );
-			more.textContent = format(
-				/* translators: %1$s: number of episodes */
-				_n( 'and %1$s more', 'and %1$s more', count - episodes.length, 'elementor-podcast-manager' ),
-				count - episodes.length
-			);
-			list.appendChild( more );
-		}
-
-		return title;
+		error.hidden = true;
+		field.removeAttribute( 'aria-invalid' );
+		busy( button, true );
+		request( 'epm_import_confirm', { confirm_remaining: 1 } )
+			.then( function ( job ) {
+				renderJob( job );
+				jobBox.setAttribute( 'tabindex', '-1' );
+				jobBox.focus();
+			} )
+			.catch( function ( failure ) {
+				announce( failure.message );
+			} )
+			.then( function () {
+				busy( button, false );
+			} );
 	}
 
 	function loop() {
@@ -454,8 +612,8 @@
 			request( 'epm_import_step', {} )
 				.then( function ( job ) {
 					renderJob( job );
-					if ( job.status === 'running' ) {
-						window.setTimeout( next, job.busy ? 3000 : 150 );
+					if ( importResult.active( job ) ) {
+						window.setTimeout( next, importResult.delay( job ) );
 						return;
 					}
 					state.stepping = false;
@@ -464,42 +622,18 @@
 					state.stepping = false;
 					var box = $( '[data-job-error]', jobBox );
 					box.hidden = false;
-					$( 'p', box ).textContent = error.message + ' ' + app.strings.leaveImport;
+					$( 'p', box ).textContent = app.strings.interrupted;
+					var retryProgress = $( '[data-action="retry-progress"]', jobBox );
+					retryProgress.hidden = false;
+					busy( retryProgress, false );
+					state.retrying = false;
+					announce( app.strings.interrupted );
 				} );
 		} )();
 	}
 
 	/* ---------- copy ---------- */
 
-	function copy( button ) {
-		var value = button.getAttribute( 'data-copy' );
-		var label = button.textContent;
-		var done = function () {
-			button.textContent = app.strings.copied;
-			announce( app.strings.copied );
-			window.setTimeout( function () {
-				button.textContent = label;
-			}, 2000 );
-		};
-		if ( window.navigator.clipboard && window.isSecureContext ) {
-			window.navigator.clipboard.writeText( value ).then( done, function () {} );
-			return;
-		}
-		var area = document.createElement( 'textarea' );
-		area.value = value;
-		area.setAttribute( 'readonly', '' );
-		area.style.position = 'fixed';
-		area.style.opacity = '0';
-		document.body.appendChild( area );
-		area.select();
-		try {
-			document.execCommand( 'copy' );
-			done();
-		} catch ( e ) {
-			// The address stays selectable on screen.
-		}
-		document.body.removeChild( area );
-	}
 
 	/* ---------- wiring ---------- */
 
@@ -510,17 +644,21 @@
 		} );
 		importForm.querySelector( '[name="url"]' ).addEventListener( 'input', function () {
 			state.preview = null;
+			state.check++;
+			showProgress( '' );
 			$( '[data-preview]', importForm ).hidden = true;
+		} );
+		importForm.querySelector( '[name="download_media"]' ).addEventListener( 'change', updateAccept );
+		importForm.querySelector( '[name="accept_partial"]' ).addEventListener( 'change', function ( event ) {
+			if ( event.target.checked ) {
+				fieldError( 'accept_partial', false );
+			}
 		} );
 	}
 
 	root.addEventListener( 'click', function ( event ) {
-		var target = event.target.closest( '[data-action], [data-copy]' );
+		var target = event.target.closest( '[data-action]' );
 		if ( ! target ) {
-			return;
-		}
-		if ( target.hasAttribute( 'data-copy' ) ) {
-			copy( target );
 			return;
 		}
 		switch ( target.getAttribute( 'data-action' ) ) {
@@ -529,6 +667,20 @@
 				break;
 			case 'start':
 				start( target );
+				break;
+			case 'retry-feed':
+				retry( target );
+				break;
+			case 'retry-progress':
+				state.retrying = true;
+				busy( target, true );
+				loop();
+				break;
+			case 'retry-copies':
+				retryCopies( target );
+				break;
+			case 'confirm-move':
+				confirmMove( target );
 				break;
 			case 'cancel':
 				busy( target, true );
@@ -556,10 +708,12 @@
 		}
 	} );
 
-	// A running import (started here, in the setup assistant or by cron)
-	// is picked up again.
-	if ( app.job && app.job.status === 'running' ) {
+	// A running (or waiting) import, started here, in the setup assistant
+	// or by cron, is picked up again; an unfinished move is shown.
+	if ( app.job && importResult.active( app.job ) ) {
 		renderJob( app.job );
 		loop();
+	} else if ( app.job && [ 'done_with_problems', 'cancelled', 'failed' ].indexOf( app.job.status ) !== -1 ) {
+		renderJob( app.job );
 	}
 } )();

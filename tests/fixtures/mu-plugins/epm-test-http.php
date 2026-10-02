@@ -10,10 +10,17 @@
  * - https://feeds.example.test/negative/<name>.html  bot-protection pages, with the HTTP status in
  *                                                    the file name (…-http403.html answers 403)
  * - https://feeds.example.test/media/<name>.mp3|m4a  a generated silent MP3 (5 s)
+ * - https://feeds.example.test/media/<name>-http<code>.mp3  answers <code> (429 and 503 with
+ *                                                    Retry-After: 120)
  * - https://feeds.example.test/media/<name>.png      a generated square PNG (1400 px, or
  *                                                    <name>-<w>x<h>.png)
+ * - https://feeds.example.test/generated/<n>.xml     a generated show of n episodes (at most
+ *                                                    20,000) for catalog-size tests
  * - https://show.example.test/…                      web pages that link to a feed (see page())
  * - https://itunes.apple.com/lookup?id=…             Apple's lookup API for the IDs in APPLE_IDS
+ * - https://api.podcastindex.org/…                   Podcast Index (the "feed updated" ping): a
+ *                                                    fixed success answer, so test sites never
+ *                                                    notify the real service
  *
  * URLs that pass through a download-measurement prefix
  * (https://op3.dev/e/feeds.example.test/…) are served like the URL after
@@ -69,7 +76,7 @@ if ( ! class_exists( 'EPM_Test_HTTP' ) ) {
 		 *
 		 * @var bool
 		 */
-		public static bool $offline = false;
+		public static bool $offline = true;
 
 		/**
 		 * Fixture directory (tests/fixtures/feeds/).
@@ -135,6 +142,12 @@ if ( ! class_exists( 'EPM_Test_HTTP' ) ) {
 
 			$host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
 
+			// Podcast Index notifications from test sites never leave the
+			// machine; tests read them from the log.
+			if ( 'api.podcastindex.org' === $host ) {
+				return self::response( 200, '{"status":"true","description":"Feed marked for immediate update."}', [ 'content-type' => 'application/json' ] );
+			}
+
 			if ( 'itunes.apple.com' === $host && 0 === strpos( (string) wp_parse_url( $url, PHP_URL_PATH ), '/lookup' ) ) {
 				parse_str( (string) wp_parse_url( $url, PHP_URL_QUERY ), $query );
 				$feed    = self::APPLE_IDS[ (string) ( $query['id'] ?? '' ) ] ?? '';
@@ -173,14 +186,48 @@ if ( ! class_exists( 'EPM_Test_HTTP' ) ) {
 				return self::response( 404, 'Not found' );
 			}
 
+			// A host that answers media requests with an error status
+			// (…-http429.mp3: 429 with Retry-After: 120, like 503).
+			if ( preg_match( '#^/media/[a-z0-9_-]+-http(\d{3})\.(mp3|m4a|png)$#i', $path, $m ) ) {
+				$code = (int) $m[1];
+				return self::response( $code, '<html><body>' . $code . '</body></html>', [ 'content-type' => 'text/html' ] + ( in_array( $code, [ 429, 503 ], true ) ? [ 'retry-after' => '120' ] : [] ) );
+			}
+
+			// Like a real server, files come with their length.
 			if ( preg_match( '#^/media/([a-z0-9_-]+)\.(mp3|m4a)$#i', $path, $m ) ) {
-				return self::response( 200, self::mp3( 5 ), [ 'content-type' => 'mp3' === strtolower( $m[2] ) ? 'audio/mpeg' : 'audio/mp4' ] );
+				$body = self::mp3( 5 );
+				return self::response(
+					200,
+					$body,
+					[
+						'content-type'   => 'mp3' === strtolower( $m[2] ) ? 'audio/mpeg' : 'audio/mp4',
+						'content-length' => (string) strlen( $body ),
+					]
+				);
 			}
 
 			if ( preg_match( '#^/media/([a-z0-9_-]+?)(?:-(\d+)x(\d+))?\.png$#i', $path, $m ) ) {
 				$width  = isset( $m[2] ) ? (int) $m[2] : 1400;
 				$height = isset( $m[3] ) ? (int) $m[3] : 1400;
-				return self::response( 200, self::png( $width, $height ), [ 'content-type' => 'image/png' ] );
+				$body   = self::png( $width, $height );
+				return self::response(
+					200,
+					$body,
+					[
+						'content-type'   => 'image/png',
+						'content-length' => (string) strlen( $body ),
+					]
+				);
+			}
+
+			if ( preg_match( '#^/generated/(\d+)\.xml$#', $path, $m ) ) {
+				$body = self::generated( min( 20000, (int) $m[1] ) );
+				$etag = '"' . md5( $body ) . '"';
+				$sent = (string) ( $args['headers']['If-None-Match'] ?? $args['headers']['if-none-match'] ?? '' );
+				if ( '' !== $sent && $sent === $etag ) {
+					return self::response( 304, '', [ 'etag' => $etag ] );
+				}
+				return self::response( 200, $body, [ 'content-type' => 'application/rss+xml; charset=UTF-8', 'etag' => $etag ] );
 			}
 
 			$file = self::dir() . ltrim( $path, '/' );
@@ -211,9 +258,10 @@ if ( ! class_exists( 'EPM_Test_HTTP' ) ) {
 				$status,
 				$body,
 				[
-					'content-type'  => $types[ strtolower( pathinfo( $file, PATHINFO_EXTENSION ) ) ] ?? 'application/octet-stream',
-					'etag'          => $etag,
-					'last-modified' => 'Wed, 30 Sep 2026 06:00:00 GMT',
+					'content-type'   => $types[ strtolower( pathinfo( $file, PATHINFO_EXTENSION ) ) ] ?? 'application/octet-stream',
+					'content-length' => (string) strlen( $body ),
+					'etag'           => $etag,
+					'last-modified'  => 'Wed, 30 Sep 2026 06:00:00 GMT',
 				]
 			);
 		}
@@ -288,6 +336,33 @@ if ( ! class_exists( 'EPM_Test_HTTP' ) ) {
 			}
 
 			return $response;
+		}
+
+		/**
+		 * A generated show of $count episodes, newest first, one day apart
+		 * (GUIDs gen-1 … gen-<count>), for catalog-size tests such as moving
+		 * a large show (tests/perf/production.sh).
+		 *
+		 * @param int $count Episodes.
+		 * @return string
+		 */
+		public static function generated( int $count ): string {
+			$items = [];
+			for ( $k = $count; $k >= 1; $k-- ) {
+				$items[] = '<item><title>Generated episode ' . $k . '</title><guid isPermaLink="false">gen-' . $k . '</guid>'
+					. '<pubDate>' . gmdate( 'D, d M Y H:i:s', 1262304000 + $k * DAY_IN_SECONDS ) . ' +0000</pubDate>'
+					. '<description><![CDATA[<p>Show notes for generated episode ' . $k . str_repeat( ' lorem ipsum dolor sit amet', 20 ) . '</p>]]></description>'
+					. '<enclosure url="https://feeds.example.test/media/gen-' . $k . '.mp3" length="' . ( 1000000 + $k ) . '" type="audio/mpeg"/>'
+					. '<itunes:duration>10:00</itunes:duration><itunes:episode>' . $k . '</itunes:episode></item>';
+			}
+
+			return '<?xml version="1.0" encoding="UTF-8"?>'
+				. '<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:podcast="https://podcastindex.org/namespace/1.0"><channel>'
+				. '<title>Generated Show</title><link>https://show.example.test/</link><description>A generated show for catalog-size tests.</description>'
+				. '<language>en</language><itunes:author>Generated</itunes:author>'
+				. '<itunes:owner><itunes:name>Generated</itunes:name><itunes:email>owner@example.test</itunes:email></itunes:owner>'
+				. '<itunes:image href="https://feeds.example.test/media/generated.png"/><itunes:category text="Technology"/>'
+				. implode( '', $items ) . '</channel></rss>';
 		}
 
 		/**

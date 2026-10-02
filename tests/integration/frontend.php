@@ -44,41 +44,6 @@ add_action(
 );
 
 /**
- * Run a callback as if the request were the single page (or embed) of an
- * episode, then restore the previous query.
- *
- * @param int      $post_id Episode ID.
- * @param callable $fn      Callback.
- * @param bool     $embed   Pretend to be /podcast/{slug}/embed/.
- * @return mixed Callback result.
- */
-function epm_test_as_episode_page( int $post_id, callable $fn, bool $embed = false ) {
-	global $wp_query, $wp_the_query, $post;
-
-	$saved = [ $wp_query, $wp_the_query, $post ];
-
-	$wp_query = new WP_Query( // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-		[
-			'p'         => $post_id,
-			'post_type' => EpisodePostType::CPT,
-		]
-	);
-	if ( $embed ) {
-		$wp_query->is_embed = true;
-	}
-	$wp_the_query = $wp_query; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-	$post         = get_post( $post_id ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-	setup_postdata( $post );
-
-	try {
-		return $fn();
-	} finally {
-		[ $wp_query, $wp_the_query, $post ] = $saved; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-		wp_reset_postdata();
-	}
-}
-
-/**
  * Every src/srcset/poster URL in a piece of markup points to this site.
  *
  * @param string $html Markup.
@@ -105,6 +70,31 @@ function epm_test_foreign_sources( string $html ): array {
 $t = new EPM_Test_Runner();
 
 WP_CLI::log( 'Timestamp links' );
+
+$t->test(
+	'SEC-N6: a correct REST password unlocks episode media metadata for anonymous clients',
+	static function ( EPM_Test_Runner $t ) use ( $fx ) {
+		$user = get_current_user_id();
+		wp_set_current_user( 0 );
+		try {
+			$id = (int) $fx['password'];
+			$route = '/wp/v2/' . get_post_type_object( 'podcast_episode' )->rest_base;
+			if ( '/wp/v2/' === $route ) { $route .= 'podcast_episode'; }
+			$locked = rest_do_request( new WP_REST_Request( 'GET', $route . '/' . $id ) );
+			$t->same( 200, $locked->get_status(), 'protected episode summary is readable' );
+			$t->same( [], $locked->get_data()['meta'] ?? [], 'locked media remains hidden' );
+			$request = new WP_REST_Request( 'GET', $route . '/' . $id );
+			$request->set_param( 'password', 'wrong-password' );
+			$t->same( 403, rest_do_request( $request )->get_status(), 'incorrect password is refused' );
+			$request->set_param( 'password', get_post( $id )->post_password );
+			$response = rest_do_request( $request );
+			$t->same( 200, $response->get_status(), 'correct password is accepted' );
+			$t->same( (int) $fx['audio_2'], $response->get_data()['meta']['_epm_audio_id'] ?? 0, 'unlocked clients receive the episode audio' );
+		} finally {
+			wp_set_current_user( $user );
+		}
+	}
+);
 
 $t->test(
 	'?t= values parse as seconds, h/m/s and clock notation',
@@ -213,7 +203,8 @@ $t->test(
 		$ep1  = epm()->episodes->get_public_data( $fx['ep1'] );
 		$code = Embed::code( $ep1 );
 
-		$t->assert( 0 === strpos( $code, '<iframe src="' . esc_url( get_post_embed_url( $fx['ep1'] ) ) . '"' ), 'src is the embed URL: ' . $code );
+		$t->assert( false !== strpos( $code, '<iframe src="' . esc_url( get_post_embed_url( $fx['ep1'] ) ) . '"' ), 'src is the embed URL: ' . $code );
+		$t->assert( false !== strpos( $code, '<a href="' . esc_url( $ep1['url'] ) . '"' ) && strpos( $code, '<a ' ) < strpos( $code, '<iframe ' ), 'UX-N13: a visible episode link survives blocked frames' );
 		$t->assert( false !== strpos( get_post_embed_url( $fx['ep1'] ), '/podcast/episode-one-hello-friends/embed/' ), 'pretty embed URL' );
 		$t->assert( false !== strpos( $code, 'height="' . Embed::HEIGHT . '"' ), 'height' );
 		$t->assert( (bool) preg_match( '/title="Episode One: [^"]+ – Test &amp; Talk Podcast"/u', $code ), 'title names episode and podcast' );
@@ -270,7 +261,8 @@ $t->test(
 		$t->assert( 1 === substr_count( $html, 'data-epm-player' ), 'one player' );
 		$t->assert( false !== strpos( $html, 'epm-player--embed' ), 'embed card layout' );
 		$t->assert( false !== strpos( $html, 'data-epm-page-episode' ), '?t= applies inside the embed' );
-		$t->assert( false !== strpos( $html, '<a class="epm-player__title-link" href="' . esc_url( $ep1['url'] ) . '" target="_top">' ), 'title links back to the episode' );
+		$t->assert( false !== strpos( $html, '<a class="epm-player__title-link" href="' . esc_url( $ep1['url'] ) . '" target="_blank" rel="noopener">' ), 'UX-N13: title link works in frames that allow popups' );
+		$t->assert( false !== strpos( $html, '<noscript>' ) && false !== strpos( $html, '<audio controls src="' . esc_url( $ep1['audio_url'] ) . '"' ), 'UX-N13: native audio survives disabled scripting' );
 		$t->assert( false !== strpos( $html, '<p class="epm-player__label">Test &amp; Talk Podcast</p>' ), 'show name' );
 		$t->assert( false !== strpos( $html, 'epm-player__artwork' ), 'artwork' );
 		$t->assert( false === strpos( $html, 'data-epm-share' ), 'no share menu in the frame' );
@@ -332,6 +324,11 @@ $t->test(
 		$file               = epm()->renderer->video( $ep2 );
 		$t->assert( false !== strpos( $file, 'data-epm-video-kind="file"' ) && false !== strpos( $file, 'data-epm-video-src="' . esc_url( $ep2['video_url'] ) . '"' ), 'video file' );
 		$t->assert( false === strpos( $file, '<video' ), 'no <video> before play' );
+		$t->assert( false === strpos( $file, 'epm-video__note' ), 'local files need no third-party notice' );
+		$ep2['video_url'] = 'https://cdn.example.org/ep2.mp4';
+		$remote_video = epm()->renderer->video( $ep2 );
+		$t->assert( false !== strpos( $remote_video, 'The video loads from cdn.example.org when you play it.' ), 'UX-N15: remote files name their host before play' );
+		$t->assert( false === strpos( epm()->renderer->video( $ep2, [ 'show_note' => false ] ), 'epm-video__note' ), 'remote-file notice can be hidden explicitly' );
 
 		$ep2['video_url'] = 'https://example.org/watch/ep2';
 		$t->assert( false !== strpos( epm()->renderer->video( $ep2 ), '<a class="epm-video__link" href="https://example.org/watch/ep2">' ), 'unknown platform: a link' );
@@ -501,9 +498,20 @@ $t->test(
 			);
 			$t->assert( $page && true === ( $args['sticky'] ?? null ), 'automatic episode page player is sticky' );
 
+			// The shell may be on the page for one view and not another:
+			// each view says whether playback started there opens the bar.
+			$t->assert( false !== strpos( $renderer->player( $ep1 ), 'data-epm-sticky-player="0"' ), 'a player without sticky: its playback leaves the bar closed' );
+			$t->assert( false !== strpos( $renderer->player( $ep1, [ 'sticky' => true ] ), 'data-epm-sticky-player="1"' ), 'a sticky player opens it' );
+			$t->assert( false !== strpos( $renderer->episode_row( $ep1 ), 'data-epm-sticky-player="1"' ), 'a row button opens it' );
+			$t->assert( false !== strpos( $renderer->chapters( $ep1 ), 'data-epm-sticky-player="1"' ), 'a chapter list opens it' );
+			$inside = $renderer->player( $ep1, [ 'show_chapters_link' => true ] );
+			$t->assert( 1 === substr_count( $inside, 'data-epm-sticky-player=' ), 'chapters inside a player follow the player' );
+
 			add_filter( 'epm_sticky_player_for_lists', '__return_false' );
 			$t->assert( ! $requests( static fn() => $renderer->episode_row( $ep1 ) ), 'filter: rows opt out' );
 			$t->assert( ! $requests( static fn() => $renderer->chapters( $ep1 ) ), 'filter: chapters opt out' );
+			$t->assert( false !== strpos( $renderer->episode_row( $ep1 ), 'data-epm-sticky-player="0"' ), 'filter: a row button leaves the bar closed' );
+			$t->assert( false !== strpos( $renderer->chapters( $ep1 ), 'data-epm-sticky-player="0"' ), 'filter: a chapter list leaves it closed' );
 		} finally {
 			remove_filter( 'epm_auto_embed_player_args', $capture );
 			remove_filter( 'epm_sticky_player_for_lists', '__return_false' );
@@ -545,6 +553,8 @@ $t->test(
 $t->test(
 	'dark designs give standalone sections the design background and padding',
 	static function ( EPM_Test_Runner $t ) {
+		// Tokens are printed only where podcast styles are used (WID-N9).
+		\EPM\Assets::mark_player_used();
 		$tokens = static function ( string $preset ): string {
 			$values = array_merge( DesignSettings::defaults(), (array) ( epm()->presets->get( $preset )['tokens'] ?? [] ) );
 			$filter = static function () use ( $values ) {

@@ -65,7 +65,7 @@ EPM_Test_HTTP::$log     = [];
 $GLOBALS['epm_h_max_id']  = (int) $GLOBALS['wpdb']->get_var( "SELECT MAX(ID) FROM {$GLOBALS['wpdb']->posts}" );
 $GLOBALS['epm_h_options'] = [];
 foreach ( [ PodcastSettings::OPTION, Hosting::OPTION, Hosting::STATE_OPTION, ImportJob::OPTION, 'epm_import_lock', AdminPages::SETUP_OPTION, Directories::OPTION, Feed::GUID_OPTION, Feed::BUILD_OPTION, 'epm_design_settings' ] as $epm_h_name ) {
-	$GLOBALS['epm_h_options'][ $epm_h_name ] = get_option( $epm_h_name, '__epm_absent__' );
+	$GLOBALS['epm_h_options'][ $epm_h_name ] = epm_test_option_snapshot( $epm_h_name );
 }
 
 /* ------------------------------------------------------------------------- */
@@ -109,12 +109,7 @@ function epm_h_parse( string $name ) {
  * @return void
  */
 function epm_h_restore( string $name ): void {
-	$value = $GLOBALS['epm_h_options'][ $name ] ?? '__epm_absent__';
-	if ( '__epm_absent__' === $value ) {
-		delete_option( $name );
-	} else {
-		update_option( $name, $value );
-	}
+	epm_test_option_restore( $name, $GLOBALS['epm_h_options'][ $name ] ?? null );
 }
 
 /**
@@ -318,6 +313,200 @@ function epm_h_sync_feed( array $numbers, array $changes = [], string $channel_e
 
 $t = new EPM_Test_Runner();
 
+$t->test(
+	'QA-01: fixture restoration keeps serialized values and the original autoload policy',
+	static function ( EPM_Test_Runner $t ) {
+		$name = 'epm_test_restore_' . wp_generate_uuid4();
+		$value = [ 'local' => [ 'GUID & quotes “kept”', false, 1 ] ];
+		try {
+			add_option( $name, $value, '', false );
+			$snapshot = epm_test_option_snapshot( $name );
+			delete_option( $name );
+			add_option( $name, 'changed', '', true );
+			epm_test_option_restore( $name, $snapshot );
+			$t->same( $snapshot, epm_test_option_snapshot( $name ), 'raw serialization and autoload are identical' );
+			$t->same( $value, get_option( $name ), 'the original value is readable' );
+			epm_test_option_restore( $name, null );
+			$t->same( false, get_option( $name ), 'absent options and their caches are restored' );
+		} finally {
+			epm_test_option_restore( $name, null );
+		}
+	}
+);
+
+$t->test(
+	'SEC-N9: headless imports have a real author and updates preserve local attribution',
+	static function ( EPM_Test_Runner $t ) {
+		$user = get_current_user_id();
+		$id = 0;
+		try {
+			wp_set_current_user( 0 );
+			$item = ( new FeedParser() )->parse( epm_h_sync_feed( [ 1 ] ) )['items'][0];
+			$item['guid'] = 'headless-author-' . wp_generate_uuid4();
+			$importer = new Importer( [ 'fetch_extras' => false ] );
+			$outcome = $importer->import_item( $item );
+			$id = (int) $outcome['id'];
+			$author = (int) get_post_field( 'post_author', $id );
+			$t->assert( $author > 0 && false !== get_user_by( 'id', $author ), 'cron and CLI imports with no current user receive an existing author' );
+			wp_update_post( [ 'ID' => $id, 'post_author' => $user ] );
+			$item['title'] .= ' updated';
+			$importer->import_item( $item );
+			$t->same( $user, (int) get_post_field( 'post_author', $id ), 'updating an imported episode preserves its local author' );
+		} finally {
+			wp_set_current_user( $user );
+			if ( $id ) {
+				wp_delete_post( $id, true );
+			}
+		}
+	}
+);
+
+$t->test(
+	'PERF-N3: syncing a short feed never primes transcript metadata for the whole catalog',
+	static function ( EPM_Test_Runner $t ) {
+		$hosting = get_option( Hosting::OPTION, false );
+		$state = get_option( Hosting::STATE_OPTION, false );
+		$ids = [];
+		$max_batch = 0;
+		$observe = static function ( $pre, $object_ids ) use ( &$max_batch ) {
+			$max_batch = max( $max_batch, count( $object_ids ) );
+			return $pre;
+		};
+		try {
+			for ( $i = 0; $i < 60; ++$i ) {
+				$id = wp_insert_post( [ 'post_type' => EpisodePostType::CPT, 'post_status' => 'publish', 'post_title' => 'Transcript cache probe ' . $i ] );
+				update_post_meta( $id, '_epm_guid', 'cache-probe-' . wp_generate_uuid4() );
+				update_post_meta( $id, '_epm_transcript', str_repeat( 'Long transcript. ', 4096 ) );
+				wp_cache_delete( $id, 'post_meta' );
+				wp_cache_delete( $id, 'posts' );
+				$ids[] = $id;
+			}
+			epm_h_hosting( [ 'mode' => 'external', 'feed_url' => epm_h_url( 'synthetic/paged-2.xml' ) ] );
+			delete_option( Hosting::STATE_OPTION );
+			add_filter( 'update_post_metadata_cache', $observe, 10, 2 );
+			$result = Hosting::sync( true );
+			remove_filter( 'update_post_metadata_cache', $observe, 10 );
+			$t->same( 'ok', $result['status'], 'the short feed synchronizes' );
+			$t->assert( $max_batch <= 25, 'metadata remains bounded to a batch, not the catalog (' . $max_batch . ' IDs)' );
+		} finally {
+			remove_filter( 'update_post_metadata_cache', $observe, 10 );
+			foreach ( $ids as $id ) { wp_delete_post( $id, true ); }
+			foreach ( [ Hosting::OPTION => $hosting, Hosting::STATE_OPTION => $state ] as $option => $value ) {
+				if ( false === $value ) { delete_option( $option ); } else { update_option( $option, $value ); }
+			}
+		}
+	}
+);
+
+$t->test(
+	'SYNC-N4: stale scheduled syncs show a warning instead of an In sync badge',
+	static function ( EPM_Test_Runner $t ) {
+		try {
+			epm_h_hosting( [ 'mode' => 'external', 'feed_url' => epm_h_url( 'stale.xml' ), 'sync' => true, 'interval' => 'hourly' ] );
+			Hosting::update_state( [ 'status' => 'ok', 'last_success' => time() - WEEK_IN_SECONDS, 'last_run' => time() - WEEK_IN_SECONDS ] );
+			$report = \EPM\Readiness::report();
+			$warnings = array_filter( $report['checks'], static fn( $check ) => 'warning' === $check['status'] && false !== stripos( $check['message'], 'overdue' ) );
+			$t->assert( count( $warnings ) > 0, 'overdue sync is explained' );
+			$html = \EPM\Readiness::render_html( $report );
+			$t->assert( ! preg_match( '/epm-badge[^>]*>.*?In sync<\/span>/s', $html ), 'the summary does not claim a stale sync is healthy' );
+			$t->assert( false !== strpos( $html, 'Sync overdue' ), 'the summary names the overdue sync' );
+		} finally {
+			epm_h_restore( Hosting::OPTION );
+			epm_h_restore( Hosting::STATE_OPTION );
+		}
+	}
+);
+
+$t->test(
+	'SYNC-N6: a paged sync names its scope and never drafts episodes from unexamined pages',
+	static function ( EPM_Test_Runner $t ) {
+		$url = epm_h_url( 'synthetic/paged-1.xml' );
+		$hosting = get_option( Hosting::OPTION, false );
+		$state = get_option( Hosting::STATE_OPTION, false );
+		try {
+			$item = epm_h_parse( 'synthetic/paged-2.xml' )['items'][0];
+			$item['guid'] = 'unexamined-page-' . wp_generate_uuid4();
+			$item['pub_date'] = strtotime( '2026-06-05 12:00:00 UTC' );
+			$older = ( new Importer( [ 'feed_url' => $url ] ) )->import_item( $item );
+			update_option( Hosting::OPTION, Hosting::sanitize( array_merge( Hosting::all(), [ 'mode' => 'external', 'feed_url' => $url, 'missing' => 'draft' ] ) ) );
+			delete_option( Hosting::STATE_OPTION );
+			$result = Hosting::sync( true );
+			$t->assert( false !== stripos( $result['message'], 'first page' ), 'the sync message states its paging limit' );
+			$t->same( 'publish', get_post_status( $older['id'] ), 'episodes outside the examined page retain their status' );
+		} finally {
+			foreach ( [ Hosting::OPTION => $hosting, Hosting::STATE_OPTION => $state ] as $option => $value ) {
+				if ( false === $value ) { delete_option( $option ); } else { update_option( $option, $value ); }
+			}
+		}
+	}
+);
+
+$t->test(
+	'SEC-N7: secure feed redirects are stopped before an insecure hop',
+	static function ( EPM_Test_Runner $t ) {
+		foreach ( [ [ 'https', 'http', true ], [ 'https', 'https', false ], [ 'http', 'http', false ] ] as $case ) {
+			[ $from, $to, $blocked ] = $case;
+			$url = $from . '://feeds.example.test/redirect-security.xml';
+			$requested_target = false;
+			EPM_Test_HTTP::$routes[ $url ] = static function () use ( $url, $to, &$requested_target ) {
+				$target = $to . '://cdn.example.test/secure-feed.xml';
+				// Inject the same transport hook Requests fires before fetching a hop.
+				do_action( 'requests-requests.before_redirect', $target, [], [], [], (object) [ 'url' => $url ] );
+				$requested_target = true;
+				return EPM_Test_HTTP::response( 200, epm_h_file( 'synthetic/paged-2.xml' ) );
+			};
+			try {
+				$response = Hosting::fetch( $url );
+				$t->same( $blocked, is_wp_error( $response ), $from . ' to ' . $to . ': result' );
+				$t->same( ! $blocked, $requested_target, 'the downgrade never reaches its target' );
+				if ( $blocked ) {
+					$t->same( 'epm_insecure_redirect', $response instanceof WP_Error ? $response->get_error_code() : '', 'specific HTTPS downgrade error' );
+					$media = EPM\MediaDownload::run( EPM\MediaDownload::fresh( $url, 'audio' ), microtime( true ) + 10 );
+					$t->same( 'unsafe', $media['reason'] ?? '', 'media downloads reject the insecure hop too' );
+					$t->same( false, $requested_target, 'media never reaches the insecure target' );
+				}
+			} finally {
+				unset( EPM_Test_HTTP::$routes[ $url ] );
+			}
+		}
+		$t->assert( ! has_action( 'requests-requests.before_redirect' ), 'the request guard is removed after success and failure' );
+	}
+);
+
+$t->test(
+	'SEC-N8: oversized remote feeds and extras are rejected with useful item messages',
+	static function ( EPM_Test_Runner $t ) {
+		$url = epm_h_url( 'size-limit.xml' );
+		EPM_Test_HTTP::$routes[ $url ] = static function () { return EPM_Test_HTTP::response( 200, str_repeat( 'x', 65 ), [ 'content-length' => '65' ] ); };
+		$limit = static function () { return 64; };
+		add_filter( 'epm_feed_max_bytes', $limit );
+		try {
+			$response = Hosting::fetch( $url );
+			$t->same( 'epm_feed_too_large', $response instanceof WP_Error ? $response->get_error_code() : '', 'feed reports its limit rather than an XML parse error' );
+		} finally {
+			remove_filter( 'epm_feed_max_bytes', $limit );
+			unset( EPM_Test_HTTP::$routes[ $url ] );
+		}
+		$chapter_url = epm_h_url( 'oversized-chapters.json' );
+		$transcript_url = epm_h_url( 'oversized-transcript.txt' );
+		EPM_Test_HTTP::$routes[ $chapter_url ] = static function () { return EPM_Test_HTTP::response( 200, '{"chapters":[{"startTime":0,"title":"Truncated"}]}', [ 'content-length' => (string) ( 512 * KB_IN_BYTES + 1 ) ] ); };
+		EPM_Test_HTTP::$routes[ $transcript_url ] = static function () { return EPM_Test_HTTP::response( 200, 'Incomplete transcript', [ 'content-length' => (string) ( 2 * MB_IN_BYTES + 1 ) ] ); };
+		try {
+			$item = epm_h_parse( 'synthetic/paged-2.xml' )['items'][0];
+			$item['guid'] = 'size-limit-extras-' . wp_generate_uuid4();
+			$item['chapters'] = [];
+			$item['chapters_url'] = $chapter_url;
+			$item['transcripts'] = [ [ 'url' => $transcript_url, 'type' => 'text/plain' ] ];
+			$result = ( new Importer() )->import_item( $item );
+			$t->same( '', get_post_meta( $result['id'], '_epm_chapters', true ), 'no truncated chapters are stored' );
+			$t->same( '', get_post_meta( $result['id'], '_epm_transcript', true ), 'no truncated transcript is stored' );
+			$t->assert( false !== stripos( $result['message'], 'chapters' ) && false !== stripos( $result['message'], 'transcript' ) && false !== stripos( $result['message'], 'limit' ), 'both skipped documents are explained in the item log' );
+		} finally {
+			unset( EPM_Test_HTTP::$routes[ $chapter_url ], EPM_Test_HTTP::$routes[ $transcript_url ] );
+		}
+	}
+);
+
 /* ------------------------------------------------------------------------- */
 WP_CLI::log( 'Feed parser: real feeds' );
 /* ------------------------------------------------------------------------- */
@@ -519,6 +708,43 @@ $t->test(
 );
 
 $t->test(
+	'SEC-N3: parser preserves a literal less-than sign without whitespace in plain feed text',
+	static function ( EPM_Test_Runner $t ) {
+		$xml = '<?xml version="1.0"?><rss version="2.0"><channel><title>Rock &lt;roll</title><description>For listeners under 18</description><item><title>Use C &lt;3 for speed</title><guid>literal-lt</guid><pubDate>Wed, 03 Jun 2026 08:00:00 +0000</pubDate><enclosure url="https://cdn.example.test/a.mp3" type="audio/mpeg"/></item></channel></rss>';
+		$parsed = ( new FeedParser() )->parse( $xml );
+		$t->assert( ! is_wp_error( $parsed ), is_wp_error( $parsed ) ? $parsed->get_error_message() : 'parsed' );
+		if ( ! is_wp_error( $parsed ) ) {
+			$t->same( 'Rock <roll', $parsed['channel']['title'] );
+			$t->same( 'Use C <3 for speed', $parsed['items'][0]['title'] ?? '' );
+		}
+	}
+);
+
+$t->test(
+	'SEC-N2: parser rejects internal DTD entities before XML expansion',
+	static function ( EPM_Test_Runner $t ) {
+		$xml = '<!DOCTYPE rss [<!ENTITY a "1234567890"><!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">]><rss version="2.0"><channel><title>&b;</title></channel></rss>';
+		$parsed = ( new FeedParser() )->parse( $xml );
+		$t->assert( is_wp_error( $parsed ), 'entity declaration is rejected' );
+		$t->same( 'epm_feed_entities', is_wp_error( $parsed ) ? $parsed->get_error_code() : '', 'specific error code' );
+	}
+);
+
+$t->test(
+	'parser refuses feeds over the configured maximum size',
+	static function ( EPM_Test_Runner $t ) {
+		$filter = static function () { return 1024; };
+		add_filter( 'epm_feed_max_bytes', $filter );
+		try {
+			$parsed = ( new FeedParser() )->parse( '<rss><channel><title>Large</title></channel></rss>' . str_repeat( ' ', 1024 ) );
+			$t->same( 'epm_feed_too_large', is_wp_error( $parsed ) ? $parsed->get_error_code() : '' );
+		} finally {
+			remove_filter( 'epm_feed_max_bytes', $filter );
+		}
+	}
+);
+
+$t->test(
 	'durations: seconds, MM:SS, H:MM:SS, fractions and stray spaces',
 	static function ( EPM_Test_Runner $t ) {
 		$cases = [
@@ -693,6 +919,7 @@ $t->test(
 			'example.com/feed.xml'            => 'https://example.com/feed.xml',
 			'  https://example.com/a?b=1  '   => 'https://example.com/a?b=1',
 			'http://example.com/feed/'        => 'http://example.com/feed/',
+			'https://user:secret@example.com/feed.xml' => 'https://user:secret@example.com/feed.xml',
 			'example.com:8080/feed'           => 'https://example.com:8080/feed',
 			''                                => '',
 			'https://'                        => '',
@@ -704,6 +931,10 @@ $t->test(
 		foreach ( $cases as $in => $out ) {
 			$t->same( $out, Hosting::sanitize_feed_url( (string) $in ), var_export( (string) $in, true ) );
 		}
+		$private_url = 'https://user:secret@example.com/feed.xml?show=1&token=abc';
+		$t->assert( Hosting::has_url_secret( $private_url ), 'credentials are recognized and withheld from public metadata' );
+		$t->same( '', Hosting::public_safe_url( $private_url ), 'private feeds do not produce a public URL' );
+		$t->same( 'self', Hosting::sanitize( [ 'mode' => 'external', 'feed_url' => Feed::url(), 'redirect' => true ] )['mode'], 'cannot configure a redirect back to this site' );
 	}
 );
 
@@ -762,6 +993,15 @@ $t->test(
 		$t->same( 'draft', $clean['missing'] );
 		$t->same( true, $clean['sync'] );
 		$t->same( false, $clean['redirect'], 'unchecked box' );
+		$old = [ 'mode' => 'self', 'feed_url' => '' ];
+		$invalid = Hosting::validate_settings_save( [ 'mode' => 'external', 'feed_url' => 'https://feeds.example.test/invalid.xml', 'redirect' => true ], $old );
+		$t->same( $old, $invalid, 'unverified external feed leaves old mode and redirect settings untouched' );
+		$private = Hosting::sanitize( [ 'mode' => 'external', 'feed_url' => 'https://feeds.example.test/private.xml?token=secret', 'redirect' => 1 ] );
+		$t->same( false, $private['redirect'], 'private source cannot be made public by redirect' );
+		$previous = Hosting::all();
+		update_option( Hosting::OPTION, array_merge( $previous, $private ) );
+		$t->same( '', Hosting::feed_redirect_target(), 'private source is never a public redirect target' );
+		update_option( Hosting::OPTION, $previous );
 		$t->same( 'other', Hosting::sanitize( [ 'provider' => 'made-up-host' ] )['provider'] );
 		$t->same( 'other', Hosting::sanitize( [ 'feed_url' => 'https://example.com/feed' ] )['provider'] );
 		$t->same( 'self', Hosting::sanitize( [ 'mode' => 'something' ] )['mode'] );
@@ -898,7 +1138,7 @@ $t->test(
 		$result = Hosting::locate( epm_h_url( 'challenge-200' ) );
 		$t->same( 'epm_feed_blocked', is_wp_error( $result ) ? $result->get_error_code() : 'found', 'challenge served with 200' );
 		$missing = Hosting::locate( epm_h_url( 'does-not-exist.xml' ) );
-		$t->same( 'epm_feed_http', is_wp_error( $missing ) ? $missing->get_error_code() : 'found', '404' );
+		$t->same( 'epm_feed_http_address', is_wp_error( $missing ) ? $missing->get_error_code() : 'found', '404' );
 		$empty = Hosting::locate( 'https://' );
 		$t->same( 'epm_feed_url', is_wp_error( $empty ) ? $empty->get_error_code() : 'found', 'no address' );
 		unset( EPM_Test_HTTP::$routes[ epm_h_url( 'challenge-200' ) ] );
@@ -1022,6 +1262,7 @@ $t->test(
 		$t->same( 'Episode 1: HTML transcript', get_the_title( $ep1 ), 'the first of two items with one GUID wins' );
 		$t->same( '2026-06-03 08:00:00', get_post_field( 'post_date_gmt', $ep3 ) );
 		$t->same( '2026-06-02 08:00:00', get_post_field( 'post_date_gmt', $ep2 ) );
+		$t->assert( (int) get_post_field( 'post_author', $ep1 ) > 0, 'sync-created episodes have a real author' );
 		$t->same( [ 'publish', 'publish', 'publish', 'draft', 'draft' ], array_map( 'get_post_status', [ $ep3, $ep2, $ep1, $blocked, $undated ] ), 'itunes:block and undated items become drafts' );
 		$t->same( 'import', get_post_meta( $ep2, '_epm_source', true ) );
 		$t->same( $epm_h_show, get_post_meta( $ep2, '_epm_source_feed', true ) );
@@ -1729,6 +1970,58 @@ $t->test(
 );
 
 $t->test(
+	'SYNC-N8: signed enclosure rotation refreshes managed audio without post updates and warns about expiry',
+	static function ( EPM_Test_Runner $t ) {
+		$url = epm_h_url( 'signed.xml' );
+		$signature = 'one';
+		$make = static function () use ( &$signature ) {
+			return str_replace( 'https://feeds.example.test/media/sync-1.mp3', 'https://cdn.example.test/sync-1.mp3?X-Amz-Signature=' . $signature . '&X-Amz-Expires=60', epm_h_sync_feed( [ 1 ] ) );
+		};
+		$route = static function () use ( $make ) { return EPM_Test_HTTP::response( 200, $make(), [ 'content-type' => 'application/rss+xml' ] ); };
+		EPM_Test_HTTP::$routes[ $url ] = $route;
+		epm_h_hosting( [ 'feed_url' => $url, 'mode' => 'external' ] );
+		Hosting::sync( true );
+		$id = epm_h_id( 'sync-1' );
+		$modified = get_post_modified_time( 'U', true, $id );
+		$signature = 'two';
+		$result = Hosting::sync( true );
+		$t->same( 0, $result['updated'], $result['message'] );
+		$t->same( $modified, get_post_modified_time( 'U', true, $id ), 'post timestamp remains unchanged' );
+		$t->assert( false !== strpos( (string) get_post_meta( $id, '_epm_audio_url', true ), 'X-Amz-Signature=two' ), 'the current signed URL is stored, rather than the expired first URL' );
+		$t->assert( ! empty( Hosting::state()['expiring_audio'] ), 'the host uses signed or tokenized media addresses' );
+		$warnings = array_filter( EPM\Readiness::report()['checks'], static fn( $check ) => 'warning' === $check['status'] && false !== strpos( $check['message'], 'may expire' ) );
+		$t->assert( ! empty( $warnings ), 'readiness warns that mirroring cannot prevent signed URLs from expiring' );
+		// Original releases recorded the raw URL hash, without the new
+		// auxiliary key. Preserve that ownership across signature rotation.
+		$hashes = get_post_meta( $id, '_epm_import_hash', true );
+		unset( $hashes['audio_url_raw'] );
+		$hashes['audio_url'] = md5( (string) get_post_meta( $id, '_epm_audio_url', true ) );
+		update_post_meta( $id, '_epm_import_hash', $hashes );
+		$signature = 'legacy-four';
+		$legacy = Hosting::sync( true );
+		$t->same( 0, $legacy['updated'], 'legacy raw hashes refresh without an editorial update' );
+		$t->assert( false !== strpos( (string) get_post_meta( $id, '_epm_audio_url', true ), 'X-Amz-Signature=legacy-four' ), 'original 1.3.0 hashes retain managed ownership' );
+		$managed_url = get_post_meta( $id, '_epm_audio_url', true );
+		$local_token = str_replace( 'X-Amz-Signature=legacy-four', 'X-Amz-Signature=local-choice', $managed_url );
+		update_post_meta( $id, '_epm_audio_url', $local_token );
+		$signature = 'three';
+		Hosting::sync( true );
+		$t->same( $local_token, get_post_meta( $id, '_epm_audio_url', true ), 'even a local token-only edit is retained' );
+		update_post_meta( $id, '_epm_audio_url', $managed_url );
+		update_post_meta( $id, '_epm_audio_url', 'https://local-choice.example.test/edited.mp3' );
+		$signature = 'three';
+		Hosting::sync( true );
+		$t->same( 'https://local-choice.example.test/edited.mp3', get_post_meta( $id, '_epm_audio_url', true ), 'a locally chosen audio address is kept' );
+		update_post_meta( $id, '_epm_audio_url', $managed_url );
+		unset( EPM_Test_HTTP::$routes[ $url ] );
+		// Restore the suite's sync feed so later tests do not inherit a URL
+		// whose temporary route has just been removed.
+		epm_h_hosting( [ 'feed_url' => epm_h_url( 'sync.xml' ), 'mode' => 'external' ] );
+		Hosting::sync( true );
+	}
+);
+
+$t->test(
 	'a title edited here survives a sync while fields untouched here follow the host',
 	static function ( EPM_Test_Runner $t ) {
 		$ep5 = epm_h_id( 'sync-5' );
@@ -1857,10 +2150,16 @@ $t->test(
 $t->test(
 	'the sync follows a feed that announces a new address or moved permanently, never to this site\'s own feed',
 	static function ( EPM_Test_Runner $t ) use ( $epm_h_sync ) {
+		EPM_Test_HTTP::$routes[ epm_h_url( 'sync-moved.xml' ) ] = static function () {
+			$s = $GLOBALS['epm_h_sync'];
+			return EPM_Test_HTTP::response( 200, epm_h_sync_feed( $s['numbers'], $s['changes'] ), [ 'content-type' => 'application/rss+xml' ] );
+		};
 		$GLOBALS['epm_h_sync']['extra'] = '<itunes:new-feed-url>https://feeds.example.test/sync-moved.xml</itunes:new-feed-url>';
 		$result                         = Hosting::sync();
 		$t->same( 'ok', $result['status'], $result['message'] );
 		$t->same( 'https://feeds.example.test/sync-moved.xml', Hosting::get( 'feed_url' ) );
+		$t->assert( false !== strpos( $result['message'], 'verified as this show' ), 'verified move is reported' );
+		unset( EPM_Test_HTTP::$routes[ epm_h_url( 'sync-moved.xml' ) ] );
 
 		// The host sends apps here (this site's feed, with or without the
 		// trailing slash): the show moved here, so hosting switches to this
@@ -1887,6 +2186,10 @@ $t->test(
 		$GLOBALS['epm_h_sync']['extra'] = '';
 
 		// Redirected by the host: permanent moves are followed, temporary ones not.
+		EPM_Test_HTTP::$routes[ epm_h_url( 'sync-final.xml' ) ] = static function () {
+			$s = $GLOBALS['epm_h_sync'];
+			return EPM_Test_HTTP::response( 200, epm_h_sync_feed( $s['numbers'], $s['changes'] ), [ 'content-type' => 'application/rss+xml' ] );
+		};
 		foreach ( [ 'sync-302.xml' => [ [ 302 ], 'sync-302.xml' ], 'sync-301.xml' => [ [ 301 ], 'sync-final.xml' ] ] as $name => [ $hops, $expected ] ) {
 			EPM_Test_HTTP::$routes[ epm_h_url( $name ) ] = static function () use ( $hops ) {
 				$s = $GLOBALS['epm_h_sync'];
@@ -1898,6 +2201,26 @@ $t->test(
 			$t->same( epm_h_url( $expected ), Hosting::get( 'feed_url' ), $hops[0] . ' (' . $result['message'] . ')' );
 		}
 		epm_h_hosting( [ 'feed_url' => $epm_h_sync ] );
+		unset( EPM_Test_HTTP::$routes[ epm_h_url( 'sync-final.xml' ) ] );
+	}
+);
+
+$t->test(
+	'sync rejects an announced feed address that cannot be fetched before adopting it',
+	static function ( EPM_Test_Runner $t ) use ( $epm_h_sync ) {
+		$bad = epm_h_url( 'not-a-feed.xml' );
+		$bad_feed = '<html>not a feed</html>';
+		$GLOBALS['epm_h_sync']['extra'] = '<itunes:new-feed-url>' . esc_xml( $bad ) . '</itunes:new-feed-url>';
+		EPM_Test_HTTP::$routes[ $bad ] = static fn () => EPM_Test_HTTP::response( 200, $bad_feed, [ 'content-type' => 'application/rss+xml' ] );
+		$before = Hosting::get( 'feed_url' );
+		$start   = count( EPM_Test_HTTP::$log );
+		$result = Hosting::sync();
+		$t->same( 'ok', $result['status'], $result['message'] );
+		$t->same( $before, Hosting::get( 'feed_url' ), 'an address containing no episodes is not adopted' );
+		$t->assert( false !== strpos( $result['message'], 'current address was kept' ), 'rejected move is explained' );
+		$t->assert( in_array( $bad, array_column( array_slice( EPM_Test_HTTP::$log, $start ), 'url' ), true ), 'candidate address is fetched before adoption' );
+		unset( EPM_Test_HTTP::$routes[ $bad ] );
+		$GLOBALS['epm_h_sync']['extra'] = '';
 	}
 );
 
@@ -1991,11 +2314,20 @@ $t->test(
 
 		// Refreshed while held; a running copy of media keeps it for longer.
 		$t->assert( ImportJob::acquire_lock(), 'lock taken once more' );
-		$suffix = substr( (string) get_option( 'epm_import_lock' ), strpos( (string) get_option( 'epm_import_lock' ), ':' ) );
-		update_option( 'epm_import_lock', ( time() - 100 ) . $suffix, false );
+		$taken = (int) strtok( (string) get_option( 'epm_import_lock' ), ':' );
+		sleep( 1 );
 		$t->assert( ImportJob::refresh_lock(), 'refreshed' );
-		$t->assert( (int) strtok( (string) get_option( 'epm_import_lock' ), ':' ) >= time() - 5, 'with the current time' );
+		$t->assert( (int) strtok( (string) get_option( 'epm_import_lock' ), ':' ) > $taken, 'with the current time' );
+		$t->assert( ImportJob::refresh_lock(), 'refreshed again within the same second' );
+		// A lock row someone else rewrote (even with the same owner part)
+		// is not this request's lock any more.
+		$suffix = substr( (string) get_option( 'epm_import_lock' ), strpos( (string) get_option( 'epm_import_lock' ), ':' ) );
+		$rewritten = ( time() - 100 ) . $suffix;
+		update_option( 'epm_import_lock', $rewritten, false );
+		$t->same( false, ImportJob::refresh_lock(), 'a rewritten lock is not renewed' );
 		ImportJob::release_lock();
+		$t->same( $rewritten, get_option( 'epm_import_lock' ), 'nor released' );
+		delete_option( 'epm_import_lock' );
 
 		$job = get_option( ImportJob::OPTION );
 		update_option(
@@ -2007,7 +2339,8 @@ $t->test(
 			false
 		);
 		update_option( 'epm_import_lock', ( time() - 10 * MINUTE_IN_SECONDS ) . ':copying', false );
-		$t->same( false, ImportJob::acquire_lock(), 'copying media: 10 minutes is not stale' );
+		$t->assert( ImportJob::acquire_lock(), 'copying media: an abandoned ten-minute lock is stale' );
+		ImportJob::release_lock();
 		update_option( 'epm_import_lock', ( time() - 21 * MINUTE_IN_SECONDS ) . ':copying', false );
 		$t->assert( ImportJob::acquire_lock(), 'copying media: 21 minutes is stale' );
 		ImportJob::release_lock();
@@ -2745,6 +3078,7 @@ $t->test(
 			);
 			$pages->save_step( 'path', [ 'path' => 'move' ] );
 			$t->same( [ 'move', 'external' ], [ AdminPages::setup_state()['path'], Hosting::get( 'mode' ) ], 'move chosen: unchanged until the host step' );
+			EPM_Test_HTTP::$routes['https://feeds.example.test/old.xml'] = static fn () => EPM_Test_HTTP::response( 200, epm_h_sync_feed( [ 1 ] ), [ 'content-type' => 'application/rss+xml' ] );
 			$pages->save_step( 'hosting', [ 'feed_url' => 'https://feeds.example.test/old.xml', 'provider' => 'buzzsprout', 'mode' => 'external' ] );
 			$t->same( 'self', Hosting::get( 'mode' ), 'moving: the host step keeps the show here' );
 			epm_h_hosting( [ 'mode' => 'external' ] );
@@ -2752,6 +3086,10 @@ $t->test(
 			$t->same( [ 'new', 'self' ], [ AdminPages::setup_state()['path'], Hosting::get( 'mode' ) ], 'new: hosted here' );
 
 			$pages->save_step( 'path', [ 'path' => 'external' ] );
+			EPM_Test_HTTP::$routes['https://feeds.example.test/x.xml'] = static fn () => EPM_Test_HTTP::response( 200, epm_h_sync_feed( [ 1 ] ), [ 'content-type' => 'application/rss+xml' ] );
+			EPM_Test_HTTP::$routes['https://feeds.example.test/bad.xml'] = static fn () => EPM_Test_HTTP::response( 200, '<html>not a feed</html>', [ 'content-type' => 'text/html' ] );
+			$rejected = $pages->save_step( 'hosting', [ 'feed_url' => 'https://feeds.example.test/bad.xml', 'provider' => 'buzzsprout', 'mode' => 'external' ] );
+			$t->assert( is_wp_error( $rejected ), 'an unparseable feed cannot switch hosting' );
 			$saved = $pages->save_step(
 				'hosting',
 				[
@@ -2768,6 +3106,7 @@ $t->test(
 			$t->same( [ 'external', 'https://feeds.example.test/x.xml', 'buzzsprout', true, false, 'draft' ], [ $hosting['mode'], $hosting['feed_url'], $hosting['provider'], $hosting['sync'], $hosting['redirect'], $hosting['new_status'] ] );
 			$t->assert( ! isset( get_option( Hosting::OPTION )['unknown'] ), 'unknown keys dropped' );
 			$t->same( $hosting, $saved['hosting'] ?? null );
+			unset( EPM_Test_HTTP::$routes['https://feeds.example.test/old.xml'], EPM_Test_HTTP::$routes['https://feeds.example.test/x.xml'], EPM_Test_HTTP::$routes['https://feeds.example.test/bad.xml'] );
 
 			$links = epm()->settings->get( 'platform_links' );
 			$show  = $pages->save_step(
@@ -2922,8 +3261,54 @@ $t->test(
 );
 
 $t->test(
-	'uninstalling with data deletion removes the topics and their relationships (the plugin is not loaded then)',
+	'credentialed feed URLs are never stored on imported episodes',
 	static function ( EPM_Test_Runner $t ) {
+		$url = 'https://user:secret@feeds.example.test/private.xml?token=top-secret';
+		$importer = new Importer( [ 'feed_url' => $url ] );
+		$outcome = $importer->import_item(
+			[
+				'guid' => 'private-source-probe',
+				'title' => 'Private source probe',
+				'pub_date' => time() - HOUR_IN_SECONDS,
+				'html' => '',
+				'audio_url' => 'https://media.example.test/private.mp3',
+				'audio_type' => 'audio/mpeg',
+			]
+		);
+		$id = (int) ( $outcome['id'] ?? 0 );
+		$t->assert( $id > 0, 'episode imported' );
+		$source = (string) get_post_meta( $id, Episodes::META_PREFIX . 'source_feed', true );
+		$t->assert( '' !== $source && false === strpos( $source, 'secret' ) && false === strpos( $source, 'token' ), 'metadata contains no URL secrets' );
+		$t->same( 'private:' . hash( 'sha256', $url ), $source, 'stable private feed identifier' );
+		$t->same( 0, $importer->draft_missing( [ 'private-source-probe' => true ], 0 ), 'private source episodes remain discoverable without the URL' );
+		// Simulate a 1.3.0 row, written before the new metadata sanitizer.
+		$GLOBALS['wpdb']->update( $GLOBALS['wpdb']->postmeta, [ 'meta_value' => $url ], [ 'post_id' => $id, 'meta_key' => Episodes::META_PREFIX . 'source_feed' ] );
+		wp_cache_delete( $id, 'post_meta' );
+		$previous_user = get_current_user_id();
+		wp_set_current_user( 0 );
+		try {
+			$response = rest_do_request( new WP_REST_Request( 'GET', '/wp/v2/' . EpisodePostType::CPT . '/' . $id ) );
+			$t->same( 200, $response->get_status(), 'the public legacy episode remains readable' );
+			$t->same( $source, $response->get_data()['meta'][ Episodes::META_PREFIX . 'source_feed' ] ?? '', 'REST never reveals legacy source-feed credentials' );
+			$t->same( $url, get_post_meta( $id, Episodes::META_PREFIX . 'source_feed', true ), 'reading REST does not rewrite stored legacy data' );
+		} finally {
+			wp_set_current_user( $previous_user );
+		}
+		update_post_meta( $id, Episodes::META_PREFIX . 'missing_since', time() - 2 * DAY_IN_SECONDS );
+		$t->same( 1, $importer->draft_missing( [ 'another-guid' => true ], 0 ), 'missing episodes are found using both current and legacy private feed identifiers' );
+		$t->same( 'draft', get_post_status( $id ), 'the missing private-feed episode is drafted' );
+		$moved_url = 'https://feeds.example.test/private.xml?token=rotated-secret';
+		$moved_importer = new Importer( [ 'feed_url' => $moved_url ] );
+		$moved = $moved_importer->import_item( [ 'guid' => 'private-source-probe', 'title' => 'Private source probe', 'pub_date' => time() - HOUR_IN_SECONDS, 'html' => '', 'audio_url' => 'https://media.example.test/private.mp3', 'audio_type' => 'audio/mpeg' ] );
+		$t->same( $id, (int) $moved['id'], 'a private feed move keeps the episode identity' );
+		$t->same( 'private:' . hash( 'sha256', $moved_url ), get_post_meta( $id, Episodes::META_PREFIX . 'source_feed', true ), 're-tagging an existing episode never stores the new URL secret' );
+		wp_delete_post( $id, true );
+	}
+);
+
+$t->test(
+	'uninstalling with data deletion removes the topics and their relationships (the plugin is not loaded then)',
+	static function ( EPM_Test_Runner $t ) use ( $fx ) {
 		global $wpdb;
 
 		$episode = (int) wp_insert_post(
@@ -2933,6 +3318,7 @@ $t->test(
 				'post_title'  => 'Uninstall probe',
 			]
 		);
+		wp_trash_post( $episode );
 		$term    = wp_insert_term( 'Uninstall probe ' . wp_generate_password( 6, false ), EpisodePostType::TOPIC );
 		$term_id = is_wp_error( $term ) ? 0 : (int) $term['term_id'];
 		$tt_id   = is_wp_error( $term ) ? 0 : (int) $term['term_taxonomy_id'];
@@ -2942,16 +3328,19 @@ $t->test(
 		// Everything uninstall.php deletes is kept aside and put back; only
 		// the probe episode and topic are offered to it.
 		$options = $wpdb->get_results( "SELECT option_name, option_value, autoload FROM {$wpdb->options} WHERE option_name LIKE 'epm%'", ARRAY_A );
-		$posts   = static function ( $pre, $query ) use ( $episode ) {
-			return EpisodePostType::CPT === $query->get( 'post_type' ) ? [ $episode ] : $pre;
-		};
+		$rewrite_rules = get_option( 'rewrite_rules', false );
+		update_option( 'rewrite_rules', [ 'podcast/feed/?$' => 'index.php?epm_feed=1' ] );
+		// The bounded uninstaller queries SQL directly, so posts_pre_query
+		// cannot constrain it. Temporarily park every non-probe episode.
+		$hold_type = 'epm_hold_' . substr( str_replace( '-', '', wp_generate_uuid4() ), 0, 8 );
+		$wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->posts} SET post_type = %s WHERE post_type = %s AND ID <> %d", $hold_type, EpisodePostType::CPT, $episode ) );
+		wp_cache_flush();
 		// Only the "all topics" query (not term lookups WordPress makes).
 		$terms   = static function ( $pre, $query ) use ( $term_id ) {
 			$vars = $query->query_vars;
 			$all  = in_array( EpisodePostType::TOPIC, (array) ( $vars['taxonomy'] ?? [] ), true ) && 'ids' === ( $vars['fields'] ?? '' ) && empty( $vars['object_ids'] ) && empty( $vars['include'] ) && empty( $vars['name'] ) && empty( $vars['slug'] );
 			return $all ? [ $term_id ] : $pre;
 		};
-		add_filter( 'posts_pre_query', $posts, 10, 2 );
 		add_filter( 'terms_pre_query', $terms, 10, 2 );
 		add_filter( 'epm_delete_data_on_uninstall', '__return_true' );
 		unregister_taxonomy( EpisodePostType::TOPIC );
@@ -2964,12 +3353,21 @@ $t->test(
 			} )();
 
 			$t->same( null, get_post( $episode ), 'episode deleted' );
+			$t->assert( get_post( (int) $fx['ep1'] ) instanceof WP_Post, 'the uninstall probe must preserve episodes outside its scope' );
+			$t->same( false, get_option( 'rewrite_rules', false ), 'LIFE-N3: uninstall invalidates the podcast routes' );
 			$t->same( 0, (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->term_relationships} WHERE object_id = %d OR term_taxonomy_id = %d", $episode, $tt_id ) ), 'no topic relationships left' );
 			$t->same( 0, (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->term_taxonomy} WHERE term_taxonomy_id = %d", $tt_id ) ), 'topic deleted' );
 		} finally {
-			remove_filter( 'posts_pre_query', $posts, 10 );
+			$wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->posts} SET post_type = %s WHERE post_type = %s", EpisodePostType::CPT, $hold_type ) );
+			wp_cache_flush();
+			$t->same( EpisodePostType::CPT, get_post_type( (int) $fx['ep1'] ), 'protected episodes have their original type restored' );
 			remove_filter( 'terms_pre_query', $terms, 10 );
 			remove_filter( 'epm_delete_data_on_uninstall', '__return_true' );
+			if ( false === $rewrite_rules ) {
+				delete_option( 'rewrite_rules' );
+			} else {
+				update_option( 'rewrite_rules', $rewrite_rules );
+			}
 			EpisodePostType::register_topics();
 			foreach ( $options as $option ) {
 				delete_option( $option['option_name'] );
@@ -3013,7 +3411,7 @@ foreach ( $epm_h_created as $epm_h_id ) {
 foreach ( array_keys( $GLOBALS['epm_h_options'] ) as $epm_h_name ) {
 	epm_h_restore( $epm_h_name );
 }
-foreach ( [ Hosting::CRON_HOOK, ImportJob::CRON_HOOK, 'epm_ping_podcast_index' ] as $epm_h_hook ) {
+foreach ( [ Hosting::CRON_HOOK, ImportJob::CRON_HOOK, Feed::PING_HOOK, Feed::PING_FILTER ] as $epm_h_hook ) {
 	wp_clear_scheduled_hook( $epm_h_hook );
 }
 Feed::flush_cache();

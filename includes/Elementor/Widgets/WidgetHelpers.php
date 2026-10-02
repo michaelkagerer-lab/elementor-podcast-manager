@@ -12,6 +12,7 @@
 namespace EPM\Elementor\Widgets;
 
 use Elementor\Controls_Manager;
+use EPM\Details;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -174,6 +175,181 @@ trait WidgetHelpers {
 		}
 
 		return 'yes' === $settings[ $key ];
+	}
+
+	/**
+	 * Schema marker. Widgets inserted or saved since the details defaults
+	 * exist carry epm_schema = '2' (always stored: save_default). Widgets
+	 * saved by 1.3.0 have no marker: their details keep the values 1.3.0
+	 * showed (see detail_values()), and the editor opens them with those
+	 * values made explicit (see with_explicit_details()).
+	 *
+	 * @return void
+	 */
+	protected function add_schema_control(): void {
+		$this->add_control(
+			'epm_schema',
+			[
+				'type'         => Controls_Manager::HIDDEN,
+				'default'      => '2',
+				'save_default' => true,
+			]
+		);
+	}
+
+	/**
+	 * Layout select whose default is "Default (Podcast → Design: …)" ('').
+	 * Every other choice differs from the control default, so Elementor
+	 * stores it, also when it equals the current Design value: a later
+	 * preset or Design change never moves it.
+	 *
+	 * @param string                $label   Control label.
+	 * @param array<string, string> $layouts Layout => label.
+	 * @param string                $token   Design token with the default layout.
+	 * @param array<string, mixed>  $extra   Extra control args.
+	 * @return void
+	 */
+	protected function add_layout_control( string $label, array $layouts, string $token, array $extra = [] ): void {
+		$current = (string) epm()->design->get( $token );
+
+		$this->add_control(
+			'layout',
+			array_merge(
+				[
+					'label'   => $label,
+					'type'    => Controls_Manager::SELECT,
+					'default' => '',
+					'options' => [
+						/* translators: %s: layout name, e.g. Minimal */
+						'' => sprintf( __( 'Default (Podcast → Design: %s)', 'elementor-podcast-manager' ), $layouts[ $current ] ?? $current ),
+					] + $layouts,
+				],
+				$extra
+			)
+		);
+	}
+
+	/**
+	 * Add a detail as Default / Show / Hide. '' (Default) follows Podcast →
+	 * Design → Details shown by default; Show and Hide are stored as 'yes'
+	 * and 'no' and win. The Default option names what the site shows now.
+	 *
+	 * @param string               $id      Detail key, e.g. show_volume.
+	 * @param string               $label   Label.
+	 * @param string               $context Details context.
+	 * @param array<string, mixed> $extra   Extra control args (description, condition, …).
+	 * @return void
+	 */
+	protected function add_detail_control( string $id, string $label, string $context, array $extra = [] ): void {
+		$shown = Details::effective( $context )[ $id ] ?? false;
+
+		$this->add_control(
+			$id,
+			array_merge(
+				[
+					'label'   => $label,
+					'type'    => Controls_Manager::SELECT,
+					'default' => '',
+					'options' => [
+						'' => $shown
+							? __( 'Default (shown)', 'elementor-podcast-manager' )
+							: __( 'Default (hidden)', 'elementor-podcast-manager' ),
+						'yes' => __( 'Show', 'elementor-podcast-manager' ),
+						'no'  => __( 'Hide', 'elementor-podcast-manager' ),
+					],
+				],
+				$extra
+			)
+		);
+	}
+
+	/**
+	 * One action that puts every detail of this widget back on Default
+	 * (admin/js/epm-elementor-editor.js handles the event, undoable).
+	 *
+	 * @return void
+	 */
+	protected function add_details_defaults_control(): void {
+		$this->add_control(
+			'epm_details_defaults',
+			[
+				'label'       => __( 'Details', 'elementor-podcast-manager' ),
+				'type'        => Controls_Manager::BUTTON,
+				'text'        => __( 'Use Podcast → Design defaults', 'elementor-podcast-manager' ),
+				'event'       => 'epm:details:defaults',
+				'separator'   => 'before',
+				'description' => __( 'Each detail below shows, hides or follows Podcast → Design → Details shown by default ("Default"). This button sets every detail of this widget to Default.', 'elementor-podcast-manager' ),
+			]
+		);
+	}
+
+	/**
+	 * Whether the widget was saved before the details defaults existed.
+	 *
+	 * @param array<string, mixed> $raw Stored settings.
+	 * @return bool
+	 */
+	protected function is_legacy_settings( array $raw ): bool {
+		return ! isset( $raw['epm_schema'] ) || '' === (string) $raw['epm_schema'];
+	}
+
+	/**
+	 * The details this widget chose itself (null: Default, inherit).
+	 *
+	 * Widgets saved by 1.3.0 have no schema marker. Their stored switchers
+	 * stay explicit ('yes' shows, '' hides) and a missing one keeps what
+	 * 1.3.0 showed for it (Elementor did not store values equal to the
+	 * control default). So a later change of the site's details never
+	 * changes such a widget until its details are set to Default.
+	 *
+	 * @param string $context Details context.
+	 * @return array<string, bool|null>
+	 */
+	protected function detail_values( string $context ): array {
+		$raw    = (array) $this->get_data( 'settings' );
+		$legacy = $this->is_legacy_settings( $raw );
+		$frozen = Details::neutral( $context );
+		$out    = [];
+
+		foreach ( Details::flags( $context ) as $flag ) {
+			$value = $raw[ $flag ] ?? null;
+			if ( $legacy ) {
+				$out[ $flag ] = null === $value ? $frozen[ $flag ] : 'yes' === $value;
+			} elseif ( 'yes' === $value || 'no' === $value ) {
+				$out[ $flag ] = 'yes' === $value;
+			} else {
+				$out[ $flag ] = null;
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Settings of a widget saved by 1.3.0 with every detail explicit and the
+	 * schema marker set: what the editor loads (and saves), so the panel
+	 * shows what the widget shows. Rendering is the same before and after.
+	 *
+	 * @param array<string, mixed> $settings Stored settings.
+	 * @param string               $context  Details context.
+	 * @return array<string, mixed>
+	 */
+	protected function explicit_details( array $settings, string $context ): array {
+		if ( ! $this->is_legacy_settings( $settings ) ) {
+			return $settings;
+		}
+
+		$frozen = Details::neutral( $context );
+		foreach ( Details::flags( $context ) as $flag ) {
+			if ( array_key_exists( $flag, $settings ) ) {
+				$settings[ $flag ] = 'yes' === $settings[ $flag ] ? 'yes' : 'no';
+			} else {
+				$settings[ $flag ] = $frozen[ $flag ] ? 'yes' : 'no';
+			}
+		}
+		$settings['epm_schema'] = '2';
+
+		return $settings;
 	}
 
 	/**

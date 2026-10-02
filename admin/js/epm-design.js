@@ -3,9 +3,15 @@
  *
  * window.epmDesign comes from EPM\Admin::design_preview_config(): the
  * table of design tokens (which --epm-* variable each one sets and how its
- * value is written), the saved values, every preset's values and the
- * dark-background rule. Nothing here is saved: the form saves through
- * options.php, and applying a preset is a confirmed POST.
+ * value is written), the saved values, every preset's values and details,
+ * the details shown by default (built-in and the site's) and the
+ * dark-background rule. Nothing here is saved: the token form saves
+ * through options.php, the details form and applying a preset are POSTs.
+ *
+ * The preview renders the saved details (the server renders it exactly
+ * as the site does). Previewing a preset shows its looks and layouts and
+ * lists the details it would change; the confirmation dialog lists them
+ * again.
  */
 (function () {
 	'use strict';
@@ -29,6 +35,10 @@
 	var resetButton = root.querySelector('[data-epm-design-reset]');
 	var dialog = root.querySelector('[data-epm-preset-dialog]');
 	var applyButton = root.querySelector('[data-epm-preset-apply]');
+	var detailsForm = root.querySelector('[data-epm-details-form]');
+	var detailsDirtyEl = root.querySelector('[data-epm-details-dirty]');
+	var detailsConfig = config.details || { neutral: {}, site: {}, labels: {}, places: {} };
+	var detailsDirty = false;
 
 	if (!form || !canvas) {
 		return;
@@ -234,11 +244,109 @@
 	}
 
 	/**
+	 * Every detail of every context: built-in defaults with a sparse map
+	 * of choices on top (the site's, or a preset's).
+	 *
+	 * @param {Object} sparse Context => detail => shown.
+	 * @return {Object} Context => detail => shown.
+	 */
+	function effectiveDetails(sparse) {
+		var out = {};
+		Object.keys(detailsConfig.neutral || {}).forEach(function (context) {
+			out[context] = Object.assign({}, detailsConfig.neutral[context], (sparse && sparse[context]) || {});
+		});
+		return out;
+	}
+
+	/**
+	 * What a preset's details change on the site, one entry per detail
+	 * and new state, with the places it changes in.
+	 *
+	 * @param {Object} sparse The preset's details.
+	 * @return {Array} [{ label, shown, places: [] }].
+	 */
+	function detailChanges(sparse) {
+		var now = effectiveDetails(detailsConfig.site);
+		var after = effectiveDetails(sparse);
+		var byKey = {};
+		var order = [];
+		Object.keys(after).forEach(function (context) {
+			Object.keys(after[context]).forEach(function (flag) {
+				if (after[context][flag] === now[context][flag]) {
+					return;
+				}
+				var key = flag + (after[context][flag] ? ':1' : ':0');
+				if (!byKey[key]) {
+					byKey[key] = { label: (detailsConfig.labels || {})[flag] || flag, shown: after[context][flag], places: [] };
+					order.push(key);
+				}
+				byKey[key].places.push((detailsConfig.places || {})[context] || context);
+			});
+		});
+		return order.map(function (key) {
+			return byKey[key];
+		});
+	}
+
+	/**
+	 * A list of names, joined the way the page's language does.
+	 *
+	 * @param {Array} names Names.
+	 * @return {string} Text.
+	 */
+	function listOf(names) {
+		try {
+			return new Intl.ListFormat(document.documentElement.lang || undefined, { type: 'conjunction' }).format(names);
+		} catch (e) {
+			return names.join(', ');
+		}
+	}
+
+	/**
+	 * One detail change as a sentence.
+	 *
+	 * @param {Object} change From detailChanges().
+	 * @return {string} Text.
+	 */
+	function describeChange(change) {
+		var format;
+
+		if (change.shown) {
+			/* translators: 1: detail, e.g. Volume slider, 2: where, e.g. Player and Episode pages */
+			format = __('%1$s shown: %2$s', 'elementor-podcast-manager');
+		} else {
+			/* translators: 1: detail, e.g. Volume slider, 2: where, e.g. Player and Episode pages */
+			format = __('%1$s hidden: %2$s', 'elementor-podcast-manager');
+		}
+
+		return sprintf(format, change.label, listOf(change.places));
+	}
+
+	/**
+	 * The episode page's player layout: Minimal and Compact become Full
+	 * while it shows a control those layouts hide (as on the site).
+	 *
+	 * @param {string} layout  Player layout.
+	 * @param {Object} details Every detail of every context.
+	 * @return {string} Layout.
+	 */
+	function episodePageLayout(layout, details) {
+		if (layout !== 'minimal' && layout !== 'compact') {
+			return layout;
+		}
+		var page = details.episode_page || {};
+		return (config.episodePageFull || []).some(function (flag) {
+			return !!page[flag];
+		}) ? 'full' : layout;
+	}
+
+	/**
 	 * Show a set of values in the preview.
 	 *
-	 * @param {Object} values Token key => value.
+	 * @param {Object} values  Token key => value.
+	 * @param {Object} details Sparse details (the site's when omitted).
 	 */
-	function applyPreview(values) {
+	function applyPreview(values, details) {
 		var vars = cssVars(values);
 		managedVars.forEach(function (name) {
 			if (Object.prototype.hasOwnProperty.call(vars, name)) {
@@ -251,17 +359,24 @@
 		var font = map.font_family && map.font_family.values ? map.font_family.values[values.font_family] : '';
 		canvas.classList.toggle('has-custom-font', !!font);
 
-		setModifiers(canvas.querySelector('.epm-player'), 'epm-player--', ['epm-player--' + values.default_player_layout]);
+		var all = effectiveDetails(details === undefined ? detailsConfig.site : details);
+		canvas.querySelectorAll('[data-epm-preview-part="player"] .epm-player').forEach(function (el) {
+			setModifiers(el, 'epm-player--', ['epm-player--' + values.default_player_layout]);
+		});
+		canvas.querySelectorAll('[data-epm-preview-part="episode-page"] .epm-player').forEach(function (el) {
+			setModifiers(el, 'epm-player--', ['epm-player--' + episodePageLayout(String(values.default_player_layout), all)]);
+		});
 
 		var layout = String(values.default_episode_layout || 'list');
 		var isCards = (config.cardLayouts || []).indexOf(layout) !== -1;
 		var cards = canvas.querySelector('[data-epm-preview-list="cards"]');
 		var rows = canvas.querySelector('[data-epm-preview-list="rows"]');
 		var rowLayout = isCards ? 'list' : layout;
+		var numbers = !all.list || all.list.show_episode_number !== false;
 
-		setModifiers(cards, 'epm-episode-list--', ['epm-episode-list--' + (isCards ? layout : 'cards')]);
-		setModifiers(rows, 'epm-episode-list--', ['epm-episode-list--' + rowLayout].concat(
-			(config.numberedLayouts || []).indexOf(rowLayout) !== -1 ? ['epm-episode-list--numbered'] : []
+		setModifiers(cards && cards.querySelector('.epm-episode-list'), 'epm-episode-list--', ['epm-episode-list--' + (isCards ? layout : 'cards')]);
+		setModifiers(rows && rows.querySelector('.epm-episode-list'), 'epm-episode-list--', ['epm-episode-list--' + rowLayout].concat(
+			numbers && (config.numberedLayouts || []).indexOf(rowLayout) !== -1 && rows.querySelector('.epm-episode-row__number') ? ['epm-episode-list--numbered'] : []
 		));
 		if (cards) {
 			cards.hidden = !isCards;
@@ -427,10 +542,19 @@
 			return;
 		}
 		mode = 'preset';
-		applyPreview(preset.values);
+		applyPreview(preset.values, preset.details || {});
 		if (presetNote && presetNoteText) {
+			var changes = detailChanges(preset.details || {});
 			/* translators: %s: preset name */
-			presetNoteText.textContent = sprintf(__('Previewing “%s”. It is not applied yet: apply the preset to use it.', 'elementor-podcast-manager'), preset.name);
+			var text = sprintf(__('Previewing “%s”. It is not applied yet: apply the preset to use it.', 'elementor-podcast-manager'), preset.name);
+			if (changes.length) {
+				text += ' ' + sprintf(
+					/* translators: %s: list of detail changes, e.g. "Volume slider hidden: Player" */
+					__('Details it changes on your site: %s.', 'elementor-podcast-manager'),
+					changes.map(describeChange).join('; ')
+				);
+			}
+			presetNoteText.textContent = text;
 			presetNote.hidden = false;
 		}
 		if (statusEl) {
@@ -590,12 +714,32 @@
 		});
 	}
 	window.addEventListener('beforeunload', function (e) {
-		if (!dirty || Date.now() < downloadUntil) {
+		if ((!dirty && !detailsDirty) || Date.now() < downloadUntil) {
 			return;
 		}
 		e.preventDefault();
 		e.returnValue = '';
 	});
+
+	// ---------------------------------------------------------------------
+	// Details shown by default: the preview shows saved details, so a
+	// change says it needs saving (and leaving the page asks first).
+	// ---------------------------------------------------------------------
+
+	if (detailsForm) {
+		detailsForm.addEventListener('change', function (e) {
+			if (!e.target.matches('input[type="checkbox"]')) {
+				return;
+			}
+			detailsDirty = true;
+			if (detailsDirtyEl) {
+				detailsDirtyEl.textContent = __('Unsaved changes. Save the details to see them in the preview and on your site.', 'elementor-podcast-manager');
+			}
+		});
+		detailsForm.addEventListener('submit', function () {
+			detailsDirty = false;
+		});
+	}
 
 	// ---------------------------------------------------------------------
 	// Preset gallery.
@@ -634,7 +778,19 @@
 			var title = dialog.querySelector('[data-epm-dialog-title]');
 			/* translators: %s: preset name */
 			title.textContent = sprintf(__('Apply “%s”?', 'elementor-podcast-manager'), preset ? preset.name : checked.value);
-			dialog.querySelector('[data-epm-dialog-dirty]').hidden = !dirty;
+			dialog.querySelector('[data-epm-dialog-dirty]').hidden = !(dirty || detailsDirty);
+			var detailsBox = dialog.querySelector('[data-epm-dialog-details]');
+			var detailsList = dialog.querySelector('[data-epm-dialog-details-list]');
+			if (detailsBox && detailsList) {
+				var changes = detailChanges((preset && preset.details) || {});
+				detailsList.textContent = '';
+				changes.forEach(function (change) {
+					var item = document.createElement('li');
+					item.textContent = describeChange(change);
+					detailsList.appendChild(item);
+				});
+				detailsBox.hidden = !changes.length;
+			}
 			dialog.showModal();
 			dialog.querySelector('[data-epm-dialog-cancel]').focus();
 		});

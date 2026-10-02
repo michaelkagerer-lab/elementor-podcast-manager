@@ -704,7 +704,7 @@ final class EpisodeMeta {
 
 	/**
 	 * Render the current audio state (file or URL details + preview, or the
-	 * empty hint). Mirrors renderAudioState() in admin/js/epm-admin.js.
+	 * empty hint). Mirrors renderAudioState() in admin/js/epm-admin-ui.js.
 	 *
 	 * @param \WP_Post $post      Post object.
 	 * @param int      $audio_id  Attachment ID (0 when none).
@@ -762,7 +762,7 @@ final class EpisodeMeta {
 			return;
 		}
 
-		echo '<p class="epm-upload__hint">' . esc_html__( 'Drop an MP3 or M4A file here, or', 'elementor-podcast-manager' ) . '</p>';
+		echo '<p class="epm-upload__hint">' . esc_html__( 'Drop an MP3 or M4A file here. You can also choose a file below.', 'elementor-podcast-manager' ) . '</p>';
 	}
 
 	/**
@@ -1132,20 +1132,25 @@ final class EpisodeMeta {
 			<p class="epm-field-error" id="epm-transcript-file-error" data-epm-transcript-error<?php echo '' === $error ? ' hidden' : ''; ?>><?php echo esc_html( $error ); ?></p>
 			<?php if ( '' !== $hosted ) : ?>
 				<?php
-				$hosted_type = self::transcript_format_label( Transcripts::normalize_type( (string) $this->meta( $post, 'transcript_type', '' ), $hosted ) );
+				$hosted_mime = Transcripts::normalize_type( (string) $this->meta( $post, 'transcript_type', '' ), $hosted );
+				$hosted_type = self::transcript_format_label( $hosted_mime );
+				$hosted_type = '' !== $hosted_type ? $hosted_type : __( 'transcript', 'elementor-podcast-manager' );
 				$hosted_host = self::host_label( $hosted );
+				// Only an address the import wrote came with the import; one
+				// set on this site is described as what it is.
+				if ( ! Importer::transcript_from_import( $post->ID ) ) {
+					/* translators: 1: file format, e.g. WebVTT, 2: host name */
+					$hosted_text = __( 'The feed also lists a %1$s transcript hosted at %2$s:', 'elementor-podcast-manager' );
+				} elseif ( in_array( $hosted_mime, [ 'text/vtt', 'application/x-subrip' ], true ) ) {
+					/* translators: 1: file format, e.g. WebVTT, 2: host name */
+					$hosted_text = __( 'The %1$s transcript file from the imported feed is still hosted at %2$s, and the feed links to it there. Importing again with “Copy audio” copies it to this website:', 'elementor-podcast-manager' );
+				} else {
+					/* translators: 1: file format, e.g. JSON, 2: host name */
+					$hosted_text = __( 'The %1$s transcript from the imported feed is hosted at %2$s and stays linked there (this format is not copied):', 'elementor-podcast-manager' );
+				}
 				?>
 				<div class="epm-transcript-file__hosted">
-					<p>
-						<?php
-						printf(
-							/* translators: 1: file format, e.g. WebVTT, 2: host name */
-							esc_html__( 'The feed also lists a %1$s transcript hosted at %2$s. It came with the import and stays at this address:', 'elementor-podcast-manager' ),
-							esc_html( '' !== $hosted_type ? $hosted_type : __( 'transcript', 'elementor-podcast-manager' ) ),
-							esc_html( $hosted_host )
-						);
-						?>
-					</p>
+					<p><?php printf( esc_html( $hosted_text ), esc_html( $hosted_type ), esc_html( $hosted_host ) ); ?></p>
 					<p class="epm-transcript-file__url"><a href="<?php echo esc_url( $hosted ); ?>" target="_blank" rel="noopener"><?php echo esc_html( $hosted ); ?><span class="screen-reader-text"> <?php esc_html_e( '(opens in a new tab)', 'elementor-podcast-manager' ); ?></span></a></p>
 				</div>
 			<?php endif; ?>
@@ -1247,12 +1252,13 @@ final class EpisodeMeta {
 		$old_audio_id = (int) get_post_meta( $post_id, $p . 'audio_id', true );
 		$new_audio_id = absint( $input['audio_id'] ?? 0 );
 
-		// A newly chosen file must also be one the user may read (media
-		// attached to someone else's unpublished episode is not). The stored
+		// Newly chosen media must be readable or belong to an editable episode. The stored
 		// file is not checked again, so another editor can re-save the episode.
-		if ( $new_audio_id > 0 && ( ! AudioMetadata::is_valid_audio_attachment( $new_audio_id ) || ( $new_audio_id !== $old_audio_id && ! current_user_can( 'read_post', $new_audio_id ) ) ) ) {
+		if ( $new_audio_id > 0 && ( ! AudioMetadata::is_valid_audio_attachment( $new_audio_id ) || ( $new_audio_id !== $old_audio_id && ! Capabilities::can_use_attachment( $new_audio_id ) ) ) ) {
 			self::add_notice(
-				__( 'The selected audio file is not a supported audio attachment. The previous audio association was kept.', 'elementor-podcast-manager' ),
+				AudioMetadata::is_valid_audio_attachment( $new_audio_id )
+					? __( 'You do not have permission to use this audio file. The previous audio association was kept.', 'elementor-podcast-manager' )
+					: __( 'The selected audio file is not a supported audio attachment. The previous audio association was kept.', 'elementor-podcast-manager' ),
 				'error',
 				'epm-audio',
 				__( 'Go to the audio', 'elementor-podcast-manager' )
@@ -1315,8 +1321,21 @@ final class EpisodeMeta {
 			$this->save_audio_url( $post_id, (string) $input['audio_url'], $new_audio_id > 0 );
 		}
 
-		update_post_meta( $post_id, $p . 'artwork_id', absint( $input['artwork_id'] ?? 0 ) );
-		update_post_meta( $post_id, $p . 'guest_image_id', absint( $input['guest_image_id'] ?? 0 ) );
+		$old_artwork = (int) get_post_meta( $post_id, $p . 'artwork_id', true );
+		$new_artwork = absint( $input['artwork_id'] ?? 0 );
+		if ( $new_artwork > 0 && ( ! self::is_image_attachment( $new_artwork ) || ( $new_artwork !== $old_artwork && ! Capabilities::can_use_attachment( $new_artwork ) ) ) ) {
+			self::add_notice( __( 'The selected artwork must be an image you may use. The previous artwork was kept.', 'elementor-podcast-manager' ), 'error', 'epm-artwork', __( 'Go to the artwork', 'elementor-podcast-manager' ) );
+			$new_artwork = $old_artwork;
+		}
+		update_post_meta( $post_id, $p . 'artwork_id', $new_artwork );
+
+		$old_guest_image = (int) get_post_meta( $post_id, $p . 'guest_image_id', true );
+		$new_guest_image = absint( $input['guest_image_id'] ?? 0 );
+		if ( $new_guest_image > 0 && ( ! self::is_image_attachment( $new_guest_image ) || ( $new_guest_image !== $old_guest_image && ! Capabilities::can_use_attachment( $new_guest_image ) ) ) ) {
+			self::add_notice( __( 'The selected guest photo must be an image you may use. The previous photo was kept.', 'elementor-podcast-manager' ), 'error', 'epm-guest-image', __( 'Go to the guest photo', 'elementor-podcast-manager' ) );
+			$new_guest_image = $old_guest_image;
+		}
+		update_post_meta( $post_id, $p . 'guest_image_id', $new_guest_image );
 
 		update_post_meta( $post_id, $p . 'short_description', sanitize_textarea_field( $input['short_description'] ?? '' ) );
 		update_post_meta( $post_id, $p . 'show_notes', wp_kses_post( $input['show_notes'] ?? '' ) );
@@ -1452,6 +1471,27 @@ final class EpisodeMeta {
 	}
 
 	/**
+	 * Whether an ID names an image attachment.
+	 *
+	 * @param int $attachment_id Attachment ID.
+	 * @return bool
+	 */
+	public static function is_image_attachment( int $attachment_id ): bool {
+		return $attachment_id > 0 && 'attachment' === get_post_type( $attachment_id ) && 0 === strpos( (string) get_post_mime_type( $attachment_id ), 'image/' );
+	}
+
+	/**
+	 * REST sanitizer for image attachment IDs.
+	 *
+	 * @param mixed $value Submitted ID.
+	 * @return int
+	 */
+	public static function sanitize_image_id( $value ): int {
+		$id = absint( $value );
+		return self::is_image_attachment( $id ) ? $id : 0;
+	}
+
+	/**
 	 * Save the audio URL (audio hosted elsewhere).
 	 *
 	 * Empty clears the URL and its size and type. A new address, or one
@@ -1559,16 +1599,19 @@ final class EpisodeMeta {
 		if ( array_key_exists( 'transcript_file_id', $input ) ) {
 			$new_id = absint( $input['transcript_file_id'] );
 
-			// A newly chosen file must also be one the user may read: its text
+			// Newly chosen media must be readable or belong to an editable episode: its text
 			// is copied into this episode. The stored file is not checked again.
-			if ( $new_id > 0 && ( ! self::is_transcript_attachment( $new_id ) || ( $new_id !== $file_id && ! current_user_can( 'read_post', $new_id ) ) ) ) {
+			if ( $new_id > 0 && ( ! self::is_transcript_attachment( $new_id ) || ( $new_id !== $file_id && ! Capabilities::can_use_attachment( $new_id ) ) ) ) {
+				$message = self::is_transcript_attachment( $new_id )
+					? __( 'You do not have permission to use this transcript file.', 'elementor-podcast-manager' )
+					: __( 'The transcript file was not saved. Choose a WebVTT (.vtt) or SubRip (.srt) file.', 'elementor-podcast-manager' );
 				self::add_notice(
-					__( 'The transcript file was not saved. Choose a WebVTT (.vtt) or SubRip (.srt) file.', 'elementor-podcast-manager' ),
+					$message,
 					'error',
 					'epm-transcript',
 					__( 'Go to the transcript', 'elementor-podcast-manager' )
 				);
-				self::$field_errors['transcript_file'] = __( 'Choose a WebVTT (.vtt) or SubRip (.srt) file. Other file types can’t be used for captions.', 'elementor-podcast-manager' );
+				self::$field_errors['transcript_file'] = $message;
 			} else {
 				$file_id = $new_id;
 				if ( $file_id > 0 ) {
@@ -1653,10 +1696,11 @@ final class EpisodeMeta {
 			wp_send_json_error( [ 'message' => __( 'You are not allowed to manage episodes.', 'elementor-podcast-manager' ) ] );
 		}
 
-		// The user must be able to read the file (media attached to someone
-		// else's unpublished episode is not theirs to see).
-		if ( ! AudioMetadata::is_valid_audio_attachment( $attachment_id ) || ! current_user_can( 'read_post', $attachment_id ) ) {
+		if ( ! AudioMetadata::is_valid_audio_attachment( $attachment_id ) ) {
 			wp_send_json_error( [ 'message' => __( 'This file can’t be used as episode audio. Choose an MP3 or M4A file.', 'elementor-podcast-manager' ) ] );
+		}
+		if ( ! Capabilities::can_use_attachment( $attachment_id ) ) {
+			wp_send_json_error( [ 'message' => __( 'You do not have permission to use this audio file.', 'elementor-podcast-manager' ) ], 403 );
 		}
 
 		$info           = AudioMetadata::describe( $attachment_id );

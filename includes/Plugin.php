@@ -111,6 +111,7 @@ final class Plugin {
 		$this->assets->init();
 		( new Hosting() )->init();
 		( new ImportJob() )->init();
+		Upgrade::init();
 		Cli::register();
 		( new StructuredData() )->init();
 		Transcripts::init();
@@ -119,8 +120,10 @@ final class Plugin {
 		( new EpisodeTemplate() )->init();
 		( new Embed() )->init();
 
-		// One-time upgrade tasks (rewrite rules) after a plugin update.
+		// One-time upgrade tasks after a plugin update (cheap; per-episode
+		// work is queued, see Upgrade).
 		add_action( 'init', [ $this, 'maybe_upgrade' ], 99 );
+		add_action( 'init', [ $this, 'resume_interrupted_import' ], 2 );
 
 		// Canonical URL behavior: an explicit per-episode canonical URL wins.
 		add_filter( 'get_canonical_url', [ $this, 'filter_canonical_url' ], 10, 2 );
@@ -149,11 +152,31 @@ final class Plugin {
 	}
 
 	/**
+	 * Resume an import left active when the plugin was deactivated.
+	 *
+	 * @return void
+	 */
+	public function resume_interrupted_import(): void {
+		$job = ImportJob::get();
+		if ( ! is_array( $job ) || 'running' !== ( $job['status'] ?? '' ) || ! empty( $job['cancelled'] ) ) {
+			return;
+		}
+		if ( ! wp_next_scheduled( ImportJob::CRON_HOOK ) ) {
+			wp_schedule_single_event( time() + MINUTE_IN_SECONDS, ImportJob::CRON_HOOK );
+		}
+	}
+
+	/**
 	 * Run one-time upgrade tasks when the stored version differs.
 	 *
-	 * Rewrite rules are flushed so installs updated in place (activation
-	 * hooks do not run on update) pick up the corrected rule order that
-	 * lets /podcast/feed/ serve the podcast feed.
+	 * This runs in the first request after an update, which may be any
+	 * visitor's, so it does only cheap work: rewrite rules (installs
+	 * updated in place never run the activation hook), the feed cache, the
+	 * 1.3.0 import folder and Elementor's widget CSS. The new version is
+	 * stored first, with a conditional write, so exactly one request does
+	 * this and a request that dies does not leave the site upgrading on
+	 * every request. Work on every episode is queued (Upgrade) and done in
+	 * batches by WP-Cron, admin page loads or `wp podcast upgrade`.
 	 *
 	 * @return void
 	 */
@@ -164,24 +187,20 @@ final class Plugin {
 			return;
 		}
 
+		if ( ! self::claim_version( $stored ) ) {
+			// Another request is upgrading (or did already).
+			return;
+		}
+
 		flush_rewrite_rules( false );
 		Feed::flush_cache();
+		// 1.3.0 kept the feed in one transient row.
+		delete_transient( 'epm_feed_cache' );
+		Feed::repair_build_time();
 
-		// 1.2.0: numeric durations for sorting.
-		$ids = get_posts(
-			[
-				'post_type'      => EpisodePostType::CPT,
-				'post_status'    => 'any',
-				'posts_per_page' => -1,
-				'fields'         => 'ids',
-				'no_found_rows'  => true,
-			]
-		);
-		$ids = array_map( 'intval', $ids );
-		update_meta_cache( 'post', $ids );
-		foreach ( $ids as $id ) {
-			Episodes::sync_duration_seconds( $id );
-		}
+		// 1.3.0 kept the parsed feed of an import in uploads/epm-import/:
+		// move a running import to the database, remove the rest.
+		ImportJob::cleanup();
 
 		// Widget CSS is generated from control selectors and cached by
 		// Elementor per page; regenerate it so updated selectors apply.
@@ -189,7 +208,30 @@ final class Plugin {
 			\Elementor\Plugin::$instance->files_manager->clear_cache();
 		}
 
-		update_option( 'epm_version', EPM_VERSION );
+		// Durations in seconds (1.2.0) and duplicate GUID rows: per episode,
+		// in batches.
+		Upgrade::queue( $stored );
+	}
+
+	/**
+	 * Store the running version in place of $stored, only if no other
+	 * request did so first.
+	 *
+	 * @param string $stored Version read before ('' when none is stored).
+	 * @return bool Whether this request stored it.
+	 */
+	private static function claim_version( string $stored ): bool {
+		$claimed = OptionRow::replace( 'epm_version', $stored, EPM_VERSION );
+
+		if ( ! $claimed && '' === $stored ) {
+			$claimed = OptionRow::insert( 'epm_version', EPM_VERSION, true );
+		}
+
+		// Either way, the next get_option() reads the database (a cache
+		// may have served an older value).
+		OptionRow::forget( 'epm_version' );
+
+		return $claimed;
 	}
 
 	/**
@@ -239,8 +281,8 @@ final class Plugin {
 		$fields = [
 			// key => [ REST type, sanitize callback, editable via REST ].
 			'audio_id'          => [ 'integer', 'absint', true ],
-			'artwork_id'        => [ 'integer', 'absint', true ],
-			'guest_image_id'    => [ 'integer', 'absint', true ],
+			'artwork_id'        => [ 'integer', [ EpisodeMeta::class, 'sanitize_image_id' ], true ],
+			'guest_image_id'    => [ 'integer', [ EpisodeMeta::class, 'sanitize_image_id' ], true ],
 			'audio_size'        => [ 'integer', 'absint', false ],
 			'duration_seconds'  => [ 'integer', 'absint', false ],
 			'episode_number'    => [ 'integer', $int_or_empty, true ],
@@ -267,7 +309,7 @@ final class Plugin {
 			// Import bookkeeping: readable, written by the importer only.
 			'source'            => [ 'string', 'sanitize_key', false ],
 			'source_link'       => [ 'string', 'esc_url_raw', false ],
-			'source_feed'       => [ 'string', 'esc_url_raw', false ],
+			'source_feed'       => [ 'string', [ Importer::class, 'source_feed_identifier' ], false ],
 			'guest_name'        => [ 'string', 'sanitize_text_field', true ],
 			'guest_role'        => [ 'string', 'sanitize_text_field', true ],
 			'guest_company'     => [ 'string', 'sanitize_text_field', true ],
@@ -301,9 +343,10 @@ final class Plugin {
 				EpisodePostType::CPT,
 				Episodes::META_PREFIX . $key,
 				[
-					'type'          => 'array',
-					'single'        => true,
-					'show_in_rest'  => [
+					'type'              => 'array',
+					'single'            => true,
+					'sanitize_callback' => 'chapters' === $key ? [ self::class, 'sanitize_rest_chapters' ] : [ self::class, 'sanitize_rest_platform_urls' ],
+					'show_in_rest'      => [
 						'schema' => [
 							'type'  => 'array',
 							'items' => [
@@ -312,16 +355,59 @@ final class Plugin {
 							],
 						],
 					],
-					'auth_callback' => [ $this, 'meta_auth' ],
+					'auth_callback'     => [ $this, 'meta_auth' ],
 				]
 			);
 		}
 
 		// Password-protected episodes keep their metadata private in REST.
-		add_filter( 'rest_prepare_' . EpisodePostType::CPT, [ $this, 'protect_rest_meta' ], 10, 2 );
+		add_filter( 'rest_prepare_' . EpisodePostType::CPT, [ $this, 'protect_rest_meta' ], 10, 3 );
 
 		// Audio and transcript files set through REST must be readable media.
 		add_filter( 'rest_pre_insert_' . EpisodePostType::CPT, [ $this, 'rest_check_attachment_meta' ], 10, 2 );
+	}
+
+	/**
+	 * Sanitize structured episode chapters before REST storage.
+	 *
+	 * @param mixed $value Submitted value.
+	 * @return array<int, array{time: string, title: string, url: string}>
+	 */
+	public static function sanitize_rest_chapters( $value ): array {
+		$out = [];
+		foreach ( is_array( $value ) ? array_slice( $value, 0, 200 ) : [] as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$time = sanitize_text_field( $row['time'] ?? '' );
+			$title = sanitize_text_field( $row['title'] ?? '' );
+			if ( '' === $time || '' === $title || ! preg_match( '/^\d+(?::[0-5]?\d){0,2}(?:\.\d{1,3})?$/D', $time ) ) {
+				continue;
+			}
+			$out[] = [ 'time' => $time, 'title' => $title, 'url' => esc_url_raw( $row['url'] ?? '', [ 'http', 'https' ] ) ];
+		}
+		return $out;
+	}
+
+	/**
+	 * Sanitize structured platform links before REST storage.
+	 *
+	 * @param mixed $value Submitted value.
+	 * @return array<int, array{service: string, label: string, url: string}>
+	 */
+	public static function sanitize_rest_platform_urls( $value ): array {
+		$out = [];
+		foreach ( is_array( $value ) ? array_slice( $value, 0, 20 ) : [] as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$url = esc_url_raw( $row['url'] ?? '', [ 'http', 'https' ] );
+			if ( '' === $url ) {
+				continue;
+			}
+			$out[] = [ 'service' => sanitize_key( $row['service'] ?? 'custom' ), 'label' => sanitize_text_field( $row['label'] ?? '' ), 'url' => $url ];
+		}
+		return $out;
 	}
 
 	/**
@@ -360,6 +446,8 @@ final class Plugin {
 		$checks  = [
 			'audio_id'           => [ AudioMetadata::class, 'is_valid_audio_attachment' ],
 			'transcript_file_id' => [ EpisodeMeta::class, 'is_transcript_attachment' ],
+			'artwork_id'         => [ EpisodeMeta::class, 'is_image_attachment' ],
+			'guest_image_id'     => [ EpisodeMeta::class, 'is_image_attachment' ],
 		];
 
 		foreach ( $checks as $key => $is_valid ) {
@@ -373,7 +461,10 @@ final class Plugin {
 				continue;
 			}
 
-			if ( ! $is_valid( $id ) || ! current_user_can( 'read_post', $id ) ) {
+			if ( ! $is_valid( $id ) ) {
+				return new \WP_Error( 'rest_invalid_meta', __( 'This attachment is not a supported file type for this episode field.', 'elementor-podcast-manager' ), [ 'status' => 400 ] );
+			}
+			if ( ! Capabilities::can_use_attachment( $id ) ) {
 				return new \WP_Error(
 					'rest_forbidden_meta',
 					__( 'You can’t use this file for the episode.', 'elementor-podcast-manager' ),
@@ -391,11 +482,20 @@ final class Plugin {
 	 *
 	 * @param \WP_REST_Response $response Response.
 	 * @param \WP_Post          $post     Post.
+	 * @param \WP_REST_Request  $request  Request.
 	 * @return \WP_REST_Response
 	 */
-	public function protect_rest_meta( $response, $post ) {
+	public function protect_rest_meta( $response, $post, $request ) {
+		if ( $response instanceof \WP_REST_Response && $post instanceof \WP_Post ) {
+			$data = $response->get_data();
+			$key = Episodes::META_PREFIX . 'source_feed';
+			if ( isset( $data['meta'][ $key ] ) ) {
+				$data['meta'][ $key ] = Importer::source_feed_identifier( $data['meta'][ $key ] );
+				$response->set_data( $data );
+			}
+		}
 		if ( $response instanceof \WP_REST_Response && $post instanceof \WP_Post
-			&& post_password_required( $post ) && ! current_user_can( 'edit_post', $post->ID ) ) {
+			&& post_password_required( $post ) && ! $this->request_unlocked( $post, $request ) && ! current_user_can( 'edit_post', $post->ID ) ) {
 			$data = $response->get_data();
 			if ( isset( $data['meta'] ) ) {
 				$data['meta'] = [];
@@ -404,6 +504,21 @@ final class Plugin {
 		}
 
 		return $response;
+	}
+
+	/**
+	 * Whether this REST request supplied the episode's correct password.
+	 *
+	 * @param \WP_Post         $post    Episode.
+	 * @param \WP_REST_Request $request Request.
+	 * @return bool
+	 */
+	private function request_unlocked( \WP_Post $post, $request ): bool {
+		if ( ! $request instanceof \WP_REST_Request ) {
+			return false;
+		}
+		$password = (string) $request->get_param( 'password' );
+		return '' !== $password && hash_equals( (string) $post->post_password, $password );
 	}
 
 	/**

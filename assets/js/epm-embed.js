@@ -20,11 +20,17 @@
 	}
 
 	var secret = '';
+	var ready = false;
 	var resizeTimer = 0;
 
 	function readSecret() {
-		var match = /secret=([\w]{10})/.exec(window.location.hash || '');
-		secret = match ? match[1] : '';
+		// WordPress may append a second secret to a previously embedded URL.
+		var match = /.*secret=([\w]{10})/.exec(window.location.hash || '');
+		var nextSecret = match ? match[1] : '';
+		if (secret !== nextSecret) {
+			ready = false;
+		}
+		secret = nextSecret;
 	}
 
 	function send(message, value) {
@@ -48,7 +54,7 @@
 	}
 
 	function onClick(e) {
-		if (!secret || e.defaultPrevented || e.button !== 0 || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) {
+		if (!secret || !ready || e.defaultPrevented || e.button !== 0 || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) {
 			return;
 		}
 		var target = e.target instanceof Element ? e.target.closest('a[href]') : null;
@@ -65,10 +71,11 @@
 
 	function onMessage(e) {
 		var data = e.data;
-		if (!data || e.source !== window.parent || data.secret !== secret) {
+		if (!secret || !data || e.source !== window.parent || data.secret !== secret) {
 			return;
 		}
 		if (data.message === 'ready') {
+			ready = true;
 			sendHeight();
 		}
 	}

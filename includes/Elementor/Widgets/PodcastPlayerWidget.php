@@ -3,8 +3,9 @@
  * Elementor widget: Podcast Player (Layer 3).
  *
  * A configuration UI for the single player engine (\EPM\Renderer::player()).
- * Layouts (minimal/compact/editorial/artwork/full) and every visibility
- * toggle map 1:1 onto renderer arguments — no markup is duplicated here.
+ * Layouts (minimal/compact/editorial/artwork/full) and every detail map
+ * 1:1 onto renderer arguments — no markup is duplicated here. Layout and
+ * details default to Podcast → Design ("Default"); see WidgetHelpers.
  *
  * @package EPM
  */
@@ -104,45 +105,83 @@ final class PodcastPlayerWidget extends Widget_Base {
 			]
 		);
 
-		$this->add_control(
-			'layout',
-			[
-				'label'   => __( 'Layout', 'elementor-podcast-manager' ),
-				'type'    => Controls_Manager::SELECT,
-				'default' => (string) epm()->design->get( 'default_player_layout' ),
-				'options' => [
-					'minimal'   => __( 'Minimal', 'elementor-podcast-manager' ),
-					'compact'   => __( 'Compact', 'elementor-podcast-manager' ),
-					'editorial' => __( 'Editorial', 'elementor-podcast-manager' ),
-					'artwork'   => __( 'Artwork', 'elementor-podcast-manager' ),
-					'full'      => __( 'Full', 'elementor-podcast-manager' ),
-				],
-			]
+		$this->add_schema_control();
+
+		$this->add_layout_control(
+			__( 'Layout', 'elementor-podcast-manager' ),
+			self::layouts(),
+			'default_player_layout'
 		);
 
-		$this->add_toggle( 'show_artwork', __( 'Artwork', 'elementor-podcast-manager' ), true, [ 'description' => __( 'Not shown in the Minimal and Editorial layouts.', 'elementor-podcast-manager' ) ] );
-		$this->add_toggle( 'show_episode_label', __( 'Episode Label', 'elementor-podcast-manager' ), true );
-		$this->add_toggle( 'show_title', __( 'Title', 'elementor-podcast-manager' ), true );
-		$this->add_toggle( 'show_episode_number', __( 'Episode Number in Label', 'elementor-podcast-manager' ), false );
-		$this->add_toggle( 'show_season', __( 'Season in Label', 'elementor-podcast-manager' ), false );
-		$this->add_toggle( 'show_guest', __( 'Guest', 'elementor-podcast-manager' ), true );
-		$this->add_toggle( 'show_description', __( 'Description', 'elementor-podcast-manager' ), false, [ 'description' => __( 'Not shown in the Minimal and Compact layouts.', 'elementor-podcast-manager' ) ] );
-		$this->add_toggle( 'show_date', __( 'Date', 'elementor-podcast-manager' ), false );
-		$this->add_toggle( 'show_duration', __( 'Duration', 'elementor-podcast-manager' ), true );
-		$this->add_toggle( 'show_playback_speed', __( 'Playback Speed', 'elementor-podcast-manager' ), true, [ 'description' => __( 'Not shown in the Minimal and Compact layouts.', 'elementor-podcast-manager' ) ] );
-		$this->add_toggle( 'show_skip_backward', __( 'Skip Backward (−15s)', 'elementor-podcast-manager' ), true );
-		$this->add_toggle( 'show_skip_forward', __( 'Skip Forward (+30s)', 'elementor-podcast-manager' ), true );
-		$this->add_toggle( 'show_volume', __( 'Volume', 'elementor-podcast-manager' ), true, [ 'description' => __( 'Not shown in the Minimal and Compact layouts.', 'elementor-podcast-manager' ) ] );
-		$this->add_toggle( 'show_download', __( 'Download Button', 'elementor-podcast-manager' ), false, [ 'description' => __( 'Not shown in the Minimal and Compact layouts.', 'elementor-podcast-manager' ) ] );
-		$this->add_toggle( 'show_chapters_link', __( 'Chapters Toggle', 'elementor-podcast-manager' ), false );
-		$this->add_toggle( 'show_platform_links', __( 'Platform Links', 'elementor-podcast-manager' ), false );
-		$this->add_toggle( 'show_share', __( 'Share Menu', 'elementor-podcast-manager' ), true, [ 'description' => __( 'Copy link, link at the current position and embed code. Not shown in the Minimal and Compact layouts.', 'elementor-podcast-manager' ) ] );
+		$this->add_details_defaults_control();
+		foreach ( self::detail_controls() as $id => [ $label, $description ] ) {
+			$this->add_detail_control( $id, $label, 'player', '' !== $description ? [ 'description' => $description ] : [] );
+		}
 
-		$this->add_toggle( 'sticky', __( 'Enable Sticky Player', 'elementor-podcast-manager' ), false );
+		$this->add_toggle( 'sticky', __( 'Enable Sticky Player', 'elementor-podcast-manager' ), false, [ 'separator' => 'before' ] );
 
 		$this->end_controls_section();
 
 		$this->register_style_controls();
+	}
+
+	/**
+	 * Player layouts.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function layouts(): array {
+		return [
+			'minimal'   => __( 'Minimal', 'elementor-podcast-manager' ),
+			'compact'   => __( 'Compact', 'elementor-podcast-manager' ),
+			'editorial' => __( 'Editorial', 'elementor-podcast-manager' ),
+			'artwork'   => __( 'Artwork', 'elementor-podcast-manager' ),
+			'full'      => __( 'Full', 'elementor-podcast-manager' ),
+		];
+	}
+
+	/**
+	 * Detail controls of a player: detail => [ label, editor note ].
+	 * Shared with the Latest Episode widget.
+	 *
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public static function detail_controls(): array {
+		$hidden_compact = __( 'Not shown in the Minimal and Compact layouts.', 'elementor-podcast-manager' );
+
+		return [
+			'show_artwork'        => [ __( 'Artwork', 'elementor-podcast-manager' ), __( 'Not shown in the Minimal and Editorial layouts.', 'elementor-podcast-manager' ) ],
+			'show_episode_label'  => [ __( 'Episode Label', 'elementor-podcast-manager' ), __( 'A line above the title with the episode number and season (when shown below) and "Bonus" or "Trailer". Empty for a regular episode without number and season.', 'elementor-podcast-manager' ) ],
+			'show_episode_number' => [ __( 'Episode Number in Label', 'elementor-podcast-manager' ), '' ],
+			'show_season'         => [ __( 'Season in Label', 'elementor-podcast-manager' ), '' ],
+			'show_title'          => [ __( 'Title', 'elementor-podcast-manager' ), '' ],
+			'show_guest'          => [ __( 'Guest', 'elementor-podcast-manager' ), '' ],
+			'show_description'    => [ __( 'Description', 'elementor-podcast-manager' ), $hidden_compact ],
+			'show_date'           => [ __( 'Date', 'elementor-podcast-manager' ), '' ],
+			'show_duration'       => [ __( 'Duration', 'elementor-podcast-manager' ), '' ],
+			'show_playback_speed' => [ __( 'Playback Speed', 'elementor-podcast-manager' ), $hidden_compact ],
+			'show_skip_backward'  => [ __( 'Skip Backward (−15s)', 'elementor-podcast-manager' ), '' ],
+			'show_skip_forward'   => [ __( 'Skip Forward (+30s)', 'elementor-podcast-manager' ), '' ],
+			'show_volume'         => [ __( 'Volume', 'elementor-podcast-manager' ), $hidden_compact ],
+			'show_download'       => [ __( 'Download Button', 'elementor-podcast-manager' ), $hidden_compact ],
+			'show_share'          => [ __( 'Share Menu', 'elementor-podcast-manager' ), __( 'Copy link, link at the current position and embed code. Not shown in the Minimal and Compact layouts.', 'elementor-podcast-manager' ) ],
+			'show_chapters_link'  => [ __( 'Chapters Toggle', 'elementor-podcast-manager' ), '' ],
+			'show_platform_links' => [ __( 'Platform Links', 'elementor-podcast-manager' ), '' ],
+		];
+	}
+
+	/**
+	 * Raw data for the editor and for saving: a widget saved by 1.3.0
+	 * gets its details made explicit (it renders the same).
+	 *
+	 * @param bool $with_html_content With the rendered HTML.
+	 * @return array
+	 */
+	public function get_raw_data( $with_html_content = false ) {
+		$data             = parent::get_raw_data( $with_html_content );
+		$data['settings'] = $this->explicit_details( (array) ( $data['settings'] ?? [] ), 'player' );
+
+		return $data;
 	}
 
 	/**
@@ -551,8 +590,6 @@ final class PodcastPlayerWidget extends Widget_Base {
 	 * @return void
 	 */
 	protected function render(): void {
-		\EPM\Assets::enqueue();
-
 		$settings = $this->get_settings_for_display();
 		$episode  = $this->resolve_widget_episode( $settings );
 
@@ -561,28 +598,12 @@ final class PodcastPlayerWidget extends Widget_Base {
 			return;
 		}
 
-		$args = [
-			'layout'              => sanitize_key( $settings['layout'] ?? '' ),
-			'show_artwork'        => $this->toggle_on( $settings, 'show_artwork', true ),
-			'show_episode_label'  => $this->toggle_on( $settings, 'show_episode_label', true ),
-			'show_title'          => $this->toggle_on( $settings, 'show_title', true ),
-			'show_episode_number' => $this->toggle_on( $settings, 'show_episode_number', false ),
-			'show_season'         => $this->toggle_on( $settings, 'show_season', false ),
-			'show_guest'          => $this->toggle_on( $settings, 'show_guest', true ),
-			'show_description'    => $this->toggle_on( $settings, 'show_description', false ),
-			'show_date'           => $this->toggle_on( $settings, 'show_date', false ),
-			'show_duration'       => $this->toggle_on( $settings, 'show_duration', true ),
-			'show_playback_speed' => $this->toggle_on( $settings, 'show_playback_speed', true ),
-			'show_skip_backward'  => $this->toggle_on( $settings, 'show_skip_backward', true ),
-			'show_skip_forward'   => $this->toggle_on( $settings, 'show_skip_forward', true ),
-			'show_volume'         => $this->toggle_on( $settings, 'show_volume', true ),
-			'show_download'       => $this->toggle_on( $settings, 'show_download', false ),
-			'show_chapters_link'  => $this->toggle_on( $settings, 'show_chapters_link', false ),
-			'show_platform_links' => $this->toggle_on( $settings, 'show_platform_links', false ),
-			'show_share'          => $this->toggle_on( $settings, 'show_share', true ),
-			'sticky'              => $this->toggle_on( $settings, 'sticky', false ),
-		];
+		\EPM\Assets::enqueue();
 
-		echo epm()->renderer->player( $episode, $args );
+		$args           = \EPM\Details::resolve( 'player', $this->detail_values( 'player' ) );
+		$args['layout'] = sanitize_key( $settings['layout'] ?? '' );
+		$args['sticky'] = $this->toggle_on( $settings, 'sticky', false );
+
+		echo epm()->renderer->player( $episode, $args ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the renderer.
 	}
 }

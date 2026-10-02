@@ -79,10 +79,12 @@ final class Embed {
 		}
 
 		return sprintf(
-			'<iframe src="%1$s" title="%2$s" width="640" height="%3$d" style="width:100%%;max-width:640px;border:0" loading="lazy"></iframe>',
+			'<p><a href="%4$s" target="_blank" rel="noopener">%5$s</a></p><iframe src="%1$s" title="%2$s" width="640" height="%3$d" style="width:100%%;max-width:640px;border:0" loading="lazy"></iframe>',
 			esc_url( $url ),
 			esc_attr( $title ),
-			self::HEIGHT
+			self::HEIGHT,
+			esc_url( (string) ( $episode['url'] ?? get_permalink( $id ) ) ),
+			esc_html( $title )
 		);
 	}
 
@@ -162,6 +164,7 @@ final class Embed {
 			'label'               => self::show_title(),
 			'show_title'          => true,
 			'title_url'           => (string) ( $episode['url'] ?? '' ),
+			'title_new_window'    => true,
 			'show_guest'          => false,
 			'show_date'           => false,
 			'show_duration'       => true,
@@ -221,6 +224,11 @@ final class Embed {
 </head>
 <body class="<?php echo esc_attr( $body_class ); ?>">
 <main class="epm-embed">
+		<noscript>
+			<style>.epm-player--embed{display:none}</style>
+			<p><a href="<?php echo esc_url( (string) $episode['url'] ); ?>" target="_blank" rel="noopener"><?php echo esc_html( $title ); ?></a></p>
+			<audio controls src="<?php echo esc_url( (string) $episode['audio_url'] ); ?>" aria-label="<?php echo esc_attr( $title ); ?>"></audio>
+		</noscript>
 		<?php echo $player; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Renderer output is escaped. ?>
 </main>
 		<?php wp_print_scripts( [ 'epm-player', 'epm-embed' ] ); ?>

@@ -153,8 +153,6 @@ final class EpisodeMetadataWidget extends Widget_Base {
 	 * @return void
 	 */
 	protected function render(): void {
-		\EPM\Assets::enqueue_style();
-
 		$settings = $this->get_settings_for_display();
 		$episode  = $this->resolve_widget_episode( $settings );
 
@@ -168,7 +166,10 @@ final class EpisodeMetadataWidget extends Widget_Base {
 			$fields = [];
 		}
 
-		$separator = sanitize_text_field( $settings['separator'] ?? ' · ' );
+		// Exactly as typed, spaces included (sanitize_text_field() and
+		// wp_strip_all_tags() would trim them); tags and line breaks go,
+		// and the text is escaped on output.
+		$separator = mb_substr( str_replace( [ "\r", "\n", "\t" ], ' ', strip_tags( (string) ( $settings['separator'] ?? ' · ' ) ) ), 0, 20 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- keeps leading and trailing spaces.
 		$items     = [];
 
 		foreach ( $fields as $field ) {
@@ -191,6 +192,8 @@ final class EpisodeMetadataWidget extends Widget_Base {
 			$this->editor_placeholder( __( 'None of the selected fields has a value for this episode.', 'elementor-podcast-manager' ) );
 			return;
 		}
+
+		\EPM\Assets::enqueue_style();
 
 		echo '<p class="epm-meta epm-meta--standalone">' . implode( '<span class="epm-meta__sep" aria-hidden="true">' . esc_html( $separator ) . '</span>', $items ) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- values escaped above, separator escaped inline.
 	}

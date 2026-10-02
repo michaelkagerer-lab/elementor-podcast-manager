@@ -2,8 +2,19 @@
 /**
  * Frontend asset management (Layer 2).
  *
- * CSS/JS load only when podcast components are actually used on the page.
- * Detection: shortcodes in content, Elementor widget render flags.
+ * CSS/JS load only when podcast components are actually used on the page:
+ *
+ * - early (wp_enqueue_scripts, so the stylesheet is in <head>): the
+ *   automatic episode page, and podcast shortcodes in the content of the
+ *   page that would show something (enqueue_early());
+ * - Elementor pages: the widgets' style/script dependencies (Elementor
+ *   prints them in <head> from its page-asset list);
+ * - everything else when it renders (widgets, shortcodes in other places,
+ *   the_content of other posts), printed in the footer (maybe_enqueue_late()).
+ *
+ * The player script is dropped again before the footer scripts print when
+ * nothing on the page used it (dequeue_unused()), e.g. a "current episode"
+ * widget on a page that is not an episode.
  *
  * @package EPM
  */
@@ -32,12 +43,175 @@ final class Assets {
 	private static bool $sticky_requested = false;
 
 	/**
+	 * Whether this request renders the Elementor editor's preview.
+	 *
+	 * @var bool
+	 */
+	private static bool $elementor_preview = false;
+
+	/**
 	 * Mark that a player was rendered (called by the Renderer).
 	 *
 	 * @return void
 	 */
 	public static function mark_player_used(): void {
 		self::$player_used = true;
+	}
+
+	/**
+	 * Whether podcast components (styles or the player) were used on this
+	 * request. Always true in the Elementor editor preview, where widgets
+	 * can be added at any time.
+	 *
+	 * @return bool
+	 */
+	public static function is_used(): bool {
+		return self::$player_used || self::$style_used || self::$elementor_preview;
+	}
+
+	/**
+	 * Forget what this request used (for tests, and for code that renders
+	 * several documents in one request).
+	 *
+	 * @return void
+	 */
+	public static function reset_usage(): void {
+		self::$player_used      = false;
+		self::$style_used       = false;
+		self::$sticky_requested = false;
+	}
+
+	/**
+	 * Shortcodes and what they need: 'script' (the player engine) or
+	 * 'style'.
+	 *
+	 * @return array<string, string>
+	 */
+	private static function shortcode_needs(): array {
+		return [
+			'podcast_player'     => 'script',
+			'podcast_latest'     => 'script',
+			'podcast_episodes'   => 'script',
+			'podcast_chapters'   => 'script',
+			'podcast_video'      => 'script',
+			'podcast_guest'      => 'style',
+			'podcast_show_notes' => 'style',
+			'podcast_transcript' => 'style',
+			'podcast_subscribe'  => 'style',
+			'podcast_latest_cta' => 'style',
+		];
+	}
+
+	/**
+	 * Enqueue in wp_enqueue_scripts, so the stylesheet (and the design
+	 * tokens) print in <head>, for the automatic episode page and for
+	 * podcast shortcodes in the content of the page. A shortcode for an
+	 * episode counts when its episode resolves (a "current episode"
+	 * shortcode on a page that is not an episode shows nothing).
+	 * Everything else is enqueued when it renders (footer).
+	 *
+	 * @return void
+	 */
+	public function enqueue_early(): void {
+		if ( is_admin() || is_feed() || ! is_singular() ) {
+			return;
+		}
+
+		$post = get_queried_object();
+		if ( ! $post instanceof \WP_Post ) {
+			return;
+		}
+
+		if ( EpisodePostType::CPT === $post->post_type && EpisodeTemplate::will_render( $post ) ) {
+			self::enqueue();
+			return;
+		}
+
+		$content = (string) $post->post_content;
+		if ( false === strpos( $content, '[podcast_' ) || post_password_required( $post ) ) {
+			return;
+		}
+
+		$needs = self::shortcode_needs();
+		if ( ! preg_match_all( '/' . get_shortcode_regex( array_keys( $needs ) ) . '/', $content, $matches, PREG_SET_ORDER ) ) {
+			return;
+		}
+
+		$want = '';
+		foreach ( $matches as $match ) {
+			// [[escaped]] shortcodes are not rendered.
+			if ( '[' === $match[1] && ']' === $match[6] ) {
+				continue;
+			}
+			$tag  = $match[2];
+			$atts = shortcode_parse_atts( $match[3] );
+			if ( ! self::shortcode_shows( $tag, is_array( $atts ) ? $atts : [] ) ) {
+				continue;
+			}
+			$want = 'script' === $needs[ $tag ] ? 'script' : ( '' === $want ? 'style' : $want );
+			if ( 'script' === $want ) {
+				break;
+			}
+		}
+
+		if ( 'script' === $want ) {
+			self::enqueue();
+		} elseif ( 'style' === $want ) {
+			self::enqueue_style();
+		}
+	}
+
+	/**
+	 * Whether a podcast shortcode would show something on this page (see
+	 * enqueue_early(); the shortcode itself decides when it renders).
+	 *
+	 * @param string               $tag  Shortcode.
+	 * @param array<string, mixed> $atts Attributes.
+	 * @return bool
+	 */
+	private static function shortcode_shows( string $tag, array $atts ): bool {
+		switch ( $tag ) {
+			case 'podcast_episodes':
+			case 'podcast_subscribe':
+				return true;
+			case 'podcast_latest_cta':
+				return ! empty( epm()->settings->get( 'latest_cta_enabled' ) );
+			case 'podcast_latest':
+				return null !== epm()->episodes->get_latest( true );
+			default:
+				$id     = absint( $atts['id'] ?? 0 );
+				$source = $id > 0 ? 'specific' : sanitize_key( (string) ( $atts['source'] ?? 'current' ) );
+				return null !== epm()->renderer->resolve_episode( $source, $id );
+		}
+	}
+
+	/**
+	 * Drop the player script when nothing on the page used it (Elementor
+	 * enqueues widget scripts for every widget on a page, also for one
+	 * that shows nothing). Runs before the footer scripts print. Not in
+	 * the Elementor editor preview, where widgets come and go.
+	 *
+	 * @return void
+	 */
+	public function dequeue_unused(): void {
+		if ( self::$player_used || self::$elementor_preview || is_admin() ) {
+			return;
+		}
+
+		/**
+		 * Whether to drop the player script on pages that showed no player,
+		 * list or chapters. Turn it off when code adds podcast markup to the
+		 * page later (it then needs the script).
+		 *
+		 * @param bool $drop Default true.
+		 */
+		if ( ! apply_filters( 'epm_dequeue_unused_player', true ) ) {
+			return;
+		}
+
+		if ( wp_script_is( 'epm-player', 'enqueued' ) && ! wp_script_is( 'epm-player', 'done' ) ) {
+			wp_dequeue_script( 'epm-player' );
+		}
 	}
 
 	/**
@@ -60,10 +234,26 @@ final class Assets {
 		// (get_script_depends / get_style_depends) can enqueue by handle
 		// whenever a widget renders, on frontend or in the editor.
 		add_action( 'init', [ $this, 'register' ] );
+		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_early' ] );
+		add_action( 'wp_print_footer_scripts', [ $this, 'dequeue_unused' ], 1 );
 		// Late enqueue: widgets/shortcodes render after wp_enqueue_scripts,
 		// so print assets in the footer when they were actually used.
 		add_action( 'wp_footer', [ $this, 'maybe_enqueue_late' ], 5 );
 		add_action( 'wp_footer', [ $this, 'maybe_output_sticky' ], 25 );
+		add_action( 'elementor/preview/init', [ $this, 'mark_elementor_preview' ] );
+	}
+
+	/**
+	 * The editor's preview re-renders widgets without loading the page
+	 * again, so its footer is printed once: the sticky shell is always
+	 * there (hidden) for a player whose sticky option is turned on while
+	 * editing. Whether a press opens it is up to the pressed player (see
+	 * data-epm-sticky-player), as on the site.
+	 *
+	 * @return void
+	 */
+	public function mark_elementor_preview(): void {
+		self::$elementor_preview = true;
 	}
 
 	/**
@@ -134,6 +324,10 @@ final class Assets {
 					'embedCopied'  => __( 'Embed code copied', 'elementor-podcast-manager' ),
 					/* translators: %s: playback position, e.g. 12:34 */
 					'startsAt'     => __( 'Starts at %s', 'elementor-podcast-manager' ),
+					// Spoken value of the volume slider ("70%"). The engine
+					// fills %s; %% is a literal percent sign.
+					/* translators: %s: volume level in percent, e.g. 70 */
+					'volumeValue'  => sprintf( __( '%s%%', 'elementor-podcast-manager' ), '%s' ),
 				],
 			]
 		);
@@ -199,7 +393,7 @@ final class Assets {
 	 * @return void
 	 */
 	public function maybe_output_sticky(): void {
-		if ( ! self::$sticky_requested ) {
+		if ( ! self::$sticky_requested && ! self::$elementor_preview ) {
 			return;
 		}
 

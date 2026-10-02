@@ -66,28 +66,7 @@ add_action(
 	}
 );
 
-// Activation: register CPT + feed endpoint, then flush rewrites.
-register_activation_hook(
-	__FILE__,
-	function () {
-		// Classes are available via autoloader at activation time.
-		// The feed rule must be registered before the post type so that
-		// /podcast/feed/ wins over the post type's archive-feed rule.
-		EPM\Feed::register_endpoint();
-		EPM\EpisodePostType::register();
-		flush_rewrite_rules();
-		update_option( 'epm_version', EPM_VERSION );
-		// Open the setup assistant on the next admin page load (once).
-		add_option( 'epm_activation_redirect', 1, '', false );
-	}
-);
-
-// Deactivation: flush rewrites so /podcast/feed/ stops resolving, and stop
-// the host sync / background import schedules.
-register_deactivation_hook(
-	__FILE__,
-	function () {
-		EPM\Hosting::unschedule_all();
-		flush_rewrite_rules();
-	}
-);
+// Core supplies whether activation/deactivation applies to the whole network.
+register_activation_hook( __FILE__, [ EPM\Lifecycle::class, 'activate' ] );
+register_deactivation_hook( __FILE__, [ EPM\Lifecycle::class, 'deactivate' ] );
+add_action( 'wp_initialize_site', [ EPM\Lifecycle::class, 'initialize_site' ], 200 );

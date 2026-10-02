@@ -68,6 +68,13 @@ final class FeedParser {
 		if ( '' === trim( $xml ) ) {
 			return new \WP_Error( 'epm_feed_empty', __( 'The feed is empty.', 'elementor-podcast-manager' ) );
 		}
+		if ( preg_match( '/<!DOCTYPE[^>]*\[/i', $xml ) || preg_match( '/<!ENTITY\s/i', $xml ) ) {
+			return new \WP_Error( 'epm_feed_entities', __( 'This feed declares XML entities, which podcast feeds do not need.', 'elementor-podcast-manager' ) );
+		}
+		$max_bytes = max( 1024, (int) apply_filters( 'epm_feed_max_bytes', 50 * MB_IN_BYTES ) );
+		if ( strlen( $xml ) > $max_bytes ) {
+			return new \WP_Error( 'epm_feed_too_large', sprintf( __( 'This feed is larger than the %s byte limit.', 'elementor-podcast-manager' ), number_format_i18n( $max_bytes ) ) );
+		}
 
 		$doc = $this->load( $xml );
 		if ( ! $doc ) {
@@ -89,8 +96,16 @@ final class FeedParser {
 		}
 
 		$channel = $doc->channel;
+		$title = $this->plain( (string) $channel->title );
+		$description = $this->plain( (string) $channel->description );
+		if ( strlen( $title ) > 4096 || strlen( $description ) > 32768 ) {
+			return new \WP_Error( 'epm_feed_field_too_large', __( 'The feed contains a title that is too long.', 'elementor-podcast-manager' ) );
+		}
 		$items   = [];
 		foreach ( $channel->item as $item ) {
+			if ( strlen( (string) $item->title ) > 8192 || strlen( (string) $item->description ) > MB_IN_BYTES || strlen( (string) $item->children( 'http://purl.org/rss/1.0/modules/content/' )->encoded ) > MB_IN_BYTES ) {
+				return new \WP_Error( 'epm_feed_field_too_large', __( 'The feed contains an episode field that is too large to import safely.', 'elementor-podcast-manager' ) );
+			}
 			$parsed = $this->item( $item );
 			if ( null !== $parsed ) {
 				$items[] = $parsed;
@@ -669,11 +684,12 @@ final class FeedParser {
 	 */
 	private function plain( string $text ): string {
 		$text = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
-		$text = wp_strip_all_tags( $text );
-		// Decode twice: some hosts double-encode (&amp;amp;). Strip again so
-		// an encoded "&lt;script&gt;" never turns into markup.
+		// Feed text is element text, so a literal '<' is ordinary content.
+		// Remove only actual tags before decoding a second time; blindly
+		// stripping tags after decode truncates phrases such as "C < 3".
+		$text = (string) preg_replace( '/<[^>]*>/', ' ', $text );
 		$text = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
-		$text = wp_strip_all_tags( $text );
+		$text = (string) preg_replace( '/<[^>]*>/', ' ', $text );
 
 		return trim( (string) preg_replace( '/\s+/u', ' ', $text ) );
 	}

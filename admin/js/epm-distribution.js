@@ -134,7 +134,9 @@
 					submitted.checked = status !== '';
 				}
 				updateProgress();
-				announce( app.strings.saved + ': ' + ( labels[ status ] || '' ) );
+				announce( window.wp.i18n.sprintf(
+					/* translators: %s: submission status */
+					window.wp.i18n.__( 'Saved: %s', 'elementor-podcast-manager' ), labels[ status ] || '' ) );
 			} )
 			.catch( function ( e ) {
 				error.textContent = e.message;
@@ -193,9 +195,19 @@
 					var label = document.createElement( 'span' );
 					label.className = 'epm-checklist__label';
 					label.textContent = check.label;
-					var text = document.createElement( 'p' );
+					var text = document.createElement( 'div' );
 					text.className = 'epm-checklist__text';
 					text.textContent = check.message;
+					if ( check.details ) {
+						var detail = document.createElement( 'details' );
+						var summary = document.createElement( 'summary' );
+						summary.textContent = window.wp.i18n.__( 'Technical details', 'elementor-podcast-manager' );
+						var diagnostic = document.createElement( 'p' );
+						diagnostic.textContent = check.details;
+						detail.appendChild( summary );
+						detail.appendChild( diagnostic );
+						text.appendChild( detail );
+					}
 					li.appendChild( icon );
 					li.appendChild( label );
 					li.appendChild( text );
@@ -226,36 +238,6 @@
 			serverCheck( check );
 			return;
 		}
-		var button = event.target.closest( '[data-copy]' );
-		if ( ! button ) {
-			return;
-		}
-		var value = button.getAttribute( 'data-copy' );
-		var label = button.textContent;
-		var done = function () {
-			button.textContent = app.strings.copied;
-			announce( app.strings.copied );
-			window.setTimeout( function () {
-				button.textContent = label;
-			}, 2000 );
-		};
-		if ( window.navigator.clipboard && window.isSecureContext ) {
-			window.navigator.clipboard.writeText( value ).then( done, function () {} );
-			return;
-		}
-		var area = document.createElement( 'textarea' );
-		area.value = value;
-		area.setAttribute( 'readonly', '' );
-		area.style.position = 'fixed';
-		area.style.opacity = '0';
-		document.body.appendChild( area );
-		area.select();
-		try {
-			document.execCommand( 'copy' );
-			done();
-		} catch ( e ) {
-			// The address stays selectable on screen.
-		}
-		document.body.removeChild( area );
+
 	} );
 } )();

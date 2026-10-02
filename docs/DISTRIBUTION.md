@@ -6,7 +6,8 @@ apps list the show without a submission.
 
 The platform list lives in `includes/Directories.php` (filter
 `epm_directories`). The steps were taken from each platform's help pages
-and checked on 2026-09-30; platforms change their sign-up flows, so the
+and checked on 2026-09-30 (YouTube's requirements again on 2026-10-01,
+see [Sources](#sources)); platforms change their sign-up flows, so the
 wording on their sites may differ.
 
 ## Which feed address to submit
@@ -17,6 +18,15 @@ The Distribution screen shows the address to submit and a copy button:
   The screen also lists readiness errors (missing artwork, owner email,
   episodes …) that directories would reject, with a link to Podcast
   Settings.
+- The address stays the same when you change themes. Switching the
+  permalink setting to *Plain* changes it to `https://your-site/?epm_podcast_feed=1`
+  (`/podcast/feed/` keeps working only where the web server passes it to
+  WordPress, for example nginx, not Apache without rewrite rules). The
+  screen remembers the address it showed; when the address changes, the
+  Distribution screen, the dashboard, the Permalinks screen and the
+  readiness report say so and name both addresses. Change the setting
+  back, or submit the new address to every directory and confirm it with
+  *I submitted the new address*.
 - **Another podcast host:** the host's feed. Most hosts offer their own
   distribution tools; use those or submit the address shown.
 
@@ -28,9 +38,14 @@ Before submitting:
 - **Test feed and audio delivery** (button on the screen; the readiness
   report on the dashboard links to it) checks what directories check when
   they fetch the show: the feed answers with HTTP 200 and RSS, the address
-  uses HTTPS, and the newest episode's audio answers a `HEAD` request
-  (status 200, file size, audio type) and a byte-range request
-  (`206 Partial Content`). Apple Podcasts and the Pandora/SiriusXM
+  uses HTTPS, and the audio of the **first episode in the feed** — at the
+  address the feed gives, so a download-statistics prefix is tested too,
+  with its redirects followed — answers a `HEAD` request (status 200, file
+  size, audio type; a size other than the feed's `length` is a warning)
+  and a request for its first two bytes (`206 Partial Content` with
+  `Content-Range: bytes 0-1/<size>`; a wrong range is an error, a total
+  other than the feed's size a warning). The result names the episode and
+  the address tested. Apple Podcasts and the Pandora/SiriusXM
   submission require HEAD and byte-range support. The requests come from
   the site's own server through WordPress's safe HTTP functions, so audio
   on another machine in a private network cannot be tested, and a
@@ -59,7 +74,6 @@ these reach most listeners.
 |---|---|---|
 | Apple Podcasts | Sign in to Podcasts Connect (podcastsconnect.apple.com) with an Apple Account, add a new show, choose "Add a show with an RSS feed", paste the feed address and submit it for review. | Square JPEG or PNG artwork of 1400–3000 px, a category, an owner email and at least one episode. Review usually takes a few days. |
 | Spotify | On Spotify for Creators (creators.spotify.com) choose "Find an existing show" → "Somewhere else", paste the feed address, enter the 8-digit code Spotify emails to the feed's owner address, then confirm country, language and category. | Owner email in the feed; artwork exactly square. |
-| YouTube & YouTube Music | In YouTube Studio choose Create → New podcast → Submit RSS feed, accept the terms, send the verification code to the feed's email, pick the episodes and publish the podcast once processing is done. It starts as private. | Owner email in the feed. YouTube turns the artwork into still-image videos. Dynamically inserted ads are not allowed. |
 | Amazon Music & Audible | On Amazon Music for Podcasters (podcasters.amazon.com) choose "Get started", sign in with an Amazon account, paste the feed address, pick a country and confirm the email sent to the feed's address. One submission lists the show on Amazon Music and Audible. | Owner email in the feed. |
 | Podcast Index | Paste the feed address at podcastindex.org/add. The show appears within minutes. | A public feed. Podcast Index supplies Fountain, Podverse, Castamatic, Podcast Guru, AntennaPod's search and other apps. |
 
@@ -67,6 +81,7 @@ these reach most listeners.
 
 | Platform | How to submit | What it checks |
 |---|---|---|
+| YouTube & YouTube Music (select countries and regions) | In YouTube Studio choose Create → New podcast → Submit RSS feed, accept the terms, send the verification code to the feed's email, pick the episodes and publish the podcast once processing is done. The episodes are first uploaded as private videos. | Episodes must not contain advertisements of any kind — read by the host or inserted by a podcast host ("To comply with YouTube's Terms of Service, podcast content you upload to YouTube cannot contain advertisements"). RSS ingestion is "available in select countries/regions". YouTube does not accept "<", ">" or HTML in podcast and episode titles or descriptions; while YouTube is tracked on this screen, the readiness report warns about titles and descriptions that contain them. Owner email in the feed. YouTube turns the artwork into still-image videos. |
 | iHeartRadio | At podcasters.iheart.com sign in, choose "Add Your Podcast", paste the feed address, accept the terms and confirm the email sent to the feed's address. | Owner email in the feed. |
 | Pocket Casts | Paste the feed address at pocketcasts.com/submit and submit. It can take up to about 12 hours. | A public feed. |
 | Deezer | At podcasters.deezer.com choose "Publish my podcast", paste the feed address, verify it with the code emailed to the feed's address and fill in the show details. | Owner email in the feed. |
@@ -109,12 +124,20 @@ link* for apps that list the show automatically):
   row) then show it.
 
 The header counts the essential platforms that are submitted or listed
-("2 of 5 essential platforms submitted") and updates after each save. The
+("2 of 4 essential platforms submitted") and updates after each save. The
 *Submit to …* button of the first essential platform that is not
 submitted yet is the primary button, so the next step is always the
 highlighted one. A listing address that is not a full web address
-(`https://…`) is refused with a message next to the field. Progress is stored in the
-option `epm_distribution`.
+(`https://…`) is refused with a message next to the field, and so is an
+address that is not a public link on that platform: a dashboard link
+(creators.spotify.com, podcastsconnect.apple.com, studio.youtube.com,
+podcasters.amazon.com …), which only the podcaster can open, or a link to
+another platform (a Spotify link in the Apple Podcasts row). YouTube
+Music links count for YouTube, Audible links for Amazon Music & Audible;
+platforms without a known address (podcast.de, Listen Notes) take any
+link that is not another platform's. Nothing is saved then, so no wrong
+subscribe button appears. Progress is stored in the option
+`epm_distribution`.
 
 ## Adding platforms
 
@@ -146,3 +169,22 @@ add_filter( 'epm_directories', function ( array $directories ) {
 
 Platform names are trademarks of their owners and only identify the
 service.
+
+## Sources
+
+- YouTube Help, "Deliver podcasts using an RSS feed",
+  <https://support.google.com/youtube/answer/13525207> (read on
+  2026-10-01): "To comply with YouTube's Terms of Service, podcast content
+  you upload to YouTube cannot contain advertisements."; "RSS ingestion is
+  available in select countries/regions" (the list:
+  <https://support.google.com/youtube/answer/14106258>); YouTube will not
+  "Allow invalid characters in podcast and episode titles or descriptions,
+  such as ">","<" or any HTML"; "When you first submit your RSS feed to
+  YouTube, the episodes you select will be uploaded as private videos".
+- Apple Podcasts for Creators, "Change the RSS feed URL",
+  <https://podcasters.apple.com/support/837-change-the-rss-feed-url>, and
+  "Podcast requirements",
+  <https://podcasters.apple.com/support/823-podcast-requirements>
+  (HEAD and byte-range requests).
+- Spotify for Creators, "Claiming your podcast",
+  <https://support.spotify.com/us/creators/article/claiming-your-podcast-on-spotify-for-creators/>.

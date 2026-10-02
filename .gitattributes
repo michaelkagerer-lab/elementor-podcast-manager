@@ -1,0 +1,14 @@
+/.github export-ignore
+/tests export-ignore
+/docs export-ignore
+/tools export-ignore
+/.gitignore export-ignore
+/.gitattributes export-ignore
+/AGENTS.md export-ignore
+/CLAUDE.md export-ignore
+/CONTROL-AUDIT.md export-ignore
+/TEST-PLAN.md export-ignore
+/DESIGN.md export-ignore
+/CHANGELOG.md export-ignore
+/MIGRATION.md export-ignore
+/.agents export-ignore

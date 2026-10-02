@@ -1,3 +1,397 @@
+# Migration notes — 1.3.0 → next release (unreleased)
+
+Nothing to do for most sites. Episodes, GUIDs, the podcast GUID, URLs,
+settings, local edits and media are not touched (only extra copies of a
+GUID row are removed, keeping the GUID the feed served; see *Duplicate
+GUID rows*). What changes:
+
+## Import data moves from uploads to the database
+
+1.3.0 kept the parsed feed of an import as a JSON file in
+`wp-content/uploads/epm-import/`, protected only by an Apache
+`.htaccess` (nginx and Apache without `AllowOverride` served it). It now
+lives in non-autoloaded rows of the options table named
+`epm_import_chunk_<key>_<id>` (at most 512 KB each), written and read
+directly, never through an options cache.
+
+On the first request after the update (and on admin requests and feed
+checks while the folder exists):
+
+- an import 1.3.0 was **running** continues: its next step moves the
+  file's items into the database and deletes the file, then carries on
+  at the same position (it finishes as 1.3.0 would have, since 1.3.0 did
+  not record whether the catalog was complete);
+- a feed 1.3.0 **checked but did not import** expires (its completeness
+  is unknown): check the feed again;
+- every other file in `uploads/epm-import/` and the folder are deleted.
+
+## Paged feeds and the completeness of a catalog
+
+- A preview reads a paged feed over several requests and records whether
+  the catalog is complete (`catalog.complete`, `catalog.reason`,
+  `catalog.error`, `catalog.url` in the preview summary and the import
+  state). Integrations that call `epm_import_preview` directly must call
+  `epm_import_more` with the token while `catalog.loading` is true.
+- A **move** of an incomplete catalog is refused (`epm_import_incomplete`)
+  unless `accept_partial` is sent; mirroring is unchanged.
+- **`wp podcast import` exits with an error** when the feed cannot be
+  read completely (1.3.0 reported success with the pages it had read).
+  Scripts that should import a partial catalog anyway need
+  `--accept-partial`; `wp podcast import --resume` continues.
+- New filters: `epm_import_max_bytes` (200 MB), `epm_import_request_seconds`
+  (10), `epm_import_ttl` (one day). `epm_import_max_pages` (50) stays.
+
+## Import lock and job
+
+The lock keeps its option name and value format (`<time>:<owner>`), but
+is only changed with conditional SQL; code that wrote
+`epm_import_lock` with `update_option()` to "borrow" the lock no longer
+works (a lock row it rewrote is not renewed or released by its former
+owner). The job option `epm_import_job` gains `version`, `store`,
+`catalog` and `stats`; it is read from the database on every use and
+saved with compare-and-swap.
+
+## Copying media and moves
+
+Nothing to do; behavior to know when you run imports with *Copy audio*
+(`download_media`) or integrate with the import:
+
+- **Existing episodes get their files too.** A run with copies now copies
+  every file of every episode in the feed that still loads from the host
+  (WebVTT/SRT transcript file, episode image, audio, each on its own),
+  also of episodes mirrored earlier. 1.3.0 copied audio (and the image
+  only together with it) and never a transcript file of an existing
+  episode. Running a move again after updating fills those gaps.
+- **Where a transcript address came from** is recorded in the private
+  `_epm_import_hash` (key `transcript_url`: a hash when the import wrote
+  the address, `local` when it was set on this site). For addresses
+  1.3.0 wrote, the next import decides: an address the current feed item
+  lists is the import's (copied with *Copy audio*), anything else counts
+  as chosen on this site and is never replaced.
+- **New private post meta** `_epm_import_extras`: set when an import
+  creates an episode, removed once its chapters and transcripts are
+  fetched (an episode whose import died before that gets them on the
+  next run).
+- **A move that leaves files at the old host is not finished.** The job
+  ends with the new status `done_with_problems` (1.3.0: `done`, and the
+  move was finished anyway): `moved_in`, `locked` and the hosting mode
+  stay unchanged and the parsed feed is kept. New AJAX actions
+  `epm_import_retry` (copy the missing files again; finishes the move
+  when nothing is left) and `epm_import_confirm` (needs
+  `confirm_remaining=1`; finishes the move). `wp podcast import --move`
+  exits with an error then; scripts can follow up with
+  `wp podcast import --resume` or `wp podcast finish-move --yes`.
+- **New job status `waiting`** (with `wait_until` and `wait_reason`)
+  while a host's HTTP 429 (or 503 with `Retry-After`) is honored. Code
+  that checks for `running` to tell whether an import is in progress
+  should check `EPM\ImportJob::is_active()`.
+- **The job option `epm_import_job`** gains `media` (`inflight`: the
+  copy in progress; `refs`, `counts`, `copied`: what was copied and what
+  stays at the old host, per kind), `retries` and `confirmed`. The
+  client state (AJAX responses, `epmApp.job`) gains `remaining` (per
+  kind: count, label, episodes with title, edit link, address, reason),
+  `copied`, `copy_media`, `current`, `wait_until`, `wait_reason`,
+  `problems`, `can_retry` and `confirmed`. `media_failed` (audio only)
+  stays for compatibility.
+- **Readiness checks** carry `items` (episodes: title, editor link) and
+  `more`. *Audio at the old host* is joined by *Episode images at the
+  old host*, *Transcript files at the old host*, *Transcripts linked at
+  the old host* and, while a move is unfinished, *Move to this website*.
+- **Downloads** no longer use `download_url()` and audio no longer goes
+  through `media_handle_sideload()`: audio attachments get audio metadata
+  only (no `image_meta`, no attachment for embedded cover art). A file is
+  named after what it is (an `.m4a` address that serves MP3 data is
+  stored as `.mp3`); audio other than MP3, M4A and WAV (AAC, Ogg, FLAC),
+  which 1.3.0 stored as `.mp3`, stays at the host and is reported. New
+  filters: `epm_media_max_bytes`, `epm_media_request_seconds`,
+  `epm_media_low_speed`, `epm_media_max_attempts`, `epm_media_max_waits`,
+  `epm_media_max_wait`, `epm_media_disk_free`.
+- **Temp files** of a copy in progress are named `epm-media-*` in the
+  temp folder; leftovers older than an hour are removed.
+- **WP-CLI:** new `wp podcast cancel` and `wp podcast finish-move`;
+  `wp podcast status` shows the import.
+
+## The first request after an update
+
+1.3.0 ran its upgrade (rewrite rules, feed cache, durations in seconds for
+every episode) inside the first request after an update, whichever
+visitor sent it, and stored the new version only at the end. It loaded
+the meta of every episode at once: with about 1,000 episodes that have
+transcripts, every request ran out of memory (HTTP 500 for the home
+page, the feed, `wp-login.php` and `wp-admin`) and kept doing so, because
+the version was never stored.
+
+Now the first request **stores the new version first**, with a
+conditional write, so exactly one request upgrades and a request that
+dies does not leave the site upgrading on every request. It does only
+the quick part: rewrite rules, the feed cache (and 1.3.0's
+`epm_feed_cache` transient), a stored feed build time in the future
+(repaired to now), the 1.3.0 import folder, Elementor's widget CSS. Work
+on every episode is **queued** in the option `epm_upgrade_state`:
+
+- `durations`: `_epm_duration_seconds` from the duration (or the audio
+  file's length), reading only those keys, 200 episodes per batch;
+- `guid_rows`: duplicate `_epm_guid` rows (below).
+
+The batches run in WP-Cron (event `epm_upgrade_step`, up to 20 seconds per
+run), one batch per admin page load of an administrator (for sites where
+WP-Cron does not run), or all at once with **`wp podcast upgrade`**. A
+lock row (`epm_upgrade_lock`, taken over after five minutes) keeps two
+requests from working on it at the same time. `wp podcast status` lists
+work that is still queued.
+
+**Recovery:** if a site is stuck (WP-Cron off and nobody opens the
+admin), run `wp podcast upgrade`; it also queues the work of a version
+change no request has seen yet. To start over, delete the rows:
+`DELETE FROM wp_options WHERE option_name IN ('epm_upgrade_state', 'epm_upgrade_lock');`
+and set `epm_version` to the previous version (the next request queues
+the work again). Durations in seconds only matter for sorting; the feed
+does not use them.
+
+## Duplicate GUID rows
+
+Before this version an episode created outside the episode editor (REST,
+WP-CLI, an integration) got a random GUID the first time something read
+it; two requests reading it at the same moment could each store one, so
+the episode had two `_epm_guid` rows and the requests that raced served
+different GUIDs. New episodes now get their GUID when they are created,
+on every path, and it is derived from the show's `podcast:guid` and the
+episode ID (a UUID version 5), so concurrent requests compute the same
+value. Existing GUIDs are not changed.
+
+The upgrade's `guid_rows` task removes the extra rows. **Rule:** the row
+with the lowest `meta_id` stays. That is the value `get_post_meta()`
+returns, so it is the GUID every page, the feed and every rebuild of the
+feed served from the moment the second row appeared; the other value was
+served at most by the requests that raced (and by a feed cached by one of
+them until its next rebuild). Keeping it means no GUID that the feed has
+served since then changes.
+
+**Recovery:** every removed value is recorded in the option
+`epm_removed_guid_rows` (post ID, removed GUID, kept GUID, time; the last
+1,000). If a directory or app shows an episode twice because it stored
+the removed value, restore it as the episode's GUID with
+`wp post meta update <ID> _epm_guid '<removed GUID>'` (only one value can
+be the GUID; the directory then sees the other one as removed).
+
+## The feed cache
+
+The rendered feed was one transient (`epm_feed_cache`), several
+megabytes for a large show (written with every escape copy in memory; at
+5,000 episodes and an unlimited feed it never fit into 128 MB, so every
+request built it again and failed). It is now kept in non-autoloaded
+rows of the options table: `epm_feed_cache` (a few hundred bytes of JSON:
+ETag, Last-Modified, expiry, the build's name and number of pieces) and
+`epm_feed_chunk_<build>_<n>` (pieces of at most 256 KB), written and read
+directly, never through an options or object cache. Older builds' pieces
+are removed by a later build. The 1.3.0 transient is deleted on the
+first request after the update.
+
+- The feed is built a page of episodes at a time; its content, order,
+  GUIDs and serial reversal are unchanged (compared byte for byte with the
+  1.3.0 builder in the tests). Episodes with exactly the same publish
+  time are ordered by ID, newest first (1.3.0 left their order to the
+  database).
+- The ETag is computed differently: clients get one full response after
+  the update, then 304s as before. `If-None-Match` now also matches `*`
+  and weak tags, and no longer matches a tag that merely contains the
+  ETag.
+- `Last-Modified` and `<lastBuildDate>` are never later than now.
+- The filter `epm_feed_cache_enabled` still turns the cache off.
+- `Feed::get_document()` and `Feed::eligible_episodes()` still exist;
+  the second holds every eligible post in memory and should not be used
+  for large shows (`Feed::eligible_ids()` returns IDs).
+
+**Recovery:** the cache is derived data. `wp eval 'EPM\Feed::flush_cache();'`
+forgets it; to remove every row:
+`DELETE FROM wp_options WHERE option_name = 'epm_feed_cache' OR option_name LIKE 'epm\_feed\_chunk\_%';`
+
+## Feed addresses
+
+- `/podcast/rss2/`, `/podcast/feed/atom/` and
+  `?post_type=podcast_episode&feed=rss2` are answered by the plugin
+  before WordPress's own feed handling, with the podcast feed's ETag and
+  Last-Modified (WordPress answered `If-Modified-Since` on them with its
+  own 304, so such clients missed changes and, in external mode, the 301).
+- New setting `feed_alias` (Podcast settings → *Previous feed address*,
+  off by default): `/feed/podcast/` and `?feed=podcast` (PowerPress, Seriously
+  Simple Podcasting) answer with a 301 to the feed. Turning it on or off
+  rebuilds the rewrite rules.
+- Under plain permalinks `/podcast/feed/` serves the feed where the web
+  server passes it to WordPress.
+- New option `epm_feed_address`: the feed address the Distribution screen
+  showed; a later change of the address is reported (confirm the new one
+  on the Distribution screen).
+
+## Distribution
+
+- The delivery test checks the first episode in the feed at the address
+  the feed gives (measurement prefix included) instead of the newest
+  episode with any audio.
+- A listing link must be a public link on that platform; dashboards and
+  other platforms' links are refused (stored progress is not changed).
+- YouTube & YouTube Music moved from *Start here* to *Recommended* (no
+  advertisements allowed, select countries/regions): the header now
+  counts four essential platforms.
+- The readiness report and the Distribution screen work through the
+  episodes page by page; beyond 50 problems with single episodes the rest
+  are counted in one check (the error and warning totals include them).
+
+## Scheduled events
+
+| Event | Change |
+|---|---|
+| `epm_upgrade_step` | New: a single event after an update while per-episode upgrade work is queued; removed when it is done |
+| `epm_import_cleanup` | New: a single event a day after a feed is checked; expires the check when nothing was imported and removes data no job uses |
+| `epm_podcast_index_ping` | New name of the Podcast Index notification (1.3.0: `epm_ping_podcast_index`). An event scheduled by 1.3.0 is moved to the new name, keeping its time. `epm_ping_podcast_index` stays the filter that turns the notification off; in 1.3.0 that filter could not stop it, and publishing sent the notification at once |
+
+## Uninstall
+
+Additionally removes every `epm_import_chunk_*` and `epm_feed_chunk_*`
+row, the `epm_feed_cache`, `epm_upgrade_state` and `epm_upgrade_lock`
+options and the `epm_import_cleanup` and `epm_upgrade_step` events,
+whether or not data deletion is enabled; with data deletion also
+`epm_feed_address` and `epm_removed_guid_rows`.
+
+## Rollback
+
+Reactivating 1.3.0 is safe: it ignores the new job fields and the
+`epm_import_chunk_*` rows (remove them with the cleanup below), and
+treats a job started by this version as having no stored data (*Check
+the feed again*). Finish or cancel a running import before rolling back;
+an unfinished move (`done_with_problems`) or a waiting import is not
+picked up by 1.3.0 either, so finish or cancel those too
+(`wp podcast finish-move`, `wp podcast cancel`). The `transcript_url`
+entries in `_epm_import_hash` and the `_epm_import_extras` meta are
+ignored by 1.3.0.
+
+Reactivating 1.3.0 also works with the new feed cache and upgrade rows:
+1.3.0 caches the feed in its transient again (and runs its own upgrade
+in the first request, with the memory problem described above). GUIDs
+new episodes got here stay (they are stored); new episodes created under
+1.3.0 get random GUIDs again. Remove the rows:
+
+```sql
+DELETE FROM wp_options WHERE option_name LIKE 'epm\_import\_chunk\_%';
+DELETE FROM wp_options WHERE option_name = 'epm_feed_cache' OR option_name LIKE 'epm\_feed\_chunk\_%';
+DELETE FROM wp_options WHERE option_name IN ('epm_upgrade_state', 'epm_upgrade_lock');
+```
+
+---
+
+# Migration notes — Unreleased (design defaults and widgets)
+
+Nothing to do for existing sites: pages look as before. What changes in
+the data:
+
+## Stored design option (`epm_design_settings`)
+
+- On the first request after the update (`init`, priority 20,
+  `DesignSettings::maybe_migrate()`), an option without
+  `details_version` gets:
+  - `details` — the site's *Details shown by default*: empty (every
+    place uses the 1.3.0 default);
+  - `details_suggested` — the 1.1–1.3 maps `preset_visibility`,
+    `preset_player` and `preset_episode_list` converted per place
+    (player, latest, list; the episode page takes neither description
+    nor download from them), kept only where they differ from the
+    1.3.0 default;
+  - `details_version` = 1.
+  The old maps were never read by widgets or shortcodes; they are not
+  applied. They stay in the option unchanged (rollback). Sites without
+  the option are not touched.
+- *Apply suggestions* (Podcast → Design) copies `details_suggested` into
+  `details` and clears it; *Dismiss* clears it. Both show the changes
+  first.
+- Applying a preset after the update writes its `details` (all places)
+  and clears the suggestions.
+- Exports are `format: 2` with a `details` array. A 1.x export imports
+  its tokens as before; its maps go to `details_suggested`.
+
+## Elementor widgets
+
+- Podcast Player, Latest Episode and Episode List store
+  `epm_schema = "2"` (hidden control, saved even though it is the
+  default). Widgets without it are read as 1.3.0 widgets
+  (`get_raw_data()`): every *Show …* switch gets the value it had in
+  1.3.0 (`yes`/`no`, including Elementor's stripped defaults) and the
+  layout the 1.3.0 default. This happens in the editor, on template
+  insert and on render, so existing widgets keep what they showed. The
+  next save in Elementor writes the converted values and the marker.
+- *Use Podcast → Design defaults* (Details section) sets every *Show …*
+  of that widget to *Default*.
+- A widget layout chosen explicitly in 1.3.0 that equalled the old
+  default (`full` for the player, `cards` for the list) was never saved
+  by Elementor (it strips default values); it is indistinguishable from
+  "not chosen" and is read as that value, not as *Default*. Nothing can
+  recover the difference.
+- Removed controls: Episode Header *Accent* (`header_accent`), Show
+  Notes and Transcript *Muted color* (`show_notes_muted`,
+  `transcript_muted`). Stored values stay in the post meta and are
+  ignored; they never had a visible effect.
+
+## Shortcodes
+
+`[podcast_player]`, `[podcast_latest]` and `[podcast_episodes]` without
+`show_*` attributes follow *Details shown by default*: identical to
+1.3.0 until a preset is applied or the setting is saved. Pin a detail
+with its attribute (`show_description="no"`).
+
+## For developers
+
+- New filter `epm_details( $details, $context, $explicit, $consumer )`;
+  helper `EPM\Details::resolve()`.
+- New filter `epm_dequeue_unused_player` (return false to keep the
+  player script on pages without podcast markup).
+- `Presets::import()` and `Presets::export()` are gone; presets accept
+  `details`, and a `layout` key sets the player layout when the tokens
+  name none.
+- `DesignSettings::get_preset_value()` is deprecated (it had no caller).
+
+## Rollback
+
+Restoring 1.3.0 (or the player package) needs no data step: the old maps
+and every token are still in the option, and 1.3.0 ignores `details`,
+`details_suggested`, `details_version` and `epm_schema`. Widgets saved
+after the update keep explicit `yes`/`no` values, which 1.3.0 reads; a
+detail or layout left on *Default* is not stored (Elementor strips the
+`''` default), so 1.3.0 uses its own default there, not the site
+setting.
+To run the migration again after a rollback, remove `details_version`
+from the option (`wp option patch delete epm_design_settings
+details_version`).
+
+# Migration notes — Unreleased (player and sticky bar)
+
+Nothing to do for existing sites. Behavior changes to review:
+
+- **Sticky bar.** A player with *Enable Sticky Player* off no longer opens
+  the bar, even when an episode list or chapter list on the page printed
+  it; the Latest Episode widget's player (no sticky option) does not open
+  it either. Turn the option on where the bar is wanted. Lists and
+  chapter lists open it as before (`epm_sticky_player_for_lists`).
+- **Speed and volume** are page-wide: changing them on one player changes
+  every player on the page. On iOS the volume slider is hidden (the
+  device buttons set the volume there).
+- **Timestamp links** at or past the episode's end, or beyond 24 hours,
+  are ignored (playback starts at 0).
+
+For integrations working with the player markup:
+
+- Once bound, a player's `<audio>` element is no longer inside
+  `[data-epm-player]`: the engine keeps the element it plays outside the
+  player (re-rendering the player must not stop it) and empties other
+  copies. Read it with
+  `window.epmPlayerEngine.getController( id ).audio`.
+- The `data-epm-card-bound`, `data-epm-chapters-bound`,
+  `data-epm-share-bound` and `data-epm-video-bound` attributes are gone;
+  bindings are kept in memory. `data-epm-initialized` stays on players as
+  a debugging marker only (copied markup carries it but is bound anyway).
+- New attribute `data-epm-sticky-player="1|0"` on players, card/row play
+  buttons and chapter lists: whether playback started there opens the
+  sticky bar. Custom markup without it keeps opening the bar.
+- The chapter list carries `data-epm-artwork` and `data-epm-duration`.
+
 # Migration notes — 1.2.0 → 1.3.0
 
 ## Nothing to do for existing sites
@@ -132,7 +526,7 @@ time those pages load.
 |---|---|---|
 | `epm_sync_feed` | Recurring (hourly, twice daily or daily) only in *Another podcast host* mode with a feed address and sync on; plus single follow-up runs when more than 25 new episodes are waiting | When the hosting settings change (rescheduled), on deactivation, on uninstall |
 | `epm_import_continue` | Single events while an import runs, so it continues without a browser | When the import finishes or is cancelled, on deactivation, on uninstall |
-| `epm_ping_podcast_index` | A single event one minute after a self-hosted episode is published on a site that allows search engines | On deactivation, on uninstall |
+| `epm_podcast_index_ping` (1.3.0: `epm_ping_podcast_index`, moved to the new name on the next request) | A single event one minute after a self-hosted episode is published on a site that allows search engines | On deactivation, on uninstall |
 
 Deactivation clears all three. Reactivation schedules the sync again on
 the next request if it is enabled. Uninstall clears them whether or not

@@ -157,6 +157,47 @@ $ajax = static function ( callable $handler, array $post ): array {
 WP_CLI::log( 'Topics' );
 
 $t->test(
+	'UX-N9: the audio upload hint is a complete translatable sentence',
+	static function ( EPM_Test_Runner $t ) use ( $make_episode ) {
+		$id = $make_episode();
+		ob_start();
+		( new EpisodeMeta() )->box_audio( get_post( $id ) );
+		$html = ob_get_clean();
+		$t->assert( false !== strpos( $html, 'Drop an MP3 or M4A file here. You can also choose a file below.' ), 'the hint does not end with a sentence fragment before the button' );
+	}
+);
+
+$t->test(
+	'UX-N9: category labels translate while stored feed values stay unchanged',
+	static function ( EPM_Test_Runner $t ) {
+		$translate = static function ( $translated, $text, $domain ) {
+			return 'elementor-podcast-manager' === $domain ? ( [ 'Arts' => 'Kunst', 'Books' => 'Bücher' ][ $text ] ?? $translated ) : $translated;
+		};
+		add_filter( 'gettext', $translate, 10, 3 );
+		try {
+			ob_start();
+			( new Admin() )->render_settings();
+			$html = ob_get_clean();
+			$t->assert( false !== strpos( $html, 'label="Kunst"' ), 'category group labels translate' );
+			$t->assert( (bool) preg_match( '/value="Arts::Books"[^>]*>Kunst › Bücher<\/option>/', $html ), 'translated labels retain Apple category values' );
+			$t->same( 'Arts::Books', \EPM\Categories::encode( 'Arts', 'Books' ), 'feed encoding stays in English' );
+		} finally {
+			remove_filter( 'gettext', $translate, 10 );
+		}
+	}
+);
+
+
+$t->test(
+	'UX-N8: the unminified admin script name cannot be mistaken for a min.js catalog',
+	static function ( EPM_Test_Runner $t ) {
+		Admin::enqueue_assets();
+		$script = wp_scripts()->registered['epm-admin'];
+		$t->assert( ! preg_match( '/min\.js$/', basename( $script->src ) ), 'wp i18n make-json hashes the actual unminified script path' );
+	}
+);
+
+$t->test(
 	'podcast_topic is a tag-like taxonomy: episode editors assign topics, managing them needs manage_categories',
 	static function ( EPM_Test_Runner $t ) {
 		$tax = get_taxonomy( 'podcast_topic' );
@@ -324,6 +365,43 @@ $t->test(
 WP_CLI::log( 'Episode editor' );
 
 $t->test(
+	'SEC-N5: custom-capability episode editors can use that episode’s unpublished media',
+	static function ( EPM_Test_Runner $t ) use ( $make_episode, $make_file, $make_user, $ajax ) {
+		$old_user = get_current_user_id();
+		$id = $make_episode( [ 'post_status' => 'future', 'post_date' => gmdate( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ) ] );
+		$audio = $make_file( 'custom-caps.mp3', str_repeat( "\xff\xfb\x90\x00", 100 ), 'audio/mpeg' );
+		$transcript = $make_file( 'custom-caps.vtt', "WEBVTT\n\n00:00:00.000 --> 00:00:01.000\nHello\n", 'text/vtt' );
+		foreach ( [ $audio, $transcript ] as $file ) {
+			wp_update_post( [ 'ID' => $file, 'post_parent' => $id ] );
+		}
+		$user_id = $make_user( 'subscriber' );
+		$user = new WP_User( $user_id );
+		$user->add_cap( 'epm_test_edit_episodes' );
+		$filter = static function () { return 'epm_test_edit_episodes'; };
+		add_filter( 'epm_cap_manage_episodes', $filter );
+		EpisodePostType::register();
+		wp_set_current_user( $user_id );
+		try {
+			$t->assert( current_user_can( 'edit_post', $id ) && ! current_user_can( 'read_post', $audio ), 'precondition: episode rights exceed core attachment rights' );
+			$result = $ajax( [ new EpisodeMeta(), 'ajax_audio_describe' ], [ '_ajax_nonce' => wp_create_nonce( 'epm_episode_meta' ), 'post_id' => $id, 'attachment_id' => $audio ] );
+			$t->assert( ! empty( $result['success'] ), 'the audio picker accepts the editable episode’s file' );
+			$request = new WP_REST_Request( 'POST' );
+			$request->set_param( 'meta', [ '_epm_audio_id' => $audio, '_epm_transcript_file_id' => $transcript ] );
+			$t->assert( ! is_wp_error( epm()->rest_check_attachment_meta( (object) [ 'ID' => $id ], $request ) ), 'REST accepts editable-episode audio and captions' );
+			$_POST = [ 'epm_episode_meta_nonce' => wp_create_nonce( 'epm_episode_meta' ), 'epm' => [ 'audio_id' => $audio, 'transcript_file_id' => $transcript ] ];
+			( new EpisodeMeta() )->save( $id, get_post( $id ) );
+			$t->same( [ $audio, $transcript ], [ (int) get_post_meta( $id, '_epm_audio_id', true ), (int) get_post_meta( $id, '_epm_transcript_file_id', true ) ], 'the editor saves both associations' );
+		} finally {
+			$_POST = [];
+			remove_filter( 'epm_cap_manage_episodes', $filter );
+			EpisodePostType::register();
+			$user->remove_cap( 'epm_test_edit_episodes' );
+			wp_set_current_user( $old_user );
+		}
+	}
+);
+
+$t->test(
 	'next episode number: highest number in use plus one, per season, ignoring trash and the edited episode',
 	static function ( EPM_Test_Runner $t ) use ( $make_episode ) {
 		$before = EpisodeMeta::next_episode_numbers();
@@ -381,6 +459,64 @@ $t->test(
 		$html = (string) ob_get_clean();
 		$t->assert( (bool) preg_match( '/id="epm-video-url"[^>]*aria-describedby="epm-video-url-help"/', $html ) && false !== strpos( $html, 'id="epm-video-url-help"' ), 'video URL help' );
 		$t->assert( (bool) preg_match( '/id="epm-youtube-url"[^>]*aria-describedby="epm-youtube-url-help"/', $html ) && false !== strpos( $html, 'id="epm-youtube-url-help"' ), 'YouTube URL help' );
+	}
+);
+
+$t->test(
+	'episode and guest artwork must be a readable image attachment',
+	static function ( EPM_Test_Runner $t ) use ( $make_episode, $make_file, $make_user ) {
+		$id = $make_episode();
+		$private_episode = $make_episode( [ 'post_status' => 'future', 'post_date' => gmdate( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ) ] );
+		$foreign = $make_file( 'private-artwork.png', "\x89PNG\r\n\x1a\n", 'image/png' );
+		$plain = $make_file( 'not-artwork.txt', 'text', 'text/plain' );
+		wp_update_post( [ 'ID' => $foreign, 'post_parent' => $private_episode ] );
+		$editor = $make_user( 'contributor' );
+		wp_update_post( [ 'ID' => $id, 'post_author' => $editor ] );
+		wp_set_current_user( $editor );
+		$t->assert( ! current_user_can( 'read_post', $foreign ), 'precondition: the contributor cannot read the image attached to another author\'s scheduled episode' );
+		$_POST['epm_episode_meta_nonce'] = wp_create_nonce( 'epm_episode_meta' );
+		$_POST['epm'] = [ 'artwork_id' => $foreign, 'guest_image_id' => $plain ];
+		( new EpisodeMeta() )->save( $id, get_post( $id ) );
+		$t->same( [ 0, 0 ], [ (int) get_post_meta( $id, '_epm_artwork_id', true ), (int) get_post_meta( $id, '_epm_guest_image_id', true ) ] );
+		wp_set_current_user( 1 );
+		unset( $_POST['epm_episode_meta_nonce'], $_POST['epm'] );
+	}
+);
+
+$t->test(
+	'SEC-N1: REST refuses unreadable artwork and guest photos without changing stored images',
+	static function ( EPM_Test_Runner $t ) use ( $make_episode, $make_file, $make_user ) {
+		$previous_user = get_current_user_id();
+		$author = $make_user( 'author' );
+		wp_set_current_user( 1 );
+		$private_episode = $make_episode( [ 'post_status' => 'future', 'post_date' => gmdate( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ), 'post_author' => 1 ] );
+		$foreign = $make_file( 'rest-private-artwork.png', "\x89PNG\r\n\x1a\n", 'image/png' );
+		wp_update_post( [ 'ID' => $foreign, 'post_parent' => $private_episode, 'post_author' => 1 ] );
+		$own = $make_file( 'rest-own-artwork.png', "\x89PNG\r\n\x1a\n", 'image/png' );
+		wp_update_post( [ 'ID' => $own, 'post_author' => $author ] );
+		$plain = $make_file( 'rest-not-an-image.txt', 'text', 'text/plain' );
+		$id = $make_episode( [ 'post_author' => $author ] );
+		wp_set_current_user( $author );
+		try {
+			$t->assert( ! current_user_can( 'read_post', $foreign ), 'other author scheduled artwork is unreadable' );
+			foreach ( [ '_epm_artwork_id', '_epm_guest_image_id' ] as $key ) {
+				$write = static function ( int $attachment ) use ( $id, $key ) {
+					$request = new WP_REST_Request( 'POST', '/wp/v2/' . EpisodePostType::CPT . '/' . $id );
+					$request->set_param( 'meta', [ $key => $attachment ] );
+					return rest_do_request( $request );
+				};
+				$t->same( 200, $write( $own )->get_status(), 'own image accepted: ' . $key );
+				$t->same( $own, (int) get_post_meta( $id, $key, true ), 'own image stored' );
+				$t->same( 403, $write( $foreign )->get_status(), 'foreign private image denied' );
+				$t->same( $own, (int) get_post_meta( $id, $key, true ), 'previous image retained after denied access' );
+				$t->same( 400, $write( $plain )->get_status(), 'non-image attachment refused' );
+				$t->same( $own, (int) get_post_meta( $id, $key, true ), 'previous image retained after invalid type' );
+				$t->same( 200, $write( 0 )->get_status(), 'explicit removal accepted' );
+				$t->same( 0, (int) get_post_meta( $id, $key, true ), 'explicit removal stored' );
+			}
+		} finally {
+			wp_set_current_user( $previous_user );
+		}
 	}
 );
 
@@ -595,7 +731,7 @@ $t->test(
 		$t->same( 403, $rest( $rest_ep, [ '_epm_audio_id' => $audio ] ), 'REST: the other author\'s audio is refused' );
 		$t->same( 0, (int) get_post_meta( $rest_ep, '_epm_audio_id', true ), 'REST: nothing stored' );
 		$t->same( 403, $rest( $rest_ep, [ '_epm_transcript_file_id' => $vtt ] ), 'REST: the other author\'s transcript file is refused' );
-		$t->same( 403, $rest( $rest_ep, [ '_epm_transcript_file_id' => $own_audio ] ), 'REST: an audio file is not a transcript file' );
+		$t->same( 400, $rest( $rest_ep, [ '_epm_transcript_file_id' => $own_audio ] ), 'REST: an audio file is not a transcript file (invalid type, rather than denied access)' );
 		$t->same( 200, $rest( $rest_ep, [ '_epm_audio_id' => $own_audio ] ), 'REST: their own audio is accepted' );
 		$t->same( $own_audio, (int) get_post_meta( $rest_ep, '_epm_audio_id', true ), 'REST: their own audio is stored' );
 		$t->same( 200, $rest( $own_ep, [ '_epm_audio_id' => $audio, '_epm_transcript_file_id' => $vtt ] ), 'REST: unchanged stored files pass' );
@@ -789,6 +925,8 @@ $t->test(
 $t->test(
 	'the Design preview table produces the same variables as the site for every preset',
 	static function ( EPM_Test_Runner $t ) {
+		// Tokens are printed only where podcast styles are used (WID-N9).
+		\EPM\Assets::mark_player_used();
 		foreach ( epm()->presets->all() as $id => $preset ) {
 			$values = epm()->design->sanitize( array_merge( DesignSettings::defaults(), (array) $preset['tokens'] ) );
 			$filter = static function () use ( $values ) {

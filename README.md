@@ -57,7 +57,7 @@ The admin screens (setup assistant, Hosting & import, Distribution, dashboard, D
    - **Podcast → Add episode:** title → drop the MP3/M4A onto *Episode Audio* → description → Publish.
    - **Podcast → Distribution:** copy the feed address and submit it to the directories.
 
-Updating in place is safe: on the first request after an update the plugin re-flushes its rewrite rules (which also registers the topic archives), rebuilds the feed cache and regenerates Elementor's widget CSS. The setup assistant does not open on sites that already have a podcast. Details: [MIGRATION.md](MIGRATION.md).
+Updating in place is safe: the first request after an update stores the new version first and only does quick work (rewrite rules, which also register the topic archives; the feed cache; Elementor's widget CSS). Work on every episode (durations in seconds, duplicate GUID rows) is queued and done in batches by WP-Cron, a little on each admin page load, or at once with `wp podcast upgrade`, so a large catalog never makes the first request run out of memory. The setup assistant does not open on sites that already have a podcast. Details: [MIGRATION.md](MIGRATION.md).
 
 ## Setup assistant
 
@@ -95,13 +95,13 @@ Recognized hosts (feed address and `<generator>` detection, where-to-find-the-fe
 ## Import and sync
 
 - **Finding the feed.** The import accepts a feed address, an Apple Podcasts show link (resolved through Apple's public lookup API) or a web page that links its feed with `<link rel="alternate" type="application/rss+xml">`; on such a page a podcast feed wins over the blog feed, and comment feeds are never taken. `feed://`, `podcast://`, `pcast://` and `itpc://` addresses are rewritten to `https://`. Requests use `wp_safe_remote_get` (no requests to private networks), a 30-second timeout and a 50 MB size limit (`epm_feed_max_bytes`). Bot-protection pages (Cloudflare challenges, SiteGround captchas) and Spotify show links get specific error messages.
-- **Parsing.** `includes/FeedParser.php` reads RSS feeds from any host: namespace URIs are matched case-insensitively, CDATA and escaped HTML are both accepted, byte-order marks, stray ampersands, HTML named entities and undeclared Windows-1252 bytes are repaired, and external entities are never loaded (libxml's entity-expansion limits stay on). Publish dates with a wrong or localized weekday ("Mon, 16 Jun 2020", "Di, …") keep their date. Atom feeds are rejected with an explanation. Paged feeds (`<atom:link rel="next">`) are followed up to 50 pages (`epm_import_max_pages`).
-- **Mapping.** Title, show notes (plain-text notes get paragraphs and links), short description, audio URL/type/length, duration, episode and season numbers, episode type, explicit flag, episode image URL, the item link and the first `podcast:person` with the role guest. Chapters (Podcasting 2.0 JSON or inline Podlove chapters) and transcripts (HTML, WebVTT, SRT, Podcasting 2.0 JSON, plain text) are converted into the plugin's own chapter and transcript fields when an episode is created. The host's timed transcript file (WebVTT first, then SRT, then JSON) is kept for the feed's captions: copied into the Media Library with *Copy audio* (WebVTT and SRT), otherwise linked. Channel details can fill empty Podcast settings; the source's `<link>`, `<itunes:block>` and `<itunes:new-feed-url>` are never copied.
+- **Parsing.** `includes/FeedParser.php` reads RSS feeds from any host: namespace URIs are matched case-insensitively, CDATA and escaped HTML are both accepted, byte-order marks, stray ampersands, HTML named entities and undeclared Windows-1252 bytes are repaired, and external entities are never loaded (libxml's entity-expansion limits stay on). Publish dates with a wrong or localized weekday ("Mon, 16 Jun 2020", "Di, …") keep their date. Atom feeds are rejected with an explanation. Paged feeds (`<atom:link rel="next">`, relative links resolved against the page's address) are read page by page over several requests, up to 50 pages (`epm_import_max_pages`) and 200 MB (`epm_import_max_bytes`). The preview says whether the catalog is complete and, when it is not, why (a page that answered an HTTP error, could not be loaded or parsed, an empty page that links on, the page or size limit), with the page's address; *Try reading the rest again* continues from that page.
+- **Mapping.** Title, show notes (plain-text notes get paragraphs and links), short description, audio URL/type/length, duration, episode and season numbers, episode type, explicit flag, episode image URL, the item link and the first `podcast:person` with the role guest. Chapters (Podcasting 2.0 JSON or inline Podlove chapters) and transcripts (HTML, WebVTT, SRT, Podcasting 2.0 JSON, plain text) are converted into the plugin's own chapter and transcript fields when an episode is created, before any media is copied (an episode whose import died before that gets them on the next run). The host's timed transcript file (WebVTT first, then SRT, then JSON) is kept for the feed's captions: linked where it is, and copied into the Media Library with *Copy audio* (WebVTT and SRT). Channel details can fill empty Podcast settings; the source's `<link>`, `<itunes:block>` and `<itunes:new-feed-url>` are never copied.
 - **Identity.** The item GUID becomes the episode's immutable GUID, stored byte-for-byte as the feed lists it (surrounding whitespace removed, `%`-escapes kept), so a moved show keeps its episode IDs. Duplicate GUIDs inside a feed are skipped after the first. When the show moves here, its `<podcast:guid>` is adopted.
 - **Local edits win.** For every field, the importer remembers a hash of what it last wrote. A later sync only overwrites a field whose current value still matches that hash. Saving an imported episode in the editor without changing it does not count as an edit (line endings and the paragraph tags the editor removes are ignored). Fields the importer never wrote are only filled when empty.
-- **Media.** Audio and images stay on the host unless *Copy audio and episode images* is chosen; then they are downloaded into the Media Library (images are reused by source URL). Episodes whose audio could not be copied are listed after the import (Hosting & import, setup assistant, a warning in WP-CLI) and keep playing from the old host until fixed.
-- **Batched job.** Imports run in batches over AJAX; WP-Cron continues them when the page is closed. The parsed feed is stored in a private file under `wp-content/uploads/epm-import/` while the job runs. Only one import or sync runs at a time: the lock belongs to the request that took it, a running import renews it, and an abandoned lock expires after five minutes (twenty while audio is being copied). A cancelled import stays cancelled. Importing with media copy also copies the files of episodes that were mirrored earlier without them.
-- **WP-CLI.** `wp podcast import <feed> [--move] [--copy-media] [--draft] [--show-details] [--owner]` runs the same import without browser or request time limits; `wp podcast sync [--force]` syncs now; `wp podcast status` shows the mode, the feeds and the last and next sync.
+- **Media.** Audio, images and transcript files stay on the host unless *Copy audio and episode images* is chosen. Then every file of every episode in the feed that still loads from the host is copied into the Media Library, each kind on its own (WebVTT/SRT transcript file, episode image, audio), also for episodes that were mirrored earlier; a copied WebVTT/SRT file replaces the link, the transcript text is never touched. Only addresses the import wrote are replaced: an address set on this site (another transcript file, an audio URL on your own CDN) stays, and so does a transcript in a format that is not copied (JSON). A file that is already here is not requested again, so a second run requests exactly what failed. Downloads are bounded: at most 1 GB per audio file, 20 MB per image, 5 MB per transcript file (`epm_media_max_bytes`, enforced while the file streams, also without a Content-Length); at most `epm_media_request_seconds` (20) per request, a file that takes longer continues in the next request with an HTTP Range request; stopped below 1 KB/s over 15 seconds (`epm_media_low_speed`); checked against the free disk space and the Content-Length; a host answering 429 (or 503 with Retry-After) makes the import wait until the time it names. What arrives must be audio WordPress can read, an image, or a WebVTT/SRT file; a web page, JSON or unknown data is refused with a reason that says so. Audio is stored without WordPress's image probe (which read the whole file into memory). Everything that still loads from the old host is listed per kind with the episodes and the reason after the import (Hosting & import, setup assistant, WP-CLI) and in the readiness report after a move.
+- **Batched job.** Imports run in batches over AJAX; WP-Cron continues them when the page is closed. The parsed feed is stored in non-autoloaded rows of the options table (`epm_import_chunk_*`), never as a file, and removed when the import ends, is cancelled or replaced, or a checked feed has waited a day without being imported. Only one import or sync runs at a time: the lock is a row changed only with conditional statements (a free lock is taken only when the row is missing, an abandoned one only while it still holds the value read; renewed and released only by its owner), it is checked before every episode, and an abandoned lock expires after five minutes (twenty while audio is being copied). The job is read from the database and saved with compare-and-swap, so a preview never replaces a running import and a step never saves an old copy over newer progress. *Stop the import* lets the episode in flight finish and nothing after it; a cancelled import stays cancelled. Before an episode is created its GUID is checked in the database again. A move finishes only with the whole catalog, or when the missing part was confirmed, and only when every file was copied: a move that leaves files at the old host (or episodes that could not be imported) ends as *not finished* (hosting mode, *This show moved here* and the feed lock stay as they were) until the missing files are copied again (*Copy the missing files again*, `wp podcast import --resume`) or the site owner confirms that they stay behind (*Finish the move*, `wp podcast finish-move`). A request that dies during a copy (memory limit, time limit, a killed process) leaves no partial or orphaned file, counts the attempt with its reason and lets the import go on; an episode interrupted three times is given up for the file in progress.
+- **WP-CLI.** `wp podcast import <feed> [--move] [--copy-media] [--draft] [--show-details] [--owner] [--accept-partial]` runs the same import without a browser (a feed that cannot be read completely is an error unless `--accept-partial` is given; a move that leaves files at the old host is an error that names them; `wp podcast import --resume` continues or copies them again); `wp podcast finish-move` finishes such a move knowingly; `wp podcast cancel` stops the import; `wp podcast sync [--force]` syncs now; `wp podcast status` shows the mode, the feeds, the last and next sync and the import.
 - **Locked feeds.** Moving a feed that declares `<podcast:locked>yes</podcast:locked>` requires confirming ownership. After a move, the plugin lifts the feed episode limit if needed, turns on *This show moved here* (the feed then announces its own address with `<itunes:new-feed-url>`), locks the feed and, if the site was mirroring the old host, switches to *This website*.
 - **Sync.** Cron event `epm_sync_feed`, hourly by default (twice daily and daily are available), plus *Sync now*. Conditional GET with the stored ETag/Last-Modified; feed moves (`itunes:new-feed-url`, 301/308) are followed, never from https to http, and imported episodes are re-tagged with the new address; up to 25 new episodes per run (`epm_sync_batch_limit`) with a follow-up run shortly after for the rest; an empty feed, or one that suddenly lists fewer than half of its episodes, never changes anything; optional unpublishing of episodes the host removed (only within the feed's time window and after one day); backoff up to 24 hours after repeated failures and an admin notice after three. Details and limits: [docs/HOSTING.md](docs/HOSTING.md#4-what-the-sync-does-and-does-not-do).
 
@@ -115,21 +115,21 @@ The feed distributes `audio/mpeg`, `audio/mp4`, `audio/x-m4a`, `audio/aac`, `vid
 
 ## Moving a show
 
-- **To this website:** raise the old host's feed episode limit and unlock the feed, import with media, verify, set the 301 redirect at the old host to `/podcast/feed/`, keep the old account for at least four weeks. The setup assistant and Hosting & import show redirect instructions for the chosen host (Spotify for Creators' steps are spelled out as Spotify documents them; other hosts get a generic hint with the host's name).
+- **To this website:** raise the old host's feed episode limit and unlock the feed, import with media (a move is finished only when every file is here, or after you confirm what stays at the old host), verify, set the 301 redirect at the old host to `/podcast/feed/`, keep the old account for at least four weeks. The setup assistant and Hosting & import show redirect instructions for the chosen host (Spotify for Creators' steps are spelled out as Spotify documents them; other hosts get a generic hint with the host's name).
 - **Away from this website:** set the feed episode limit to 0 and unlock the feed, let the new host import `/podcast/feed/`, check the new feed with the plugin's *Check feed* (every episode should be reported as already existing, which proves the GUIDs were kept), then switch to *Another podcast host*: the site answers its old feed address with a 301 to the new feed and keeps showing the episodes.
 
 The complete procedures, including what to do when a host cannot redirect: [docs/HOSTING.md](docs/HOSTING.md).
 
 ## Distribution center
 
-Podcast → Distribution (`admin.php?page=epm-distribution`). Shows the feed address to submit (the host's feed in external mode), validator links, readiness errors that directories would reject, a *Test feed and audio delivery* check (feed status and format, HTTPS, `HEAD` and byte-range answers for the newest episode's audio), and the platforms in order:
+Podcast → Distribution (`admin.php?page=epm-distribution`). Shows the feed address to submit (the host's feed in external mode), validator links, readiness errors that directories would reject, a *Test feed and audio delivery* check (feed status and format, HTTPS; then the audio of the first episode in the feed at the address the feed gives, download-statistics prefix included and redirects followed: `HEAD` with its size and type, and a byte-range request whose `Content-Range` and size must match the feed), and the platforms in order:
 
-- **Start here:** Apple Podcasts, Spotify, YouTube & YouTube Music, Amazon Music & Audible, Podcast Index
-- **Recommended:** iHeartRadio, Pocket Casts, Deezer, Podcast Addict
+- **Start here:** Apple Podcasts, Spotify, Amazon Music & Audible, Podcast Index
+- **Recommended:** YouTube & YouTube Music (select countries and regions; no advertisements in the episodes, no `<`/`>` in titles and descriptions), iHeartRadio, Pocket Casts, Deezer, Podcast Addict
 - **More platforms:** Pandora & SiriusXM (United States), TuneIn, podcast.de, Listen Notes
 - **Listed automatically:** Overcast, Castro, Castbox, Goodpods, Player FM (from Apple Podcasts), Fountain (from Podcast Index)
 
-Each platform has submission steps, requirements (most send a verification code to the feed's owner email) and progress tracking (*Submitted* / *Listed*). The header counts the essential platforms submitted, and the *Submit* button of the next essential platform is the primary one. A listing address saved there is added to the podcast's platform links, so the subscribe buttons fill themselves as the show gets listed. Registry: `includes/Directories.php`, filter `epm_directories`. Details: [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md).
+Each platform has submission steps, requirements (most send a verification code to the feed's owner email) and progress tracking (*Submitted* / *Listed*). The header counts the essential platforms submitted, and the *Submit* button of the next essential platform is the primary one. A listing address saved there must be a public link on that platform (a dashboard link or another platform's link is refused with a message) and is added to the podcast's platform links, so the subscribe buttons fill themselves as the show gets listed. Registry: `includes/Directories.php`, filter `epm_directories`. Details: [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md).
 
 ## Publishing episodes
 
@@ -154,7 +154,9 @@ The episode screen puts the audio upload directly under the title (the classic e
 
 ## RSS feed
 
-`/podcast/feed/` (or `/?epm_podcast_feed=1` with plain permalinks; `/podcast/rss2/` and other archive feed URLs serve the same feed). In external mode with the redirect on, all of these answer with a 301 to the host's feed.
+`/podcast/feed/` (or `/?epm_podcast_feed=1` with plain permalinks; `/podcast/rss2/` and other archive feed URLs serve the same feed, with the plugin's own `ETag`/`Last-Modified`). In external mode with the redirect on, all of these answer with a 301 to the host's feed. Under plain permalinks `/podcast/feed/` still serves the feed where the web server passes that address to WordPress (nginx with `try_files`; not Apache without rewrite rules), and the Distribution screen, the dashboard, the Permalinks screen and the readiness report say when the feed address changed after it was shown for submission.
+
+**Previous address of a WordPress podcast plugin:** a show that moved here from PowerPress or Seriously Simple Podcasting on the same site can turn on *Previous feed address* (Podcast settings → Feed status; offered by the setup assistant when those plugins left settings): `/feed/podcast/` and `/?feed=podcast` then answer with a permanent redirect to the feed. Turn it on after the old plugin is deactivated.
 
 **Channel tags:**
 - `title`, `link`, `description`, `language`, `copyright`
@@ -180,13 +182,13 @@ Control characters pasted into any field are removed, so one stray character can
 
 **Download statistics:** Podcast → Hosting & import → *Download statistics* puts a measurement prefix in front of every enclosure URL of the self-hosted feed: OP3, Podtrac or the prefix address of another service (`epm_stats_services`). URLs that already pass through the same service are left alone; episode GUIDs do not change.
 
-**Podcast Index notification:** when a self-hosted episode is published on a site that allows search engines, the plugin tells Podcast Index about the feed one minute later (`hub/pubnotify`, cron event `epm_ping_podcast_index`), so Podcast Index apps pick the episode up without waiting for their next poll. `add_filter( 'epm_ping_podcast_index', '__return_false' )` turns it off.
+**Podcast Index notification:** when a self-hosted episode is published on a site that allows search engines, the plugin tells Podcast Index about the feed one minute later (`hub/pubnotify`, cron event `epm_podcast_index_ping`), so Podcast Index apps pick the episode up without waiting for their next poll. `add_filter( 'epm_ping_podcast_index', '__return_false' )` turns it off.
 
 **Eligibility and window:** only published, non-password episodes with distributable audio (a Media Library file or an audio URL of a distributed type), filtered *before* the "Feed episode limit" window (default 500, 0 = unlimited). The window always keeps the newest episodes. Episodic feeds are newest-first; serial feeds list those episodes oldest-first.
 
-**GUIDs:** immutable per episode. Episodes created before 1.1.0 keep their issued GUIDs; newer ones get `urn:uuid:` GUIDs; imported episodes keep the GUID of the source feed. Title, slug, domain and protocol changes never regenerate them.
+**GUIDs:** immutable per episode. Episodes created before 1.1.0 keep their issued GUIDs; newer ones get `urn:uuid:` GUIDs, assigned when the episode is created (editor, REST, WP-CLI or any other code) and derived from the show's `podcast:guid` and the episode ID, so two requests can never hand out different GUIDs for one episode; imported episodes keep the GUID of the source feed. Title, slug, domain and protocol changes never regenerate them.
 
-**Caching:** the rendered feed is cached and invalidated whenever an episode, its media, the podcast settings or the hosting settings change. Responses carry `ETag`/`Last-Modified` and answer conditional requests with `304 Not Modified`. `Last-Modified` and `<lastBuildDate>` move whenever the feed's content changes (for example a channel setting, a removed episode or a lower episode limit), not only when a newer episode is published; the build time is kept in the option `epm_feed_build`.
+**Building and caching:** the feed is built a page of episodes at a time (the window is applied in SQL, each page's posts and meta are loaded and released before the next), so memory does not grow with the catalog: measured with a 128M limit, the unlimited feed of 10,000 episodes builds within 7 MB of a php-fpm request. The rendered feed is cached in pieces of at most 256 KB in non-autoloaded rows of the options table (`epm_feed_cache` points to the current build, `epm_feed_chunk_*` hold it; never a file, never one multi-megabyte row) and invalidated whenever an episode, its media file or metadata, the podcast settings, the site title or tagline or the hosting settings change; it also expires after 12 hours. One request builds it at a time; a build that a change overtook is served to its own request but not stored. Responses carry `ETag`/`Last-Modified` and answer conditional requests with `304 Not Modified` after reading only the few hundred bytes of the pointer; `If-None-Match` accepts lists, weak tags and `*`. `Last-Modified` and `<lastBuildDate>` move whenever the feed's content changes (for example a channel setting, a removed episode or a lower episode limit), not only when a newer episode is published, and are never later than now; the build time is kept in the option `epm_feed_build`. Characters XML does not allow (control characters, U+FFFE/U+FFFF, invalid UTF-8) are removed from every field, so one bad paste cannot break the feed.
 
 ## Episode pages
 
@@ -225,7 +227,8 @@ Twelve widgets (`includes/Elementor/Widgets.php`): Podcast Player · Episode Lis
   - *Current Episode* resolves to the loop's episode (Loop Grid, related-episode loops) or the episode page.
   - *Latest Episode* is the newest episode with audio.
   - *Specific Episode* uses a searchable picker that reaches the whole catalog and marks drafts/scheduled/private episodes (private ones only for users who may read them).
-- **Style Source:** *Use Global Podcast Styles* emits no overrides and hides the per-widget style sections. *Custom* reveals Elementor controls that set `--epm-*` variables. Global Colors/Fonts, responsive values and hover states are supported. A *Background* on the Podcast Hero or Latest Episode widget also adds inner padding.
+- **Details:** Podcast Player, Latest Episode and Episode List set each detail to *Default* (follows Podcast → Design → *Details shown by default*), *Show* or *Hide*; *Layout* offers *Default (Podcast → Design: …)*. *Use Podcast → Design defaults* sets every detail of the widget to *Default*. Widgets saved with 1.3.0 or earlier keep what they showed until switched. The Latest Episode widget has its own *Enable Sticky Player* (off).
+- **Style Source** (looks only, never which details show): *Use Global Podcast Styles* emits no overrides and hides the per-widget style sections. *Custom* reveals Elementor controls that set `--epm-*` variables. Global Colors/Fonts, responsive values and hover states are supported. A *Background* on the Podcast Hero or Latest Episode widget also adds inner padding.
 - **Episode List** filters by season and topics and can show topic chips; **Podcast Player** has a *Share Menu* toggle.
 - **Editor placeholders** explain widgets that currently render nothing (e.g. no guest on this episode). Visitors never see them.
 - Widgets declare dynamic content, so Elementor's element cache never serves a stale episode list.
@@ -234,13 +237,13 @@ Twelve widgets (`includes/Elementor/Widgets.php`): Podcast Player · Episode Lis
 
 ## Shortcodes
 
-Episode components default to the current episode (the loop's episode or the episode page); `id="123"` picks a specific episode and `source="latest"` the newest episode with audio. Yes/no attributes accept `yes`, `no`, `1`, `0`, `true`, `on`.
+Episode components default to the current episode (the loop's episode or the episode page); `id="123"` picks a specific episode and `source="latest"` the newest episode with audio. Yes/no attributes accept `yes`, `no`, `1`, `0`, `true`, `on`. A `show_*` or `layout` attribute that is present is explicit; without it, Podcast → Design → *Details shown by default* decides.
 
 | Shortcode | Attributes (default) | Output |
 |---|---|---|
 | `[podcast_player]` | `id`, `source` (`current`), `layout` (design default; `minimal`, `compact`, `editorial`, `artwork`, `full`), `sticky` (`no`), `download` (`no`), `share` (`yes`) | The player |
-| `[podcast_latest]` | `layout` (design default) | Player of the newest episode with audio, with artwork and description |
-| `[podcast_episodes]` | `limit` (`10`, 1–100), `layout` (design default; `list`, `editorial-rows`, `cards`, `grid`, `minimal`), `orderby` (`date`; any `WP_Query` order or `episode_number`), `order` (`DESC`), `season`, `topic` (comma-separated slugs), `show_topics` (`no`) | Episode list |
+| `[podcast_latest]` | `layout` (design default), `sticky` (`no`), `show_*` (site details) | Player of the newest episode with audio, with artwork and description by default |
+| `[podcast_episodes]` | `limit` (`10`, 1–100), `layout` (design default; `list`, `editorial-rows`, `cards`, `grid`, `minimal`), `orderby` (`date`; any `WP_Query` order or `episode_number`), `order` (`DESC`), `season`, `topic` (comma-separated slugs), `show_topics` (`no`), `show_*` (site details) | Episode list (by `episode_number`, episodes without a number follow the numbered ones) |
 | `[podcast_video]` | `id`, `source` (`current`), `note` (`yes`: "The video loads from … when you play it") | Click-to-load video |
 | `[podcast_subscribe]` | `display` (`icon-text`, `icon`, `text`), `rss` (`yes`) | Platform links + RSS (the public feed) |
 | `[podcast_guest]` | `id`, `source`, `bio` (`yes`) | Guest block |
@@ -252,15 +255,15 @@ Episode components default to the current episode (the loop's episode or the epi
 ## Player
 
 - **One engine:** `Renderer::player()` + `assets/js/epm-player.js`. The five layouts (Minimal, Compact, Editorial, Artwork, Full) are configurations of it.
-- **Shared playback:** one `PlaybackController` per episode is shared by the full player, card/row buttons, chapters and the sticky bar. Starting an episode pauses the others (and any video started from a facade).
-- **Sticky mini player:** docked to the bottom edge, hidden until something plays. Requested by players with *sticky*, by the automatic episode page, and by list play buttons and chapter lists (`epm_sticky_player_for_lists`). While it is open the page reserves its height, so it never covers the last content or the focused element.
-- **Keyboard and screen readers:** arrows ±5 s, PageUp/PageDown ±30 s, Home/End; live speed announcements; list play buttons keep their width while their label switches between Play, Pause and Retry.
+- **Shared playback:** one `PlaybackController` per episode is shared by the full player, card/row buttons, chapters and the sticky bar. Starting an episode pauses the others (and any video started from a facade). When a re-render brings another audio file for the episode (the file was replaced or fixed), that file takes over; the same file keeps playing across re-renders, including Elementor editor control changes. Speed and volume belong to the visitor and apply to every player on the page; where the device owns the volume (iOS), the volume slider is hidden.
+- **Sticky mini player:** docked to the bottom edge, hidden until something plays. Its shell is printed for players with *sticky*, the automatic episode page, and list play buttons and chapter lists (`epm_sticky_player_for_lists`); it opens only for playback started from one of those (a player with *sticky* off never opens it, even next to a list). While it is open the page reserves its height, so it never covers the last content or the focused element; it respects the safe areas of notched phones.
+- **Keyboard and screen readers:** Right/Up +5 s, Left/Down −5 s, PageUp/PageDown ±30 s, Home/End; the volume is read as a percentage; live speed announcements; list play buttons keep their width while their label switches between Play, Pause and Retry.
 - **Error handling:** an error + retry state, and a native-audio fallback.
 - **Lock-screen controls** via the Media Session API.
 - **Remembers per visitor** (browser storage) the resume position per episode and the preferred speed. Disable resume with `add_filter( 'epm_player_resume', '__return_false' )`.
 - **Theme-proof buttons:** player buttons use ID-level specificity (`:not(#epm)`), so theme button styles (Hello Elementor, Twenty Twenty-One…) cannot restyle them; titles and links resist Elementor Kit heading and link rules. Elementor controls stay effective because they set `--epm-play-*` variables.
 - **Narrow players** (phones, narrow columns) put the timeline on its own row (container query).
-- **Initializes content inserted later** (Elementor editor, AJAX "load more", popups). Integrations can call `window.epmPlayerEngine.init(element)`.
+- **Initializes content inserted later:** Elementor widgets through Elementor's `frontend/element_ready/widget` hook (editor, popups, loops), everything else (AJAX "load more", other builders) through a MutationObserver; copies of bound markup (carousel loop slides) are bound too. Integrations can call `window.epmPlayerEngine.init(element)`.
 
 ## Global Podcast Styles & presets
 
@@ -268,15 +271,16 @@ Episode components default to the current episode (the loop's episode or the epi
 
 - **Preset gallery:** keyboard-accessible tiles with live swatches. Selecting a tile shows the preset in the preview; *Apply preset* asks for confirmation (a native dialog that also warns about unsaved changes) and then fills every value.
 - **Fields** in four groups: *Colors* (background, surface, text, muted text, accent, text on accent, borders, timeline track — empty means automatic, from the muted color), *Shape and depth* (corner radius, artwork corner radius, button shape `rounded`/`pill`/`square`, shadow `none`/`soft`/`lifted`), *Typography* (font `inherit`/`system`/`serif`/`rounded`/`mono`, player title size, details size), *Layout defaults* (spacing, player layout, episode list layout).
-- **Live preview** of the real player, episode list and subscribe links; every `--epm-*` variable updates as you type (from a table built in PHP that matches the site's token output).
+- **Details shown by default** per place (player, latest episode, episode lists, episode page). Widgets and shortcodes that name a detail win; otherwise this setting; otherwise the 1.3.0 default. Maps stored by 1.1–1.3 appear as *Suggested details* with *Apply suggestions* (lists every change) and *Dismiss*.
+- **Live preview** of the real player, the episode page player, the episode list in every layout and subscribe links, rendered like the site; every `--epm-*` variable updates as you type (from a table built in PHP that matches the site's token output).
 - **Contrast check** of eight pairs with pass/fail badges: text, muted text on background and surface (4.5:1), accent text on background (4.5:1), text on accent (4.5:1), timeline track on background and surface (3:1).
-- A sticky save bar, *Discard changes*, and a warning before leaving with unsaved changes; a summary of what differs from the preset and which details it shows by default.
+- A sticky save bar, *Discard changes*, and a warning before leaving with unsaved changes; a summary of what differs from the preset and which details the site shows by default.
 
 The values are printed once as `:root` custom properties (`--epm-accent`, `--epm-radius`, `--epm-gap`, `--epm-button-radius`, `--epm-font`, `--epm-shadow`, `--epm-track` …); the stylesheet's fallbacks use `:where(:root)` (specificity 0), so Global Podcast Styles win regardless of load order. `font_family: inherit` keeps the theme's and Elementor's fonts. On a dark background the plugin also prints a white image outline, a lighter error red and, so light text stays readable on a light theme page, a design-colored surface with padding for sections that have none of their own (`epm_dark_section_surface` turns that off).
 
-**Presets** (`epm_presets` filter), eleven in total: `neutral`, `minimal`, `editorial`, `card`, `business-tuning`, and six presets whose values are derived from the DESIGN.md files of the [awesome-design-md](https://github.com/VoltAgent/awesome-design-md) collection (MIT): `clean-light`, `soft-voice`, `warm-paper`, `ink-mono`, `night-studio`, `midnight`. Those six take design values only (colors, radii, spacing, type scale, button shape, font stack, shadow) and carry generic names; they use no brand names, logos, copy or proprietary fonts. Every preset meets text ≥ 7:1, muted ≥ 4.5:1, on-accent ≥ 4.5:1, accent ≥ 4.5:1 and track ≥ 3:1 (measured). Applying a preset fills tokens and visibility/player/list defaults; nothing is locked. Designs saved before 1.3.0 keep pill-shaped text buttons; new designs default to rounded.
+**Presets** (`epm_presets` filter), eleven in total: `neutral`, `minimal`, `editorial`, `card`, `business-tuning`, and six presets whose values are derived from the DESIGN.md files of the [awesome-design-md](https://github.com/VoltAgent/awesome-design-md) collection (MIT): `clean-light`, `soft-voice`, `warm-paper`, `ink-mono`, `night-studio`, `midnight`. Those six take design values only (colors, radii, spacing, type scale, button shape, font stack, shadow) and carry generic names; they use no brand names, logos, copy or proprietary fonts. Every preset meets text ≥ 7:1, muted ≥ 4.5:1, on-accent ≥ 4.5:1, accent ≥ 4.5:1 and track ≥ 3:1 (measured). Applying a preset fills its tokens and sets *Details shown by default* (the confirmation lists the changes); nothing is locked, and widgets or shortcodes that name a detail keep it. Designs saved before 1.3.0 keep pill-shaped text buttons; new designs default to rounded.
 
-**Export/Import** moves a design between sites as versioned JSON with visual tokens only (no IDs, URLs or content); the import accepts only known keys and allowed values.
+**Export/Import** moves a design between sites as versioned JSON (format 2: tokens and details; no IDs, URLs or content); the import accepts only known keys and allowed values, and a 1.x export's details arrive as suggestions.
 
 Precedence: theme / Elementor Site Settings → Global Podcast Styles → preset (applied into global styles) → widget overrides.
 
@@ -333,13 +337,20 @@ includes/
   Providers.php         podcast host registry (detection, feed and redirect help)
   FeedParser.php        tolerant podcast RSS parser
   Importer.php          feed item → episode mapping, local-edit hashes, media copy, chapters/transcripts
-  ImportJob.php         batched import job (AJAX + WP-Cron), lock, move completion
+  ImportJob.php         batched import job (AJAX + WP-Cron), lock, waits, unfinished moves, move completion
+  MediaCopy.php         copies one media file into the Media Library: checks the content, stores it, reuses copies
+  MediaDownload.php     one bounded, resumable media download (limits, Range, Retry-After)
+  MediaWatch.php        watches a download while it streams (size, disk, low speed, time)
   Directories.php       distribution platforms and link services
   BrandIcons.php        platform glyphs (Simple Icons, CC0)
   AdminPages.php        setup assistant, Hosting & import, Distribution screens; activation redirect; notices; delivery check
   StructuredData.php    schema.org JSON-LD and og:audio on episode pages
   Embed.php             episode embed card (/podcast/{slug}/embed/), oEmbed height, embed code
-  Cli.php               WP-CLI: wp podcast import|sync|status
+  Cli.php               WP-CLI: wp podcast import|cancel|finish-move|sync|status|upgrade
+  FeedStore.php         feed cache: pointer row and pieces, one build at a time
+  FeedWriter.php        collects a feed while it is built (pieces of 256 KB)
+  OptionRow.php         options rows changed with conditional SQL (version, upgrade lock, feed cache)
+  Upgrade.php           per-episode upgrade work in batches (cron, admin, CLI)
   EpisodeTemplate.php   automatic episode pages
   Renderer.php          ONE player + shared markup (share menu, video facade, topic chips, timestamp links)
   Assets.php            conditional enqueue, sticky player shell
@@ -361,7 +372,7 @@ tests/                  test suites (see tests/README.md)
   - External audio and artwork: `_epm_audio_url`, `_epm_audio_type`, `_epm_audio_length`, `_epm_artwork_url`.
   - Transcript files: `_epm_transcript_file_id` (a WebVTT/SRT attachment), `_epm_transcript_url` and `_epm_transcript_type` (a hosted file, from an import).
   - Video: `_epm_video_url`, `_epm_youtube_url`.
-  - Import bookkeeping: `_epm_source` (`import`), `_epm_source_feed`, `_epm_source_link` (REST-readable), and the private `_epm_import_hash`, `_epm_import_fingerprint`, `_epm_missing_since`, `_epm_copying` (set only while an audio download runs). Attachments downloaded by the importer carry `_epm_source_url`.
+  - Import bookkeeping: `_epm_source` (`import`), `_epm_source_feed`, `_epm_source_link` (REST-readable), and the private `_epm_import_hash` (also records whether the transcript address came with the import), `_epm_import_fingerprint`, `_epm_import_extras` (chapters and transcripts still to fetch, only until they are), `_epm_missing_since`, `_epm_copying` (set only while an audio download runs). Attachments downloaded by the importer carry `_epm_source_url`.
 - Topics: taxonomy `podcast_topic` (terms and term relationships).
 - Episode meta is registered for the REST API (block editor, headless sites, integrations). It is hidden for password-protected episodes.
 - Options:
@@ -369,12 +380,12 @@ tests/                  test suites (see tests/README.md)
   - `epm_podcast_guid` stores the podcast's feed identity; `epm_feed_build` the hash and time of the last feed content (for `Last-Modified`).
   - `epm_hosting` (hosting mode, sync settings, download statistics prefix) and `epm_sync_state` (last sync, validators, failure count).
   - `epm_setup` (setup assistant progress) and `epm_distribution` (per-platform progress).
-  - `epm_import_job` and `epm_import_lock` (the running import and the import/sync lock).
+  - `epm_import_job` and `epm_import_lock` (the current import and the import/sync lock); `epm_import_chunk_*` rows hold the parsed feed of a checked or running import (removed when it ends, after a day without import, on uninstall).
   - `epm_activation_redirect` (set on activation, removed by the first admin request).
   - `epm_version` records the installed version for the upgrade routine; `epm_guids_migrated` marks the 1.1.0 GUID migration.
-- Files: `wp-content/uploads/epm-import/` holds the parsed feed of a running import (random file name; deleted when the import ends).
-- Cron events: `epm_sync_feed` (host sync), `epm_import_continue` (background import) and `epm_ping_podcast_index` (Podcast Index notification).
-- The rendered feed is cached in a transient (`epm_feed_cache`).
+- Files: none of its own besides copied media in the Media Library. While a media file is copied, its download lives in the temp folder as `epm-media-*`; it is removed when the copy ends, fails or is cancelled, and leftovers older than an hour are removed by the next import step or the daily cleanup. (1.3.0 kept the parsed feed in `wp-content/uploads/epm-import/`; that folder is removed after the update.)
+- Cron events: `epm_sync_feed` (host sync), `epm_import_continue` (background import), `epm_import_cleanup` (expires a checked feed nobody imported) and `epm_podcast_index_ping` (Podcast Index notification; `epm_ping_podcast_index` in 1.3.0).
+- The rendered feed is cached in non-autoloaded option rows: `epm_feed_cache` (the current build: ETag, Last-Modified, number of pieces) and `epm_feed_chunk_<build>_<n>` (the pieces). `epm_feed_address` remembers the feed address shown on the Distribution screen. While an update's per-episode work is pending, `epm_upgrade_state` holds it and `epm_upgrade_lock` the worker's lock; `epm_removed_guid_rows` records duplicate GUID rows the upgrade removed.
 - No custom tables.
 
 ## Developer hooks
@@ -398,7 +409,9 @@ All hooks are filters.
 | `epm_player_preload` | `preload` of the player's audio: `metadata` on this site, `none` on another host (1.3.0) |
 | `epm_sticky_player_for_lists` | list play buttons and chapter lists bring the sticky player, default on (1.3.0) |
 | `epm_episode_metadata` | custom metadata fields |
-| `epm_presets` | register presets |
+| `epm_presets` | register presets (`tokens`, optional `details` per place) |
+| `epm_details` | details a player, list or episode page shows: `( $details, $context, $explicit, $consumer )` |
+| `epm_dequeue_unused_player` | drop the player script on pages without podcast markup, default on |
 | `epm_dark_section_surface` | design surface and padding for sections on dark designs, default on (1.3.0) |
 | `epm_hosting_providers` | podcast host registry (1.3.0) |
 | `epm_directories` | distribution platforms (1.3.0) |
@@ -406,6 +419,15 @@ All hooks are filters.
 | `epm_feed_max_bytes` | maximum size of a fetched feed, default 50 MB (1.3.0) |
 | `epm_sync_batch_limit` | new episodes per sync run, default 25 (1.3.0) |
 | `epm_import_max_pages` | pages of a paged feed followed by an import, default 50 (1.3.0) |
+| `epm_import_max_bytes` | total size of a paged feed an import reads, default 200 MB (unreleased) |
+| `epm_import_request_seconds` | seconds one preview request spends reading pages, default 10 (unreleased) |
+| `epm_import_ttl` | seconds a checked feed waits to be imported before it expires, default one day (unreleased) |
+| `epm_media_max_bytes` | largest media file an import copies, per kind (`audio` 1 GB, `image` 20 MB, `transcript` 5 MB) (unreleased) |
+| `epm_media_request_seconds` | seconds one request spends on a media download before the next request continues it, default 20, at most 50 (unreleased) |
+| `epm_media_low_speed` | `[ 'bytes' => 1024, 'seconds' => 15 ]`: a download slower than this is stopped and tried again (unreleased) |
+| `epm_media_max_attempts` | failed attempts after which a file counts as not copyable in this run, default 3 (unreleased) |
+| `epm_media_max_waits` / `epm_media_max_wait` | how often (5) and how long at most (six hours) an import waits for a host that answers 429/503 with Retry-After (unreleased) |
+| `epm_media_disk_free` | free disk space a media download counts on (tests, unusual storage) (unreleased) |
 | `epm_stats_services` | download statistics prefix services (OP3, Podtrac) (1.3.0) |
 | `epm_ping_podcast_index` | notify Podcast Index when an episode is published, default on (1.3.0) |
 | `epm_structured_data` / `epm_structured_data_series` / `epm_structured_data_episode` | schema.org JSON-LD on episode pages and the archive (1.3.0) |
@@ -419,9 +441,13 @@ JavaScript: `window.epmPlayerEngine.init(element)` initializes players, buttons,
 
 | Command | What it does |
 |---|---|
-| `wp podcast import <feed> [--move] [--copy-media] [--draft] [--show-details] [--owner]` | Import from a feed address, Apple Podcasts link or web page. `--move` takes the show over (adopts its `podcast:guid`, lifts the feed episode limit, announces the new home and locks the feed when done); `--copy-media` downloads audio, images and caption files; `--draft` creates new episodes as drafts; `--show-details` fills empty podcast settings; `--owner` confirms ownership of a locked feed. Warns about episodes whose audio was not copied. |
+| `wp podcast import <feed> [--move] [--copy-media] [--draft] [--show-details] [--owner] [--accept-partial]` | Import from a feed address, Apple Podcasts link or web page. `--move` takes the show over (adopts its `podcast:guid`, lifts the feed episode limit, announces the new home and locks the feed when done); `--copy-media` copies audio, episode images and WebVTT/SRT transcript files, also of episodes that exist already; `--draft` creates new episodes as drafts; `--show-details` fills empty podcast settings; `--owner` confirms ownership of a locked feed. When the feed cannot be read completely, nothing is imported and the command exits with an error naming the page and the error; `--accept-partial` imports the episodes found (and finishes a `--move`) with a warning instead of a success message. Lists every file still at the old host (episode, address, reason). A `--move` that leaves files there is not finished and exits with an error; a wait the host asks for (HTTP 429) of up to ten minutes is sat through. |
+| `wp podcast import --resume [options]` | Continue the last import: read the rest of a feed that could not be read completely (then import with the given options), keep an interrupted or waiting import going, or copy again what an unfinished move left at the old host. |
+| `wp podcast finish-move [--yes]` | Finish a move that left files at the old host: lists them and asks first. |
+| `wp podcast cancel` | Stop the import (also a waiting one or an unfinished move); episodes already imported stay. |
 | `wp podcast sync [--force]` | Sync with the host now; `--force` ignores the stored ETag/Last-Modified. |
-| `wp podcast status` | Hosting mode, feeds, last and next sync. |
+| `wp podcast status` | Hosting mode, feeds, last and next sync, and the import: state, progress, the file being copied, a host's wait, what is still at the old host; upgrade work still queued. |
+| `wp podcast upgrade` | Finish the work an update queued (durations, duplicate GUID rows) now, batch by batch. |
 
 ## Testing
 
@@ -433,9 +459,12 @@ JavaScript: `window.epmPlayerEngine.init(element)` initializes players, buttons,
 | Integration | `tests/integration/run.php` | feed, capabilities, visibility, rendering, widgets |
 | | `tests/integration/hosting.php` | parser against 26 real feeds, import, sync, moves, transcript files, setup and distribution |
 | | `tests/integration/admin.php` | topics, menu, list columns, next number, transcript files, Quick/Bulk Edit, design export/import, Design screen tokens and contrast |
+| | `tests/integration/design.php`, `widgets.php` | details shown by default (1.3.0 snapshot, explicit > site > neutral, migration into suggestions, export format 2), 1.3.0 Elementor widgets, artwork radius, paginated lists, order by number |
 | | `tests/integration/frontend.php` | timestamp links, share menu, embeds, video facade, topic filters, audio preloading, sticky player for lists, dark designs |
+| | `tests/integration/media.php` | moving media: every kind of file after a mirror, local choices kept, what stays listed per kind, unfinished moves (retry, confirmation), limits, wrong content, HTTP errors, waits, interrupted copies (a separate process runs out of memory), no duplicates, WP-CLI cancel/status |
+| Media downloads | `tests/media/run.sh` | real sockets against a local media host: size limit while streaming, stalled and slow hosts, Range resumption across steps (byte-identical), no Range support, wrong content, 429, a large file under a 128M memory limit, full disks (root + tmpfs) |
 | HTTP | `tests/http/run.sh` | feed URLs, conditional GET, endpoints, pages, REST, byte ranges, the external-mode redirect |
-| Browser (Playwright) | `tests/e2e/run.mjs`, `setup.mjs`, `admin.mjs`, `frontend.mjs` | player, Elementor editor, episode admin, setup assistant, Hosting & import, Distribution, Design screen, editor speed-ups, share menu, embeds, video, sticky bar, design on real pages |
+| Browser (Playwright) | `tests/e2e/run.mjs`, `setup.mjs`, `admin.mjs`, `design.mjs`, `frontend.mjs`, `player.mjs`, `style-audit.mjs`, `widgets.mjs` | player, Elementor editor, episode admin, setup assistant, Hosting & import, Distribution, Design screen, editor speed-ups, share menu, embeds, video, sticky bar, design on real pages |
 
 It fails on any PHP notice from the plugin. CI runs lint on PHP 8.1–8.4, the integration and HTTP suites on PHP 8.1 and 8.4, and the browser suites. See [tests/README.md](tests/README.md) for exactly what each suite covers, and [docs/VERIFICATION-1.3.0.md](docs/VERIFICATION-1.3.0.md) for the latest results.
 
@@ -449,6 +478,13 @@ wp i18n make-pot . languages/elementor-podcast-manager.pot --exclude=tests,docs,
 
 ## Deactivation and uninstall
 
-Deactivation flushes rewrite rules and removes the plugin's scheduled events (host sync, background import, Podcast Index notification); nothing else is changed. Reactivation schedules the sync again when it is enabled.
+Deactivation flushes rewrite rules and removes the plugin's scheduled events (host sync, background import, import cleanup, Podcast Index notification); nothing else is changed. Reactivation schedules the sync again when it is enabled.
 
-Uninstall always removes the scheduled events, the temporary import files, the import job and lock, and the activation flag. Everything else (episodes, topics, settings, design, hosting and distribution settings, the feed build record) is deleted only when `EPM_DELETE_DATA` is defined or `epm_delete_data_on_uninstall` returns true.
+Uninstall always removes the scheduled events, the parsed feed of a checked or running import (`epm_import_chunk_*` rows, and the 1.3.0 folder `uploads/epm-import/` if one is left), the import job and lock, and the activation flag. Everything else (episodes, topics, settings, design, hosting and distribution settings, the feed build record) is deleted only when `EPM_DELETE_DATA` is defined or `epm_delete_data_on_uninstall` returns true.
+
+## Contributing and agent guidance
+
+All agents working on this project must follow [AGENTS.md](AGENTS.md), including
+the [project-design skill](.agents/skills/project-design/SKILL.md) and the owner's
+[Design-Learnings & Regeln](docs/design-learnings-und-regeln.md). The full supplied
+reference is preserved with its attribution and verification notes.
