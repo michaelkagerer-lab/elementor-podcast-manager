@@ -66,7 +66,7 @@ EPM_Test_HTTP::$routes  = [];
 $GLOBALS['epm_f_max_id']  = (int) $GLOBALS['wpdb']->get_var( "SELECT MAX(ID) FROM {$GLOBALS['wpdb']->posts}" );
 $GLOBALS['epm_f_options'] = [];
 foreach ( [ PodcastSettings::OPTION, Hosting::OPTION, Directories::OPTION, Feed::BUILD_OPTION, Feed::ADDRESS_OPTION, 'epm_version', 'blogname', 'permalink_structure', 'powerpress_general' ] as $epm_f_name ) {
-	$GLOBALS['epm_f_options'][ $epm_f_name ] = get_option( $epm_f_name, '__epm_absent__' );
+	$GLOBALS['epm_f_options'][ $epm_f_name ] = epm_test_option_snapshot( $epm_f_name );
 }
 
 /**
@@ -76,12 +76,7 @@ foreach ( [ PodcastSettings::OPTION, Hosting::OPTION, Directories::OPTION, Feed:
  * @return void
  */
 function epm_f_restore( string $name ): void {
-	$value = $GLOBALS['epm_f_options'][ $name ] ?? '__epm_absent__';
-	if ( '__epm_absent__' === $value ) {
-		delete_option( $name );
-	} else {
-		update_option( $name, $value );
-	}
+	epm_test_option_restore( $name, $GLOBALS['epm_f_options'][ $name ] ?? null );
 }
 
 /**

@@ -65,7 +65,7 @@ EPM_Test_HTTP::$log     = [];
 $GLOBALS['epm_h_max_id']  = (int) $GLOBALS['wpdb']->get_var( "SELECT MAX(ID) FROM {$GLOBALS['wpdb']->posts}" );
 $GLOBALS['epm_h_options'] = [];
 foreach ( [ PodcastSettings::OPTION, Hosting::OPTION, Hosting::STATE_OPTION, ImportJob::OPTION, 'epm_import_lock', AdminPages::SETUP_OPTION, Directories::OPTION, Feed::GUID_OPTION, Feed::BUILD_OPTION, 'epm_design_settings' ] as $epm_h_name ) {
-	$GLOBALS['epm_h_options'][ $epm_h_name ] = get_option( $epm_h_name, '__epm_absent__' );
+	$GLOBALS['epm_h_options'][ $epm_h_name ] = epm_test_option_snapshot( $epm_h_name );
 }
 
 /* ------------------------------------------------------------------------- */
@@ -109,12 +109,7 @@ function epm_h_parse( string $name ) {
  * @return void
  */
 function epm_h_restore( string $name ): void {
-	$value = $GLOBALS['epm_h_options'][ $name ] ?? '__epm_absent__';
-	if ( '__epm_absent__' === $value ) {
-		delete_option( $name );
-	} else {
-		update_option( $name, $value );
-	}
+	epm_test_option_restore( $name, $GLOBALS['epm_h_options'][ $name ] ?? null );
 }
 
 /**
@@ -317,6 +312,27 @@ function epm_h_sync_feed( array $numbers, array $changes = [], string $channel_e
 }
 
 $t = new EPM_Test_Runner();
+
+$t->test(
+	'QA-01: fixture restoration keeps serialized values and the original autoload policy',
+	static function ( EPM_Test_Runner $t ) {
+		$name = 'epm_test_restore_' . wp_generate_uuid4();
+		$value = [ 'local' => [ 'GUID & quotes “kept”', false, 1 ] ];
+		try {
+			add_option( $name, $value, '', false );
+			$snapshot = epm_test_option_snapshot( $name );
+			delete_option( $name );
+			add_option( $name, 'changed', '', true );
+			epm_test_option_restore( $name, $snapshot );
+			$t->same( $snapshot, epm_test_option_snapshot( $name ), 'raw serialization and autoload are identical' );
+			$t->same( $value, get_option( $name ), 'the original value is readable' );
+			epm_test_option_restore( $name, null );
+			$t->same( false, get_option( $name ), 'absent options and their caches are restored' );
+		} finally {
+			epm_test_option_restore( $name, null );
+		}
+	}
+);
 
 $t->test(
 	'SEC-N9: headless imports have a real author and updates preserve local attribution',
@@ -2261,10 +2277,11 @@ $t->test(
 		// A lock row someone else rewrote (even with the same owner part)
 		// is not this request's lock any more.
 		$suffix = substr( (string) get_option( 'epm_import_lock' ), strpos( (string) get_option( 'epm_import_lock' ), ':' ) );
-		update_option( 'epm_import_lock', ( time() - 100 ) . $suffix, false );
+		$rewritten = ( time() - 100 ) . $suffix;
+		update_option( 'epm_import_lock', $rewritten, false );
 		$t->same( false, ImportJob::refresh_lock(), 'a rewritten lock is not renewed' );
 		ImportJob::release_lock();
-		$t->same( ( time() - 100 ) . $suffix, get_option( 'epm_import_lock' ), 'nor released' );
+		$t->same( $rewritten, get_option( 'epm_import_lock' ), 'nor released' );
 		delete_option( 'epm_import_lock' );
 
 		$job = get_option( ImportJob::OPTION );

@@ -45,7 +45,7 @@ EPM_Test_HTTP::$log     = [];
 
 $GLOBALS['epm_i_options'] = [];
 foreach ( [ PodcastSettings::OPTION, Hosting::OPTION, Hosting::STATE_OPTION, ImportJob::OPTION, 'epm_import_lock', Feed::GUID_OPTION, Feed::BUILD_OPTION ] as $epm_i_name ) {
-	$GLOBALS['epm_i_options'][ $epm_i_name ] = get_option( $epm_i_name, '__epm_absent__' );
+	$GLOBALS['epm_i_options'][ $epm_i_name ] = epm_test_option_snapshot( $epm_i_name );
 }
 
 /* ------------------------------------------------------------------------- */
@@ -147,12 +147,7 @@ function epm_i_delete( string $prefix ): void {
  * @return void
  */
 function epm_i_restore( string $name ): void {
-	$value = $GLOBALS['epm_i_options'][ $name ] ?? '__epm_absent__';
-	if ( '__epm_absent__' === $value ) {
-		delete_option( $name );
-	} else {
-		update_option( $name, $value );
-	}
+	epm_test_option_restore( $name, $GLOBALS['epm_i_options'][ $name ] ?? null );
 }
 
 /**

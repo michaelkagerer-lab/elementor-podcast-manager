@@ -1,0 +1,76 @@
+{
+  "profiles": {
+    "current": {
+      "SQLITE_VERSION": "3.0.2",
+      "WP_CLI_VERSION": "2.12.0",
+      "HELLO_VERSION": "3.5.1",
+      "WP_VERSION": "7.1.2",
+      "ELEMENTOR_VERSION": "4.3.3",
+      "WP_THEME": "hello-elementor",
+      "BLOCK_THEME": "twentytwentyfive",
+      "BLOCK_THEME_VERSION": "1.5"
+    },
+    "minimum": {
+      "SQLITE_VERSION": "3.0.2",
+      "WP_CLI_VERSION": "2.12.0",
+      "HELLO_VERSION": "3.5.1",
+      "WP_VERSION": "6.2",
+      "ELEMENTOR_VERSION": "3.12.2",
+      "WP_THEME": "twentytwentythree",
+      "BLOCK_THEME": "twentytwentythree",
+      "BLOCK_THEME_VERSION": "1.0"
+    }
+  },
+  "artifacts": {
+    "wordpress": {
+      "7.1.2": {
+        "url": "https://wordpress.org/wordpress-7.1.2.zip",
+        "sha256": "8fc96c59a78b7219e4a130222b7fadb51b03e503e8b0123beaa7e28961c21ce2"
+      },
+      "6.2": {
+        "url": "https://wordpress.org/wordpress-6.2.zip",
+        "sha256": "0078e0483d3447a465f71d6bbdab5c799cad2e57c221ec1d639d235b0ffced55"
+      }
+    },
+    "elementor": {
+      "4.3.3": {
+        "url": "https://downloads.wordpress.org/plugin/elementor.4.3.3.zip",
+        "sha256": "e3e1a4eb6bb458da5efcb67d3aa70e5b8a8eb8c5177c51b88876136e8a098871"
+      },
+      "3.12.2": {
+        "url": "https://downloads.wordpress.org/plugin/elementor.3.12.2.zip",
+        "sha256": "335a176417821eb5d1a068dffcdf8bd1d51795127031de4c1e50fcdefad5f8e0"
+      }
+    },
+    "sqlite": {
+      "3.0.2": {
+        "url": "https://downloads.wordpress.org/plugin/sqlite-database-integration.3.0.2.zip",
+        "sha256": "1602e75577ad9b3a7e3e4a6a44a81b9541cdee2124d48928faf61c6fd3cd4f74"
+      }
+    },
+    "wp-cli": {
+      "2.12.0": {
+        "url": "https://github.com/wp-cli/wp-cli/releases/download/v2.12.0/wp-cli-2.12.0.phar",
+        "sha256": "ce34ddd838f7351d6759068d09793f26755463b4a4610a5a5c0a97b68220d85c"
+      }
+    },
+    "hello-elementor": {
+      "3.5.1": {
+        "url": "https://downloads.wordpress.org/theme/hello-elementor.3.5.1.zip",
+        "sha256": "c166fdcb091a38897f4f3339f83645e9747234fbc961560027d5563e3efd6447"
+      }
+    },
+    "twentytwentyfive": {
+      "1.5": {
+        "url": "https://downloads.wordpress.org/theme/twentytwentyfive.1.5.zip",
+        "sha256": "f333ce53aaa4049639298247d03480a4bd9b56fa8f0fea0440da262d7d595ba4"
+      }
+    },
+    "twentytwentythree": {
+      "1.0": {
+        "url": "https://downloads.wordpress.org/theme/twentytwentythree.1.0.zip",
+        "sha256": "791d4ee405fd1cca458b00d83c024014a5749d51d93151fe3f96e0dab63ba51e"
+      }
+    }
+  }
+}

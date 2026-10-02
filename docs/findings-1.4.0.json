@@ -991,7 +991,7 @@
   "id": "QA-N1",
   "title": "run-all.sh / setup-wp.sh modify an existing site in WP_DIR: rewrote URLs, theme and permalinks, deleted the real episodes, and tested the installed plugin copy instead of the repository",
   "priority": "P1",
-  "status": "fix implemented; regression tests not run in this environment",
+  "status": "fixed and tested",
   "evidence": "tests/bin/setup-wp.sh:\n- :57 installs the SQLite db.php only if missing (else uses the site's real DB)\n- :80-81 \"$WP\" option update home/siteurl \"$URL\"\n- :86 theme activate hello-elementor\n- :92 plugin activate elementor\n- :94 ln -sfn \"$PLUGIN_DIR\" \"$SITE/wp-content/plugins/elementor-podcast-manager\" (with an existing real directory this creates a nested symlink inside it)\n- :101 links the test mu-plugin\n- :103 rewrite structure '/%postname%/' --hard\n\ntests/run-all.sh:31 EPM_ALLOW_TEST_SEED=1 \"$WP_CLI\" eval-file seed.php. This always bypasses the seed's production guard (seed.php:87-88), and seed.php:91 then deletes every episode.\n\nrun-all.sh:58 empties the site's debug.log.\n\nThere is no sentinel or path check anywhere.",
   "reproduction": "Built a simulated existing production site in /tmp/epm-a-life-perf-qa-6:\n- MariaDB epm_existing; WP_ENVIRONMENT_TYPE undefined (production)\n- a Query-Monitor-like db.php stub\n- home https://real-site.example/site, theme twentytwentyfive, permalinks /blog/%postname%/\n- Elementor plus an installed copy of the plugin with Version '1.3.0-installed-copy'\n- 3 published and 1 trashed episode, a post and a page\n\nRan: WP_DIR=/tmp/epm-a-life-perf-qa-6 WP_PORT=8971 SKIP_E2E=1 tests/run-all.sh (exit 1: hosting.php fataled because EPM_Test_HTTP is disabled on production).\n\nDiff of qa/existing/before.json against after.json:\n- home/siteurl -> http://localhost:8971\n- theme -> hello-elementor\n- permalinks -> /%postname%/\n- podcast title 'The Real Show' -> 'Test & Talk Podcast'\n- 'Real episode 1-3' deleted and replaced by 9 fixture episodes\n- pages 'EPM Shortcodes'/'EPM Elementor' added\n- epm-test-http.php added to mu-plugins\n\nThe tests ran against plugins/elementor-podcast-manager/ (the installed copy, version 1.3.0-installed-copy). The repo symlink was created inside it as plugins/elementor-podcast-manager/elementor-podcast-manager -> /home/user/elementor-podcast-manager.\n\nrun.php, admin.php and frontend.php reported 'passed' for that copy.\n\nWithout a db.php drop-in (from the code, not run): line 57 would install the SQLite drop-in and silently switch the site to an empty SQLite DB.",
   "user_impact": "A developer who points WP_DIR at a real or shared install loses its episodes and settings, gets its URLs, theme and permalinks changed and a test mu-plugin installed. Worse, a green run can be against code other than the repository.",
@@ -1002,7 +1002,7 @@
    "tests/bin/setup-wp.sh",
    "tests/run-all.sh:31"
   ],
-  "notes": "Unmarked site guard is present; test symlink ownership and fake-site refusal paths."
+  "notes": "Unmarked site guard is present; test symlink ownership and fake-site refusal paths.\nVerification: tests/safety/test_guards.py and tests/safety/seed.sh pass; minimum WordPress 6.2 tested on MariaDB and SQLite, current WordPress tested with Elementor inactive."
  },
  {
   "id": "LIFE-01",
@@ -1077,7 +1077,7 @@
   "id": "QA-01",
   "title": "Test baseline is not pinned or reproducible; the stated minimum WordPress 6.2 cannot be provisioned by setup-wp.sh and is untested; no MySQL, Elementor-off or min-version jobs; CI artifacts lack versions and diagnostics",
   "priority": "P2",
-  "status": "confirmed",
+  "status": "implemented; hosted matrix verification pending",
   "evidence": "setup-wp.sh pins nothing:\n- tests/bin/setup-wp.sh:21-22 WP_VERSION=latest, ELEMENTOR_VERSION=latest-stable\n- :41 wp-cli.phar from gh-pages (unpinned)\n- :58 sqlite-database-integration.latest-stable.zip\n- :84-85 theme installs (latest)\n- no checksums\n\ntests/e2e/package.json: \"playwright\": \"^1.56.1\"; git ls-files has no package-lock.json.\n\n.github/workflows/tests.yml:\n- runs-on ubuntu-latest\n- action major tags only (checkout@v4, setup-php@v2, setup-node@v4, upload-artifact@v4)\n- lint PHP 8.1-8.4; integration+HTTP on PHP 8.1/8.4 (SQLite, latest WP and Elementor); browser on PHP 8.3 Chromium only\n- npm install + npx playwright install --with-deps chromium (:74-75)\n- artifacts: tests/e2e/screenshots only; debug.log cat on failure\n- no WP/Elementor/DB version recorded, no trace, console, network or PHP log artifact\n\nThe minimum claimed: elementor-podcast-manager.php:6 'Requires at least: 6.2', readme.txt:4 'Requires at least: 6.2', Tested up to 7.1.\n\nNo suite deactivates Elementor; only e2e/setup.mjs:81 deactivates this plugin.",
   "reproduction": "Versions in this run: WordPress 7.1.2, Elementor 4.3.3, SQLite Database Integration 3.0.2, WP-CLI 2.12.0, PHP 8.4.26 (only PHP available locally), Node 22.22.2, Playwright 1.56.1, Chromium 141.0.7390.37, MariaDB 10.11.14.\n\nBaseline on /tmp/epm-a-life-perf-qa (SQLite): run.php 167/0, admin.php 330/0, frontend.php 204/0, hosting.php 1123/0 (qa/baseline.txt).\n\nLatest WP + MariaDB (/tmp/epm-a-life-perf-qa-2): 167/0, 331/0, 204/0, 1123/0, http 42/0.\n\nElementor deactivated (SQLite): pass, but run.php drops to 141 and frontend.php to 204->200 assertions (Elementor checks skipped); http 41/0 (Elementor page check skipped).\n\nWP 6.2 with the unmodified script (WP_DIR=/tmp/epm-a-life-perf-qa-4 WP_VERSION=6.2 tests/bin/setup-wp.sh): exit 1, 'twentytwentyfive: This theme does not work with your version of WordPress. Minimum WordPress requirement is 6.7' / 'Error: No themes installed.' (4 retries).\n\nThe latest Elementor on 6.2: 'Failed to activate plugin. Current WordPress version (6.2) does not meet minimum requirements for Elementor. The plugin requires WordPress 6.8.' The SQLite drop-in 3.0.2 readme requires WP 6.4 (it still installed).\n\nWith workarounds (qa/setup-wp-62.sh = twentytwentythree, ELEMENTOR_VERSION=3.20.4):\n- SQLite: run 167/0, admin 331/0, frontend 204/0, hosting 1122/1 (deterministic, 3 runs), http 42/0\n- MariaDB (qa/setup-wp-62-mysql.sh, DB epm_wp62): the same, hosting 1122/1\n\nThe failure: 'a move keeps the show's podcast:guid ...: mirroring never adopts it expected false, got '11111111-...''. qa/wp62-guid-debug2.php shows that on 6.2, after delete_option( 'epm_podcast_guid' ), the DB row is NULL but get_option still returns the old value. The value is stale in the alloptions cache because the test helper epm_h_restore() (hosting.php:111-118) re-adds the option with default autoload, then plugin code updates it with autoload=false. On 7.1.2 the same script returns false.\n\nNo plugin-file PHP notices on 6.2. No WordPress APIs newer than 6.2 found by grep. Browser suites were not run on 6.2.",
   "user_impact": "Results are not reproducible: each run uses whatever WordPress, Elementor, SQLite drop-in, WP-CLI and Playwright are newest. The promised minimum (6.2) is never exercised, and the CI cannot even provision it. MySQL/MariaDB, the database most production sites use, and Elementor-off mode are not in CI. A CI failure leaves no version info, traces or logs to diagnose.",
@@ -1087,7 +1087,8 @@
   "refs": [
    "tests/bin/setup-wp.sh:21-22",
    "tests/e2e/package.js"
-  ]
+  ],
+  "notes": "\nLocal verification: all nine integration suites pass on WordPress 6.2 / Elementor 3.12.2 on MariaDB and SQLite. Current WordPress with Elementor inactive: nine assertions and seed safety pass. Firefox and WebKit: seven real-media, keyboard and layout checks each pass. Corrupt-download and unmarked-site regressions pass. Hosted compatibility matrix remains to run."
  },
  {
   "id": "QA-N2",
@@ -1174,7 +1175,7 @@
   "id": "QA-N3",
   "title": "seed.php resets episodes with post_status 'any', so trashed and auto-draft episodes survive seeding and leak between suites",
   "priority": "P3",
-  "status": "fix implemented; regression tests not run in this environment",
+  "status": "fixed and tested",
   "evidence": "tests/fixtures/seed.php:91-92: foreach ( get_posts( [ 'post_type' => 'podcast_episode', 'post_status' => 'any', 'posts_per_page' => -1, 'fields' => 'ids' ] ) as $episode_id ) { wp_delete_post( $episode_id, true ); }. This is the same core behavior as LIFE-01.",
   "reproduction": "After run-all.sh on /tmp/epm-a-life-perf-qa-6, the inventory still lists '[trash] Real episode 4' next to the 9 fixture episodes (qa/existing/after.json).",
   "user_impact": "A suite that trashes an episode without cleanup makes later suites order-dependent. For example, a trashed GUID makes later imports report 'Deleted on this site'.",
@@ -1184,7 +1185,7 @@
   "refs": [
    "tests/fixtures/seed.php:91-92"
   ],
-  "notes": "Seeder covers registered statuses; add/run an isolation regression test."
+  "notes": "Seeder covers registered statuses; add/run an isolation regression test.\nVerification: tests/safety/test_guards.py and tests/safety/seed.sh pass; minimum WordPress 6.2 tested on MariaDB and SQLite, current WordPress tested with Elementor inactive."
  },
  {
   "id": "QA-N4",

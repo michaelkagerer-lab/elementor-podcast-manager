@@ -63,10 +63,12 @@ suites() {
 
 "$ROOT/tests/bin/lint.sh"
 python3 "$ROOT/tests/packaging/test_package.py"
+python3 -m unittest discover -s "$ROOT/tests/safety" -p "test_*.py"
 
 # Only this run's notices count.
 [ -f "$DEBUG_LOG" ] && : > "$DEBUG_LOG"
 "$ROOT/tests/bin/setup-wp.sh"
+WP_DIR="$WP_DIR" WP_CLI="$WP_CLI" "$ROOT/tests/safety/seed.sh"
 
 echo; echo "== Integration tests"
 while IFS= read -r suite; do

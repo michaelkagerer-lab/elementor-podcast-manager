@@ -10,8 +10,8 @@
 # Usage: tests/bin/setup-wp.sh
 # Env:   WP_DIR   (default: /tmp/epm-wp)      where to install
 #        WP_PORT  (default: 8889)             local port
-#        WP_VERSION (default: latest)         WordPress version
-#        ELEMENTOR_VERSION (default: latest-stable)
+#        WP_VERSION (default: pinned in tests/versions.json)         WordPress version
+#        ELEMENTOR_VERSION (default: pinned in tests/versions.json)
 #        WP_DB    (default: sqlite)           sqlite, or mysql for MySQL/MariaDB:
 #          DB_NAME (required), DB_USER (default: root), DB_PASSWORD (default: ''),
 #          DB_HOST (default: localhost). The database is created when missing;
@@ -22,8 +22,18 @@ set -euo pipefail
 PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 WP_DIR="${WP_DIR:-/tmp/epm-wp}"
 WP_PORT="${WP_PORT:-8889}"
-WP_VERSION="${WP_VERSION:-latest}"
-ELEMENTOR_VERSION="${ELEMENTOR_VERSION:-latest-stable}"
+EPM_TEST_PROFILE="${EPM_TEST_PROFILE:-current}"
+export EPM_TEST_PROFILE
+DEPS="$PLUGIN_DIR/tests/bin/dependencies.py"
+pinned() { python3 "$DEPS" value "$EPM_TEST_PROFILE" "$1"; }
+WP_VERSION="${WP_VERSION:-$(pinned WP_VERSION)}"
+ELEMENTOR_VERSION="${ELEMENTOR_VERSION:-$(pinned ELEMENTOR_VERSION)}"
+SQLITE_VERSION="$(pinned SQLITE_VERSION)"
+WP_CLI_VERSION="$(pinned WP_CLI_VERSION)"
+BLOCK_THEME="$(pinned BLOCK_THEME)"
+BLOCK_THEME_VERSION="$(pinned BLOCK_THEME_VERSION)"
+HELLO_VERSION="$(pinned HELLO_VERSION)"
+WP_THEME="${WP_THEME:-$(pinned WP_THEME)}"
 WP_DB="${WP_DB:-sqlite}"
 PHP_BIN="${PHP_BIN:-php}"
 SITE="$WP_DIR/site"
@@ -65,9 +75,7 @@ retry() {
 	return 1
 }
 
-if [ ! -f wp-cli.phar ]; then
-	retry curl -fsSL -o wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
-fi
+python3 "$DEPS" download wp-cli "$WP_CLI_VERSION" "$WP_DIR/wp-cli.phar"
 
 cat > wp <<EOF
 #!/usr/bin/env bash
@@ -77,8 +85,18 @@ chmod +x wp
 WP="$WP_DIR/wp"
 
 if [ ! -f "$SITE/wp-load.php" ]; then
-	retry "$WP" core download --version="$WP_VERSION" --skip-content --force --quiet
+	python3 "$DEPS" download wordpress "$WP_VERSION" "$WP_DIR/wordpress.zip"
+	EPM_CORE_TMP="$(mktemp -d "$WP_DIR/core-XXXXXX")"
+	unzip -q "$WP_DIR/wordpress.zip" -d "$EPM_CORE_TMP"
+	mkdir -p "$SITE"
+	cp -a "$EPM_CORE_TMP/wordpress/." "$SITE/"
+	python3 -c 'import shutil,sys; shutil.rmtree(sys.argv[1])' "$EPM_CORE_TMP"
 	mkdir -p "$SITE/wp-content/plugins" "$SITE/wp-content/themes" "$SITE/wp-content/uploads"
+fi
+
+if [ "$("$WP" core version)" != "$WP_VERSION" ]; then
+	echo "This marked site has another WordPress version. Use a fresh WP_DIR for the selected pinned profile." >&2
+	exit 2
 fi
 
 # A site keeps the database it was installed with.
@@ -122,7 +140,7 @@ fi
 
 # SQLite database drop-in.
 if [ "$WP_DB" = sqlite ] && [ ! -f "$SITE/wp-content/db.php" ]; then
-	retry curl -fsSL -o sqlite.zip https://downloads.wordpress.org/plugin/sqlite-database-integration.latest-stable.zip
+	python3 "$DEPS" download sqlite "$SQLITE_VERSION" "$WP_DIR/sqlite.zip"
 	unzip -q -o sqlite.zip -d "$SITE/wp-content/plugins/"
 	sed -e "s#{SQLITE_IMPLEMENTATION_FOLDER_PATH}#$SITE/wp-content/plugins/sqlite-database-integration#" \
 		-e "s#{SQLITE_PLUGIN}#sqlite-database-integration/load.php#" \
@@ -153,16 +171,20 @@ fi
 "$WP" option update siteurl "$URL" --quiet
 "$WP" option update blog_public 0 --quiet
 
-# Themes: a block theme (default) plus the theme most Elementor sites use.
-"$WP" theme is-installed twentytwentyfive || retry "$WP" theme install twentytwentyfive --quiet
-"$WP" theme is-installed hello-elementor || retry "$WP" theme install hello-elementor --quiet
-"$WP" theme activate "${WP_THEME:-hello-elementor}" --quiet
+# Install exact verified theme/plugin archives, replacing old test copies.
+python3 "$DEPS" download "$BLOCK_THEME" "$BLOCK_THEME_VERSION" "$WP_DIR/block-theme.zip"
+python3 "$DEPS" download hello-elementor "$HELLO_VERSION" "$WP_DIR/hello-elementor.zip"
+"$WP" theme install "$WP_DIR/block-theme.zip" --force --quiet
+"$WP" theme install "$WP_DIR/hello-elementor.zip" --force --quiet
+"$WP" theme activate "$WP_THEME" --quiet
 
-if ! "$WP" plugin is-installed elementor; then
-	retry curl -fsSL -o elementor.zip "https://downloads.wordpress.org/plugin/elementor.$ELEMENTOR_VERSION.zip"
-	unzip -q -o elementor.zip -d "$SITE/wp-content/plugins/"
+if [ "${EPM_ELEMENTOR_OFF:-0}" = 1 ]; then
+	"$WP" plugin deactivate elementor --quiet 2>/dev/null || true
+else
+	python3 "$DEPS" download elementor "$ELEMENTOR_VERSION" "$WP_DIR/elementor.zip"
+	"$WP" plugin install "$WP_DIR/elementor.zip" --force --quiet
+	"$WP" plugin activate elementor --quiet
 fi
-"$WP" plugin activate elementor --quiet
 
 ln -sfn "$PLUGIN_DIR" "$SITE/wp-content/plugins/elementor-podcast-manager"
 "$WP" plugin activate elementor-podcast-manager --quiet
@@ -251,4 +273,6 @@ if ! curl -fs -o /dev/null "$URL/wp-login.php"; then
 	done
 fi
 
+python3 "$DEPS" inventory "$WP" "$WP_DIR/versions-actual.json"
 echo "WordPress ready at $URL (admin/admin). wp-cli: $WP"
+echo "Pinned dependency versions and checksums: $WP_DIR/versions-actual.json"

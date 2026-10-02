@@ -423,19 +423,55 @@ if ( ! function_exists( 'epm_test_controls' ) ) {
 	 * @return array<string, array<string, mixed>>
 	 */
 	function epm_test_controls( string $type ): array {
-		$flag = new ReflectionProperty( \Elementor\Core\Frontend\Performance::class, 'is_frontend' );
-		$flag->setAccessible( true );
-		$was = $flag->getValue();
-		$flag->setValue( null, false );
-
-		$element = \Elementor\Plugin::$instance->elements_manager->create_element_instance( [ 'id' => 'ctrl001', 'elType' => 'widget', 'widgetType' => $type, 'settings' => [], 'elements' => [] ] );
-		\Elementor\Plugin::$instance->controls_manager->delete_stack( $element );
-		$controls = (array) $element->get_controls();
-
-		// Back to what rendering uses.
-		$flag->setValue( null, $was );
-		\Elementor\Plugin::$instance->controls_manager->delete_stack( $element );
+		$flag = null;
+		$was = null;
+		if ( class_exists( \Elementor\Core\Frontend\Performance::class ) && property_exists( \Elementor\Core\Frontend\Performance::class, 'is_frontend' ) ) {
+			$flag = new ReflectionProperty( \Elementor\Core\Frontend\Performance::class, 'is_frontend' );
+			$flag->setAccessible( true );
+			$was = $flag->getValue();
+			$flag->setValue( null, false );
+		}
+		$element = null;
+		try {
+			$element = \Elementor\Plugin::$instance->elements_manager->create_element_instance( [ 'id' => 'ctrl001', 'elType' => 'widget', 'widgetType' => $type, 'settings' => [], 'elements' => [] ] );
+			\Elementor\Plugin::$instance->controls_manager->delete_stack( $element );
+			$controls = (array) $element->get_controls();
+		} finally {
+			if ( $flag ) {
+				$flag->setValue( null, $was );
+			}
+			if ( $element ) {
+				\Elementor\Plugin::$instance->controls_manager->delete_stack( $element );
+			}
+		}
 
 		return $controls;
 	}
+}
+
+/** Save the exact serialized option value and its original autoload policy. */
+function epm_test_option_snapshot( string $name ): ?array {
+	global $wpdb;
+	return $wpdb->get_row( $wpdb->prepare( "SELECT option_value, autoload FROM {$wpdb->options} WHERE option_name = %s", $name ), ARRAY_A );
+}
+
+/** Restore fixture state without converting non-autoloaded values to autoloaded. */
+function epm_test_option_restore( string $name, ?array $snapshot ): void {
+	global $wpdb;
+	// Exercise normal option hooks (feed invalidation, scheduling) during cleanup.
+	wp_cache_delete( $name, 'options' );
+	wp_cache_delete( 'alloptions', 'options' );
+	wp_cache_delete( 'notoptions', 'options' );
+	if ( null === $snapshot ) {
+		delete_option( $name );
+		$wpdb->delete( $wpdb->options, [ 'option_name' => $name ], [ '%s' ] );
+	} else {
+		update_option( $name, maybe_unserialize( $snapshot['option_value'] ) );
+		// Sanitizers and older WordPress versions can change serialized values or
+		// autoload policy. Restore the exact snapshot after firing the hooks.
+		$wpdb->replace( $wpdb->options, [ 'option_name' => $name, 'option_value' => $snapshot['option_value'], 'autoload' => $snapshot['autoload'] ], [ '%s', '%s', '%s' ] );
+	}
+	wp_cache_delete( $name, 'options' );
+	wp_cache_delete( 'alloptions', 'options' );
+	wp_cache_delete( 'notoptions', 'options' );
 }

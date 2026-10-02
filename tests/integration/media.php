@@ -56,7 +56,7 @@ wp_set_current_user( (int) ( get_users( [ 'role' => 'administrator', 'number' =>
 
 $GLOBALS['epm_m_options'] = [];
 foreach ( [ PodcastSettings::OPTION, Hosting::OPTION, Hosting::STATE_OPTION, ImportJob::OPTION, 'epm_import_lock', Feed::GUID_OPTION, Feed::BUILD_OPTION ] as $epm_m_name ) {
-	$GLOBALS['epm_m_options'][ $epm_m_name ] = get_option( $epm_m_name, '__epm_absent__' );
+	$GLOBALS['epm_m_options'][ $epm_m_name ] = epm_test_option_snapshot( $epm_m_name );
 }
 
 // URL => HTTP status (or a callable answer) instead of the file.
@@ -458,12 +458,7 @@ function epm_m_moved(): array {
  * @return void
  */
 function epm_m_restore( string $name ): void {
-	$value = $GLOBALS['epm_m_options'][ $name ] ?? '__epm_absent__';
-	if ( '__epm_absent__' === $value ) {
-		delete_option( $name );
-	} else {
-		update_option( $name, $value );
-	}
+	epm_test_option_restore( $name, $GLOBALS['epm_m_options'][ $name ] ?? null );
 }
 
 /**

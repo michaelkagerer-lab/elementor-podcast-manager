@@ -15,6 +15,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// Both the runner flag and marker are required, even on a local/staging site.
+if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
+	exit;
+}
+if ( '1' !== getenv( 'EPM_ALLOW_TEST_SEED' ) || ! is_file( dirname( rtrim( ABSPATH, '/\\' ) ) . '/.epm-test-site' ) || 'production' === wp_get_environment_type() ) {
+	WP_CLI::error( 'Refusing to seed: use a marked disposable local test site and EPM_ALLOW_TEST_SEED=1.' );
+}
+
 require_once ABSPATH . 'wp-admin/includes/media.php';
 require_once ABSPATH . 'wp-admin/includes/file.php';
 require_once ABSPATH . 'wp-admin/includes/image.php';
@@ -84,9 +92,7 @@ function epm_fixture_attachment( string $name, string $bytes ): int {
 }
 
 // Destructive: this resets every episode. Disposable test sites only.
-if ( 'production' === wp_get_environment_type() && ! getenv( 'EPM_ALLOW_TEST_SEED' ) ) {
-	WP_CLI::error( 'Refusing to reset episodes on a production site. Set WP_ENVIRONMENT_TYPE to "local" (or EPM_ALLOW_TEST_SEED=1) on a disposable test install.' );
-}
+
 
 foreach ( get_posts( [ 'post_type' => 'podcast_episode', 'post_status' => array_values( get_post_stati() ), 'posts_per_page' => -1, 'fields' => 'ids', 'suppress_filters' => true ] ) as $episode_id ) {
 	wp_delete_post( $episode_id, true );

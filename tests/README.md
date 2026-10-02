@@ -22,7 +22,7 @@ It leaves the site running and seeded at `http://localhost:$WP_PORT`
 (admin/admin) for manual checks.
 
 CI jobs have hard time limits: lint 5 minutes, PHP integration and MariaDB
-15 minutes, and browser checks 30 minutes. Playwright installation is limited
+15 minutes, compatibility checks 10 minutes, and browser checks 30 minutes. Playwright installation is limited
 to 5 minutes, with a 30-second connection timeout for browser downloads.
 The browser dependency is pinned in `e2e/package.json` and installed from
 `e2e/package-lock.json` using `npm ci`.
@@ -104,9 +104,11 @@ Browser screenshots land in `e2e/screenshots/` (not tracked).
 |---|---|---|
 | `WP_DIR` | `/tmp/epm-wp` | where the test site lives |
 | `WP_PORT` | `8889` | local port |
-| `WP_VERSION` | `latest` | WordPress version |
-| `ELEMENTOR_VERSION` | `latest-stable` | Elementor version |
-| `WP_THEME` | `hello-elementor` | active theme (`twentytwentyfive` also installed) |
+| `EPM_TEST_PROFILE` | `current` | `current` or `minimum`, pinned in `tests/versions.json` |
+| `WP_VERSION` | profile pin | WordPress version; overrides must have a checksum in the manifest |
+| `ELEMENTOR_VERSION` | profile pin | Elementor version; overrides must have a checksum in the manifest |
+| `EPM_ELEMENTOR_OFF` | `0` | `1` provisions a site without Elementor for `compat/run.sh` |
+| `WP_THEME` | profile pin | active theme; the profile block theme and Hello are installed from verified archives |
 | `WP_DB` | `sqlite` | `mysql` installs the site on MySQL/MariaDB instead (needs `DB_NAME`; `DB_USER`, `DB_PASSWORD`, `DB_HOST` default to `root`, empty, `localhost`); the database is created when missing and must hold nothing else |
 | `CHROMIUM_PATH` | — | use a specific Chromium binary |
 | `SKIP_E2E` | — | skip the browser suites |
@@ -292,3 +294,32 @@ uninstall on a marked disposable site with 5,000 synthetic episodes. It checks
 a 30-second CLI budget, fewer than 5,000 cleanup queries, revisions/comments,
 retained media, and settings retention/retry after an injected database error.
 CI runs it on the disposable MariaDB network with a 35-second process limit.
+
+## Dependency and compatibility checks
+
+`tests/versions.json` pins WordPress, Elementor, WP-CLI, SQLite integration
+and both themes with SHA-256 checksums. Downloads are bounded and verified
+before installation. Setup records actual PHP, WordPress, CLI, plugin and
+theme versions in `$WP_DIR/versions-actual.json`; compatibility CI uploads
+this inventory with the manifest and failure logs.
+
+```bash
+EPM_TEST_PROFILE=minimum WP_DIR=/tmp/epm-min tests/bin/setup-wp.sh
+WP_DIR=/tmp/epm-min tests/compat/run.sh
+EPM_ELEMENTOR_OFF=1 WP_DIR=/tmp/epm-off tests/bin/setup-wp.sh
+EPM_ELEMENTOR_OFF=1 WP_DIR=/tmp/epm-off tests/compat/run.sh
+python3 -m unittest discover -s tests/safety -p 'test_*.py'
+```
+
+The minimum profile tests WordPress 6.2 and Elementor 3.12.2 on SQLite and
+MariaDB. The Elementor-off check covers management, shortcodes, automatic
+episode pages, feed enclosures and the admin notice. Browser CI runs the
+full Chromium suite, then bounded Firefox and WebKit checks of real muted
+audio playback, chapter seeking, keyboard share controls and narrow widget
+rendering. Muting removes the need for a CI sound device while preserving
+real media decoding and playback.
+
+`tests/safety/seed.sh` proves the fixture refuses a reset without the explicit
+runner flag and that an authorized reset removes trash and auto-drafts.
+The fixture independently requires CLI, the parent test-site marker,
+`EPM_ALLOW_TEST_SEED=1`, and a non-production environment.
