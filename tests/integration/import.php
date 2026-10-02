@@ -356,6 +356,27 @@ $t->test(
 );
 
 $t->test(
+	'PERF-N5: importing one item does not load the entire catalog GUID map',
+	static function ( EPM_Test_Runner $t ) {
+		$queries = [];
+		$capture = static function ( $sql ) use ( &$queries ) { $queries[] = $sql; return $sql; };
+		$feed = ( new \EPM\FeedParser() )->parse( epm_i_page( 'Bounded lookup', [ epm_i_item( 'imp-bounded-guid', time() ) ] ) );
+		add_filter( 'query', $capture );
+		try {
+			$first = ( new Importer() )->import_item( $feed['items'][0] );
+			$second = ( new Importer() )->import_item( $feed['items'][0] );
+			$t->same( 'created', $first['action'], 'the first import creates the episode' );
+			$t->same( $first['id'], $second['id'], 'another importer updates the same GUID' );
+			$t->same( 0, count( array_filter( $queries, static fn( $sql ) => false !== strpos( $sql, 'SELECT pm.meta_value AS guid' ) ) ), 'no full catalog GUID query' );
+		} finally {
+			remove_filter( 'query', $capture );
+			epm_i_delete( 'imp-bounded-' );
+		}
+	}
+);
+
+
+$t->test(
 	'an episode another request created after the GUID list was read is updated, not created twice',
 	static function ( EPM_Test_Runner $t ) {
 		$importer = new Importer( [ 'feed_url' => 'https://feeds.example.test/imp/guid.xml' ] );

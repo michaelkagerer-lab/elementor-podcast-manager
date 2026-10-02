@@ -262,8 +262,10 @@ final class Importer {
 			$result['title'] = $title;
 		}
 
-		$map         = $this->guid_map();
-		$post_id     = $map[ $guid ] ?? 0;
+		// A step handles at most ten items. Avoid materializing every GUID in
+		// a large existing catalog just to locate this one episode. Callers
+		// that explicitly primed a bulk map may still use it.
+		$post_id = $this->guid_map[ $guid ] ?? 0;
 		$fingerprint_item = $item;
 		$fingerprint_item['audio_url'] = self::stable_media_url( (string) ( $item['audio_url'] ?? '' ) );
 		$fingerprint = md5( (string) wp_json_encode( $fingerprint_item ) );
@@ -318,7 +320,7 @@ final class Importer {
 			$this->write( $post_id, $item, true );
 			update_post_meta( $post_id, Episodes::META_PREFIX . 'import_fingerprint', $fingerprint );
 			$this->guid_map[ $guid ] = $post_id;
-			if ( ! empty( $GLOBALS['epm_import_step_active'] ) ) {
+			if ( $this->guid_map_loaded && ! empty( $GLOBALS['epm_import_step_active'] ) ) {
 				$GLOBALS['epm_import_guid_map'] = $this->guid_map;
 			}
 			$action                  = 'created';
