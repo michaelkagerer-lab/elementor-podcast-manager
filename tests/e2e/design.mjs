@@ -34,7 +34,7 @@ async function openPlayerControls(page, id) {
 	await page.waitForFunction((id) => {
 		try {
 			const container = window.elementor.getContainer(id);
-			return !!(window.$e && container.view && container.view.el.isConnected && window.elementor.getPanelView());
+			return !!(window.$e && window.elementor.loaded && container.view && container.view.el.isConnected && window.elementor.getPanelView());
 		} catch (error) {
 			return false;
 		}
@@ -42,13 +42,26 @@ async function openPlayerControls(page, id) {
 	await page.evaluate(async (id) => {
 		const container = window.elementor.getContainer(id);
 		await window.$e.run('document/elements/select', { container });
-		window.$e.route('panel/editor/content', { model: container.model, view: container.view });
+		await window.$e.route('panel/editor/content', { model: container.model, view: container.view });
 	}, id);
 	await page.waitForFunction((id) => {
 		const panel = window.elementor.getPanelView().getCurrentPageView();
 		return panel && panel.model && panel.model.id === id && panel.activeTab === 'content';
 	}, id, { timeout: 20000 });
-	await page.locator('.elementor-control-section_player >> visible=true').click();
+	// Routing updates the model before Marionette has finished rendering the
+	// panel. Activate Content through its visible navigation control, as an
+	// editor user does, rather than treating activeTab as proof of visible UI.
+	await page.locator('.elementor-panel-navigation-tab[data-tab="content"]').click();
+	try {
+		await page.locator('.elementor-control-section_player >> visible=true').click();
+	} catch (error) {
+		await page.screenshot({ path: `screenshots/design-editor-controls-${id}-failure.png` }).catch(() => {});
+		const state = await page.evaluate(() => {
+			const panel = window.elementor.getPanelView().getCurrentPageView();
+			return { model: panel?.model?.id, activeTab: panel?.activeTab, controls: [...document.querySelectorAll('#elementor-panel .elementor-control-type-section')].map((el) => ({ class: el.className, visible: !!el.getClientRects().length })) };
+		});
+		throw new Error(`${error.message}; editor panel: ${JSON.stringify(state)}`);
+	}
 }
 
 /** An Elementor page from widget data; returns [id, url]. */
