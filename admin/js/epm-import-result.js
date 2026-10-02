@@ -24,6 +24,9 @@
 	var _n = i18n ? i18n._n : function ( single, plural, count ) {
 		return count === 1 ? single : plural;
 	};
+	var _n = i18n ? i18n._n : function ( single, plural, count ) {
+		return count === 1 ? single : plural;
+	};
 
 	function format( template ) {
 		var args = Array.prototype.slice.call( arguments, 1 );
@@ -35,6 +38,55 @@
 
 	function $( selector, scope ) {
 		return scope.querySelector( selector );
+	}
+
+	function number( value ) {
+		var locale = ( document.documentElement.lang || 'en' ).replace( /_/g, '-' );
+		try {
+			return Number( value ).toLocaleString( locale );
+		} catch ( error ) {
+			return Number( value ).toLocaleString( 'en' );
+		}
+	}
+
+	function progress( done, total ) {
+		return format(
+			/* translators: 1: episodes processed, 2: total episodes */
+			_n( '%1$s of %2$s episode', '%1$s of %2$s episodes', total, 'elementor-podcast-manager' ),
+			number( done ), number( total )
+		);
+	}
+
+	function action( key ) {
+		var labels = {
+			created: __( 'new', 'elementor-podcast-manager' ),
+			updated: __( 'updated', 'elementor-podcast-manager' ),
+			unchanged: __( 'unchanged', 'elementor-podcast-manager' ),
+			skipped: __( 'skipped', 'elementor-podcast-manager' ),
+			failed: __( 'failed', 'elementor-podcast-manager' ),
+			media_failed: __( 'audio not copied', 'elementor-podcast-manager' ),
+		};
+		return labels[ key ] || key;
+	}
+
+	function summary( counts ) {
+		counts = counts || {};
+		var labels = {
+			/* translators: %1$s: number of newly imported episodes */
+			created: _n( '%1$s new episode', '%1$s new episodes', counts.created || 0, 'elementor-podcast-manager' ),
+			/* translators: %1$s: number of updated episodes */
+			updated: _n( '%1$s updated episode', '%1$s updated episodes', counts.updated || 0, 'elementor-podcast-manager' ),
+			/* translators: %1$s: number of unchanged episodes */
+			unchanged: _n( '%1$s unchanged episode', '%1$s unchanged episodes', counts.unchanged || 0, 'elementor-podcast-manager' ),
+			/* translators: %1$s: number of skipped episodes */
+			skipped: _n( '%1$s skipped episode', '%1$s skipped episodes', counts.skipped || 0, 'elementor-podcast-manager' ),
+			/* translators: %1$s: number of failed episodes */
+			failed: _n( '%1$s failed episode', '%1$s failed episodes', counts.failed || 0, 'elementor-podcast-manager' ),
+			/* translators: %1$s: number of episodes whose audio was not copied */
+			media_failed: _n( '%1$s episode with audio not copied', '%1$s episodes with audio not copied', counts.media_failed || 0, 'elementor-podcast-manager' ),
+		};
+		return Object.keys( labels ).filter( function ( key ) { return counts[ key ] > 0; } )
+			.map( function ( key ) { return format( labels[ key ], number( counts[ key ] ) ); } ).join( ' · ' );
 	}
 
 	function size( bytes ) {
@@ -206,6 +258,10 @@
 	}
 
 	window.epmImportResult = {
+		number: number,
+		progress: progress,
+		summary: summary,
+		action: action,
 		render: render,
 		delay: delay,
 		active: function ( job ) {

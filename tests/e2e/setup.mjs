@@ -478,7 +478,7 @@ console.log('Hosting & import');
 	}));
 	assert(/not finished/.test(media.title) && /1 audio file/.test(media.text), `the move is not finished, and says why (${JSON.stringify(media)})`);
 	assert(JSON.stringify(media.groups) === '["1 audio file"]' && media.links.length === 1 && media.links[0][0] === 'Missing audio episode' && media.links[0][1] && /404/.test(media.links[0][2]), `the audio that stays is listed per kind, linked, with the reason (${JSON.stringify(media)})`);
-	assert(/1 audio not copied/.test(media.summary), `and counted (${media.summary})`);
+	assert(/1 episode with audio not copied/.test(media.summary), `and counted (${media.summary})`);
 	assert(php(`echo wp_json_encode( [ EPM\\Hosting::get( 'mode' ), epm()->settings->get( 'moved_in' ) ] )`).join() === 'external,false', 'the site still mirrors the old host');
 	await page.screenshot({ path: 'screenshots/hosting-move-unfinished.png', fullPage: true });
 

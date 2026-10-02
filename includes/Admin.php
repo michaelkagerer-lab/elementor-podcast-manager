@@ -270,7 +270,7 @@ final class Admin {
 				'uploadAudio'     => __( 'Upload episode audio', 'elementor-podcast-manager' ),
 				'replaceAudio'    => __( 'Replace audio', 'elementor-podcast-manager' ),
 				'remove'          => __( 'Remove audio', 'elementor-podcast-manager' ),
-				'dropHint'        => __( 'Drop an MP3 or M4A file here, or', 'elementor-podcast-manager' ),
+				'dropHint'        => __( 'Drop an MP3 or M4A file here. You can also choose a file below.', 'elementor-podcast-manager' ),
 				/* translators: %s: file name */
 				'uploadingFile'   => __( 'Uploading %s…', 'elementor-podcast-manager' ),
 				'uploading'       => __( 'Uploading…', 'elementor-podcast-manager' ),

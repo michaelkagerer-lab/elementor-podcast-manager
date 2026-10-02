@@ -762,7 +762,7 @@ final class EpisodeMeta {
 			return;
 		}
 
-		echo '<p class="epm-upload__hint">' . esc_html__( 'Drop an MP3 or M4A file here, or', 'elementor-podcast-manager' ) . '</p>';
+		echo '<p class="epm-upload__hint">' . esc_html__( 'Drop an MP3 or M4A file here. You can also choose a file below.', 'elementor-podcast-manager' ) . '</p>';
 	}
 
 	/**

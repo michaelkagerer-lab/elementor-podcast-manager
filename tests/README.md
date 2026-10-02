@@ -323,3 +323,8 @@ real media decoding and playback.
 runner flag and that an authorized reset removes trash and auto-drafts.
 The fixture independently requires CLI, the parent test-site marker,
 `EPM_ALLOW_TEST_SEED=1`, and a non-production environment.
+
+`e2e/i18n-counts.mjs` intercepts only disposable import responses to check
+singular preview labels, German number separators, translated singular and
+plural result phrases, real log badges and progress counts. It restores the
+setup option's exact serialized value and autoload policy.

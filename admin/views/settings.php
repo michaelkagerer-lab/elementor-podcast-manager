@@ -63,11 +63,11 @@ $epm_public_feed  = \EPM\Hosting::public_feed_url();
 							<option value="<?php echo esc_attr( $epm_current_category ); ?>" selected><?php echo esc_html( $epm_current_category ); ?></option>
 						<?php endif; ?>
 						<?php foreach ( \EPM\Categories::all() as $epm_cat => $epm_subs ) : ?>
-							<optgroup label="<?php echo esc_attr( $epm_cat ); ?>">
-								<option value="<?php echo esc_attr( $epm_cat ); ?>" <?php selected( $epm_current_category, $epm_cat ); ?>><?php echo esc_html( $epm_cat ); ?></option>
+							<optgroup label="<?php echo esc_attr( \EPM\Categories::label( $epm_cat ) ); ?>">
+								<option value="<?php echo esc_attr( $epm_cat ); ?>" <?php selected( $epm_current_category, $epm_cat ); ?>><?php echo esc_html( \EPM\Categories::label( $epm_cat ) ); ?></option>
 								<?php foreach ( $epm_subs as $epm_sub ) : ?>
 									<?php $epm_value = \EPM\Categories::encode( $epm_cat, $epm_sub ); ?>
-									<option value="<?php echo esc_attr( $epm_value ); ?>" <?php selected( $epm_current_category, $epm_value ); ?>><?php echo esc_html( $epm_cat . ' › ' . $epm_sub ); ?></option>
+									<option value="<?php echo esc_attr( $epm_value ); ?>" <?php selected( $epm_current_category, $epm_value ); ?>><?php echo esc_html( \EPM\Categories::label( $epm_cat ) . ' › ' . \EPM\Categories::label( $epm_sub ) ); ?></option>
 								<?php endforeach; ?>
 							</optgroup>
 						<?php endforeach; ?>

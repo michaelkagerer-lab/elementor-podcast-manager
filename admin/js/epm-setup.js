@@ -414,7 +414,7 @@
 			? format(
 					/* translators: %1$s: number of episodes found in the feed */
 					_n( 'Move only the %1$s episode that was found. The missing episodes stay at the old host and will not be on this website.', 'Move only the %1$s episodes that were found. The missing episodes stay at the old host and will not be on this website.', result.episodes, 'elementor-podcast-manager' ),
-					result.episodes
+					importResult.number( result.episodes )
 			  )
 			: '';
 	}
@@ -495,7 +495,8 @@
 
 		$( '[data-preview-title]', connectForm ).textContent = channel.title || result.feed_url;
 		$( '[data-preview-meta]', connectForm ).textContent = [ channel.author, result.provider_name ].filter( Boolean ).join( ' · ' );
-		$( '[data-preview-episodes]', connectForm ).textContent = String( result.episodes );
+		$( '[data-preview-episodes]', connectForm ).textContent = importResult.number( result.episodes );
+		$( '[data-preview-episode-label]', connectForm ).textContent = _n( 'episode', 'episodes', result.episodes, 'elementor-podcast-manager' );
 		$( '[data-preview-newest]', connectForm ).textContent = result.newest || '—';
 		$( '[data-preview-oldest]', connectForm ).textContent = result.oldest || '—';
 
@@ -525,7 +526,7 @@
 				? format(
 						/* translators: %1$s: number of episodes */
 						_n( '%1$s of these episodes is already on this website. It is updated, never duplicated.', '%1$s of these episodes are already on this website. They are updated, never duplicated.', result.existing, 'elementor-podcast-manager' ),
-						result.existing
+						importResult.number( result.existing )
 				  )
 				: ''
 		);
@@ -546,7 +547,7 @@
 				format(
 					/* translators: %1$s: number of episodes */
 					_n( '%1$s episode shares its ID with another episode in the feed and is skipped, as Apple Podcasts does.', '%1$s episodes share their ID with another episode in the feed and are skipped, as Apple Podcasts does.', result.duplicates.length, 'elementor-podcast-manager' ),
-					result.duplicates.length
+					importResult.number( result.duplicates.length )
 				)
 			);
 		}
@@ -555,7 +556,7 @@
 				format(
 					/* translators: %1$s: number of episodes */
 					_n( '%1$s episode is hidden from Apple Podcasts at your host; it is imported as a draft.', '%1$s episodes are hidden from Apple Podcasts at your host; they are imported as drafts.', result.blocked, 'elementor-podcast-manager' ),
-					result.blocked
+					importResult.number( result.blocked )
 				)
 			);
 		}
@@ -568,7 +569,7 @@
 		importButton.textContent = format(
 			/* translators: %1$s: number of episodes */
 			_n( 'Import %1$s episode', 'Import %1$s episodes', result.episodes, 'elementor-podcast-manager' ),
-			result.episodes
+			importResult.number( result.episodes )
 		);
 		importButton.disabled = result.episodes < 1;
 		box.hidden = false;
@@ -578,7 +579,7 @@
 				/* translators: 1: podcast title, 2: number of episodes */
 				_n( '%1$s: %2$s episode found.', '%1$s: %2$s episodes found.', result.episodes, 'elementor-podcast-manager' ),
 				channel.title || result.feed_url,
-				result.episodes
+				importResult.number( result.episodes )
 			)
 		);
 	}
@@ -670,30 +671,9 @@
 		bar.style.setProperty( '--epm-progress', String( ratio ) );
 		track.setAttribute( 'aria-valuenow', String( Math.round( ratio * 100 ) ) );
 
-		$( '[data-import-count]', importPanel ).textContent = format( app.strings.progress, done, total );
+		$( '[data-import-count]', importPanel ).textContent = importResult.progress( done, total );
 
-		var counts = job.counts || {};
-		var summary = [];
-		var labels = {
-			/* translators: import result label, e.g. "12 new" */
-			created: __( 'new', 'elementor-podcast-manager' ),
-			/* translators: import result label, e.g. "3 updated" */
-			updated: __( 'updated', 'elementor-podcast-manager' ),
-			/* translators: import result label, e.g. "40 unchanged" */
-			unchanged: __( 'unchanged', 'elementor-podcast-manager' ),
-			/* translators: import result label, e.g. "1 skipped" */
-			skipped: __( 'skipped', 'elementor-podcast-manager' ),
-			/* translators: import result label, e.g. "1 failed" */
-			failed: __( 'failed', 'elementor-podcast-manager' ),
-			/* translators: import result label, e.g. "2 audio not copied" */
-			media_failed: __( 'audio not copied', 'elementor-podcast-manager' ),
-		};
-		Object.keys( labels ).forEach( function ( key ) {
-			if ( counts[ key ] > 0 ) {
-				summary.push( counts[ key ] + ' ' + labels[ key ] );
-			}
-		} );
-		$( '[data-import-summary]', importPanel ).textContent = summary.join( ' · ' );
+		$( '[data-import-summary]', importPanel ).textContent = importResult.summary( job.counts );
 		// Waiting, the file in progress, what is still at the old host.
 		var media = importResult.render( importPanel, job );
 
@@ -703,7 +683,7 @@
 			var li = document.createElement( 'li' );
 			var badge = document.createElement( 'span' );
 			badge.className = 'epm-badge' + ( entry.action === 'failed' ? ' epm-badge--error' : entry.action === 'created' ? ' epm-badge--ok' : '' );
-			badge.textContent = labels[ entry.action ] || entry.action;
+			badge.textContent = importResult.action( entry.action );
 			var title = document.createElement( entry.edit ? 'a' : 'span' );
 			title.className = 'epm-log__title';
 			title.textContent = entry.title;
@@ -746,14 +726,14 @@
 		$( '[data-import-continue]', importPanel ).disabled = ! finished;
 		$( '[data-action="cancel-import"]', importPanel ).hidden = ! importResult.active( job );
 		if ( job.status === 'cancelled' || job.status === 'failed' ) {
-			$( '[data-import-lede]', importPanel ).textContent = format( app.strings.stopped, done, total );
-			announce( format( app.strings.stopped, done, total ) );
+			$( '[data-import-lede]', importPanel ).textContent = format( app.strings.stopped, importResult.number( done ), importResult.number( total ) );
+			announce( format( app.strings.stopped, importResult.number( done ), importResult.number( total ) ) );
 		} else {
 			$( '[data-import-lede]', importPanel ).textContent = app.strings.leaveImport;
 		}
 
 		if ( job.status === 'done' || job.status === 'done_with_problems' || job.status === 'waiting' ) {
-			announce( format( app.strings.progress, done, total ) + ( media ? ' ' + media : '' ) + ( incomplete ? ' ' + $( 'p', partial ).textContent : '' ) );
+			announce( importResult.progress( done, total ) + ( media ? ' ' + media : '' ) + ( incomplete ? ' ' + $( 'p', partial ).textContent : '' ) );
 		}
 	}
 

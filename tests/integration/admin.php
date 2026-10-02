@@ -157,6 +157,38 @@ $ajax = static function ( callable $handler, array $post ): array {
 WP_CLI::log( 'Topics' );
 
 $t->test(
+	'UX-N9: the audio upload hint is a complete translatable sentence',
+	static function ( EPM_Test_Runner $t ) use ( $make_episode ) {
+		$id = $make_episode();
+		ob_start();
+		( new EpisodeMeta() )->box_audio( get_post( $id ) );
+		$html = ob_get_clean();
+		$t->assert( false !== strpos( $html, 'Drop an MP3 or M4A file here. You can also choose a file below.' ), 'the hint does not end with a sentence fragment before the button' );
+	}
+);
+
+$t->test(
+	'UX-N9: category labels translate while stored feed values stay unchanged',
+	static function ( EPM_Test_Runner $t ) {
+		$translate = static function ( $translated, $text, $domain ) {
+			return 'elementor-podcast-manager' === $domain ? ( [ 'Arts' => 'Kunst', 'Books' => 'Bücher' ][ $text ] ?? $translated ) : $translated;
+		};
+		add_filter( 'gettext', $translate, 10, 3 );
+		try {
+			ob_start();
+			( new Admin() )->render_settings();
+			$html = ob_get_clean();
+			$t->assert( false !== strpos( $html, 'label="Kunst"' ), 'category group labels translate' );
+			$t->assert( (bool) preg_match( '/value="Arts::Books"[^>]*>Kunst › Bücher<\/option>/', $html ), 'translated labels retain Apple category values' );
+			$t->same( 'Arts::Books', \EPM\Categories::encode( 'Arts', 'Books' ), 'feed encoding stays in English' );
+		} finally {
+			remove_filter( 'gettext', $translate, 10 );
+		}
+	}
+);
+
+
+$t->test(
 	'UX-N8: the unminified admin script name cannot be mistaken for a min.js catalog',
 	static function ( EPM_Test_Runner $t ) {
 		Admin::enqueue_assets();

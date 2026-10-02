@@ -159,7 +159,7 @@ $epm_steps = [
 						<p class="epm-preview__title" data-preview-title></p>
 						<p class="epm-preview__meta" data-preview-meta></p>
 						<ul class="epm-facts">
-							<li><strong data-preview-episodes></strong><span><?php esc_html_e( 'episodes', 'elementor-podcast-manager' ); ?></span></li>
+							<li><strong data-preview-episodes></strong> <span data-preview-episode-label><?php esc_html_e( 'episodes', 'elementor-podcast-manager' ); ?></span></li>
 							<li><strong data-preview-newest></strong><span><?php esc_html_e( 'latest episode', 'elementor-podcast-manager' ); ?></span></li>
 							<li><strong data-preview-oldest></strong><span><?php esc_html_e( 'first episode', 'elementor-podcast-manager' ); ?></span></li>
 						</ul>
@@ -289,11 +289,11 @@ $epm_steps = [
 					<select id="epm-setup-category" name="category">
 						<option value=""><?php esc_html_e( 'Choose a category', 'elementor-podcast-manager' ); ?></option>
 						<?php foreach ( \EPM\Categories::all() as $epm_cat => $epm_subs ) : ?>
-							<optgroup label="<?php echo esc_attr( $epm_cat ); ?>">
-								<option value="<?php echo esc_attr( $epm_cat ); ?>" <?php selected( $epm_category, $epm_cat ); ?>><?php echo esc_html( $epm_cat ); ?></option>
+							<optgroup label="<?php echo esc_attr( \EPM\Categories::label( $epm_cat ) ); ?>">
+								<option value="<?php echo esc_attr( $epm_cat ); ?>" <?php selected( $epm_category, $epm_cat ); ?>><?php echo esc_html( \EPM\Categories::label( $epm_cat ) ); ?></option>
 								<?php foreach ( $epm_subs as $epm_sub ) : ?>
 									<?php $epm_value = \EPM\Categories::encode( $epm_cat, $epm_sub ); ?>
-									<option value="<?php echo esc_attr( $epm_value ); ?>" <?php selected( $epm_category, $epm_value ); ?>><?php echo esc_html( $epm_cat . ' › ' . $epm_sub ); ?></option>
+									<option value="<?php echo esc_attr( $epm_value ); ?>" <?php selected( $epm_category, $epm_value ); ?>><?php echo esc_html( \EPM\Categories::label( $epm_cat ) . ' › ' . \EPM\Categories::label( $epm_sub ) ); ?></option>
 								<?php endforeach; ?>
 							</optgroup>
 						<?php endforeach; ?>
