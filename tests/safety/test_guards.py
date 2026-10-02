@@ -26,5 +26,17 @@ class SiteGuards(unittest.TestCase):
                 self.assertFalse((root / '.epm-test-site').exists())
                 self.assertFalse((root / 'cli-was-called').exists())
 
+class SuiteModes(unittest.TestCase):
+    def test_browser_only_and_skip_browser_cannot_disable_every_suite(self):
+        with tempfile.TemporaryDirectory() as directory:
+            (Path(directory) / 'site').mkdir()
+            result = subprocess.run([str(ROOT / 'tests/run-all.sh')], cwd=ROOT,
+                                    env={**os.environ, 'WP_DIR': directory,
+                                         'EPM_E2E_ONLY': '1', 'SKIP_E2E': '1'},
+                                    capture_output=True, text=True, timeout=10)
+            self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+            self.assertIn('mutually exclusive', result.stderr)
+            self.assertFalse((Path(directory) / '.epm-test-site').exists())
+
 if __name__ == '__main__':
     unittest.main()

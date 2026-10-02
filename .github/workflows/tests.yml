@@ -161,7 +161,7 @@ jobs:
   browser:
     name: Browser (Playwright)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -178,8 +178,8 @@ jobs:
         run: |
           npm ci --no-audit --no-fund
           PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT=30000 npx playwright install --with-deps chromium firefox webkit
-      - name: All suites
-        run: tests/run-all.sh
+      - name: All browser suites
+        run: EPM_E2E_ONLY=1 tests/run-all.sh
       - name: Firefox and WebKit playback and keyboard checks
         timeout-minutes: 3
         working-directory: tests/e2e

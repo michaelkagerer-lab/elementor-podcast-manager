@@ -11,6 +11,7 @@ from `fixtures/feeds/`, so imports and syncs never leave localhost.
 ```bash
 tests/run-all.sh              # lint + integration + HTTP + browser
 SKIP_E2E=1 tests/run-all.sh   # without the browser suites
+EPM_E2E_ONLY=1 tests/run-all.sh # all browser suites on a guarded disposable site
 WP_DIR=/tmp/epm-wp-2 WP_PORT=8890 tests/run-all.sh   # a second site side by side
 ```
 
@@ -22,8 +23,13 @@ It leaves the site running and seeded at `http://localhost:$WP_PORT`
 (admin/admin) for manual checks.
 
 CI jobs have hard time limits: lint 5 minutes, PHP integration and MariaDB
-15 minutes, compatibility checks 10 minutes, and browser checks 30 minutes. Playwright installation is limited
+15 minutes, compatibility checks 10 minutes, and browser checks 20 minutes. Playwright installation is limited
 to 5 minutes, with a 30-second connection timeout for browser downloads.
+The browser job uses `EPM_E2E_ONLY=1`, retaining site safety, fixture resets, all
+browser journeys and PHP notice checks while avoiding duplicate integration,
+media and performance runs already covered by the PHP 8.1/8.4 jobs. It then
+runs Firefox and WebKit playback and keyboard checks. Combining that mode with
+`SKIP_E2E` is rejected before site provisioning.
 The browser dependency is pinned in `e2e/package.json` and installed from
 `e2e/package-lock.json` using `npm ci`.
 

@@ -16,6 +16,7 @@
 #
 # Usage: tests/run-all.sh            (all suites)
 #        SKIP_E2E=1 tests/run-all.sh (no browser)
+#        EPM_E2E_ONLY=1 tests/run-all.sh (browser suites on a guarded site)
 #
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -28,6 +29,11 @@ export NODE_BIN="${NODE_BIN:-node}"
 DEBUG_LOG="$WP_DIR/site/wp-content/debug.log"
 
 FAILED=()
+
+if [ -n "${EPM_E2E_ONLY:-}" ] && [ -n "${SKIP_E2E:-}" ]; then
+ echo 'EPM_E2E_ONLY and SKIP_E2E are mutually exclusive.' >&2
+ exit 2
+fi
 
 if [ -d "$WP_DIR/site" ] && [ ! -f "$WP_DIR/.epm-test-site" ]; then
 	echo "Refusing to run against unmarked WP_DIR=$WP_DIR. Use a fresh disposable directory; tests delete episodes and alter site settings." >&2
@@ -71,27 +77,30 @@ python3 -m unittest discover -s "$ROOT/tests/safety" -p "test_*.py"
 "$ROOT/tests/bin/setup-wp.sh"
 WP_DIR="$WP_DIR" WP_CLI="$WP_CLI" "$ROOT/tests/safety/seed.sh"
 
-echo; echo "== Integration tests"
-while IFS= read -r suite; do
-	echo; echo "-- integration/$(basename "$suite")"
+if [ -z "${EPM_E2E_ONLY:-}" ]; then
+	echo; echo "== Integration tests"
+	while IFS= read -r suite; do
+		echo; echo "-- integration/$(basename "$suite")"
+		seed
+		"$WP_CLI" eval-file "$suite" || FAILED+=("integration/$(basename "$suite")")
+	done < <(suites "$ROOT/tests/integration" php run.php lib.php)
+
+	echo; echo "== Race tests (two processes)"
 	seed
-	"$WP_CLI" eval-file "$suite" || FAILED+=("integration/$(basename "$suite")")
-done < <(suites "$ROOT/tests/integration" php run.php lib.php)
+	WP_CLI="$WP_CLI" "$ROOT/tests/concurrency/run.sh" || FAILED+=("concurrency/run.sh")
 
-echo; echo "== Race tests (two processes)"
-seed
-WP_CLI="$WP_CLI" "$ROOT/tests/concurrency/run.sh" || FAILED+=("concurrency/run.sh")
+	echo; echo "== Import budget (memory and time per request)"
+	WP_DIR="$WP_DIR" "$ROOT/tests/perf/run.sh" || FAILED+=("perf/run.sh")
 
-echo; echo "== Import budget (memory and time per request)"
-WP_DIR="$WP_DIR" "$ROOT/tests/perf/run.sh" || FAILED+=("perf/run.sh")
+	echo; echo "== Media downloads (local media host, real sockets)"
+	seed
+	WP_DIR="$WP_DIR" WP_CLI="$WP_CLI" "$ROOT/tests/media/run.sh" || FAILED+=("media/run.sh")
 
-echo; echo "== Media downloads (local media host, real sockets)"
-seed
-WP_DIR="$WP_DIR" WP_CLI="$WP_CLI" "$ROOT/tests/media/run.sh" || FAILED+=("media/run.sh")
+	echo; echo "== HTTP tests"
+	seed
+	"$ROOT/tests/http/run.sh" || FAILED+=("http/run.sh")
 
-echo; echo "== HTTP tests"
-seed
-"$ROOT/tests/http/run.sh" || FAILED+=("http/run.sh")
+fi
 
 if [ -z "${SKIP_E2E:-}" ]; then
 	echo; echo "== Browser tests"

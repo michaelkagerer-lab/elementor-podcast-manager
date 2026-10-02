@@ -39,6 +39,10 @@ async function openPlayerControls(page, id) {
 			return false;
 		}
 	}, id, { timeout: 30000 });
+	// Fresh Elementor sites show a promotion on the third editor visit.
+	// Dismiss its modal through the keyboard before selecting a widget.
+	await page.keyboard.press('Escape');
+	await page.getByRole('dialog').waitFor({ state: 'hidden', timeout: 10000 });
 	await page.evaluate(async (id) => {
 		const container = window.elementor.getContainer(id);
 		await window.$e.run('document/elements/select', { container });
@@ -51,8 +55,8 @@ async function openPlayerControls(page, id) {
 	// Routing updates the model before Marionette has finished rendering the
 	// panel. Activate Content through its visible navigation control, as an
 	// editor user does, rather than treating activeTab as proof of visible UI.
-	await page.locator('.elementor-panel-navigation-tab[data-tab="content"]').click();
 	try {
+		await page.locator('.elementor-panel-navigation-tab[data-tab="content"]').click();
 		await page.locator('.elementor-control-section_player >> visible=true').click();
 	} catch (error) {
 		await page.screenshot({ path: `screenshots/design-editor-controls-${id}-failure.png` }).catch(() => {});
@@ -284,7 +288,13 @@ try {
 		await page.waitForTimeout(1500);
 		const settings = await page.evaluate(() => window.elementor.getContainer('p130001').settings.toJSON());
 		assert(settings.epm_schema === '2' && settings.show_volume === 'no' && settings.show_artwork === 'yes' && settings.show_description === 'no', `the editor shows its 1.3.0 values explicitly (${JSON.stringify({ volume: settings.show_volume, artwork: settings.show_artwork, description: settings.show_description })})`);
+		// Exercise Elementor's actual fresh-site promotion even on an existing
+		// disposable site whose automatic promotion has already been shown.
+		await page.evaluate(() => window.dispatchEvent(new CustomEvent('elementor/editor/create-widget', { detail: { entry_point: 'auto_show' } })));
+		await page.getByRole('dialog').waitFor({ timeout: 10000 });
+		assert(await page.getByRole('dialog').isVisible(), 'the fresh-site Elementor promotion is open before selecting controls');
 		await openPlayerControls(page, 'p130001');
+		assert(!(await page.getByRole('dialog').isVisible()), 'the promotion is dismissed without installing anything');
 		const volumeSelect = page.locator('.elementor-control-show_volume select >> visible=true');
 		assert((await volumeSelect.inputValue()) === 'no', 'the Volume control reads Hide');
 		await page.locator('.elementor-control-section_player').screenshot({ path: 'screenshots/design-editor-legacy-panel.png' }).catch(() => {});
