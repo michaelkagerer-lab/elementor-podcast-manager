@@ -381,7 +381,7 @@ final class Plugin {
 			}
 			$time = sanitize_text_field( $row['time'] ?? '' );
 			$title = sanitize_text_field( $row['title'] ?? '' );
-			if ( '' === $time || '' === $title || ! preg_match( '/^(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\.\d{1,3})?$/', $time ) ) {
+			if ( '' === $time || '' === $title || ! preg_match( '/^\d+(?::[0-5]?\d){0,2}(?:\.\d{1,3})?$/D', $time ) ) {
 				continue;
 			}
 			$out[] = [ 'time' => $time, 'title' => $title, 'url' => esc_url_raw( $row['url'] ?? '', [ 'http', 'https' ] ) ];

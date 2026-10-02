@@ -342,3 +342,9 @@ overdue-sync badge and non-whitespace literal less-than parser regressions.
 The setup browser suite now restores fixture state in `finally`, including
 on an exception; a local intentional failure verified hosting settings and
 the podcast GUID are restored.
+
+The SEC-N1 artwork tests send actual REST writes as an author, checking private
+images, invalid attachment types, retained IDs after rejection and explicit
+removal. SEC-N4 sends chapter/link arrays through REST, checks the stored
+metadata and reads it anonymously. These pass on WordPress 6.2 and 7.1.2;
+replaying the 1.3.0 callbacks/registrations fails the regressions.

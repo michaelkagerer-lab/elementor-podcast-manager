@@ -236,6 +236,45 @@ $t->test(
 	}
 );
 
+$t->test(
+	'SEC-N4: REST writes sanitize structured metadata before anonymous reads',
+	static function ( EPM_Test_Runner $t ) {
+		$previous_user = get_current_user_id();
+		wp_set_current_user( 1 );
+		$id = wp_insert_post( [ 'post_type' => EpisodePostType::CPT, 'post_status' => 'publish', 'post_title' => 'REST structured metadata test' ] );
+		try {
+			$request = new WP_REST_Request( 'POST', '/wp/v2/' . EpisodePostType::CPT . '/' . $id );
+			$request->set_param( 'meta', [
+				'_epm_chapters' => [
+					[ 'time' => '01:02', 'title' => '<b>Chapter</b>', 'url' => 'javascript:alert(1)' ],
+					[ 'time' => '01:99', 'title' => 'Invalid seconds', 'url' => '' ],
+					[ 'time' => '1:99:00', 'title' => 'Invalid minutes', 'url' => '' ],
+					[ 'time' => 'bad', 'title' => 'Invalid clock', 'url' => '' ],
+				],
+				'_epm_platform_urls' => [
+					[ 'service' => 'custom', 'label' => '<b>Safe</b>', 'url' => 'https://listen.example.com/show' ],
+					[ 'service' => 'custom', 'label' => 'Unsafe', 'url' => 'javascript:alert(1)' ],
+				],
+			] );
+			$t->same( 200, rest_do_request( $request )->get_status(), 'real REST write succeeds' );
+			$chapters = [ [ 'time' => '01:02', 'title' => 'Chapter', 'url' => '' ] ];
+			$links = [ [ 'service' => 'custom', 'label' => 'Safe', 'url' => 'https://listen.example.com/show' ] ];
+			$t->same( $chapters, get_post_meta( $id, '_epm_chapters', true ), 'database contains valid chapters only' );
+			$t->same( $links, get_post_meta( $id, '_epm_platform_urls', true ), 'database contains safe links only' );
+			wp_set_current_user( 0 );
+			$response = rest_do_request( new WP_REST_Request( 'GET', '/wp/v2/' . EpisodePostType::CPT . '/' . $id ) );
+			$t->same( 200, $response->get_status(), 'anonymous client can read the public episode' );
+			$data = $response->get_data();
+			$t->same( $chapters, $data['meta']['_epm_chapters'] ?? null, 'anonymous chapters are sanitized' );
+			$t->same( $links, $data['meta']['_epm_platform_urls'] ?? null, 'anonymous links are sanitized' );
+		} finally {
+			wp_set_current_user( 1 );
+			wp_delete_post( $id, true );
+			wp_set_current_user( $previous_user );
+		}
+	}
+);
+
 WP_CLI::log( 'RSS feed' );
 
 $t->test(

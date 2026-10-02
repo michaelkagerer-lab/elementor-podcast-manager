@@ -483,6 +483,43 @@ $t->test(
 	}
 );
 
+$t->test(
+	'SEC-N1: REST refuses unreadable artwork and guest photos without changing stored images',
+	static function ( EPM_Test_Runner $t ) use ( $make_episode, $make_file, $make_user ) {
+		$previous_user = get_current_user_id();
+		$author = $make_user( 'author' );
+		wp_set_current_user( 1 );
+		$private_episode = $make_episode( [ 'post_status' => 'future', 'post_date' => gmdate( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ), 'post_author' => 1 ] );
+		$foreign = $make_file( 'rest-private-artwork.png', "\x89PNG\r\n\x1a\n", 'image/png' );
+		wp_update_post( [ 'ID' => $foreign, 'post_parent' => $private_episode, 'post_author' => 1 ] );
+		$own = $make_file( 'rest-own-artwork.png', "\x89PNG\r\n\x1a\n", 'image/png' );
+		wp_update_post( [ 'ID' => $own, 'post_author' => $author ] );
+		$plain = $make_file( 'rest-not-an-image.txt', 'text', 'text/plain' );
+		$id = $make_episode( [ 'post_author' => $author ] );
+		wp_set_current_user( $author );
+		try {
+			$t->assert( ! current_user_can( 'read_post', $foreign ), 'other author scheduled artwork is unreadable' );
+			foreach ( [ '_epm_artwork_id', '_epm_guest_image_id' ] as $key ) {
+				$write = static function ( int $attachment ) use ( $id, $key ) {
+					$request = new WP_REST_Request( 'POST', '/wp/v2/' . EpisodePostType::CPT . '/' . $id );
+					$request->set_param( 'meta', [ $key => $attachment ] );
+					return rest_do_request( $request );
+				};
+				$t->same( 200, $write( $own )->get_status(), 'own image accepted: ' . $key );
+				$t->same( $own, (int) get_post_meta( $id, $key, true ), 'own image stored' );
+				$t->same( 403, $write( $foreign )->get_status(), 'foreign private image denied' );
+				$t->same( $own, (int) get_post_meta( $id, $key, true ), 'previous image retained after denied access' );
+				$t->same( 400, $write( $plain )->get_status(), 'non-image attachment refused' );
+				$t->same( $own, (int) get_post_meta( $id, $key, true ), 'previous image retained after invalid type' );
+				$t->same( 200, $write( 0 )->get_status(), 'explicit removal accepted' );
+				$t->same( 0, (int) get_post_meta( $id, $key, true ), 'explicit removal stored' );
+			}
+		} finally {
+			wp_set_current_user( $previous_user );
+		}
+	}
+);
+
 /**
  * Save an episode through the editor's save handler.
  *
