@@ -158,3 +158,14 @@ Carousel, Popups), real external embedding on third-party sites, production CDN 
 host behavior (the test router fakes HEAD/Range), and a full MySQL/MariaDB load profile.
 Directory requirements were checked against the official pages that could be fetched
 on 2026-10-01; Amazon and Podcast Index pages could not be fetched.
+
+## Follow-up: resumed media integrity
+
+The handoff's missing `If-Range` validation is fixed. A real-socket test
+failed before the change: a replaced enclosure produced a mixed file while
+reporting success. Resumed requests now validate strong ETags or modification
+dates and restart when the file changes. Unverifiable partial copies fail
+safely and retain the original address. The full media runner passes 65
+assertions plus the 60 MB memory case; the 15 targeted assertions also pass
+on WordPress 6.2. Full-disk tmpfs cases were skipped because this local runner
+is not root.

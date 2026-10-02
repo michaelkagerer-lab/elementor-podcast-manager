@@ -51,6 +51,29 @@ final class MediaWatch {
 	 */
 	public int $length = -1;
 
+	/** Final response headers, available even after a cURL budget abort. */
+	public string $etag = '';
+	public string $last_modified = '';
+	public string $content_range = '';
+
+	public function header( string $line ): void {
+		if ( preg_match( '/^HTTP\/\S+\s+\d+/', $line ) ) {
+			$this->etag = '';
+			$this->last_modified = '';
+			$this->content_range = '';
+			return;
+		}
+		$parts = explode( ':', $line, 2 );
+		if ( count( $parts ) !== 2 ) {
+			return;
+		}
+		switch ( strtolower( trim( $parts[0] ) ) ) {
+			case 'etag': $this->etag = trim( $parts[1] ); break;
+			case 'last-modified': $this->last_modified = trim( $parts[1] ); break;
+			case 'content-range': $this->content_range = trim( $parts[1] ); break;
+		}
+	}
+
 	/**
 	 * Body bytes of that response received so far.
 	 *

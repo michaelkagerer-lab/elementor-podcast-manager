@@ -168,7 +168,11 @@ PHP 8.1 the memory budget is not checked, the rest is.
 ## Media downloads
 
 `media/run.sh` starts `fixtures/mediaserver.py` on a free port and runs
-`media/downloads.php` against it; the memory case runs in a PHP process
+`media/downloads.php` against it; the resumed-copy cases verify strong ETags,
+Last-Modified fallback, rejection of weak ETags without a usable date,
+changed files restarting with a byte-identical result, and refusal of
+unverifiable partial copies (15 targeted assertions on WordPress 6.2 and
+7.1.2). The `if-range` argument runs only those cases; the memory case runs in a PHP process
 of its own with a 128M limit, and the full-disk cases mount small tmpfs
 folders when run as root (otherwise they are skipped, and the output says
 so).

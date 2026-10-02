@@ -315,6 +315,59 @@ if ( 'disk-full' === $epm_md_mode || 'uploads-full' === $epm_md_mode ) {
 
 $t = new EPM_Test_Runner();
 
+$t->test(
+	'resuming a changed enclosure uses If-Range and never combines different file versions',
+	static function ( EPM_Test_Runner $t ) {
+		$bytes = 1000000;
+		$path = '/changing/250000/' . $bytes . '/' . wp_generate_uuid4() . '.mp3';
+		$state = \EPM\MediaDownload::fresh( epm_md_url( $path ), 'audio', $bytes );
+		try {
+			$state = \EPM\MediaDownload::run( $state, microtime( true ) + 1.2 );
+			$t->same( 'partial', $state['result'], 'the first version stops at the request budget' );
+			$state = \EPM\MediaDownload::run( $state, microtime( true ) + 3 );
+			$t->same( 'complete', $state['result'], 'the replacement arrives completely' );
+			$tries = epm_md_requests( $path );
+			$resumes = array_values( array_filter( $tries, static fn( $request ) => '' !== $request['range'] ) );
+			$t->assert( count( $resumes ) >= 1 && '"media-' . $bytes . '-0"' === ( $resumes[0]['if_range'] ?? '' ), 'the resume sends the original strong validator: ' . wp_json_encode( $tries ) );
+			$t->same( sha1( epm_md_frames( 144 * 123, $bytes ) ), is_file( $state['file'] ) ? sha1_file( $state['file'] ) : '', 'the file consists entirely of the new version' );
+		} finally {
+			\EPM\MediaDownload::discard( $state );
+		}
+	}
+);
+
+$t->test(
+	'If-Range uses modification dates instead of weak ETags and refuses unverifiable partial copies',
+	static function ( EPM_Test_Runner $t ) {
+		foreach ( [ 'date', 'weak', 'novalidator' ] as $kind ) {
+			$bytes = 500000;
+			$path = '/' . $kind . '/250000/' . $bytes . '/' . wp_generate_uuid4() . '.mp3';
+			$state = \EPM\MediaDownload::fresh( epm_md_url( $path ), 'audio', $bytes );
+			try {
+				$state = \EPM\MediaDownload::run( $state, microtime( true ) + 1.2 );
+				if ( 'novalidator' === $kind ) {
+					$t->same( 'failed', $state['result'], 'an unverifiable partial copy is not published' );
+					$t->same( 'no_validator', $state['reason'], 'the missing validator is explained' );
+					$t->assert( ! is_file( $state['file'] ), 'the unsafe partial file is removed' );
+					continue;
+				}
+				$t->same( 'partial', $state['result'], $kind . ': stopped at the budget' );
+				$t->same( 'Wed, 30 Sep 2026 06:00:00 GMT', $state['validator'], $kind . ': a usable modification date' );
+				$state = \EPM\MediaDownload::run( $state, microtime( true ) + 3 );
+				$t->same( 'complete', $state['result'], $kind . ': safely resumed' );
+				$t->same( sha1( epm_md_frames( 0, $bytes ) ), sha1_file( $state['file'] ), $kind . ': byte-identical' );
+			} finally {
+				\EPM\MediaDownload::discard( $state );
+			}
+		}
+	}
+);
+
+if ( 'if-range' === $epm_md_mode ) {
+	$t->finish();
+	return;
+}
+
 WP_CLI::log( 'IMP-04: limits while the file streams' );
 
 $t->test(

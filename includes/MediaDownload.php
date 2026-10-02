@@ -182,6 +182,7 @@ final class MediaDownload {
 			'attempts' => 0,
 			'waits'    => 0,
 			'no_range' => false,
+			'validator' => '',
 			'result'   => '',
 			'reason'   => '',
 			'message'  => '',
@@ -222,6 +223,13 @@ final class MediaDownload {
 			clearstatcache( true, $d['file'] );
 			$d['bytes'] = (int) filesize( $d['file'] );
 		}
+		// Legacy partial state and hosts without validators cannot be combined
+		// safely with a later version of the enclosure. Start from the beginning.
+		if ( $d['bytes'] > 0 && '' === (string) $d['validator'] ) {
+			self::remove( (string) $d['file'] );
+			$d['bytes'] = 0;
+			$d['total'] = 0;
+		}
 
 		// Enough disk space for what is still to come (temp folder) and for
 		// the whole file (uploads folder)?
@@ -244,11 +252,18 @@ final class MediaDownload {
 		$headers = [ 'Accept-Encoding' => 'identity' ];
 		if ( $resume ) {
 			$headers['Range'] = 'bytes=' . (int) $d['bytes'] . '-';
+			$headers['If-Range'] = (string) $d['validator'];
 		}
 
 		$watch = new MediaWatch( $deadline, $cap, (int) $d['bytes'], $target, self::low_speed(), $expected );
 		$hook  = [ $watch, 'attach' ];
 		add_action( 'http_api_curl', $hook, 10, 3 );
+		$transport = static function ( &$url, &$request_headers, &$data, &$type, &$options ) use ( $watch, $target ): void {
+			if ( ( $options['filename'] ?? null ) === $target && empty( $options['transport'] ) && \WpOrg\Requests\Transport\Curl::test() ) {
+				$options['transport'] = new DownloadCurlTransport( $watch );
+			}
+		};
+		add_action( 'requests-requests.before_request', $transport, PHP_INT_MAX, 5 );
 		// The transport writes the file and ignores failed writes (a full
 		// disk): each one raises a notice. Catch those for this request and
 		// let the watch stop the transfer instead.
@@ -283,6 +298,7 @@ final class MediaDownload {
 		} finally {
 			restore_error_handler();
 			remove_action( 'http_api_curl', $hook, 10 );
+			remove_action( 'requests-requests.before_request', $transport, PHP_INT_MAX );
 			$watch->release();
 			// A stopped transfer leaves the transport and its handle in a
 			// reference cycle: collect it, which closes the connection.
@@ -340,6 +356,9 @@ final class MediaDownload {
 					// request's worth.
 					if ( ! empty( $d['no_range'] ) ) {
 						return self::attempt( $d, 'no_range', self::no_range_message() );
+					}
+					if ( '' === (string) $d['validator'] ) {
+						return self::fail( $d, 'no_validator', __( 'The host did not provide an ETag or Last-Modified date, so this large file cannot be resumed safely. The original file address was kept.', 'elementor-podcast-manager' ) );
 					}
 					$d['result'] = 'partial';
 					return $d;
@@ -427,14 +446,16 @@ final class MediaDownload {
 		$length = wp_remote_retrieve_header( $response, 'content-length' );
 		$length = is_numeric( $length ) ? (int) $length : -1;
 		$range  = (string) wp_remote_retrieve_header( $response, 'content-range' );
+		$validator = self::validator( wp_remote_retrieve_header( $response, 'etag' ), wp_remote_retrieve_header( $response, 'last-modified' ) );
 
 		if ( $resume && 206 === $code ) {
 			// Continued where the file ended?
-			if ( ! preg_match( '#^bytes\s+(\d+)-\d+/(\d+|\*)#i', $range, $m ) || (int) $m[1] !== (int) $d['bytes'] ) {
+			if ( ! preg_match( '#^bytes\s+(\d+)-\d+/(\d+|\*)#i', $range, $m ) || (int) $m[1] !== (int) $d['bytes'] || $validator !== (string) $d['validator'] ) {
 				self::remove( $target );
 				self::remove( (string) $d['file'] );
 				$d['bytes'] = 0;
 				$d['total'] = 0;
+				$d['validator'] = '';
 				return self::attempt( $d, 'transport', __( 'The host sent a different part of the file than requested.', 'elementor-podcast-manager' ) );
 			}
 			$part_ok = -1 === $length || $written === $length;
@@ -451,12 +472,13 @@ final class MediaDownload {
 			if ( $resume ) {
 				// The host ignored the Range request: this response is the
 				// whole file from the start.
-				$d['no_range'] = true;
+				$d['no_range'] = '' === $validator || $validator === (string) $d['validator'];
 				self::remove( (string) $d['file'] );
 				if ( ! @rename( $target, (string) $d['file'] ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.rename_rename
 					return self::fail( $d, 'write_error', __( 'The file could not be written to the disk (it may be full).', 'elementor-podcast-manager' ) );
 				}
 			}
+			$d['validator'] = $validator;
 			$d['bytes']  = $written;
 			$d['total']  = -1 !== $length ? $length : 0;
 			$d['length'] = -1 !== $length;
@@ -492,6 +514,7 @@ final class MediaDownload {
 	 * @return bool Whether anything was kept.
 	 */
 	private static function keep( array &$d, MediaWatch $watch, string $target, int $written, bool $resume ): bool {
+		$validator = self::validator( $watch->etag, $watch->last_modified );
 		if ( $watch->received > $written ) {
 			// Arrived but not written: never trust that file.
 			self::remove( $target );
@@ -502,6 +525,7 @@ final class MediaDownload {
 		}
 
 		if ( ! $resume ) {
+			$d['validator'] = $validator;
 			$d['bytes'] = $written;
 			if ( $watch->length > 0 && 200 === $watch->code ) {
 				$d['total']  = $watch->length;
@@ -511,6 +535,14 @@ final class MediaDownload {
 		}
 
 		if ( 206 === $watch->code ) {
+			if ( $validator !== (string) $d['validator'] || ! preg_match( '#^bytes\s+(\d+)-\d+/(\d+|\*)#i', $watch->content_range, $range ) || (int) $range[1] !== (int) $d['bytes'] ) {
+				self::remove( $target );
+				self::remove( (string) $d['file'] );
+				$d['bytes'] = 0;
+				$d['total'] = 0;
+				$d['validator'] = '';
+				return false;
+			}
 			if ( ! self::append( $target, (string) $d['file'] ) ) {
 				return false;
 			}
@@ -523,7 +555,8 @@ final class MediaDownload {
 		}
 
 		// 200 to a Range request: the host sends the whole file again.
-		$d['no_range'] = true;
+		$d['no_range'] = '' === $validator || $validator === (string) $d['validator'];
+		$d['validator'] = $validator;
 		self::remove( (string) $d['file'] );
 		if ( ! @rename( $target, (string) $d['file'] ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.rename_rename
 			$d['bytes'] = 0;
@@ -536,6 +569,17 @@ final class MediaDownload {
 		}
 
 		return true;
+	}
+
+	/** RFC 9110: If-Range requires a strong ETag or an HTTP modification date. */
+	private static function validator( $etag, $modified ): string {
+		if ( is_string( $etag ) && preg_match( '/^"[^"\x00-\x20\x7F]*"$/D', $etag ) ) {
+			return $etag;
+		}
+		if ( is_string( $modified ) && preg_match( '/^[A-Za-z]{3}, \d{2} [A-Za-z]{3} \d{4} \d{2}:\d{2}:\d{2} GMT$/D', $modified ) && false !== strtotime( $modified ) ) {
+			return $modified;
+		}
+		return '';
 	}
 
 	/**

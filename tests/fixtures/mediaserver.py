@@ -36,6 +36,7 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 FRAME = 144
+VERSIONS = {}
 LOCK = threading.Lock()
 LOG = sys.argv[2] if len(sys.argv) > 2 else os.devnull
 
@@ -79,6 +80,7 @@ class Handler(BaseHTTPRequestHandler):
         line = {
             "path": self.path,
             "range": self.headers.get("Range", ""),
+            "if_range": self.headers.get("If-Range", ""),
             "status": status,
             "sent": sent,
             "hung_up": hung_up,
@@ -126,14 +128,26 @@ class Handler(BaseHTTPRequestHandler):
         parts = self.path.split("?")[0].strip("/").split("/")
         kind = parts[0] if parts else ""
         try:
-            if kind in ("len", "id3", "slow", "norange"):
+            if kind in ("len", "id3", "slow", "norange", "changing", "date", "weak", "novalidator"):
                 if kind in ("len", "id3"):
                     bps, total = 0, int(parts[1])
                 else:
                     bps, total = int(parts[1]), int(parts[2])
                 offset = 0
                 status = 200
+                version = 0
+                if kind == "changing":
+                    with LOCK:
+                        version = VERSIONS.get(self.path, 0)
+                        VERSIONS[self.path] = version + 1
+                    if version > 0:
+                        bps = 0
+                etag = '"media-%s-%s"' % (total, min(version, 1))
+                modified = "Wed, 30 Sep 2026 06:00:00 GMT"
+                validator = modified if kind in ("date", "weak") else etag
                 ranged = self.headers.get("Range", "")
+                if self.headers.get("If-Range") and self.headers.get("If-Range") != validator:
+                    ranged = ""
                 if kind != "norange" and ranged.startswith("bytes=") and ranged.endswith("-"):
                     offset = int(ranged[6:-1])
                     if offset >= total:
@@ -148,10 +162,15 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_header("Content-Type", "audio/mpeg")
                 self.send_header("Accept-Ranges", "none" if kind == "norange" else "bytes")
                 self.send_header("Content-Length", str(total - offset))
+                if kind not in ("date", "novalidator"):
+                    self.send_header("ETag", "W/" + etag if kind == "weak" else etag)
+                if kind in ("date", "weak"):
+                    self.send_header("Last-Modified", modified)
                 if status == 206:
                     self.send_header("Content-Range", "bytes %d-%d/%d" % (offset, total - 1, total))
                 self.end_headers()
-                self.body(total, offset, bps, False, head, started, status, id3 if kind == "id3" else frames)
+                generator = id3 if kind == "id3" else (lambda start, length: frames(start + 144 * 123, length)) if version > 0 else frames
+                self.body(total, offset, bps, False, head, started, status, generator)
             elif kind == "chunked":
                 total = int(parts[1])
                 self.send_response(200)

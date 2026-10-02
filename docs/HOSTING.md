@@ -505,7 +505,11 @@ never keeps another from being copied.
   next request where it stopped (HTTP Range), so no step comes near the
   60 seconds proxies such as nginx allow, and the import lock is never
   held for long. A host that cannot continue a download (no Range
-  support) must deliver the file within one request.
+  support) must deliver the file within one request. Continued requests send
+  `If-Range` with a strong ETag or Last-Modified date. If the file changed,
+  the copy restarts; bytes from different versions are never joined. A host
+  without either validator must deliver the file within one request. If it
+  cannot, the copy reports the problem and keeps the original file address.
 - **What arrives is checked.** A truncated download (fewer bytes than the
   host announced) is never stored. Audio must be audio WordPress can
   read (MP3, M4A or WAV); a web page (often a login or consent page),
