@@ -1227,7 +1227,7 @@
     "id": "FEED-N2",
     "title": "Old host 301 → this site while in external mode: infinite redirect loop for apps; the sync never detects the move ('Too many redirects')",
     "priority": "P1",
-    "status": "fix implemented; regression tests not run in this environment",
+    "status": "fixed and tested",
     "evidence": "includes/Hosting.php:558-567 fetch() follows redirects inside Requests: `wp_safe_remote_get( $url, [ ... 'redirection' => 5, ... ] )`. It reaches this site's own feed, which in external mode 301s back (includes/Feed.php:591-595 `wp_redirect( $redirect, 301 ...)`), so the moved-here check at includes/Hosting.php:937-949 (`$own_feed = ... self::is_own_feed( $next_url ); $moved_here = $own_feed && 'external' === $settings['mode'];`) is never reached. The docs promise otherwise: docs/HOSTING.md:258-261 ('the next sync switches the site to This website') and :530-533 ('If it happens anyway, the next sync notices the redirect to this site's feed and switches back'); docs/VERIFICATION-1.3.0.md:86 lists 'a redirect to this site switching to This website' as verified. tests/integration/hosting.php:1857-1902 covers only the <itunes:new-feed-url> form and an emulated 301 to another fixture URL; a real request never goes to this site.",
     "reproduction": "Fake old host: scratch/audit/feed/hostsrv/router.php on php -S localhost:8969 (start-fake-host.sh). Mode file 'feed' serves paged-2.xml; mode '301' answers /host.xml with 'Location: http://localhost:8927/podcast/feed/'.\n\nScript: /tmp/epm-a-feed/wp eval-file scratch/audit/feed/moved-by-301.php. It sets external mode with feed_url=http://localhost:8969/host.xml and redirect on, then runs Hosting::sync(true) twice. Test-harness only: reject_unsafe_urls=false for the two local ports, because wp_safe_remote_get refuses other local ports.\n\nBaseline (mode feed): 'sync #1: ok / 2 new episodes.', mode stays external.\n\nMode 301:\n- own feed answers '301 -> http://localhost:8969/host.xml'\n- 'sync #1: error / The feed could not be loaded: Too many redirects'\n- 'sync #2: error / The feed could not be loaded: Too many redirects'\n- 'mode after sync: external / redirect target: http://localhost:8969/host.xml'\n- state status=error failures=2\n- the host access log shows 6 GETs of /host.xml per sync\n\nAn app following redirects: curl -sL --max-redirs 10 http://localhost:8969/host.xml → '301 after 10 redirects'.",
     "user_impact": "Journey 'move an existing podcast here'. A show that was mirrored and then redirected at the old host is unreachable in every podcast app (endless 301 loop) until the admin finds the problem and switches the mode by hand. This happens when the user sets the host's 301 before the plugin's move import has switched the site, or after a cancelled or partial move. The sync backs off (1–24 h) and the notice only says 'Too many redirects'. The documented safety net does not exist.",
@@ -1238,7 +1238,8 @@
       "includes/Hosting.php:558-567",
       "includes/Feed.php:591-595",
       "includes/Hosting.php:937-949"
-    ]
+    ],
+    "notes": "tests/media/downloads.php feed-loop (real host-to-site 301 loop fails before the guard, passes with one host request on WordPress 6.2 and 7.1.2); tests/integration/hosting.php"
   },
   {
     "id": "FEED-N3",

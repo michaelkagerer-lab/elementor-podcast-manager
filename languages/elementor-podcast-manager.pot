@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-02T09:05:20+00:00\n"
+"POT-Creation-Date: 2026-10-02T09:15:19+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: elementor-podcast-manager\n"
@@ -2822,7 +2822,7 @@ msgstr ""
 
 #. translators: %s: error message from the HTTP client
 #: includes/AdminPages.php:682
-#: includes/Hosting.php:746
+#: includes/Hosting.php:770
 #, php-format
 msgid "The feed could not be loaded: %s"
 msgstr ""
@@ -5151,126 +5151,131 @@ msgid "This feed address contains credentials. Its public redirect is turned off
 msgstr ""
 
 #: includes/Hosting.php:713
-#: includes/Hosting.php:860
+#: includes/Hosting.php:884
 msgid "Enter the RSS feed address (it starts with https://)."
 msgstr ""
 
+#: includes/Hosting.php:759
+msgid "Your host now sends podcast apps to this website’s feed."
+msgstr ""
+
 #. translators: %s: response size limit in bytes
-#: includes/Hosting.php:757
+#: includes/Hosting.php:781
 #, php-format
 msgid "The feed exceeds the %s-byte size limit. Ask the host for a smaller or paged feed, or adjust epm_feed_max_bytes."
 msgstr ""
 
-#: includes/Hosting.php:765
-#: includes/Hosting.php:888
+#: includes/Hosting.php:789
+#: includes/Hosting.php:912
 msgid "The server answered with a bot-protection page instead of the feed. Ask the site owner to allow podcast apps to read the feed, or use the feed address from your podcast host."
 msgstr ""
 
 #. translators: %d: HTTP status code
-#: includes/Hosting.php:775
+#: includes/Hosting.php:799
 #, php-format
 msgid "The podcast host returned HTTP %d and is temporarily unavailable. The feed will be checked again."
 msgstr ""
 
-#: includes/Hosting.php:779
+#: includes/Hosting.php:803
 msgid "The host feed address returned 404 or 410. Check the RSS address in your host dashboard."
 msgstr ""
 
-#: includes/Hosting.php:781
+#: includes/Hosting.php:805
 msgid "The host denied access to this feed. Check its privacy and access settings."
 msgstr ""
 
-#: includes/Hosting.php:783
+#: includes/Hosting.php:807
 msgid "The host is rate limiting feed checks. The next check will wait for the host’s Retry-After time."
 msgstr ""
 
-#: includes/Hosting.php:784
+#: includes/Hosting.php:808
 #, php-format
 msgid "The feed address answered with HTTP status %d."
 msgstr ""
 
-#: includes/Hosting.php:871
+#: includes/Hosting.php:895
 msgid "Apple Podcasts did not return a feed address for this show. Paste the RSS feed address from your host instead."
 msgstr ""
 
-#: includes/Hosting.php:875
+#: includes/Hosting.php:899
 msgid "Spotify show links do not reveal the RSS feed. In Spotify for Creators, open Settings → Availability and copy the RSS feed link (it looks like https://anchor.fm/s/…/podcast/rss)."
 msgstr ""
 
-#: includes/Hosting.php:890
+#: includes/Hosting.php:914
 msgid "This address is a web page, not an RSS feed, and the page does not link to one. Copy the RSS feed address from your host’s dashboard."
 msgstr ""
 
-#: includes/Hosting.php:1000
+#: includes/Hosting.php:1024
 msgid "No host feed address is set."
 msgstr ""
 
-#: includes/Hosting.php:1006
+#: includes/Hosting.php:1030
 msgid "An import is running. The sync will run after it finishes."
 msgstr ""
 
-#: includes/Hosting.php:1011
+#: includes/Hosting.php:1035
 msgid "Checking the podcast host feed."
 msgstr ""
 
-#: includes/Hosting.php:1035
+#: includes/Hosting.php:1048
+#: includes/Hosting.php:1254
+msgid "Your host now sends podcast apps to this website’s feed, so hosting switched to “This website”: the feed here is no longer redirected and syncing stopped."
+msgstr ""
+
+#: includes/Hosting.php:1067
 msgid "The host feed exceeded the configured response size limit, so nothing was synchronized."
 msgstr ""
 
-#: includes/Hosting.php:1042
+#: includes/Hosting.php:1074
 msgid "No new episodes."
 msgstr ""
 
-#: includes/Hosting.php:1074
+#: includes/Hosting.php:1106
 msgid "The host feed contains channel text that exceeds safe size limits. Nothing was synchronized."
 msgstr ""
 
-#: includes/Hosting.php:1084
+#: includes/Hosting.php:1116
 msgid "The host’s feed lists no episodes right now, so nothing was changed."
 msgstr ""
 
 #. translators: 1: episodes in the feed now, 2: episodes in the feed before
-#: includes/Hosting.php:1087
+#: includes/Hosting.php:1119
 #, php-format
 msgid "The host’s feed suddenly lists %1$d episodes instead of %2$d, so nothing was changed. If you removed episodes on purpose, run “Sync now”."
 msgstr ""
 
-#: includes/Hosting.php:1148
+#: includes/Hosting.php:1180
 msgid "An episode could not be synchronized."
 msgstr ""
 
-#: includes/Hosting.php:1166
+#: includes/Hosting.php:1198
 msgid "Another import or sync took over, so this sync stopped. It runs again on the next schedule."
 msgstr ""
 
-#: includes/Hosting.php:1196
+#: includes/Hosting.php:1228
 msgid "The announced feed address could not be verified."
 msgstr ""
 
 #. translators: %s: verified new RSS feed address
-#: includes/Hosting.php:1203
+#: includes/Hosting.php:1235
 #, php-format
 msgid "The host announced a new feed address. It was verified as this show and adopted: %s."
 msgstr ""
 
-#: includes/Hosting.php:1207
+#: includes/Hosting.php:1239
 msgid "The host announced a new feed address, but it did not verify as the same show. The current address was kept."
 msgstr ""
 
-#: includes/Hosting.php:1216
+#: includes/Hosting.php:1248
 msgid "Some episodes could not be synchronized; the feed will be checked again."
 msgstr ""
 
-#: includes/Hosting.php:1219
+#: includes/Hosting.php:1251
 msgid "Only the first page of this feed was checked. Re-import the feed to update older episodes. Episodes from other pages were kept."
 msgstr ""
 
-#: includes/Hosting.php:1222
-msgid "Your host now sends podcast apps to this website’s feed, so hosting switched to “This website”: the feed here is no longer redirected and syncing stopped."
-msgstr ""
-
 #. translators: %s: number of episodes
-#: includes/Hosting.php:1290
+#: includes/Hosting.php:1322
 #, php-format
 msgid "%s new episode"
 msgid_plural "%s new episodes"
@@ -5278,7 +5283,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: number of episodes
-#: includes/Hosting.php:1294
+#: includes/Hosting.php:1326
 #, php-format
 msgid "%s episode updated"
 msgid_plural "%s episodes updated"
@@ -5286,14 +5291,14 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: number of episodes
-#: includes/Hosting.php:1298
+#: includes/Hosting.php:1330
 #, php-format
 msgid "%s episode moved to drafts"
 msgid_plural "%s episodes moved to drafts"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/Hosting.php:1301
+#: includes/Hosting.php:1333
 msgid "Up to date."
 msgstr ""
 

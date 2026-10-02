@@ -63,6 +63,7 @@ echo "Media host on $EPM_TEST_MEDIA_ORIGIN"
 
 echo "-- downloads"
 wpq "$WP_CLI" eval-file "$HERE/downloads.php" || FAILED+=("downloads")
+wpq "$WP_CLI" eval-file "$HERE/downloads.php" feed-loop || FAILED+=("feed-loop")
 
 # One request copies a large file under a stock memory limit.
 memory() {

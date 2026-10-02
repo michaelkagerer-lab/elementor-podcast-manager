@@ -227,6 +227,34 @@ $epm_md_mode = (string) ( $args[0] ?? '' );
 /* Modes run.sh starts in processes of their own                             */
 /* ------------------------------------------------------------------------- */
 
+if ( 'feed-loop' === $epm_md_mode ) {
+	$t = new EPM_Test_Runner();
+	$saved = [];
+	foreach ( [ Hosting::OPTION, Hosting::STATE_OPTION, 'cron', 'epm_import_lock' ] as $name ) {
+		$saved[ $name ] = epm_test_option_snapshot( $name );
+	}
+	try {
+		$t->test( 'FEED-N2: a real permanent redirect to the local feed stops before a loop is followed', static function ( EPM_Test_Runner $t ) {
+			$host = epm_md_url( '/redirect/301/' . rawurlencode( EPM\Feed::url() ) );
+			delete_option( 'epm_import_lock' );
+			update_option( Hosting::OPTION, array_merge( Hosting::defaults(), [ 'mode' => 'external', 'feed_url' => $host, 'sync' => true, 'redirect' => true ] ) );
+			delete_option( Hosting::STATE_OPTION );
+			$t->same( $host, Hosting::feed_redirect_target(), 'precondition: the local feed redirects to the host' );
+			$result = Hosting::sync( true );
+			$t->same( 'ok', $result['status'], 'a permanent move here is handled successfully' );
+			$t->same( 'self', Hosting::get( 'mode' ), 'hosting switches to this website' );
+			$t->same( '', Hosting::feed_redirect_target(), 'the permanent redirect back to the host is removed' );
+			$t->assert( ! Hosting::sync_enabled(), 'the host is no longer synchronized' );
+			$requests = epm_md_requests( '/redirect/301/' );
+			$t->same( 1, count( $requests ), 'the host is requested once; the loop is never followed' );
+		} );
+	} finally {
+		foreach ( $saved as $name => $value ) { epm_test_option_restore( $name, $value ); }
+	}
+	$t->finish();
+	return;
+}
+
 if ( 'memory' === $epm_md_mode ) {
 	// One copy of a large audio file in a request with a stock memory limit.
 	$bytes = max( 1, (int) ( $args[1] ?? 62914560 ) );

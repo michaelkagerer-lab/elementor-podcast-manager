@@ -348,3 +348,9 @@ images, invalid attachment types, retained IDs after rejection and explicit
 removal. SEC-N4 sends chapter/link arrays through REST, checks the stored
 metadata and reads it anonymously. These pass on WordPress 6.2 and 7.1.2;
 replaying the 1.3.0 callbacks/registrations fails the regressions.
+
+`media/downloads.php feed-loop` verifies FEED-N2 over real sockets: the host
+redirects permanently to the site, whose feed initially redirects to the
+host. The sync stops before following the loop, switches to local hosting,
+removes the redirect and stops host synchronization. The media runner
+includes this case; it passes on WordPress 6.2 and 7.1.2.

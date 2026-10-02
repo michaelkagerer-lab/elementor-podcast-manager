@@ -724,16 +724,40 @@ final class Hosting {
 		}
 
 		$max_bytes = max( 1, (int) apply_filters( 'epm_feed_max_bytes', 50 * MB_IN_BYTES ) );
-		$response = SafeHttp::get(
-			$url,
-			[
-				'timeout'             => 30,
-				'redirection'         => 5,
-				'headers'             => $headers,
-				'user-agent'          => 'ElementorPodcastManager/' . EPM_VERSION . '; ' . home_url( '/' ),
-				'limit_response_size' => $max_bytes + 1,
-			]
-		);
+		// Stop a host -> local feed redirect before the local feed can send
+		// it back to the host. A completed response cannot expose this loop.
+		$moved_here = false;
+		$guard = static function ( $location, $redirect_headers, $data, $options, $previous ) use ( &$moved_here ): void {
+			if ( ! self::is_own_feed( (string) $location ) || ! in_array( (int) ( $previous->status_code ?? 0 ), [ 301, 308 ], true ) ) {
+				return;
+			}
+			foreach ( (array) ( $previous->history ?? [] ) as $hop ) {
+				if ( ! in_array( (int) $hop->status_code, [ 301, 308 ], true ) ) { return; }
+			}
+			$moved_here = true;
+			throw new \WpOrg\Requests\Exception( 'Permanent feed move to this website.', 'epm_feed_moved_here' );
+		};
+		add_action( 'requests-requests.before_redirect', $guard, 0, 5 );
+		try {
+			$response = SafeHttp::get(
+				$url,
+				[
+					'timeout'             => 30,
+					'redirection'         => 5,
+					'headers'             => $headers,
+					'user-agent'          => 'ElementorPodcastManager/' . EPM_VERSION . '; ' . home_url( '/' ),
+					'limit_response_size' => $max_bytes + 1,
+				]
+			);
+		} catch ( \WpOrg\Requests\Exception $error ) {
+			if ( ! $moved_here ) { throw $error; }
+			$response = new \WP_Error( 'epm_feed_moved_here' );
+		} finally {
+			remove_action( 'requests-requests.before_redirect', $guard, 0 );
+		}
+		if ( $moved_here ) {
+			return new \WP_Error( 'epm_feed_moved_here', __( 'Your host now sends podcast apps to this website’s feed.', 'elementor-podcast-manager' ) );
+		}
 
 		if ( is_wp_error( $response ) ) {
 			if ( 'epm_insecure_redirect' === $response->get_error_code() ) {
@@ -1017,6 +1041,14 @@ final class Hosting {
 			$fetched = self::fetch( $url, $validators );
 
 			if ( is_wp_error( $fetched ) ) {
+				if ( 'epm_feed_moved_here' === $fetched->get_error_code() && 'external' === $settings['mode'] ) {
+					$settings['mode'] = 'self';
+					update_option( self::OPTION, $settings );
+					$result['status'] = 'ok';
+					$result['message'] = __( 'Your host now sends podcast apps to this website’s feed, so hosting switched to “This website”: the feed here is no longer redirected and syncing stopped.', 'elementor-podcast-manager' );
+					self::update_state( [ 'last_run' => $now, 'status' => 'ok', 'message' => $result['message'], 'failures' => 0, 'retry_at' => 0 ] );
+					return $result;
+				}
 				$result['message'] = $fetched->get_error_message();
 				$error_data = $fetched->get_error_data();
 				$error_data = is_array( $error_data ) ? $error_data : [];
