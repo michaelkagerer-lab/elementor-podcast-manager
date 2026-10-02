@@ -94,6 +94,12 @@ jobs:
         run: WP_DIR=/tmp/epm-wp tests/media/run.sh
       - name: Race tests (two processes, with the stress run)
         run: STRESS=1 WP_DIR=/tmp/epm-wp tests/concurrency/run.sh
+      - name: Network lifecycle on the disposable MariaDB site
+        timeout-minutes: 3
+        run: WP_DIR=/tmp/epm-wp tests/multisite/run.sh
+      - name: Explicit data deletion budget
+        timeout-minutes: 1
+        run: EPM_TEST_SITE=1 timeout 35 /tmp/epm-wp/wp eval-file tests/perf/uninstall.php
       - name: Debug log
         if: failure()
         run: cat /tmp/epm-wp/site/wp-content/debug.log || true

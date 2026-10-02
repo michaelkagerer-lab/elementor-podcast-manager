@@ -654,6 +654,7 @@ final class Hosting {
 		wp_clear_scheduled_hook( ImportJob::CLEANUP_HOOK );
 		wp_clear_scheduled_hook( Feed::PING_HOOK );
 		wp_clear_scheduled_hook( Feed::PING_FILTER );
+		wp_clear_scheduled_hook( Upgrade::HOOK );
 	}
 
 	/**

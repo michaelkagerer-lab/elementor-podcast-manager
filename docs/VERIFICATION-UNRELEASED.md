@@ -1,3 +1,24 @@
+## 2026-10-02 network lifecycle and uninstall
+
+On a separate marked WordPress 7.1.2 / PHP 8.3.35 / MariaDB 11.4 network:
+
+- Network lifecycle: 17 baseline failures; 42 assertions pass after repair,
+  covering existing/new sites, deactivation schedules (including upgrade
+  work), keep/delete uninstall, all episode statuses and retained media.
+- Uninstall: the old loop exceeded 35 seconds for 5,000 episodes. Bounded
+  SQL deletion finishes in 0.55 seconds with 686 queries; 14 assertions pass,
+  including revisions/comments/metadata, attachment preservation and
+  detachment, settings retained on database failure, and successful retry.
+  Timing was measured through WP-CLI; php-fpm timing remains unverified.
+- The single-site run and hosting suites remain green (186 / 1178 assertions).
+- Network tests refuse unmarked sites and SQLite. CI runs them last on its
+  disposable MariaDB site with three-minute and one-minute step limits.
+
+Bulk episode deletion runs only with the existing explicit data-delete opt-in.
+It directly removes plugin episodes, revisions, comments, metadata and term
+relationships, clears relevant caches and recounts affected terms. It does not
+invoke per-post deletion hooks from other plugins.
+
 ## 2026-10-01 additional audit repairs
 
 Local verification on the same marked disposable SQLite site:

@@ -1026,7 +1026,7 @@
   "id": "LIFE-N2",
   "title": "Multisite: activation, deactivation and uninstall act on the main site only; subsites keep all data, options and a recurring sync event even in delete mode",
   "priority": "P2",
-  "status": "confirmed",
+  "status": "fixed and tested",
   "evidence": "elementor-podcast-manager.php:68-92: the activation and deactivation closures ignore $network_wide.\n\nuninstall.php runs once in the current (main) blog context: no get_sites()/switch_to_blog() loop for options, episodes, cron or uploads/sites/N/epm-import.\n\nThe plugin header has no 'Network:' line; README and VERIFICATION-1.3.0.md list multisite as untested.",
   "reproduction": "/tmp/epm-a-life-perf-qa-3: WordPress 7.1.2 multisite on MariaDB epm_ms (WP-CLI only, DISABLE_WP_CRON).\n\n1. wp plugin activate --network: blog 1 gets epm_version, epm_activation_redirect and the /podcast/feed/ rule. Blog 2 has nothing until its first request; after one WP-CLI load with --url=.../sub/ it has epm_version and the rule (maybe_upgrade self-heals).\n2. multisite/subsite-fixture.php on both blogs: 2 episodes each (1 trashed), a topic, settings. Blog 2 is in external hosting mode, which schedules epm_sync_feed.\n3. wp plugin deactivate --network: blog 2 still has epm_sync_feed (3-network-deactivated.json).\n4. Delete-mode uninstall_plugin() (EPM_DELETE_DATA): blog 1 left with 1 episode (the trashed one, LIFE-01), 0 topics, no options. Blog 2 unchanged: 2 episodes, 1 topic, options epm_guids_migrated/epm_hosting/epm_podcast_settings/epm_version, and the recurring epm_sync_feed event (4-uninstalled-delete.json).",
   "user_impact": "On a network, 'delete all data' leaves every subsite's podcast data and settings behind. Network deactivation leaves hourly sync events on subsites that fire with no handler. Per-site activation steps (redirect, version) differ between the main site and subsites.",
@@ -1035,7 +1035,8 @@
   "area": "LIFE-01, PERF-01, QA-01",
   "refs": [
    "uninstall.php"
-  ]
+  ],
+  "verification": "2026-10-01: 17 baseline failures reproduced on a marked WordPress 7.1.2/MariaDB 11.4 network. Network lifecycle and new-site initialization pass 42 assertions, including preservation of Media Library items and clearing upgrade work."
  },
  {
   "id": "PERF-N3",
@@ -1141,7 +1142,7 @@
   "id": "LIFE-N5",
   "title": "Delete-mode uninstall deletes episodes one by one: 74 s and 201k queries for 5000 episodes; from the web the request gets a 504",
   "priority": "P3",
-  "status": "fix implemented; regression tests not run in this environment",
+  "status": "fixed and tested",
   "evidence": "uninstall.php:62-73: get_posts( ... 'posts_per_page' => -1 ... ) then wp_delete_post( $epm_episode_id, true ) for every episode in one request. Options are deleted before the episodes (uninstall.php:44-55), so an interrupted run leaves episodes without settings.",
   "reproduction": "MariaDB perf site, 5000 episodes.\n\nCLI: 'delete-mode uninstall of 5000 episodes (MariaDB, CLI, no time limit): 74.1 s, 201050 queries, peak 82.9 MB' (perf/uninstall-5000.txt).\n\nThrough nginx and php-fpm (perf/audit-uninstall-web.php calling uninstall_plugin() in a php-fpm request; plugin files not deleted): client got 'HTTP 504 after 60.06s'. PHP kept running ('shutdown after 78.4 s wall, max_execution_time=30, error=null, episodes left=0'). max_execution_time counts CPU time only on Linux.",
   "user_impact": "A site owner deleting the plugin with 'delete all data' sees a gateway timeout. On hosts that kill long requests (request_terminate_timeout, proxies), deletion stops partway: settings are gone and episodes are half deleted.",
@@ -1152,7 +1153,8 @@
    "uninstall.php:62-73",
    "uninstall.php:44-55"
   ],
-  "notes": "Batched episode query exists; 5000 episode php-fpm timing remains unverified."
+  "notes": "Batched episode query exists; 5000 episode php-fpm timing remains unverified.",
+  "verification": "2026-10-02: old per-episode uninstall exceeded the 35-second local limit. Bulk uninstall passes 14 assertions on the marked MariaDB 11.4 network: 5,000 episodes removed in 0.55s with 686 queries. Revisions/comments and their metadata removed; attachments retained and detached. A database delete failure preserves settings and allows retry. CLI timing measured; php-fpm timing not yet run."
  },
  {
   "id": "PERF-N5",

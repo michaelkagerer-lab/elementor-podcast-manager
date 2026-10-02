@@ -278,3 +278,17 @@ untouched. `integration/hosting.php` loads the class directly and uses
 between syncs), `EPM_Test_HTTP::$log` (requests made) and
 `EPM_Test_HTTP::$offline` (refuse every other request, so a test can prove
 that nothing left the site).
+
+### Multisite lifecycle
+
+`WP_DIR=/tmp/epm-wp WP_CLI=/tmp/epm-wp/wp tests/multisite/run.sh` converts
+only a marked disposable MySQL/MariaDB test site into a network. It checks
+network activation, initialization of new sites, clearing all plugin schedules,
+and keep/delete uninstall behavior on several sites. It refuses SQLite and
+unmarked sites. The MariaDB CI job runs this last with a three-minute limit.
+
+`EPM_TEST_SITE=1 WP_CLI eval-file tests/perf/uninstall.php` exercises explicit
+uninstall on a marked disposable site with 5,000 synthetic episodes. It checks
+a 30-second CLI budget, fewer than 5,000 cleanup queries, revisions/comments,
+retained media, and settings retention/retry after an injected database error.
+CI runs it on the disposable MariaDB network with a 35-second process limit.
