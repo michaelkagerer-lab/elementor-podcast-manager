@@ -481,3 +481,10 @@ wp i18n make-pot . languages/elementor-podcast-manager.pot --exclude=tests,docs,
 Deactivation flushes rewrite rules and removes the plugin's scheduled events (host sync, background import, import cleanup, Podcast Index notification); nothing else is changed. Reactivation schedules the sync again when it is enabled.
 
 Uninstall always removes the scheduled events, the parsed feed of a checked or running import (`epm_import_chunk_*` rows, and the 1.3.0 folder `uploads/epm-import/` if one is left), the import job and lock, and the activation flag. Everything else (episodes, topics, settings, design, hosting and distribution settings, the feed build record) is deleted only when `EPM_DELETE_DATA` is defined or `epm_delete_data_on_uninstall` returns true.
+
+## Contributing and agent guidance
+
+All agents working on this project must follow [AGENTS.md](AGENTS.md), including
+the [project-design skill](.agents/skills/project-design/SKILL.md) and the owner's
+[Design-Learnings & Regeln](docs/design-learnings-und-regeln.md). The full supplied
+reference is preserved with its attribution and verification notes.
