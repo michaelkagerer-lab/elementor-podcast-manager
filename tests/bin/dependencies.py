@@ -41,14 +41,22 @@ def download(kind, version, output):
 def inventory(wp, output):
     def command(*args):
         return subprocess.check_output([wp, *args], text=True, timeout=60).strip()
+    def json_eval(expression):
+        marker = 'EPM_INVENTORY_JSON:'
+        output = command('eval', 'echo "\\n' + marker + '"; echo wp_json_encode(' + expression + '); echo "\\n";')
+        for line in output.splitlines():
+            if line.startswith(marker):
+                return json.loads(line[len(marker):])
+        raise ValueError('WP-CLI did not return the inventory JSON marker')
+
     data = {
         'profile': os.environ.get('EPM_TEST_PROFILE', 'current'),
         'wordpress': command('core', 'version'),
         'wp_cli': command('cli', 'version'),
-        'php': command('eval', 'echo PHP_VERSION;'),
+        'php': json_eval('PHP_VERSION'),
         'plugins': json.loads(command('plugin', 'list', '--fields=name,status,version', '--format=json')),
         'themes': json.loads(command('theme', 'list', '--fields=name,status,version', '--format=json')),
-        'core_languages': json.loads(command('eval', 'echo wp_json_encode(get_available_languages());')),
+        'core_languages': json_eval('get_available_languages()'),
         'manifest': json.loads(MANIFEST.read_text()),
     }
     Path(output).write_text(json.dumps(data, indent=2) + '\n')
