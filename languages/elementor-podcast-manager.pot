@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-02T09:28:36+00:00\n"
+"POT-Creation-Date: 2026-10-02T09:46:34+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: elementor-podcast-manager\n"
@@ -184,7 +184,7 @@ msgstr ""
 
 #: admin/views/dashboard.php:155
 #: admin/views/distribution.php:138
-#: admin/views/hosting.php:293
+#: admin/views/hosting.php:295
 #: admin/views/settings.php:184
 #: admin/views/setup.php:473
 #: admin/views/setup.php:485
@@ -1291,85 +1291,90 @@ msgstr ""
 msgid "Import episodes"
 msgstr ""
 
-#: admin/views/hosting.php:262
+#: admin/views/hosting.php:259
+#: admin/views/setup.php:242
+msgid "Retry progress check"
+msgstr ""
+
+#: admin/views/hosting.php:264
 #: admin/views/setup.php:248
 msgid "Show the import log"
 msgstr ""
 
-#: admin/views/hosting.php:266
+#: admin/views/hosting.php:268
 #: admin/views/setup.php:255
 msgid "Stop the import"
 msgstr ""
 
-#: admin/views/hosting.php:267
+#: admin/views/hosting.php:269
 msgid "View episodes"
 msgstr ""
 
-#: admin/views/hosting.php:273
+#: admin/views/hosting.php:275
 msgid "Moving your podcast"
 msgstr ""
 
-#: admin/views/hosting.php:275
+#: admin/views/hosting.php:277
 msgid "Moving your podcast to this website"
 msgstr ""
 
-#: admin/views/hosting.php:279
+#: admin/views/hosting.php:281
 msgid "Prepare the old host"
 msgstr ""
 
-#: admin/views/hosting.php:280
+#: admin/views/hosting.php:282
 msgid "Make every episode visible in its feed (raise any episode limit), turn off “Lock feed” and download your statistics: they do not move."
 msgstr ""
 
-#: admin/views/hosting.php:284
+#: admin/views/hosting.php:286
 msgid "Import with media"
 msgstr ""
 
-#: admin/views/hosting.php:285
+#: admin/views/hosting.php:287
 msgid "Use the setup assistant (“Move my podcast”) or the import on this page with “Copy audio” on. Episode IDs (GUIDs) are kept, so apps never show duplicates."
 msgstr ""
 
-#: admin/views/hosting.php:289
+#: admin/views/hosting.php:291
 msgid "Redirect the old feed here"
 msgstr ""
 
-#: admin/views/hosting.php:295
+#: admin/views/hosting.php:297
 msgid "Instructions for"
 msgstr ""
 
-#: admin/views/hosting.php:306
+#: admin/views/hosting.php:308
 msgid "Wait four weeks before closing the old account"
 msgstr ""
 
-#: admin/views/hosting.php:307
+#: admin/views/hosting.php:309
 msgid "Apple asks for at least four weeks. Where no redirect is possible, change the feed address in Apple Podcasts Connect and Spotify for Creators yourself."
 msgstr ""
 
-#: admin/views/hosting.php:313
+#: admin/views/hosting.php:315
 msgid "Moving your podcast to another host"
 msgstr ""
 
-#: admin/views/hosting.php:317
+#: admin/views/hosting.php:319
 msgid "Let the new host import this feed"
 msgstr ""
 
-#: admin/views/hosting.php:318
+#: admin/views/hosting.php:320
 msgid "Give it this site’s feed address. Set “Feed episode limit” to 0 in Podcast settings first so every episode is included, and unlock the feed."
 msgstr ""
 
-#: admin/views/hosting.php:322
+#: admin/views/hosting.php:324
 msgid "Check the new feed"
 msgstr ""
 
-#: admin/views/hosting.php:323
+#: admin/views/hosting.php:325
 msgid "Paste the new host’s feed into “Import episodes from a feed” and choose “Check feed”: it should report that every episode already exists here. That proves the episode IDs were kept."
 msgstr ""
 
-#: admin/views/hosting.php:327
+#: admin/views/hosting.php:329
 msgid "Switch to “Another podcast host”"
 msgstr ""
 
-#: admin/views/hosting.php:328
+#: admin/views/hosting.php:330
 msgid "Enter the new feed address and keep the redirect on. This site then answers its old feed address with a permanent (301) redirect, and apps move over by themselves. Keep it that way; the audio files already here stay online."
 msgstr ""
 
@@ -1911,10 +1916,6 @@ msgstr ""
 
 #: admin/views/setup.php:229
 msgid "The import continues in the background if you leave this page. Episodes that already exist here are updated, never duplicated."
-msgstr ""
-
-#: admin/views/setup.php:242
-msgid "Retry progress check"
 msgstr ""
 
 #: admin/views/setup.php:265
@@ -2789,7 +2790,7 @@ msgid "Add square artwork: Apple Podcasts and Spotify require it."
 msgstr ""
 
 #: includes/AdminPages.php:542
-#: admin/js/epm-setup.js:930
+#: admin/js/epm-setup.js:936
 msgid "Use a JPEG or PNG file."
 msgstr ""
 
@@ -6660,8 +6661,8 @@ msgid "Copying the audio moves your podcast to this website. When the import fin
 msgstr ""
 
 #. translators: %1$s: why the feed could not be read completely
-#: admin/js/epm-hosting.js:513
-#: admin/js/epm-setup.js:718
+#: admin/js/epm-hosting.js:522
+#: admin/js/epm-setup.js:722
 #, js-format
 msgid "This import covers only part of the feed. %1$s"
 msgstr ""
@@ -6857,23 +6858,23 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: 1: width, 2: height
-#: admin/js/epm-setup.js:934
+#: admin/js/epm-setup.js:940
 #, js-format
 msgid "The image is %1$s×%2$s px. It must be exactly square."
 msgstr ""
 
 #. translators: %1$s: width in pixels
-#: admin/js/epm-setup.js:938
+#: admin/js/epm-setup.js:944
 #, js-format
 msgid "The image is %1$s px wide. Use 1400 to 3000 px (3000 px is best)."
 msgstr ""
 
 #. translators: %1$s: podcast host name
-#: admin/js/epm-setup.js:987
+#: admin/js/epm-setup.js:993
 #, js-format
 msgid "Set the redirect at %1$s"
 msgstr ""
 
-#: admin/js/epm-setup.js:1143
+#: admin/js/epm-setup.js:1151
 msgid "Your show details have unsaved changes."
 msgstr ""

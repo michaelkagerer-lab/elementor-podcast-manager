@@ -462,6 +462,15 @@
 			return;
 		}
 		jobBox.hidden = false;
+		var retryProgress = $( '[data-action="retry-progress"]', jobBox );
+		var retryFocus = state.retrying && ( ! document.activeElement || document.activeElement === document.body || document.activeElement === retryProgress );
+		state.retrying = false;
+		retryProgress.hidden = true;
+		busy( retryProgress, false );
+		if ( retryFocus ) {
+			jobBox.setAttribute( 'tabindex', '-1' );
+			jobBox.focus();
+		}
 
 		var total = Math.max( 0, job.total || 0 );
 		var done = Math.min( total, job.done || 0 );
@@ -513,6 +522,16 @@
 				__( 'This import covers only part of the feed. %1$s', 'elementor-podcast-manager' ),
 				job.catalog.message
 			);
+		}
+
+		var stopped = job.status === 'cancelled' || job.status === 'failed';
+		var stoppedBox = $( '[data-job-stopped]', jobBox );
+		stoppedBox.hidden = ! stopped;
+		if ( stopped ) {
+			state.stepping = false;
+			var stoppedMessage = format( app.strings.stopped, importResult.number( done ), importResult.number( total ) );
+			$( 'p', stoppedBox ).textContent = stoppedMessage;
+			announce( stoppedMessage );
 		}
 
 		var active = importResult.active( job );
@@ -593,7 +612,12 @@
 					state.stepping = false;
 					var box = $( '[data-job-error]', jobBox );
 					box.hidden = false;
-					$( 'p', box ).textContent = error.message + ' ' + app.strings.leaveImport;
+					$( 'p', box ).textContent = app.strings.interrupted;
+					var retryProgress = $( '[data-action="retry-progress"]', jobBox );
+					retryProgress.hidden = false;
+					busy( retryProgress, false );
+					state.retrying = false;
+					announce( app.strings.interrupted );
 				} );
 		} )();
 	}
@@ -637,6 +661,11 @@
 			case 'retry-feed':
 				retry( target );
 				break;
+			case 'retry-progress':
+				state.retrying = true;
+				busy( target, true );
+				loop();
+				break;
 			case 'retry-copies':
 				retryCopies( target );
 				break;
@@ -674,7 +703,7 @@
 	if ( app.job && importResult.active( app.job ) ) {
 		renderJob( app.job );
 		loop();
-	} else if ( app.job && app.job.status === 'done_with_problems' ) {
+	} else if ( app.job && [ 'done_with_problems', 'cancelled', 'failed' ].indexOf( app.job.status ) !== -1 ) {
 		renderJob( app.job );
 	}
 } )();

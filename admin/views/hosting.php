@@ -245,7 +245,7 @@ $epm_when = static function ( int $timestamp ): string {
 					</div>
 				</form>
 
-				<div class="epm-stack" data-job <?php echo in_array( $epm_job['status'], [ 'running', 'waiting', 'done_with_problems' ], true ) ? '' : 'hidden'; ?>>
+				<div class="epm-stack" data-job <?php echo in_array( $epm_job['status'], [ 'running', 'waiting', 'done_with_problems', 'cancelled', 'failed' ], true ) ? '' : 'hidden'; ?>>
 					<div class="epm-progress">
 						<div class="epm-progress__track" role="progressbar" aria-labelledby="epm-hosting-import-title" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
 							<div class="epm-progress__bar"></div>
@@ -255,7 +255,9 @@ $epm_when = static function ( int $timestamp ): string {
 							<span data-job-summary></span>
 						</div>
 					</div>
-					<div class="epm-callout epm-callout--error" data-job-error hidden><p></p></div>
+					<div class="epm-callout epm-callout--error" data-job-error role="alert" hidden><p></p></div>
+					<button type="button" class="button" data-action="retry-progress" hidden><?php esc_html_e( 'Retry progress check', 'elementor-podcast-manager' ); ?></button>
+					<div class="epm-callout epm-callout--warn" data-job-stopped hidden><p></p></div>
 					<div class="epm-callout epm-callout--warn" data-job-incomplete hidden><p></p></div>
 					<?php require EPM_PATH . 'admin/views/partials/import-result.php'; ?>
 					<details class="epm-details">

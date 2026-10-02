@@ -361,3 +361,17 @@ local URL and token-only edits, and the expiry warning. The hosting suite now
 passes 1,193 assertions on WordPress 6.2 and 7.1.2. Its uninstall probe parks
 non-probe episodes because the bounded uninstaller uses direct SQL; it
 verifies those episodes survive and restores their original type in `finally`.
+
+The expanded `integration/audit-sync.php` passes 42 assertions on WordPress
+6.2 and 7.1.2: settings-save validation before a 301, announced candidate
+feeds (404/invalid/unrelated), connected versus synced readiness, reactivation
+of an interrupted import, per-item failure retries, scheduled episode changes
+and Retry-After. Replaying the original hosting/importer/readiness code and
+activation callback fails 27 assertions.
+
+`e2e/import-recovery.mjs` checks stopped and failed move gates, progress-check
+network failures, recovery copy and alerts, single-request retry, stopped counts,
+keyboard focus, announcements and a 390 px viewport in the assistant and
+Hosting & import screen. It restores the exact stored setup/job/cron options
+in `finally`. `EPM_RECOVERY_BASELINE_JS` optionally replays the original setup
+script on a disposable site; 13 regression checks fail with that script.

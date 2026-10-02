@@ -103,7 +103,7 @@
     "id": "SYNC-N3",
     "title": "<itunes:new-feed-url> is adopted without validating the new address; the site's 301 then points to a broken feed",
     "priority": "P2",
-    "status": "fix implemented; regression tests not run in this environment",
+    "status": "fixed and tested",
     "evidence": "includes/Hosting.php:936-954 at b1076c8:\n  if ( '' !== (string) $parsed['channel']['new_feed_url'] ) { $next_url = self::sanitize_feed_url( ... ); }\n  ... } elseif ( ! $own_feed && '' !== $next_url && $next_url !== $url && ... ) { $settings['feed_url'] = $next_url; update_option( self::OPTION, $settings ); }\nThe new URL is never fetched first. feed_redirect_target() (333-346) immediately uses it, and the result message (956-957) does not mention the change.",
     "reproduction": "`$S/wpq eval-file $S/sync-audit.php newfeed`. The feed announces https://feeds.example.test/snf-new-typo.xml, which answers 404. Output:\n- sync 'ok / 1 new episode.';\n- hosting feed_url now 'https://feeds.example.test/snf-new-typo.xml';\n- local feed 301 target now the same URL;\n- next sync 'error / The feed address answered with HTTP status 404.'",
     "user_impact": "A typo or a premature new-feed-url at the host silently re-points the site's sync and the site's permanent redirect to a dead URL. Apps that follow the site's 301 update to the dead address. The sync that made the change reports plain success.",
@@ -113,7 +113,7 @@
     "refs": [
       "includes/Hosting.php:936-954"
     ],
-    "notes": "Candidate address validation exists; direct 404/unrelated show cases and runtime verification are pending."
+    "notes": "tests/integration/audit-sync.php (404, invalid RSS and an unrelated valid show keep both source and public redirect; original sync fails)"
   },
   {
     "id": "SYNC-N4",
@@ -1128,7 +1128,7 @@
     "id": "LIFE-N4",
     "title": "Deactivating and reactivating during an interrupted import leaves the job 'running' with no continuation event; it only resumes when Hosting & import is opened, and new previews are refused meanwhile",
     "priority": "P3",
-    "status": "fix implemented; regression tests not run in this environment",
+    "status": "fixed and tested",
     "evidence": "Hosting::unschedule_all() (Hosting.php:502-506) clears epm_import_continue on deactivation. Activation (elementor-podcast-manager.php:68-80) and Hosting::ensure_schedule() (Hosting.php:491-495) restore only the sync event.\n\nImportJob::preview() refuses while status is 'running' (ImportJob.php:241-244).\n\nOnly admin/js/epm-hosting.js:559-563 resumes stepping when the page loads with job.status running.",
     "reproduction": "/tmp/epm-a-life-perf-qa, life/jobstate.php around each step.\n\nPlain sequence:\n- before: job running 10/60, file present, cron [sync, ping, import_continue]\n- after deactivate: job running 10/60, file kept, cron []\n- after activate: job running 10/60, cron [epm_sync_feed] only\n- wp cron event run --due-now: 0 events, still 10/60\n- ImportJob::preview(buzzsprout) -> 'An import is already running. Wait for it to finish or cancel it first.'\n\nRace, with DISABLE_WP_CRON set temporarily: life/slow-step.php (1 s per created episode) ran in the background while wp plugin deactivate ran. The step finished at 16/60, released the lock and wrote no new cron event.\n\nResuming after reactivation by stepping (what the Hosting screen does): done 60/60, counts created 60, 60 episodes with 60 distinct GUIDs (no duplicates, no loss).",
     "user_impact": "After a deactivate/reactivate (for example while troubleshooting), the import silently stops. The setup assistant and other screens refuse to check a new feed until the user opens Podcast → Hosting & import, where it resumes, or cancels. No data loss.",
@@ -1138,7 +1138,7 @@
     "refs": [
       "admin/js/epm-hosting.js:559-563"
     ],
-    "notes": "Resume hook exists; deactivate/reactivate integration test is pending."
+    "notes": "tests/integration/audit-sync.php (deactivation/reactivation restores one continuation event and retains progress; stopped jobs stay stopped; original activation fails)"
   },
   {
     "id": "LIFE-N5",
@@ -1209,7 +1209,7 @@
     "id": "FEED-N1",
     "title": "Switching to 'Another podcast host' saves and activates the permanent 301 without fetching the address; readiness then shows a green 'In sync'",
     "priority": "P1",
-    "status": "fix implemented; regression tests not run in this environment",
+    "status": "fixed and tested",
     "evidence": "includes/Hosting.php:184-233 sanitize() only shape-checks: `$out['feed_url'] = self::sanitize_feed_url(...)` (no fetch); includes/Hosting.php:333-346 feed_redirect_target(): `if ( ! self::is_external() || ! self::get( 'redirect' ) ) return ''; ... return $target;` (redirect live as soon as the option is saved); admin/views/hosting.php:55-56 form posts straight to options.php; admin/js/epm-hosting.js:92-107 only toggles fields (no check before submit); includes/Readiness.php:341 `$add( 'ok', __( 'Host feed' ...), $feed );`, :367 `$add( 'ok', __( 'Site feed' ...), __( 'Redirects permanently to your host’s feed.' ...) )`, :419 `'ready' => 0 === $errors`, :451 badge `Hosting::is_external() ? __( 'In sync' ...)`. docs/HOSTING.md:178-185 says the field 'also accepts an Apple Podcasts show link / web page'; only the import card's locate() resolves those.",
     "reproduction": "scratch/audit/feed/hosting-switch.sh [URL]. It logs in as admin, takes the epm_hosting_group nonce from admin.php?page=epm-hosting and POSTs to wp-admin/options.php with mode=external, redirect=1. Afterwards it restores the hosting and sync-state options.\n\n(a) URL = https://feeds.example.test/typo-does-not-exist.xml. Hosting::fetch() of it returns 'HTTP status 404'. Observed:\n- options.php -> /wp-admin/admin.php?page=epm-hosting&settings-updated=true\n- no notice of any kind on the page\n- GET /podcast/feed/ -> '301 -> https://feeds.example.test/typo-does-not-exist.xml'\n- dashboard badges 'Configured' and 'In sync' (epm-badge--ok)\n- Readiness::report(): ready=true errors=0 warnings=1, [ok] Host feed: https://feeds.example.test/typo-does-not-exist.xml, [ok] Site feed: Redirects permanently to your host’s feed.\n\n(b) URL = https://podcasts.apple.com/us/podcast/synthetic-show/id1000000001 (an Apple show link, which docs/HOSTING.md section 3 says the field accepts). Observed: GET /podcast/feed/ -> '301 -> https://podcasts.apple.com/us/podcast/synthetic-show/id1000000001', badge 'In sync', ready=true.",
     "user_impact": "This is the 'move away' journey, docs/HOSTING.md section 7 step 4 ('Switch to Another podcast host … keep the redirect on'). A typo, a dashboard URL or an Apple/Spotify page link immediately sends every app and directory a permanent 301 to something that is not a feed. Apps that follow a 301 rewrite their stored subscription, so listeners can be lost permanently. Nothing on screen says the address was never read: the readiness report and badge say everything is fine until the first scheduled sync (at least 1 minute later, and only if WP-Cron runs) records an error.",
@@ -1221,7 +1221,7 @@
       "includes/Hosting.php:333-346",
       "admin/views/hosting.php:55-56"
     ],
-    "notes": "Setup flow validates the feed; settings-save validation lacks a targeted regression test."
+    "notes": "tests/integration/audit-sync.php (actual settings save rejects 404 and web pages before enabling a 301; accepts a verified feed; original settings handler fails)"
   },
   {
     "id": "FEED-N2",
@@ -1278,7 +1278,7 @@
     "id": "FEED-N5",
     "title": "Sync adopts the host's <itunes:new-feed-url> (or a 301 final URL) as the new feed address and 301 target without fetching it; reports 'ok'",
     "priority": "P2",
-    "status": "fix implemented; regression tests not run in this environment",
+    "status": "fixed and tested",
     "evidence": "includes/Hosting.php:937-954: `if ( '' !== (string) $parsed['channel']['new_feed_url'] ) { $next_url = self::sanitize_feed_url( ... ); } ... } elseif ( ! $own_feed && '' !== $next_url && $next_url !== $url && ... ) { $settings['feed_url'] = $next_url; update_option( self::OPTION, $settings ); }`. No request is made to $next_url. The message is only the summary (:957 `self::summary( $result )`).",
     "reproduction": "/tmp/epm-a-feed/wp eval-file scratch/audit/feed/sync-new-feed-url.php. The host route serves paged-2.xml with <itunes:new-feed-url>https://feeds.example.test/audit/typo-new-address.xml</itunes:new-feed-url>. Output:\n- 'sync status: ok / 2 new episodes.'\n- 'stored feed_url now: https://feeds.example.test/audit/typo-new-address.xml'\n- 'redirect target now: https://feeds.example.test/audit/typo-new-address.xml'\n- 'requests made: GET https://feeds.example.test/audit/host.xml' (the new address was never requested)\n- 'what the adopted address answers: …HTTP status 404'\n- readiness ready=true, '[ok] Last sync: 1 second ago — 2 new episodes.', '[ok] Site feed: Redirects permanently…'",
     "user_impact": "A wrong or half-finished new-feed-url at the host (or a temporary misconfiguration) silently changes this site's permanent 301 target and the address the sync reads. Apps are sent to a dead address. The admin is told 'ok' and only sees errors after the next run. There is no record of the previous address to go back to.",
@@ -1287,7 +1287,8 @@
     "area": "Feed + distribution + hosting switch",
     "refs": [
       "includes/Hosting.php:937-954"
-    ]
+    ],
+    "notes": "tests/integration/audit-sync.php (same candidate verification as SYNC-N3; original sync fails)"
   },
   {
     "id": "FEED-N6",
@@ -1464,13 +1465,13 @@
     "id": "UX-N2",
     "title": "After a stopped or interrupted move import, the assistant says \"Your episodes are here — one step left\" and tells the user to set the 301 redirect",
     "priority": "P1",
-    "status": "fix implemented; regression tests not run in this environment",
+    "status": "fixed and tested",
     "evidence": "admin/js/epm-setup.js:\n- line 609 `var finished = job.status === 'done' || job.status === 'cancelled' || job.status === 'failed';` and 610 enable Continue for a cancelled or failed job.\n- lines 683-689: after a failed step request, the loop stops and Continue is enabled (`$( '[data-import-continue]', importPanel ).disabled = false;`) while the job is still 'running' at position 0.\n- line 233: go('done') runs finish() unconditionally.\nadmin/views/setup.php:\n- 424 `Your episodes are here — one step left`.\n- 436-457: the redirect checklist, including 455 \"This feed also announces its new address in the meantime\". It is shown for the move path whatever the job's completeness; after a stop, moved_in=false (finish_move never ran), so this sentence is false too.\nThe readiness report on the done step contains nothing about the incomplete catalog.",
     "reproduction": "Run `node j3-move.mjs` against a fresh site (fresh.sqlite, empty uploads; mu-plugin scratch/mu/epm-ux-routes.php serves https://feeds.example.test/ux/big-show.xml with 40 items and 400 ms per audio file). Viewport 390x844.\n- 'Move my podcast', check the big-show feed (copy media checked). The first epm_import_step request is aborted: `{\"error\":\"Failed to fetch The import continues in the background if you leave this page.\",\"continueEnabled\":true,\"stopVisible\":true}`, job `{\"status\":\"running\",\"total\":40,\"position\":0}`.\n- Reload, then press 'Stop the import' at 5 of 40: `{\"count\":\"5 of 40 episodes\",\"summary\":\"5 new\",\"title\":\"Importing your episodes\",\"announce\":\"\"}`; state `{\"job\":{\"status\":\"cancelled\",\"total\":40,\"position\":5},\"mode\":\"self\",\"moved\":false,\"locked\":false,\"episodes\":5}`.\n- Continue, then Save, then Save: `done step after a STOPPED move: {\"title\":\"Your episodes are here — one step left\",\"steps\":[\"Copy this site’s feed address\",\"Set the redirect at Buzzsprout\",\"Keep the old account for four weeks\"],\"readiness\":[]}`.\nScreenshots: screens/j3-05-done-after-stopped-move-390.png and screens/j3-03-import-network-error-390.png. The resumed full import later ends correctly: `{\"count\":\"40 of 40 episodes\",\"summary\":\"35 new · 5 unchanged · 1 audio not copied\"}`, state `{\"mode\":\"self\",\"moved\":true,\"locked\":true,\"episodes\":40,\"local_audio\":39}`.",
     "user_impact": "A host who stops or loses the import and follows the on-screen instructions redirects the old feed to a feed with 5 of 40 episodes, or with 0 after the network-error path. Apple, Spotify and all apps then lose 35 episodes for subscribers. The step indicator also marks 'Episodes' as done.",
     "proposed_fix": "Gate the move done step on the job outcome. For cancelled, failed or incomplete jobs (position < total, or status != 'done'), show 'Import not finished: N of M episodes are here' with Resume or Run the import again as the primary action, and hide the redirect checklist. Also add a readiness error 'Move not finished' (catalog incomplete, moved_in false). Do not enable Continue after a network error while the job is still running; offer Retry instead (see UX-N6). Ties into IMP-01: no silent move finalization with unclear catalog completeness.",
     "test_plan": "An e2e test (setup.mjs-style): move path with a stop after N < M items. Assert the done step shows no redirect instructions, offers Resume, and readiness has a blocking item. A variant aborts epm_import_step once and asserts that Continue stays disabled and Retry resumes the job. An integration test asserts that Readiness::report() flags a cancelled move job.",
-    "notes": "Cron did not continue the job within the test window after the aborted request; the job stayed 'running' at position 0 until the page was reloaded. Stopped job guard implemented; browser test for stopped move path pending.",
+    "notes": "tests/e2e/import-recovery.mjs (cancelled and failed moves cannot show success or redirect instructions, retain counts and announce the stop; original setup script fails)",
     "area": "User journeys, a11y, embeds, i18n",
     "refs": [
       "admin/js/epm-setup.js",
@@ -1537,13 +1538,13 @@
     "id": "UX-N6",
     "title": "Import errors and stops are not announced; raw \"Failed to fetch\"; no retry; a stopped import still says it \"continues in the background\"",
     "priority": "P2",
-    "status": "fix implemented; regression tests not run in this environment",
+    "status": "fixed and tested",
     "evidence": "- admin/js/epm-setup.js:683-689: `box.hidden = false; $( 'p', box ).textContent = error.message + ' ' + app.strings.leaveImport;` with no announce() call. The box (admin/views/setup.php:227 `<div class=\"epm-callout epm-callout--error\" data-import-error hidden>`) has no role=alert or aria-live. error.message is the browser's untranslatable 'Failed to fetch'. No retry control exists. The same code is at admin/js/epm-hosting.js:467.\n- renderJob() (epm-setup.js:609-616) announces only for status 'done'. A cancelled job keeps the heading 'Importing your episodes' and the lede 'The import continues in the background if you leave this page' (setup.php:214-215); the cancel handler (977-990) announces nothing.",
     "reproduction": "- j3-move.mjs (one epm_import_step aborted): `{\"error\":\"Failed to fetch The import continues in the background if you leave this page.\",\"errorRole\":null,\"announce\":\"Step 3 of 6: Importing your episodes\",\"continueEnabled\":true,\"stopVisible\":true,\"retry\":false}`; the job stayed at position 0 until a manual reload.\n- j2-mirror.mjs 'Stop the import': `{\"count\":\"40 of 150 episodes\",\"summary\":\"40 new\",\"title\":\"Importing your episodes\",\"lede\":\"The import continues in the background if you leave this page...\",\"announce\":\"\"}`.\nScreenshots: screens/j3-03-import-network-error-390.png, screens/j2-06-import-stopped.png.",
     "user_impact": "Screen-reader users get no notice that the import stopped or failed. Everyone sees a technical English message and has to guess to reload. After 'Stop the import', the screen still claims the import continues.",
     "proposed_fix": "- Give the error callout role=alert, or announce the message.\n- Map network errors to a translated string ('The connection was interrupted. The import continues on the server; Retry to follow it here.') and add a Retry button that restarts stepImport().\n- On cancel: change the heading or lede to 'Import stopped: N of M episodes imported' with a Resume/Run again action, and announce it.",
     "test_plan": "An e2e test: abort one epm_import_step and assert the live region or alert text, a Retry button, and that Retry resumes progress. A stop test asserts the heading/lede change and the announced 'stopped' text.",
-    "notes": "Live alerts/retry implemented; screen reader/browser assertion pending.",
+    "notes": "tests/e2e/import-recovery.mjs (setup and Hosting & import: interrupted check, alert, plain recovery copy, retry, stopped count, focus, mobile width and announcements; original scripts fail)",
     "area": "User journeys, a11y, embeds, i18n",
     "refs": [
       "admin/js/epm-setup.js:683-689",
@@ -1642,13 +1643,13 @@
     "id": "UX-N12",
     "title": "Readiness after a mirror import says \"In sync\" and \"Not synced yet. Run Sync now or import the show\" at the same time",
     "priority": "P3",
-    "status": "fix implemented; regression tests not run in this environment",
+    "status": "fixed and tested",
     "evidence": "- includes/Readiness.php:358-362: with no last_success, the result is the warning `'Not synced yet. Run “Sync now” or import the show.'`, even right after the setup import.\n- Readiness.php:450-451 shows the badge `Hosting::is_external() ? __( 'In sync' ) : …` whenever there are no errors, i.e. also next to that warning.",
     "reproduction": "j2-mirror.mjs, done step after importing 150 episodes: `readiness: [\"•Last syncNot synced yet. Run “Sync now” or import the show.\"]`. The dashboard during the import shows the badge 'In sync' with '1 warning: Last sync — Not synced yet' (screens/j2-05-dashboard-during-import.png).",
     "user_impact": "Contradictory status right after setup; the user is told to import a show they have just imported.",
     "proposed_fix": "Record a completed mirror import as a successful sync (last_success and its validators), or word the check as 'First automatic sync runs within the hour'. Show 'In sync' only when last_success > 0, otherwise 'Connected'.",
     "test_plan": "An integration test: after ImportJob finishes with purpose 'mirror', Readiness::report() has no 'Not synced yet' warning, and the badge text matches the state.",
-    "notes": "Connected badge implemented; render assertion for mirrored show pending.",
+    "notes": "tests/integration/audit-sync.php (completed mirror reports Connected and the first scheduled sync; In sync appears only after success; original readiness fails)",
     "area": "User journeys, a11y, embeds, i18n",
     "refs": [
       "includes/Readiness.php:358-362"

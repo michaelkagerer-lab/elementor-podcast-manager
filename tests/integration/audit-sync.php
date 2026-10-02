@@ -9,7 +9,7 @@ use EPM\ImportJob;
 use EPM\Episodes;
 
 $saved = [];
-foreach ( [ Hosting::OPTION, Hosting::STATE_OPTION, ImportJob::OPTION, 'epm_import_lock' ] as $name ) {
+foreach ( [ Hosting::OPTION, Hosting::STATE_OPTION, ImportJob::OPTION, 'epm_import_lock', 'epm_version', 'epm_activation_redirect', 'rewrite_rules', 'cron' ] as $name ) {
 	$saved[ $name ] = epm_test_option_snapshot( $name );
 }
 $user = get_current_user_id();
@@ -18,8 +18,8 @@ $url = 'https://feeds.example.test/audit-sync.xml';
 $ids = [];
 $t = new EPM_Test_Runner();
 
-function epm_audit_sync_feed( array $dates ): string {
-	$xml = '<rss version="2.0"><channel><title>Sync regression probe</title><description>Disposable</description>';
+function epm_audit_sync_feed( array $dates, string $extra = '' ): string {
+	$xml = '<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"><channel><title>Sync regression probe</title><description>Disposable</description>' . $extra;
 	foreach ( $dates as $guid => $date ) {
 		$xml .= '<item><title>Probe ' . epm_esc_xml( $guid ) . '</title><guid>' . epm_esc_xml( $guid ) . '</guid><pubDate>' . gmdate( 'r', $date ) . '</pubDate><enclosure url="https://cdn.example.test/' . epm_esc_xml( $guid ) . '.mp3" type="audio/mpeg" length="1024" /></item>';
 	}
@@ -30,6 +30,84 @@ try {
 	delete_option( 'epm_import_lock' );
 	update_option( Hosting::OPTION, Hosting::sanitize( array_merge( Hosting::all(), [ 'mode' => 'external', 'feed_url' => $url, 'sync' => true, 'redirect' => false ] ) ) );
 	delete_option( Hosting::STATE_OPTION );
+	$t->test( 'FEED-N1: the settings save verifies a host feed before enabling the permanent redirect', static function ( EPM_Test_Runner $t ) use ( $url ) {
+		$hosting = new Hosting();
+		$hosting->register_settings();
+		$urls = [];
+		try {
+			update_option( Hosting::OPTION, Hosting::defaults() );
+			foreach ( [ 'missing' => 404, 'webpage' => 200 ] as $case => $status ) {
+				$bad = 'https://feeds.example.test/audit-switch-' . $case . '.xml';
+				$urls[] = $bad;
+				EPM_Test_HTTP::$routes[ $bad ] = static fn() => EPM_Test_HTTP::response( $status, '<html>not a podcast</html>' );
+				update_option( Hosting::OPTION, array_merge( Hosting::defaults(), [ 'mode' => 'external', 'feed_url' => $bad, 'redirect' => true ] ) );
+				$t->same( 'self', Hosting::get( 'mode' ), 'unverified ' . $case . ' cannot switch hosting' );
+				$t->same( '', Hosting::feed_redirect_target(), 'unverified ' . $case . ' cannot enable a 301' );
+			}
+			$valid = 'https://feeds.example.test/audit-switch-valid.xml';
+			$urls[] = $valid;
+			EPM_Test_HTTP::$routes[ $valid ] = static fn() => EPM_Test_HTTP::response( 200, epm_audit_sync_feed( [ 'switch-probe' => time() - DAY_IN_SECONDS ] ) );
+			update_option( Hosting::OPTION, array_merge( Hosting::defaults(), [ 'mode' => 'external', 'feed_url' => $valid, 'redirect' => true ] ) );
+			$t->same( 'external', Hosting::get( 'mode' ), 'a verified feed can switch hosting' );
+			$t->same( $valid, Hosting::feed_redirect_target(), 'the redirect uses the verified feed' );
+		} finally {
+			remove_filter( 'pre_update_option_' . Hosting::OPTION, [ Hosting::class, 'validate_settings_save' ], 10 );
+			foreach ( $urls as $candidate ) { unset( EPM_Test_HTTP::$routes[ $candidate ] ); }
+			update_option( Hosting::OPTION, array_merge( Hosting::defaults(), [ 'mode' => 'external', 'feed_url' => $url, 'sync' => true, 'redirect' => false ] ) );
+		}
+	} );
+
+	$t->test( 'SYNC-N3 / FEED-N5: an announced 404, invalid RSS or unrelated show cannot replace the feed or redirect', static function ( EPM_Test_Runner $t ) use ( $url, &$ids ) {
+		$guid = 'audit-move-' . wp_generate_uuid4();
+		foreach ( [ 'missing' => [ 404, '' ], 'invalid' => [ 200, '<html>not RSS</html>' ], 'unrelated' => [ 200, epm_audit_sync_feed( [ 'unrelated-' . $guid => time() - DAY_IN_SECONDS ] ) ] ] as $case => [ $status, $body ] ) {
+			$candidate = 'https://feeds.example.test/audit-candidate-' . $case . '.xml';
+			update_option( Hosting::OPTION, array_merge( Hosting::defaults(), [ 'mode' => 'external', 'feed_url' => $url, 'sync' => true, 'redirect' => true ] ) );
+			delete_option( Hosting::STATE_OPTION );
+			EPM_Test_HTTP::$routes[ $url ] = static fn() => EPM_Test_HTTP::response( 200, epm_audit_sync_feed( [ $guid => time() - DAY_IN_SECONDS ], '<itunes:new-feed-url>' . epm_esc_xml( $candidate ) . '</itunes:new-feed-url>' ) );
+			EPM_Test_HTTP::$routes[ $candidate ] = static fn() => EPM_Test_HTTP::response( $status, $body );
+			try {
+				$result = Hosting::sync( true );
+				$ids[] = EPM\Importer::find_guid( $guid );
+				$t->same( 'ok', $result['status'], 'the current feed can still sync: ' . $case );
+				$t->same( $url, Hosting::get( 'feed_url' ), 'the current source is kept: ' . $case );
+				$t->same( $url, Hosting::feed_redirect_target(), 'the public redirect is kept: ' . $case );
+				$t->assert( false !== strpos( $result['message'], 'current address was kept' ), 'the rejected move is explained: ' . $case );
+			} finally { unset( EPM_Test_HTTP::$routes[ $candidate ] ); }
+		}
+	} );
+
+	$t->test( 'UX-N12: a completed mirror is connected until its first successful sync', static function ( EPM_Test_Runner $t ) use ( $url ) {
+		update_option( Hosting::OPTION, array_merge( Hosting::defaults(), [ 'mode' => 'external', 'feed_url' => $url, 'sync' => true, 'redirect' => true ] ) );
+		delete_option( Hosting::STATE_OPTION );
+		update_option( ImportJob::OPTION, [ 'status' => 'done', 'options' => [ 'purpose' => 'mirror' ] ] );
+		$report = EPM\Readiness::report();
+		$messages = implode( ' ', array_column( $report['checks'], 'message' ) );
+		$html = EPM\Readiness::render_html( $report );
+		$t->assert( false !== strpos( $messages, 'first automatic sync' ), 'the next sync is explained' );
+		$t->assert( false === strpos( $messages, 'Not synced yet' ), 'the completed import is not presented as missing' );
+		$t->assert( false !== strpos( $html, '>Connected<' ) && false === strpos( $html, '>In sync<' ), 'the badge reports a connection rather than an unverified sync' );
+		Hosting::update_state( [ 'last_success' => time(), 'status' => 'ok', 'message' => 'Checked successfully.' ] );
+		$t->assert( false !== strpos( EPM\Readiness::render_html(), '>In sync<' ), 'the badge changes after a successful sync' );
+	} );
+
+	$t->test( 'LIFE-N4: reactivation schedules a running import without changing its stored progress', static function ( EPM_Test_Runner $t ) {
+		$job = [ 'status' => 'running', 'token' => 'reactivation-probe', 'position' => 3, 'total' => 10, 'options' => [ 'purpose' => 'mirror' ] ];
+		update_option( ImportJob::OPTION, $job );
+		EPM\Lifecycle::deactivate();
+		$t->same( false, wp_next_scheduled( ImportJob::CRON_HOOK ), 'deactivation removes continuation' );
+		EPM\Lifecycle::activate();
+		$next = wp_next_scheduled( ImportJob::CRON_HOOK );
+		$t->assert( false !== $next && $next <= time() + 2 * MINUTE_IN_SECONDS, 'reactivation resumes within the next minute' );
+		$t->same( $job, ImportJob::get(), 'token and progress remain unchanged' );
+		EPM\Lifecycle::activate();
+		$t->same( $next, wp_next_scheduled( ImportJob::CRON_HOOK ), 'reactivation does not duplicate continuation' );
+		wp_clear_scheduled_hook( ImportJob::CRON_HOOK );
+		update_option( ImportJob::OPTION, array_merge( $job, [ 'cancelled' => true ] ) );
+		epm()->resume_interrupted_import();
+		$t->same( false, wp_next_scheduled( ImportJob::CRON_HOOK ), 'an explicitly stopped import stays stopped' );
+		delete_option( ImportJob::OPTION );
+	} );
+
 	$t->test( 'SYNC-N1: an item failure remains visible and an unchanged feed retries it', static function ( EPM_Test_Runner $t ) use ( $url, &$ids ) {
 		$prefix = 'audit-sync-' . wp_generate_uuid4();
 		$good = $prefix . '-good';

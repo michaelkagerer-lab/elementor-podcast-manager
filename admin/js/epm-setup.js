@@ -662,6 +662,8 @@
 			return;
 		}
 
+		var retryFocus = state.retrying && ( ! document.activeElement || document.activeElement === document.body || document.activeElement === $( '[data-action="retry-import"]', importPanel ) );
+		state.retrying = false;
 		var total = Math.max( 0, job.total || 0 );
 		var done = Math.min( total, job.done || 0 );
 		var ratio = total > 0 ? done / total : job.status === 'done' ? 1 : 0;
@@ -704,6 +706,8 @@
 		var error = $( '[data-import-error]', importPanel );
 		error.hidden = ! job.error;
 		$( '[data-action="retry-import"]', importPanel ).hidden = ! job.error;
+		busy( $( '[data-action="retry-import"]', importPanel ), false );
+		if ( retryFocus ) { importPanel.focus(); }
 		if ( job.error ) {
 			$( 'p', error ).textContent = job.error;
 		}
@@ -805,6 +809,8 @@
 					box.hidden = false;
 					$( 'p', box ).textContent = app.strings.interrupted;
 					$( '[data-action="retry-import"]', importPanel ).hidden = false;
+					busy( $( '[data-action="retry-import"]', importPanel ), false );
+					state.retrying = false;
 					announce( app.strings.interrupted );
 					$( '[data-import-continue]', importPanel ).disabled = true;
 				} );
@@ -1097,6 +1103,8 @@
 					} );
 				break;
 			case 'retry-import':
+				state.retrying = true;
+				busy( target, true );
 				stepImport();
 				break;
 			case 'choose-artwork':
