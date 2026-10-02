@@ -405,12 +405,7 @@ final class Readiness {
 			self::old_host_checks( $add, self::old_host( Episodes::each_public() ) );
 		}
 		if ( Hosting::sync_enabled() ) {
-			$state = Hosting::state();
-			$intervals = [ 'hourly' => HOUR_IN_SECONDS, 'twicedaily' => 12 * HOUR_IN_SECONDS, 'daily' => DAY_IN_SECONDS ];
-			$interval = (int) ( $intervals[ (string) Hosting::get( 'interval' ) ] ?? HOUR_IN_SECONDS );
-			$last_success = (int) ( $state['last_success'] ?? 0 );
-			$next_sync = wp_next_scheduled( Hosting::CRON_HOOK );
-			if ( ( $last_success > 0 && time() - $last_success > 2 * $interval ) || ( false !== $next_sync && time() - $next_sync > $interval ) ) {
+			if ( Hosting::sync_is_overdue() ) {
 				$add( 'warning', __( 'Automatic sync', 'elementor-podcast-manager' ), __( 'The scheduled sync is overdue. Check WP-Cron or set up a server cron to request wp-cron.php regularly.', 'elementor-podcast-manager' ), $hosting_url, $hosting_fix );
 			}
 		}
@@ -639,7 +634,12 @@ final class Readiness {
 		if ( $report['ready'] ) {
 			$sync_state = Hosting::is_external() ? Hosting::state() : [];
 			$badge = Hosting::is_external() ? ( empty( $sync_state['last_success'] ) ? __( 'Connected', 'elementor-podcast-manager' ) : __( 'In sync', 'elementor-podcast-manager' ) ) : __( 'Ready for distribution', 'elementor-podcast-manager' );
-			$out .= '<span class="epm-badge epm-badge--ok"><span class="epm-badge__dot" aria-hidden="true"></span>' . esc_html( $badge ) . '</span>';
+			$class = 'epm-badge--ok';
+			if ( Hosting::sync_is_overdue() ) {
+				$badge = __( 'Sync overdue', 'elementor-podcast-manager' );
+				$class = 'epm-badge--warn';
+			}
+			$out .= '<span class="epm-badge ' . $class . '"><span class="epm-badge__dot" aria-hidden="true"></span>' . esc_html( $badge ) . '</span>';
 		} else {
 			$out .= '<span class="epm-badge epm-badge--error"><span class="epm-badge__dot" aria-hidden="true"></span>' . esc_html__( 'Not ready', 'elementor-podcast-manager' ) . '</span>';
 		}

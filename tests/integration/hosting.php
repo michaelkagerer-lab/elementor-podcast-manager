@@ -399,6 +399,25 @@ $t->test(
 );
 
 $t->test(
+	'SYNC-N4: stale scheduled syncs show a warning instead of an In sync badge',
+	static function ( EPM_Test_Runner $t ) {
+		try {
+			epm_h_hosting( [ 'mode' => 'external', 'feed_url' => epm_h_url( 'stale.xml' ), 'sync' => true, 'interval' => 'hourly' ] );
+			Hosting::update_state( [ 'status' => 'ok', 'last_success' => time() - WEEK_IN_SECONDS, 'last_run' => time() - WEEK_IN_SECONDS ] );
+			$report = \EPM\Readiness::report();
+			$warnings = array_filter( $report['checks'], static fn( $check ) => 'warning' === $check['status'] && false !== stripos( $check['message'], 'overdue' ) );
+			$t->assert( count( $warnings ) > 0, 'overdue sync is explained' );
+			$html = \EPM\Readiness::render_html( $report );
+			$t->assert( ! preg_match( '/epm-badge[^>]*>.*?In sync<\/span>/s', $html ), 'the summary does not claim a stale sync is healthy' );
+			$t->assert( false !== strpos( $html, 'Sync overdue' ), 'the summary names the overdue sync' );
+		} finally {
+			epm_h_restore( Hosting::OPTION );
+			epm_h_restore( Hosting::STATE_OPTION );
+		}
+	}
+);
+
+$t->test(
 	'SYNC-N6: a paged sync names its scope and never drafts episodes from unexamined pages',
 	static function ( EPM_Test_Runner $t ) {
 		$url = epm_h_url( 'synthetic/paged-1.xml' );
@@ -689,20 +708,20 @@ $t->test(
 );
 
 $t->test(
-	'parser preserves a literal less-than sign in plain feed text',
+	'SEC-N3: parser preserves a literal less-than sign without whitespace in plain feed text',
 	static function ( EPM_Test_Runner $t ) {
-		$xml = '<?xml version="1.0"?><rss version="2.0"><channel><title>Rock &lt; roll</title><description>For listeners under 18</description><item><title>Use C &lt; 3 for speed</title><guid>literal-lt</guid><pubDate>Wed, 03 Jun 2026 08:00:00 +0000</pubDate><enclosure url="https://cdn.example.test/a.mp3" type="audio/mpeg"/></item></channel></rss>';
+		$xml = '<?xml version="1.0"?><rss version="2.0"><channel><title>Rock &lt;roll</title><description>For listeners under 18</description><item><title>Use C &lt;3 for speed</title><guid>literal-lt</guid><pubDate>Wed, 03 Jun 2026 08:00:00 +0000</pubDate><enclosure url="https://cdn.example.test/a.mp3" type="audio/mpeg"/></item></channel></rss>';
 		$parsed = ( new FeedParser() )->parse( $xml );
 		$t->assert( ! is_wp_error( $parsed ), is_wp_error( $parsed ) ? $parsed->get_error_message() : 'parsed' );
 		if ( ! is_wp_error( $parsed ) ) {
-			$t->same( 'Rock < roll', $parsed['channel']['title'] );
-			$t->same( 'Use C < 3 for speed', $parsed['items'][0]['title'] ?? '' );
+			$t->same( 'Rock <roll', $parsed['channel']['title'] );
+			$t->same( 'Use C <3 for speed', $parsed['items'][0]['title'] ?? '' );
 		}
 	}
 );
 
 $t->test(
-	'parser rejects internal DTD entities before XML expansion',
+	'SEC-N2: parser rejects internal DTD entities before XML expansion',
 	static function ( EPM_Test_Runner $t ) {
 		$xml = '<!DOCTYPE rss [<!ENTITY a "1234567890"><!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">]><rss version="2.0"><channel><title>&b;</title></channel></rss>';
 		$parsed = ( new FeedParser() )->parse( $xml );

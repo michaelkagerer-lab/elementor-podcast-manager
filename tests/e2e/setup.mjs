@@ -23,7 +23,7 @@ const OPTIONS = ['epm_hosting', 'epm_sync_state', 'epm_import_job', 'epm_import_
 const phpList = (values) => `[ ${values.map((v) => `'${v}'`).join(', ')} ]`;
 
 // What the run changes, to put back at the end.
-const saved = php(`echo wp_json_encode( array_map( static function ( $name ) { return get_option( $name, '__epm_absent__' ); }, array_combine( ${phpList(OPTIONS)}, ${phpList(OPTIONS)} ) ) )`);
+const saved = php(`require_once '${ROOT}/tests/integration/lib.php'; echo wp_json_encode( array_map( static function ( $name ) { return epm_test_option_snapshot( $name ); }, array_combine( ${phpList(OPTIONS)}, ${phpList(OPTIONS)} ) ) )`);
 
 /**
  * A site without a podcast: no episodes, no settings, no setup progress.
@@ -73,6 +73,7 @@ async function head(url) {
 }
 
 const browser = await launch();
+try {
 
 // ---------------------------------------------------------------------------
 console.log('Activation');
@@ -674,6 +675,7 @@ console.log('Distribution');
 	await page.context().close();
 }
 
+} finally {
 await browser.close();
 
 // ---------------------------------------------------------------------------
@@ -681,13 +683,15 @@ await browser.close();
 fresh();
 wp(['eval-file', path.join(ROOT, 'tests/fixtures/seed.php')], { EPM_ALLOW_TEST_SEED: '1' });
 php(`
+	require_once '${ROOT}/tests/integration/lib.php';
 	$saved = json_decode( base64_decode( '${Buffer.from(JSON.stringify(saved)).toString('base64')}' ), true );
 	foreach ( $saved as $name => $value ) {
-		if ( '__epm_absent__' === $value ) { delete_option( $name ); } else { update_option( $name, $value ); }
+		epm_test_option_restore( $name, $value );
 	}
 	EPM\\Hosting::reschedule();
 	EPM\\Feed::flush_cache();
 	echo wp_json_encode( true )
 `);
 
+}
 finish('setup');

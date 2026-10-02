@@ -72,6 +72,31 @@ $t = new EPM_Test_Runner();
 WP_CLI::log( 'Timestamp links' );
 
 $t->test(
+	'SEC-N6: a correct REST password unlocks episode media metadata for anonymous clients',
+	static function ( EPM_Test_Runner $t ) use ( $fx ) {
+		$user = get_current_user_id();
+		wp_set_current_user( 0 );
+		try {
+			$id = (int) $fx['password'];
+			$route = '/wp/v2/' . get_post_type_object( 'podcast_episode' )->rest_base;
+			if ( '/wp/v2/' === $route ) { $route .= 'podcast_episode'; }
+			$locked = rest_do_request( new WP_REST_Request( 'GET', $route . '/' . $id ) );
+			$t->same( 200, $locked->get_status(), 'protected episode summary is readable' );
+			$t->same( [], $locked->get_data()['meta'] ?? [], 'locked media remains hidden' );
+			$request = new WP_REST_Request( 'GET', $route . '/' . $id );
+			$request->set_param( 'password', 'wrong-password' );
+			$t->same( 403, rest_do_request( $request )->get_status(), 'incorrect password is refused' );
+			$request->set_param( 'password', get_post( $id )->post_password );
+			$response = rest_do_request( $request );
+			$t->same( 200, $response->get_status(), 'correct password is accepted' );
+			$t->same( (int) $fx['audio_2'], $response->get_data()['meta']['_epm_audio_id'] ?? 0, 'unlocked clients receive the episode audio' );
+		} finally {
+			wp_set_current_user( $user );
+		}
+	}
+);
+
+$t->test(
 	'?t= values parse as seconds, h/m/s and clock notation',
 	static function ( EPM_Test_Runner $t ) {
 		$cases = [

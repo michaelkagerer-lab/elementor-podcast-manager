@@ -70,7 +70,7 @@
   "id": "SYNC-N1",
   "title": "Per-item sync failures are invisible (status ok, success message) and not retried while the feed is unchanged",
   "priority": "P2",
-  "status": "fix implemented; regression tests not run in this environment",
+  "status": "fixed and tested",
   "evidence": "includes/Hosting.php:924-929 at b1076c8:\n  $outcome = $importer->import_item( $item );\n  if ( 'created' === $outcome['action'] ) { ++$result['created']; } elseif ( 'updated' === ... )\n'failed' and 'skipped' outcomes are dropped.\nHosting.php:956-979: status 'ok', message = summary(), failures 0, and the ETag/Last-Modified are stored ('etag' => $pending ? '' : $fetched['etag']).\nHosting.php:813-817 and 833-850: the next scheduled run sends If-None-Match, gets 304 and reports 'No new episodes.'",
   "reproduction": "`$S/wpq eval-file $S/sync-audit.php itemfail`. Output: sync-audit-output.txt.\nThe insert of 'Episode sif-002' is vetoed via the wp_insert_post_empty_content filter (a DB error or a vetoing plugin).\n1. Sync now: {\"status\":\"ok\",\"message\":\"2 new episodes.\"}; state \"status=ok failures=0 … etag=set\"; episodes {sif-001, sif-003}.\n2. Filter removed, then two Hosting::run_scheduled_sync(): both requests 'conditional'; state msg \"No new episodes.\"; episodes still {sif-001, sif-003}.\n3. Only the next forced Sync now created sif-002.",
   "user_impact": "A mirrored episode that failed to import is silently missing. The dashboard and Readiness say the sync worked. The episode appears only when the host feed changes (the next new episode) or someone happens to press Sync now.",
@@ -80,7 +80,7 @@
   "refs": [
    "includes/Hosting.php:924-929"
   ],
-  "notes": "Per-item sync failure/partial retry coverage is pending."
+  "notes": "Per-item sync failure/partial retry coverage is pending.\nVerification: tests/integration/audit-sync.php (failed item visible, validators withheld, retry on unchanged feed; 1.3.0 baseline fails)."
  },
  {
   "id": "SYNC-N2",
@@ -119,7 +119,7 @@
   "id": "SYNC-N4",
   "title": "A stalled sync (WP-Cron not running) is reported as healthy",
   "priority": "P2",
-  "status": "fix implemented; regression tests not run in this environment",
+  "status": "fixed and tested",
   "evidence": "includes/Readiness.php:347-358 at b1076c8:\n  if ( 'error' === $state['status'] ) {...} elseif ( (int) $state['last_success'] > 0 ) { $add( 'ok', __( 'Last sync' ), sprintf( '%1$s ago — %2$s', human_time_diff( last_success ), message ) ); }\nThere is no comparison with the interval or wp_next_scheduled().\nincludes/AdminPages.php:295-296: the notice appears only when failures >= 3, and failures never increase if the sync never runs.\nThere is no DISABLE_WP_CRON or loopback check in includes/.",
   "reproduction": "`$S/wpq eval '…'` (sync-readiness-overdue.txt): external mode, sync on, epm_sync_feed scheduled 3 weeks in the past, last_success 3 weeks ago. Output:\n- \"sync_enabled=true next=2026-09-09 21:25 (now 2026-09-30 21:25)\";\n- \"Last sync: ok / 3 weeks ago — Up to date.\";\n- \"report ready=true errors=0 warnings=0\".",
   "user_impact": "On low-traffic sites, with DISABLE_WP_CRON, or with blocked loopback requests, new episodes from the host stop appearing, while the dashboard and Readiness show the sync as fine. Scheduled (future) imported episodes and the import's cron continuation also depend on WP-Cron.",
@@ -129,13 +129,14 @@
   "refs": [
    "includes/Readiness.php:347-358",
    "includes/AdminPages.php:295-296"
-  ]
+  ],
+  "notes": "\nVerification: tests/integration/hosting.php (overdue warning and summary badge)."
  },
  {
   "id": "SYNC-N5",
   "title": "Date changes and removals of scheduled (future) episodes at the host are never applied: removed/rescheduled episodes still publish at the old time",
   "priority": "P2",
-  "status": "fix implemented; regression tests not run in this environment",
+  "status": "fixed and tested",
   "evidence": "includes/Importer.php:286-294 (create only):\n  $postarr['post_date_gmt'] = gmdate( 'Y-m-d H:i:s', $timestamp ); ... if ( 'publish' === $status && $timestamp > time() ) { $postarr['post_status'] = 'future'; }\nImporter.php:318-337 values() has no date field, so write() never updates the post date.\nImporter.php:524-528 draft_missing() only queries 'post_status' => 'publish', so imported 'future' posts are never considered.",
   "reproduction": "`$S/wpq eval-file $S/sync-audit.php future` and `… dates` (sync-audit-output.txt):\n- [keep] future item imported as 'future at 2026-10-02 21:24:45'. After the host removed it (2 syncs): 'future … publish_future_post cron=2026-10-02 21:24'.\n- [draft] (missing=draft): same result, still future with a scheduled publish.\n- Host moved the date +5 days: 'Up to date. post_date_gmt=2026-10-02 21:24:45 (host: 2026-10-07 21:24:45)'.\n- Host corrected a past pubDate (sdt-01): 'Up to date. post_date_gmt=2026-03-29 00:30:00' (unchanged).",
   "user_impact": "If a host feed ever carries a future-dated item (a scheduled premiere, or a clock or time-zone mislabel), a later reschedule or withdrawal at the host is ignored. The site publishes the episode at the old time, possibly days early or after it was pulled. Corrected publish dates of existing episodes are also never mirrored, so ordering and dates stay wrong.",
@@ -145,7 +146,7 @@
   "refs": [
    "includes/Importer.php:286-294"
   ],
-  "notes": "Changed future dates and removal are not covered by a dedicated regression test yet."
+  "notes": "Changed future dates and removal are not covered by a dedicated regression test yet.\nVerification: tests/integration/audit-sync.php (managed date, publish event, removal of future episodes; 1.3.0 baseline fails)."
  },
  {
   "id": "SYNC-N6",
@@ -167,7 +168,7 @@
   "id": "SYNC-N7",
   "title": "HTTP 429/5xx reported as a wrong feed address; Retry-After ignored; back-off only after three failures",
   "priority": "P3",
-  "status": "fix implemented; regression tests not run in this environment",
+  "status": "fixed and tested",
   "evidence": "includes/Hosting.php:583-596 at b1076c8: any non-200/304 status becomes \"The feed address answered with HTTP status %d. Check the address in your host's dashboard.\"\nHosting.php:518-526: back-off only when failures >= 3, and the Retry-After header is never read.",
   "reproduction": "`$S/wpq eval-file $S/sync-audit.php http`:\n- HTTP 429: 'error / The feed address answered with HTTP status 429. Check the address in your host’s dashboard.' The same text for 500 and 503.\n- Timeout: 'The feed could not be loaded: cURL error 28 …'.\n- 12 simulated hourly cron runs against a 429 with 'Retry-After: 7200' fetched 'FFFF.F...F..': fetches at hours 0-3 regardless of Retry-After, then 1/2/4 h back-off as documented.",
   "user_impact": "Admins are told to check a correct address during a host outage or rate limit. The plugin keeps hitting a rate-limiting host every hour for the first 3 failures, contrary to Retry-After.",
@@ -177,7 +178,7 @@
   "refs": [
    "includes/Hosting.php:583-596"
   ],
-  "notes": "HTTP 429 Retry-After and 5xx backoff tests are pending."
+  "notes": "HTTP 429 Retry-After and 5xx backoff tests are pending.\nVerification: tests/integration/audit-sync.php (first failure Retry-After, no early request, temporary 503; 1.3.0 baseline fails)."
  },
  {
   "id": "SYNC-N8",
@@ -779,7 +780,7 @@
   "id": "SEC-N2",
   "title": "Internal-entity amplification (quadratic blowup) in FeedParser: a ~100 KB feed expands to 500 MB, ties up a PHP worker for minutes; in WP-Cron sync it fatals without recording a failure and leaves the import lock",
   "priority": "P2",
-  "status": "fix implemented; regression tests not run in this environment",
+  "status": "fixed and tested",
   "evidence": "includes/FeedParser.php:172 `$doc = simplexml_load_string( $xml, \\SimpleXMLElement::class, LIBXML_NOCDATA | LIBXML_NONET | LIBXML_COMPACT );`: an internal DTD subset is accepted and entity references are expanded when cast to string. includes/FeedParser.php:484 `$title = $this->plain( (string) $i->title );` (the fatal error points here). The docblock at FeedParser.php:13-15 claims 'entity expansion stays bounded … libxml's amplification guard rejects \"billion laughs\"'. That holds for nested entities but not for one large entity referenced many times on libxml 2.9.14 (LIBXML_DOTTED_VERSION on this PHP 8.4.26). Sync path: Hosting.php:806 acquires the lock and Hosting.php:852 parses. update_state() only runs after the parse returns, so a fatal error records nothing.",
   "reproduction": "Fixtures are in scratch feeds/ and served from the site as http://localhost:8926/audit/…\n1) `wp eval-file p/xml_parse.php feeds` (CLI, memory_limit -1): `quadratic.xml 141.992s peak+1430.5MB parsed: … item0 title len=500000005`. The rerun gave 146.6 s. quadratic.xml is 115,323 bytes: one 100,000-byte internal entity referenced 5,000 times. In the same run: xxe.xml gives title 'XXE end' (the file entity is not resolved); xxe-dtd.xml makes no request to the 127.0.0.1:8966 listener; billion.xml gives the literal 'BL &l9;'; invalid.xml gives WP_Error epm_feed_invalid.\n2) AJAX epm_import_preview as admin, url=http://localhost:8926/audit/quadratic.xml: the client got 'Remote end closed connection without response'. server.log: `Fatal error: Maximum execution time of 30+2 seconds exceeded (terminated) in /home/user/elementor-podcast-manager/includes/FeedParser.php on line 484`, about 10 min after the request (05:16 to 05:26).\n3) 53 KB variant (quadratic-50m.xml), `python3 p/quad_ajax.py p http://localhost:8926/audit/quadratic-50m.xml`: success in 3.5 s, maximum PHP RSS 232 MB. It wrote `job-PEHKnKNrKFSxds8RKtWka17E.json` of 50,000,368 bytes to uploads/epm-import.\n4) Real WP-Cron sync: epm_hosting mode=external, feed_url=http://localhost:8926/audit/quadratic-300m.xml (109 KB), epm_sync_feed scheduled as due, then GET /wp-cron.php. The worker died with the same fatal error at FeedParser.php line 484; PHP RSS peaked at 310 MB within 25 s. Afterwards epm_sync_state showed `failures=0 last_run=0 status=` and `epm_import_lock = '1790832925:KNdU1bdPmvl0'` was still set. The next sync was scheduled in 3593 s. Two of the four php -S workers were killed by the hard timeout and not respawned (5 to 3 processes).",
   "user_impact": "Whoever controls the content at a feed URL the site previews or syncs can pin a PHP worker for minutes and use hundreds of MB to over 1 GB. That can be a compromised or malicious podcast host, or a feed linked from a web page an admin pastes into the import. In mirror mode it repeats every hour from WP-Cron. Because the fatal error happens before any state is written:\n- the failure is never counted, so there is no back-off and no admin notice;\n- the import lock blocks 'Sync now' and imports for 5 minutes ('An import is running');\n- the next run hits the same feed again.\nPreviews write job files of tens of MB into uploads.",
@@ -790,13 +791,13 @@
    "includes/FeedParser.php:172",
    "includes/FeedParser.php:484"
   ],
-  "notes": "DTD rejection and feed size cap are implemented; parser runtime stress coverage is pending."
+  "notes": "DTD rejection and feed size cap are implemented; parser runtime stress coverage is pending.\nVerification: tests/integration/hosting.php (DTD rejected before expansion; original parser accepts the small reproducer)."
  },
  {
   "id": "SEC-N3",
   "title": "FeedParser::plain() truncates imported text at a literal '<' followed by a non-space (titles, summaries, channel/author names)",
   "priority": "P2",
-  "status": "fix implemented; regression tests not run in this environment",
+  "status": "fixed and tested",
   "evidence": "includes/FeedParser.php:670-679\n```\n$text = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );\n$text = wp_strip_all_tags( $text );\n// Decode twice …\n$text = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );\n$text = wp_strip_all_tags( $text );\n```\nAn XML-escaped literal `&lt;3` is first decoded to `<3`, then strip_tags treats it as the start of a tag and drops everything after it. plain() is used for item title, summary, author, channel title, owner and author names, person names and chapter titles (FeedParser.php:415-438, 484-486, 562, 609).",
   "reproduction": "`wp eval-file p/plain_text.php` (FeedParser::parse on one feed whose items have these titles):\n\"I <3 podcasts – episode 7\" => title \"I\"\n\"Why 2<3 matters\" => \"Why 2\"\n\"Episode 12: x<y>z\" => \"Episode 12: xz\"\n\"C++ <templates> explained\" => \"C++ explained\"\n\"<< Rewind\" => \"\" (empty)\n\"Price < $10 deals\" => unchanged\nThe summaries are cut the same way. In a real import (python3 p/import_ajax.py … evil-admin.xml), the item title `ADM Q&amp;A &lt;img …&gt; \"quotes\" &amp;amp; ampersand &lt;3 &#8211; dash` was stored as `ADM Q&A \"quotes\" & ampersand`: the ' <3 – dash' part was lost. The admin and the WP-Cron import paths store the same truncated value.",
   "user_impact": "Imported or mirrored episodes get wrong titles. A title can become empty, which falls back to itunes:title or 'Untitled episode'. The site then republishes those titles in its own feed. After a move, directories see changed titles. The workaround is to edit each episode by hand (local edits survive syncs).",
@@ -806,7 +807,7 @@
   "refs": [
    "includes/FeedParser.php:670-679"
   ],
-  "notes": "Literal less-than parser regression test is present; execute the suite."
+  "notes": "Literal less-than parser regression test is present; execute the suite.\nVerification: tests/integration/hosting.php (literal less-than without whitespace; original parser truncates it)."
  },
  {
   "id": "SEC-N4",
@@ -846,7 +847,7 @@
   "id": "SEC-N6",
   "title": "REST hides meta of password-protected episodes even when the request carries the correct password",
   "priority": "P3",
-  "status": "fix implemented; regression tests not run in this environment",
+  "status": "fixed and tested",
   "evidence": "includes/Plugin.php:396-399\n```\nif ( $response instanceof \\WP_REST_Response && $post instanceof \\WP_Post\n    && post_password_required( $post ) && ! current_user_can( 'edit_post', $post->ID ) ) {\n```\npost_password_required() only reads the wp-postpass cookie. The docblock says meta is hidden 'for password-protected episodes the requester has not unlocked'.",
   "reproduction": "After setting content on episode 88 (password 'pw'), `curl /wp-json/wp/v2/podcast_episode/88` gives `content.protected True | content has body False | meta empty`. `?password=pw` gives `content.protected True | content has body True | player in content False | meta empty`. `?password=wrong` gives `rest_post_incorrect_password`. Editors and admins get all 34 meta keys. Locking itself works: anonymous, subscriber, contributor and author get meta={} (p/rest_read.py).",
   "user_impact": "A headless or app client that legitimately unlocks an episode with its password gets the text but no audio URL, chapters or transcript. This fails closed, so there is no leak, but it contradicts the documented intent.",
@@ -856,7 +857,7 @@
   "refs": [
    "includes/Plugin.php:396-399"
   ],
-  "notes": "Password unlock handling is implemented; request-level REST password test is pending."
+  "notes": "Password unlock handling is implemented; request-level REST password test is pending.\nVerification: tests/integration/frontend.php (real REST requests with missing, wrong and correct passwords; original filter fails)."
  },
  {
   "id": "SEC-N7",
@@ -1008,7 +1009,7 @@
   "id": "LIFE-01",
   "title": "Delete-mode uninstall leaves trash and auto-draft episodes (with GUID meta and revisions); a reinstall then skips or hides those episodes on re-import",
   "priority": "P2",
-  "status": "fix implemented; regression tests not run in this environment",
+  "status": "fixed and tested",
   "evidence": "uninstall.php:62-73:\n  $epm_episodes = get_posts( [ 'post_type' => 'podcast_episode', 'post_status' => 'any', 'posts_per_page' => -1, 'fields' => 'ids' ] );\n  foreach ( $epm_episodes as $epm_episode_id ) { wp_delete_post( $epm_episode_id, true ); }\n\nCore WP 7.1.2 wp-includes/class-wp-query.php:2667-2671: 'any' excludes every status registered with exclude_from_search => true (trash, auto-draft).\n\nDelete mode is chosen only by define('EPM_DELETE_DATA', true) or the epm_delete_data_on_uninstall filter (uninstall.php:37-39). The plugin is not loaded during uninstall, so the filter must come from wp-config, a mu-plugin or the theme. There is no UI.",
   "reproduction": "/tmp/epm-a-life-perf-qa (SQLite).\n\nlife/fixture.php after seed.php created:\n- episodes in publish/draft/private/future/pending/trash/auto-draft with meta, chapters, 2 topics (with term meta), a revision and an attached audio file each\n- an image shared with a page's featured image\n- 2 imported episodes with copied media (_epm_source_url)\n- all plugin options, 5 transients, 3 cron events\n- a running import (10/60) with its job file\n- a lock\n\nSnapshot: life/snap.sh save base.\n\nFor each mode: life/snap.sh restore base, then wp plugin deactivate, then wp eval-file life/uninstall.php keep|delete (calls core uninstall_plugin(); plugin files untouched), then life/inventory.php.\n\nKeep mode (inv-2-keep.json): only epm_import_job, epm_import_lock, epm_activation_redirect, uploads/epm-import/ and the cron events are removed. All 28 episodes, 280 meta rows, topics, options and media remain.\n\nDelete mode (inv-3-delete.json):\n- episodes_by_status {trash: 1, auto-draft: 1}, 19 postmeta rows (incl. _epm_guid life-trash / life-auto-draft), 1 revision (parent = the trashed episode)\n- all plugin options and topics deleted, no orphan term rows\n- 4 epm transients remain (audio probe, notices, field errors, design import error)\n- _epm_source_url meta on 2 attachments remains\n- all 17 attachments and files remain (parent reset to 0); the shared image is still the page thumbnail\n\nReinstall (life/reinstall-import.php, after wp plugin activate):\n  life-trash      -> skipped id=36 status=trash 'Deleted on this site; not imported again.'\n  life-auto-draft -> updated id=39 status=auto-draft\n  life-new        -> created\n  published episodes in the feed now: 1",
   "user_impact": "'Delete all data' does not delete everything. A site owner who wipes and reinstalls to start over finds that re-importing the same show silently skips formerly trashed episodes. Former auto-drafts are updated but stay invisible auto-drafts, which WordPress later garbage-collects.",
@@ -1020,7 +1021,7 @@
    "includes/class-wp-query.php:2667-2671",
    "uninstall.php:37-39"
   ],
-  "notes": "Trashed episode test is present; cover auto-draft, revisions and reinstall behavior."
+  "notes": "Trashed episode test is present; cover auto-draft, revisions and reinstall behavior.\nVerification: tests/multisite/lifecycle.php; tests/perf/uninstall.php (all statuses, revisions, comments and retained media)."
  },
  {
   "id": "LIFE-N2",

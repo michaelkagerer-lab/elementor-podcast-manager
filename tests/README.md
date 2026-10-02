@@ -328,3 +328,13 @@ The fixture independently requires CLI, the parent test-site marker,
 singular preview labels, German number separators, translated singular and
 plural result phrases, real log badges and progress counts. It restores the
 setup option's exact serialized value and autoload policy.
+
+`integration/audit-sync.php` verifies failed-item retries against an unchanged
+feed, rescheduling and removing future episodes, and honoring Retry-After
+on the first rate-limit failure. It restores exact option snapshots.
+`integration/frontend.php` exercises real anonymous REST requests with
+missing, wrong and correct episode passwords. `hosting.php` includes the
+overdue-sync badge and non-whitespace literal less-than parser regressions.
+The setup browser suite now restores fixture state in `finally`, including
+on an exception; a local intentional failure verified hosting settings and
+the podcast GUID are restored.

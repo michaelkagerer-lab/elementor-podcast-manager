@@ -583,6 +583,19 @@ final class Hosting {
 		return self::is_external() && '' !== (string) self::get( 'feed_url' ) && (bool) self::get( 'sync' );
 	}
 
+	/** Whether automatic syncing has missed its configured interval. */
+	public static function sync_is_overdue(): bool {
+		if ( ! self::sync_enabled() ) {
+			return false;
+		}
+		$state = self::state();
+		$intervals = [ 'hourly' => HOUR_IN_SECONDS, 'twicedaily' => 12 * HOUR_IN_SECONDS, 'daily' => DAY_IN_SECONDS ];
+		$interval = (int) ( $intervals[ (string) self::get( 'interval' ) ] ?? HOUR_IN_SECONDS );
+		$success = (int) $state['last_success'];
+		$next = wp_next_scheduled( self::CRON_HOOK );
+		return ( $success > 0 && time() - $success > 2 * $interval ) || ( false !== $next && time() - $next > $interval );
+	}
+
 	/**
 	 * Whether two parsed RSS documents have evidence of the same show.
 	 *
