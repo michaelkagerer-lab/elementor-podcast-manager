@@ -676,7 +676,7 @@
     "id": "WID-N4",
     "title": "Stylesheet printed after the footer on automatic episode pages and shortcode pages (classic themes): unstyled flash and large layout shift",
     "priority": "P2",
-    "status": "fixed (commit 9c376d4); no test names the ID, check before relying on it",
+    "status": "fixed and tested",
     "evidence": "includes/EpisodeTemplate.php:272 `Assets::enqueue();` inside the_content (after wp_head); Shortcodes.php:234 etc.; includes/Assets.php:181-189 `maybe_enqueue_late()` at wp_footer:5 `wp_print_styles( 'epm-frontend' )`; no early detection (no has_shortcode / is_singular check in wp_enqueue_scripts: grep has no hits).",
     "reproduction": "curl on hello-elementor: /podcast/episode-one-hello-friends/ `</head>` line 74, player markup line 98, footer 115, `epm-frontend.css` line 127; Elementor pages put it in the head (line 48). `node fouc.mjs` (stylesheet delayed 8 s): automatic page before CSS `{cssLoaded:false, playerHeight:1758}` vs 204 after; CDP screenshot out/fouc-auto-episode.png shows the unstyled player; Elementor page unaffected.",
     "user_impact": "On the main episode pages the player first paints unstyled (huge artwork, raw buttons) and then jumps (CLS), noticeable on slow connections.",
@@ -686,7 +686,8 @@
     "refs": [
       "includes/EpisodeTemplate.php:272",
       "includes/Assets.php:181-189"
-    ]
+    ],
+    "notes": "tests/http/run.sh names WID-N4 and verifies the stylesheet and design tokens appear in the head on automatic episode and shortcode pages, once only; plain and empty-render pages load no podcast assets. Current combined HTTP suite passes."
   },
   {
     "id": "WID-N5",
@@ -873,7 +874,8 @@
     "refs": [
       "includes/Hosting.php:558-567"
     ],
-    "verification": "2026-10-01: tests/integration/hosting.php (redirect hop blocked before HTTP; feed and media). Regression reproduced before the repair and passed afterwards on the marked local test site."
+    "verification": "2026-10-01: tests/integration/hosting.php (redirect hop blocked before HTTP; feed and media). Regression reproduced before the repair and passed afterwards on the marked local test site.",
+    "notes": "tests/integration/frontend.php: real REST requests verify missing, wrong and correct passwords; the original filter fails."
   },
   {
     "id": "SEC-N8",
@@ -1155,14 +1157,14 @@
       "uninstall.php:62-73",
       "uninstall.php:44-55"
     ],
-    "notes": "Batched episode query exists; 5000 episode php-fpm timing remains unverified.",
+    "notes": "tests/perf/uninstall.php verifies 5000 episodes across statuses, revisions/comments/terms, retained media, bounded queries and database failure behavior. CLI budget passes; web-server deletion timing remains a limit of proof.",
     "verification": "2026-10-02: old per-episode uninstall exceeded the 35-second local limit. Bulk uninstall passes 14 assertions on the marked MariaDB 11.4 network: 5,000 episodes removed in 0.55s with 686 queries. Revisions/comments and their metadata removed; attachments retained and detached. A database delete failure preserves settings and allows retry. CLI timing measured; php-fpm timing not yet run."
   },
   {
     "id": "PERF-N5",
     "title": "Import step overhead: feed-cache flush on every meta write, the whole job file decoded per step, a GUID map rebuilt per step, and an N+1 for the import log on every plugin screen",
     "priority": "P3",
-    "status": "fix implemented; regression tests not run in this environment",
+    "status": "fixed and tested",
     "evidence": "Per-step costs in ImportJob::step():\n- Feed.php:94-96: added/updated/deleted_post_meta call maybe_flush_on_meta, which runs Feed::flush_cache() (delete_transient) for every _epm_ meta write\n- ImportJob.php:478 items() json_decodes the whole file each step\n- ImportJob.php:491 new Importer per step, so guid_map() selects all GUIDs each step\n\nPlugin screens: ImportJob.php:658-666 client_state() calls get_edit_post_link per log entry (up to 50). AdminPages script_data passes it on every plugin screen (AdminPages.php:217).",
     "reproduction": "SAVEQUERIES breakdown of a 10-new-episode step at 5000 (summary-5000.txt): 825 queries / 282.9 ms total:\n- Importer->write 230\n- Importer->create 172\n- Feed::flush_cache 160\n- Importer->current 80\n- sync_duration_seconds 50\n\nStep cost grows with N:\n- create steps: median 294/299/349 ms, peak 6.1/9.1/26.2 MB at 100/1000/5000\n- unchanged re-import steps: 63/75/128 ms\n\nJob file: 1.1 MB at 1000 and 5.7 MB at 5000; json_decode per step 4.8 ms/+4.3 MB and 25.6 ms/+21.4 MB (perf/jobfile-cost.txt).\n\nImport wall time over AJAX: 4.0 s (10 steps), 36.4 s (100 steps), 206.2 s (500 steps); re-import 1.5/14.0/98.1 s.\n\nDistribution screen: 50 queries in ImportJob::client_state.",
     "user_impact": "About 19% of import queries are wasted on cache flushes. Per-step memory and time grow with catalog size; at 5000 items each step re-reads 5.7 MB. These are minor today but compound with IMP-04/IMP-N1 limits.",
@@ -1170,7 +1172,7 @@
     "test_plan": "Integration test counting queries per 10-item step (no Feed::flush_cache per meta). Benchmark step time at 1000 and 5000 items stays flat.",
     "area": "LIFE-01, PERF-01, QA-01",
     "refs": [],
-    "notes": "Cache flush coalescing and log priming implemented; persistent GUID map and benchmark remain open."
+    "notes": "tests/integration/import-overhead.php: original 1.3.0 makes 140 invalidations and 50 cold-log post reads; current code makes one of each. tests/integration/import.php verifies bounded GUID lookups; tests/perf/run.sh passes the 1000/4000-item step-memory comparison and multi-request preview budget."
   },
   {
     "id": "QA-N3",
@@ -1592,13 +1594,13 @@
     "id": "UX-N9",
     "title": "i18n gaps: missing plurals, unformatted numbers, sentences built by concatenation, untranslatable texts",
     "priority": "P3",
-    "status": "partially fixed; technical error messages and German catalog pending",
+    "status": "fixed and tested",
     "evidence": "Plurals and numbers:\n- admin/views/setup.php:161 `<li><strong data-preview-episodes></strong><span><?php esc_html_e( 'episodes', … ) ?></span></li>` filled with `String( result.episodes )` (admin/js/epm-setup.js:391): a fixed plural and no number formatting.\n- includes/AdminPages.php:233 `'%1$s of %2$s episodes'` (no plural; used by epm-setup.js:553 and epm-hosting.js:329).\n- admin/js/epm-setup.js:573 and epm-hosting.js:351 `counts[ key ] + ' ' + labels[ key ]` ('1 failed', 'audio not copied' with no plural and fixed word order).\nSentences split or concatenated:\n- includes/EpisodeMeta.php:765 'Drop an MP3 or M4A file here, or' plus a separate button label.\n- admin/js/epm-distribution.js:137 `app.strings.saved + ': ' + label`.\n- admin/js/epm-hosting.js:217 `result.oldest + ' – ' + result.newest`.\n- includes/EpisodeMeta.php:1143-1144 'The feed also lists a %1$s transcript…' with the fallback __( 'transcript' ), giving 'a transcript transcript' and an article that does not work in German.\nUntranslated text:\n- includes/Categories.php:6-7 'Values are the exact English strings Apple expects … never translated'; the setup and settings selects display these values (setup.php:280-283 `esc_html( $epm_cat . ' › ' . $epm_sub )`).\n- Raw core, HTTP and browser errors appear inside translated sentences: 'The feed could not be loaded: cURL error 28: …', 'A valid URL was not provided.', 'Failed to fetch'.",
     "reproduction": "- `node plural-check.mjs` (one-item feed): `setup preview facts for a one-episode feed: [\"1episodes\", …]; button \"Import 1 episode\"` (screens/plural-1-episodes.png).\n- j2-mirror.mjs: `check [private address] … \"error\":\"The feed could not be loaded: A valid URL was not provided.\"`; `check [timeout] … \"The feed could not be loaded: cURL error 28: Operation timed out after 30001 milliseconds with 0 bytes received\"`.\n- Pseudo-German sweep (i18n-sweep.out): dates show 'October 1, 2026' (core month names; they need the core de_DE pack).\n- Grep results as cited.",
     "user_impact": "German (and other) translations cannot be grammatical in these places: '1 Folgen', 'Nicht kopiertes Audio' after a number, sentences split around a button, English category names in a German UI, and English technical errors in German sentences.",
     "proposed_fix": "- Use _n() with number_format_i18n (PHP) or a localized count (JS: pass a formatted number or use toLocaleString with the site locale) for the preview facts, the progress line and the per-outcome counts (one _n string per key, e.g. '%s new').\n- Make each sentence a single string with placeholders, e.g. 'Drop an MP3 or M4A file here, or %s' with the button outside the sentence, and 'Saved: %s'.\n- Translate category labels separately from the stored or feed values.\n- Map known WP_Error codes (http_request_failed timeouts, a disallowed host) and fetch failures to translated messages, keeping the technical detail in a <details> element.",
     "test_plan": "- Lint step: grep for `+ ' ' +` with translated labels in admin JS, and for __() strings ending in ', or' or ':'.\n- An e2e test: a one-item feed preview shows '1 episode'.\n- Run the pseudo-locale sweep (i18n-sweep.mjs) in CI and fail on untranslated plugin text.",
-    "notes": "The POT is current: make-pot into scratch gives the same 1130 entries, and the audit (without --skip-audit) gave no warnings. Every JS string uses wp.i18n.\nVerification: failing browser regressions now pass for singular previews, German number formatting, complete translated outcome phrases, log badges and progress. Admin regressions prove category labels translate without changing Apple feed values and the upload hint is a complete sentence. Full setup journeys pass.",
+    "notes": "tests/e2e/i18n-counts.mjs and tests/integration/admin.php verify singular counts, locale numbers, complete sentences and translated categories with unchanged feed values. tests/integration/feed-errors.php reproduces raw transport copy and passes actionable copy with separate diagnostics. tests/e2e/feed-errors.mjs checks collapsed keyboard disclosures and escaped technical details. Complete de_DE PO/MO and six WordPress script catalogs cover 1470 messages; tests/i18n/test_catalog.py verifies completeness, printf arguments, plurals, compiled values and source-path hashes. tests/e2e/german.mjs loads the actual catalogs without injected translations and verifies five admin screens at 390px, setup counts, episode editor and front-end player.",
     "area": "User journeys, a11y, embeds, i18n",
     "refs": [
       "admin/views/setup.php:161",

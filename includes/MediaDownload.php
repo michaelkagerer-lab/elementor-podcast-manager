@@ -210,6 +210,12 @@ final class MediaDownload {
 		$d['result'] = '';
 		$cap         = self::max_bytes( (string) $d['kind'] );
 
+		// Other transports cannot stop a disk-full or stalled stream while
+		// it is being written. Retain the URL instead of starting that copy.
+		if ( ! \WpOrg\Requests\Transport\Curl::test() ) {
+			return self::fail( $d, 'curl_required', __( 'Copying media requires the PHP cURL extension to enforce download and disk limits. Ask your web host to enable cURL, then retry. The original file address was kept.', 'elementor-podcast-manager' ) );
+		}
+
 		// The partial file may be gone (temp folder cleaned): start over.
 		if ( '' !== $d['file'] && ! is_file( $d['file'] ) ) {
 			$d['file']  = '';

@@ -25,7 +25,13 @@ ROOT="$(cd "$HERE/../.." && pwd)"
 WP_DIR="${WP_DIR:-/tmp/epm-wp}"
 WP_CLI="${WP_CLI:-$WP_DIR/wp}"
 BUDGET="${MEDIA_MEMORY_BUDGET_MB:-32}"
+export EPM_TEST_SITE=1
 FAILED=()
+
+# A real PHP process without cURL must not start an unmonitored transfer.
+php -d disable_functions=curl_exec "$WP_DIR/wp-cli.phar" --path="$WP_DIR/site" --allow-root \
+ eval-file "$HERE/no-curl.php" || FAILED+=("no-curl.php")
+
 
 # WP-CLI output without the deprecation notices some Elementor versions
 # print at shutdown.

@@ -48,6 +48,7 @@ def inventory(wp, output):
         'php': command('eval', 'echo PHP_VERSION;'),
         'plugins': json.loads(command('plugin', 'list', '--fields=name,status,version', '--format=json')),
         'themes': json.loads(command('theme', 'list', '--fields=name,status,version', '--format=json')),
+        'core_languages': json.loads(command('eval', 'echo wp_json_encode(get_available_languages());')),
         'manifest': json.loads(MANIFEST.read_text()),
     }
     Path(output).write_text(json.dumps(data, indent=2) + '\n')

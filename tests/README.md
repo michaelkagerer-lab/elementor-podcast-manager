@@ -52,18 +52,19 @@ Suites are discovered by file name, so a new suite needs no change to
   others in alphabetical order. `e2e/lib.mjs`, `e2e/helpers.mjs` and files
   starting with `_` are shared code, not suites.
 
-Current order: `integration/run.php`, `admin.php`, `design.php`,
-`feed.php`, `frontend.php`, `hosting.php`, `import.php`, `media.php`,
-`widgets.php`; then `concurrency/run.sh`; then `perf/run.sh`; then
-`media/run.sh`; then `http/run.sh`; then `e2e/run.mjs`, `admin.mjs`, `copy.mjs`,
-`design.mjs`, `frontend.mjs`, `player.mjs`, `setup.mjs`,
-`style-audit.mjs`, `widgets.mjs`. (`integration/reference/` holds frozen
-copies of earlier code for comparisons, not suites.)
+The runner reseeds before each discovered suite. `integration/reference/` holds
+frozen earlier code for comparisons, not suites. Python catalog checks run before
+site provisioning and require no extra Python packages.
 
 ## Suites
 
 | Suite | File | What it covers |
 |---|---|---|
+| Feed failure copy | `integration/feed-errors.php`, `e2e/feed-errors.mjs` | Actionable network and timeout failures; technical diagnostics in escaped, keyboard-accessible disclosures |
+| Import overhead | `integration/import-overhead.php` | One feed invalidation per ten-item batch, one cold-log post read, stale media-lock recovery without stealing recent locks |
+| Actual German package | `i18n/test_catalog.py`, `e2e/german.mjs` | Complete PO/MO and six JS catalogs, printf/plural/hash validation; actual German setup/editor/player and five admin screens at 390px |
+| cURL unavailable | `media/no-curl.php` (through `media/run.sh`) | Real PHP process with curl_exec disabled: no media request starts, original URL retained and recovery requirement reported |
+
 | Lint | `bin/lint.sh` | `php -l` on every PHP file, `node --check` on every script and browser suite |
 | Integration | `integration/run.php` | rewrite-rule order, capabilities per role and with a filtered capability, meta sanitizers (HTML/line breaks kept), visibility of draft/private/scheduled/password episodes, GUID immutability, duration detection, pure helpers (durations, timestamps, languages, categories, UUIDv5), feed contents (items, channel tags, categories, explicit, chapters/transcript tags, episode artwork rules, feed window and serial order, distribution options), feed cache invalidation, shortcodes, automatic episode pages, readiness report and its links, the CTA's assets, Elementor widget registration (no duplicate control IDs, dynamic content), no `_doing_it_wrong` |
 | | `integration/admin.php` | Topics taxonomy and its capabilities (contributors assign, editors manage, filtered capabilities), the Podcast menu and sentence-case labels, default hidden list columns; episode editor: next episode number, paste-chapters disclosure, video field help, transcript files (fill the text, SRT accepted, other files rejected, hosted file shown), episode search and media AJAX for contributors (no other authors' private episodes or media); Quick Edit and Bulk Edit (*Number from*); design export allowlist and import validation, the Design screen's token table against `DesignSettings::output_tokens()` for every preset, the script data, the WCAG contrast formula and pairs (every preset passes), the Design screen render |
@@ -375,3 +376,22 @@ keyboard focus, announcements and a 390 px viewport in the assistant and
 Hosting & import screen. It restores the exact stored setup/job/cron options
 in `finally`. `EPM_RECOVERY_BASELINE_JS` optionally replays the original setup
 script on a disposable site; 13 regression checks fail with that script.
+
+## Updating the German catalogs
+
+Use the pinned WP-CLI i18n commands from the repository root. Keep JavaScript
+references in the PO so both PHP and script catalogs remain complete:
+
+```sh
+wp i18n make-pot . languages/elementor-podcast-manager.pot --domain=elementor-podcast-manager --exclude=tests,tools,docs,.git,.agents,node_modules
+wp i18n update-po languages/elementor-podcast-manager.pot languages/elementor-podcast-manager-de_DE.po
+# Review and translate all new messages in the PO, then compile:
+wp i18n make-mo languages/elementor-podcast-manager-de_DE.po languages/elementor-podcast-manager-de_DE.mo
+wp i18n make-json languages/elementor-podcast-manager-de_DE.po --no-purge
+python3 tests/i18n/test_catalog.py
+```
+
+German date/month names require WordPress's own German language pack. Disposable
+profiles install pinned, checksum-verified packs from `tests/versions.json`.
+Copying media during a move requires PHP cURL; the podcast remains usable without
+it and the original media addresses are retained when copying cannot start.

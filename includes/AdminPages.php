@@ -662,11 +662,12 @@ final class AdminPages {
 	 */
 	public static function server_check(): array {
 		$checks = [];
-		$add    = static function ( string $status, string $label, string $message ) use ( &$checks ) {
+		$add    = static function ( string $status, string $label, string $message, string $details = '' ) use ( &$checks ) {
 			$checks[] = [
 				'status'  => $status,
 				'label'   => $label,
 				'message' => $message,
+				'details' => $details,
 			];
 		};
 		$args   = [
@@ -679,7 +680,8 @@ final class AdminPages {
 		$feed     = Hosting::public_feed_url();
 		$response = wp_safe_remote_get( $feed, array_merge( $args, [ 'limit_response_size' => 65536 ] ) );
 		if ( is_wp_error( $response ) ) {
-			$add( 'error', __( 'Feed', 'elementor-podcast-manager' ), sprintf( /* translators: %s: error message from the HTTP client */ __( 'The feed could not be loaded: %s', 'elementor-podcast-manager' ), $response->get_error_message() ) );
+			$failure = Hosting::transport_error( $response );
+			$add( 'error', __( 'Feed', 'elementor-podcast-manager' ), $failure->get_error_message(), $response->get_error_message() );
 		} else {
 			$code = (int) wp_remote_retrieve_response_code( $response );
 			$type = strtolower( (string) wp_remote_retrieve_header( $response, 'content-type' ) );
@@ -719,7 +721,7 @@ final class AdminPages {
 
 		$head = wp_safe_remote_head( $audio, $args );
 		if ( is_wp_error( $head ) ) {
-			$add( 'error', __( 'Audio (HEAD)', 'elementor-podcast-manager' ), sprintf( /* translators: %s: error */ __( 'The audio did not answer a HEAD request: %s', 'elementor-podcast-manager' ), $head->get_error_message() ) );
+			$add( 'error', __( 'Audio (HEAD)', 'elementor-podcast-manager' ), __( 'The audio file could not be reached. Check its address and try again.', 'elementor-podcast-manager' ), $head->get_error_message() );
 		} else {
 			$code   = (int) wp_remote_retrieve_response_code( $head );
 			$length = (int) wp_remote_retrieve_header( $head, 'content-length' );
@@ -748,7 +750,7 @@ final class AdminPages {
 
 		$range = wp_safe_remote_get( $audio, array_merge( $args, [ 'headers' => [ 'Range' => 'bytes=0-1' ], 'limit_response_size' => 1024 ] ) );
 		if ( is_wp_error( $range ) ) {
-			$add( 'error', __( 'Audio (byte ranges)', 'elementor-podcast-manager' ), sprintf( /* translators: %s: error */ __( 'The range request failed: %s', 'elementor-podcast-manager' ), $range->get_error_message() ) );
+			$add( 'error', __( 'Audio (byte ranges)', 'elementor-podcast-manager' ), __( 'The audio file could not be reached. Check its address and try again.', 'elementor-podcast-manager' ), $range->get_error_message() );
 		} elseif ( 206 === (int) wp_remote_retrieve_response_code( $range ) ) {
 			$content_range = trim( (string) wp_remote_retrieve_header( $range, 'content-range' ) );
 			$range_length  = wp_remote_retrieve_header( $range, 'content-length' );

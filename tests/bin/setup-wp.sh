@@ -172,6 +172,11 @@ fi
 "$WP" option update blog_public 0 --quiet
 
 # Install exact verified theme/plugin archives, replacing old test copies.
+# Installed core languages make WPLANG selectable and localize month names.
+python3 "$DEPS" download wordpress-de_DE "$WP_VERSION" "$WP_DIR/core-de_DE.zip"
+mkdir -p "$SITE/wp-content/languages"
+unzip -q -o "$WP_DIR/core-de_DE.zip" -d "$SITE/wp-content/languages"
+
 python3 "$DEPS" download "$BLOCK_THEME" "$BLOCK_THEME_VERSION" "$WP_DIR/block-theme.zip"
 python3 "$DEPS" download hello-elementor "$HELLO_VERSION" "$WP_DIR/hello-elementor.zip"
 "$WP" theme install "$WP_DIR/block-theme.zip" --force --quiet

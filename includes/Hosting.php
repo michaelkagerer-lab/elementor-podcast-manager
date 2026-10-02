@@ -764,14 +764,7 @@ final class Hosting {
 			if ( 'epm_insecure_redirect' === $response->get_error_code() ) {
 				return $response;
 			}
-			return new \WP_Error(
-				'epm_feed_unreachable',
-				sprintf(
-					/* translators: %s: error message from the HTTP client */
-					__( 'The feed could not be loaded: %s', 'elementor-podcast-manager' ),
-					$response->get_error_message()
-				)
-			);
+			return self::transport_error( $response );
 		}
 
 		$status = (int) wp_remote_retrieve_response_code( $response );
@@ -1336,4 +1329,17 @@ final class Hosting {
 
 		return empty( $parts ) ? __( 'Up to date.', 'elementor-podcast-manager' ) : implode( ', ', $parts ) . '.';
 	}
+
+	/** Actionable transport failure, with diagnostic text kept separate. */
+	public static function transport_error( \WP_Error $response ): \WP_Error {
+		$details = $response->get_error_message();
+		$message = __( 'The podcast host could not be reached. Check the feed address and your connection, then try again.', 'elementor-podcast-manager' );
+		if ( preg_match( '/timed? ?out|timeout|cURL error 28/i', $details ) ) {
+			$message = __( 'The podcast host did not answer in time. Try again in a few minutes. If this continues, ask your host whether the feed is available.', 'elementor-podcast-manager' );
+		} elseif ( $details === translate( 'A valid URL was not provided.', 'default' ) || preg_match( '/valid URL|unsafe|blocked host|disallowed/i', $details ) ) {
+			$message = __( 'Use a public feed address starting with https://. Addresses on a private network cannot be imported.', 'elementor-podcast-manager' );
+		}
+		return new \WP_Error( 'epm_feed_unreachable', $message, [ 'details' => $details ] );
+	}
+
 }

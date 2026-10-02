@@ -161,19 +161,12 @@ final class ImportJob {
 	}
 
 	/**
-	 * Seconds after which a lock counts as stale. A "copy media" step is
-	 * bounded like any other (MediaDownload: at most 50 seconds per
-	 * request), plus the time to store a file; the longer lifetime only
-	 * leaves room for slow disks.
-	 *
-	 * @return int
+	 * An abandoned request becomes recoverable after five minutes. Media
+	 * requests run for at most 50 seconds, leaving time to store a file;
+	 * active multi-step workers renew the lock between pieces of work.
 	 */
 	private static function lock_ttl(): int {
-		$job = self::get();
-
-		return ! empty( $job['options']['download_media'] ) && self::is_active( $job )
-			? 20 * MINUTE_IN_SECONDS
-			: 5 * MINUTE_IN_SECONDS;
+		return 5 * MINUTE_IN_SECONDS;
 	}
 
 	/**
@@ -580,6 +573,7 @@ final class ImportJob {
 					$current['status']             = 'loading';
 					$current['catalog']['reason']  = '';
 					$current['catalog']['error']   = '';
+					$current['catalog']['details'] = '';
 					$current['catalog']['url']     = '';
 					$current['touched']            = time();
 					return $current;
@@ -650,7 +644,7 @@ final class ImportJob {
 				$reason     = ( 'epm_feed_http' === $error_code || 0 === strpos( $error_code, 'epm_feed_http_' ) || 'epm_feed_blocked' === $error_code )
 					? 'http_error'
 					: ( 'epm_feed_url' === $error_code ? 'parse_error' : 'transport_error' );
-				return self::finish_loading( $token, $reason, $page->get_error_message(), $next );
+				return self::finish_loading( $token, $reason, $page->get_error_message(), $next, (string) ( $page->get_error_data()['details'] ?? '' ) );
 			}
 
 			$parsed = ( new FeedParser() )->parse( (string) $page['body'] );
@@ -871,9 +865,10 @@ final class ImportJob {
 	 * @param string $reason complete, http_error, transport_error, parse_error, empty_page_with_next, page_limit or budget.
 	 * @param string $error  The concrete error ('' when none).
 	 * @param string $url    The page that was not read ('' when complete).
+	 * @param string $details Optional transport diagnostics.
 	 * @return true|\WP_Error
 	 */
-	private static function finish_loading( string $token, string $reason, string $error = '', string $url = '' ) {
+	private static function finish_loading( string $token, string $reason, string $error = '', string $url = '', string $details = '' ) {
 		$job = self::get();
 		if ( ( $job['token'] ?? '' ) !== $token || 'loading' !== ( $job['status'] ?? '' ) ) {
 			return true;
@@ -887,7 +882,7 @@ final class ImportJob {
 		$version = (int) ( $job['version'] ?? 0 );
 		$before  = (array) $job['catalog']['sorted'];
 		$saved   = self::job_update(
-			static function ( array $current ) use ( $token, $version, $reason, $error, $url, $sorted ) {
+			static function ( array $current ) use ( $token, $version, $reason, $error, $url, $details, $sorted ) {
 				if ( ( $current['token'] ?? '' ) !== $token || 'loading' !== ( $current['status'] ?? '' ) || (int) ( $current['version'] ?? 0 ) !== $version ) {
 					return null;
 				}
@@ -895,6 +890,7 @@ final class ImportJob {
 				$current['catalog']['complete'] = 'complete' === $reason;
 				$current['catalog']['reason']   = $reason;
 				$current['catalog']['error']    = $error;
+				$current['catalog']['details']  = $details;
 				$current['catalog']['url']      = $url;
 				$current['catalog']['sorted']   = $sorted['rows'];
 				$current['total']               = (int) $sorted['count'];
@@ -983,6 +979,7 @@ final class ImportJob {
 			'loading'  => $loading,
 			'reason'   => $reason,
 			'error'    => (string) $catalog['error'],
+			'details'  => (string) ( $catalog['details'] ?? '' ),
 			'url'      => (string) $catalog['url'],
 			'pages'    => (int) $catalog['loaded'],
 			'episodes' => (int) $catalog['items'],
@@ -2505,7 +2502,7 @@ final class ImportJob {
 		$summary = self::preview( $url );
 
 		if ( is_wp_error( $summary ) ) {
-			wp_send_json_error( [ 'message' => $summary->get_error_message() ] );
+			wp_send_json_error( [ 'message' => $summary->get_error_message(), 'details' => (string) ( $summary->get_error_data()['details'] ?? '' ) ] );
 		}
 
 		wp_send_json_success( $summary );
@@ -2524,7 +2521,7 @@ final class ImportJob {
 		$summary = self::preview_more( $token );
 
 		if ( is_wp_error( $summary ) ) {
-			wp_send_json_error( [ 'message' => $summary->get_error_message() ] );
+			wp_send_json_error( [ 'message' => $summary->get_error_message(), 'details' => (string) ( $summary->get_error_data()['details'] ?? '' ) ] );
 		}
 
 		wp_send_json_success( $summary );

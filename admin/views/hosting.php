@@ -196,7 +196,7 @@ $epm_when = static function ( int $timestamp ): string {
 							<button type="submit" class="button" data-action="check"><?php esc_html_e( 'Check feed', 'elementor-podcast-manager' ); ?></button>
 						</div>
 						<p class="epm-field__help" id="epm-import-progress" data-preview-progress hidden></p>
-						<p class="epm-field__error" id="epm-import-error" data-error hidden></p>
+						<div class="epm-field__error" id="epm-import-error" data-error hidden></div>
 					</div>
 
 					<div class="epm-stack" data-preview hidden>
@@ -210,6 +210,7 @@ $epm_when = static function ( int $timestamp ): string {
 						<div class="epm-callout" data-preview-notes hidden><p></p></div>
 						<div class="epm-callout epm-callout--warn" data-preview-incomplete hidden>
 							<p><strong><?php esc_html_e( 'The feed could not be read completely.', 'elementor-podcast-manager' ); ?></strong> <span data-preview-incomplete-text></span></p>
+					<div data-preview-incomplete-details></div>
 							<p data-preview-incomplete-mirror><?php esc_html_e( 'You can import the episodes that were found and check the feed again later: episodes that are already here are updated, never duplicated.', 'elementor-podcast-manager' ); ?></p>
 							<div class="epm-callout__actions" data-retry-wrap>
 								<button type="button" class="button" data-action="retry-feed"><?php esc_html_e( 'Try reading the rest again', 'elementor-podcast-manager' ); ?></button>

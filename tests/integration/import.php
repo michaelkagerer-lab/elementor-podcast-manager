@@ -433,7 +433,7 @@ $t->test(
 					return new WP_Error( 'http_request_failed', 'cURL error 28: Operation timed out after 30001 milliseconds with 0 bytes received' );
 				},
 				'transport_error',
-				'cURL error 28',
+				'did not answer in time',
 			],
 			'badxml'  => [ null, 'parse_error', '' ],
 			'empty'   => [ null, 'empty_page_with_next', '' ],
@@ -451,6 +451,7 @@ $t->test(
 			$t->same( [ false, $reason, $p2, 3 ], [ $p['catalog']['complete'] ?? null, $p['catalog']['reason'] ?? null, $p['catalog']['url'] ?? null, $p['episodes'] ?? null ], $case );
 			if ( '' !== $error ) {
 				$t->assert( false !== strpos( (string) ( $p['catalog']['error'] ?? '' ), $error ), $case . ': the concrete error' );
+				$t->assert( false !== strpos( (string) ( $p['catalog']['details'] ?? '' ), 'cURL error 28' ), 'timeout: raw diagnostics remain separate' );
 			}
 		}
 	}

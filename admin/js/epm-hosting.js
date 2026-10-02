@@ -71,6 +71,14 @@
 					throw error;
 				}
 				return json.data;
+			} )
+			.catch( function ( failure ) {
+				if ( failure instanceof window.TypeError ) {
+					var error = new Error( app.strings.failed );
+					error.data = { details: failure.message };
+					throw error;
+				}
+				throw failure;
 			} );
 	}
 
@@ -158,8 +166,7 @@
 
 	function showImportError( message ) {
 		var el = $( '[data-error]', importForm );
-		el.textContent = message || '';
-		el.hidden = ! message;
+		message = importResult.error( el, message );
 		var input = importForm.querySelector( '[name="url"]' );
 		if ( message ) {
 			input.setAttribute( 'aria-invalid', 'true' );
@@ -221,7 +228,7 @@
 					return;
 				}
 				showProgress( '' );
-				showImportError( error.message );
+				showImportError( error );
 				announce( error.message );
 				input.focus();
 			} )
@@ -280,6 +287,7 @@
 
 		box.hidden = ! incomplete;
 		$( '[data-preview-incomplete-text]', importForm ).textContent = incomplete ? catalog.message : '';
+		importResult.details( $( '[data-preview-incomplete-details]', importForm ), incomplete ? catalog.details : '' );
 		$( '[data-retry-wrap]', importForm ).hidden = ! ( incomplete && catalog.retry );
 
 		var accept = importForm.querySelector( '[name="accept_partial"]' );
@@ -341,7 +349,9 @@
 				importResult.number( result.episodes )
 			),
 			result.provider_name,
-			result.newest && result.oldest ? result.oldest + ' – ' + result.newest : '',
+			result.newest && result.oldest ? format(
+				/* translators: %1$s: oldest episode date; %2$s: newest episode date */
+				__( '%1$s – %2$s', 'elementor-podcast-manager' ), result.oldest, result.newest ) : '',
 		]
 			.filter( Boolean )
 			.join( ' · ' );
@@ -449,7 +459,7 @@
 					fieldError( 'accept_partial', true ).focus();
 					return;
 				}
-				showImportError( error.message );
+				showImportError( error );
 				announce( error.message );
 			} )
 			.then( function () {

@@ -63,6 +63,7 @@ suites() {
 
 "$ROOT/tests/bin/lint.sh"
 python3 "$ROOT/tests/packaging/test_package.py"
+python3 "$ROOT/tests/i18n/test_catalog.py"
 python3 -m unittest discover -s "$ROOT/tests/safety" -p "test_*.py"
 
 # Only this run's notices count.

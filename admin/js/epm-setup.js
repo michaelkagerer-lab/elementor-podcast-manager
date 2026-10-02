@@ -101,9 +101,18 @@
 				if ( ! json || ! json.success ) {
 					var error = new Error( ( json && json.data && json.data.message ) || app.strings.failed );
 					error.code = ( json && json.data && json.data.code ) || '';
+					error.data = json && json.data;
 					throw error;
 				}
 				return json.data;
+			} )
+			.catch( function ( failure ) {
+				if ( failure instanceof window.TypeError ) {
+					var error = new Error( app.strings.failed );
+					error.data = { details: failure.message };
+					throw error;
+				}
+				throw failure;
 			} );
 	}
 
@@ -130,8 +139,7 @@
 		if ( ! el ) {
 			return;
 		}
-		el.textContent = message || '';
-		el.hidden = ! message;
+		message = importResult.error( el, message );
 		if ( message ) {
 			announce( message );
 		}
@@ -281,7 +289,7 @@
 				next();
 			} )
 			.catch( function ( error ) {
-				showError( form, error.message );
+				showError( form, error );
 			} )
 			.then( function () {
 				busy( button, false );
@@ -405,6 +413,7 @@
 
 		$( '[data-preview-incomplete]', connectForm ).hidden = ! incomplete;
 		$( '[data-preview-incomplete-text]', connectForm ).textContent = incomplete ? catalog.message : '';
+		importResult.details( $( '[data-preview-incomplete-details]', connectForm ), incomplete ? catalog.details : '' );
 		$( '[data-retry-wrap]', connectForm ).hidden = ! ( incomplete && catalog.retry );
 
 		var accept = connectForm.querySelector( '[name="accept_partial"]' );
@@ -464,7 +473,7 @@
 				}
 				showProgress( '' );
 				input.setAttribute( 'aria-invalid', 'true' );
-				showError( connectForm, error.message );
+				showError( connectForm, error );
 				input.focus();
 				return null;
 			} )
@@ -646,7 +655,7 @@
 					fieldError( form, 'accept_partial', true ).focus();
 					return;
 				}
-				showError( form, error.message );
+				showError( form, error );
 			} )
 			.then( function () {
 				busy( importButton, false );
@@ -882,7 +891,7 @@
 				next();
 			} )
 			.catch( function ( error ) {
-				showError( form, error.message );
+				showError( form, error );
 			} )
 			.then( function () {
 				busy( button, false );
@@ -966,7 +975,7 @@
 				next();
 			} )
 			.catch( function ( error ) {
-				showError( form, error.message );
+				showError( form, error );
 			} )
 			.then( function () {
 				busy( button, false );

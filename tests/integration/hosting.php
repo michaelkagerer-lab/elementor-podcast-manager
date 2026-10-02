@@ -2339,7 +2339,8 @@ $t->test(
 			false
 		);
 		update_option( 'epm_import_lock', ( time() - 10 * MINUTE_IN_SECONDS ) . ':copying', false );
-		$t->same( false, ImportJob::acquire_lock(), 'copying media: 10 minutes is not stale' );
+		$t->assert( ImportJob::acquire_lock(), 'copying media: an abandoned ten-minute lock is stale' );
+		ImportJob::release_lock();
 		update_option( 'epm_import_lock', ( time() - 21 * MINUTE_IN_SECONDS ) . ':copying', false );
 		$t->assert( ImportJob::acquire_lock(), 'copying media: 21 minutes is stale' );
 		ImportJob::release_lock();

@@ -96,7 +96,7 @@ $epm_steps = [
 					<span class="epm-choice__text"><?php esc_html_e( 'Your host keeps publishing the feed. This website shows every episode with its own pages and player, and picks up new episodes automatically.', 'elementor-podcast-manager' ); ?></span>
 				</label>
 			</fieldset>
-			<p class="epm-field__error" id="epm-setup-path-error" data-error hidden></p>
+			<div class="epm-field__error" id="epm-setup-path-error" data-error hidden></div>
 
 			<div class="epm-card__footer">
 				<button type="submit" class="button button-primary button-large"><?php esc_html_e( 'Continue', 'elementor-podcast-manager' ); ?></button>
@@ -149,7 +149,7 @@ $epm_steps = [
 				</div>
 				<p class="epm-field__help" id="epm-setup-feed-help" data-feed-help></p>
 				<p class="epm-field__help" id="epm-setup-feed-progress" data-preview-progress hidden></p>
-				<p class="epm-field__error" id="epm-setup-feed-error" data-error hidden></p>
+				<div class="epm-field__error" id="epm-setup-feed-error" data-error hidden></div>
 			</div>
 
 			<div class="epm-stack" data-preview hidden>
@@ -174,6 +174,7 @@ $epm_steps = [
 				<div class="epm-callout" data-preview-notes hidden><p></p></div>
 				<div class="epm-callout epm-callout--warn" data-preview-incomplete hidden>
 					<p><strong><?php esc_html_e( 'The feed could not be read completely.', 'elementor-podcast-manager' ); ?></strong> <span data-preview-incomplete-text></span></p>
+					<div data-preview-incomplete-details></div>
 					<p data-path-only="external"><?php esc_html_e( 'You can connect the show with the episodes that were found; the regular sync and a later import add the rest. Episodes that are already here are updated, never duplicated.', 'elementor-podcast-manager' ); ?></p>
 					<div class="epm-callout__actions" data-retry-wrap>
 						<button type="button" class="button" data-action="retry-feed"><?php esc_html_e( 'Try reading the rest again', 'elementor-podcast-manager' ); ?></button>
@@ -390,7 +391,7 @@ $epm_steps = [
 				</div>
 			</div>
 
-			<p class="epm-field__error" data-error hidden></p>
+			<div class="epm-field__error" data-error hidden></div>
 
 			<div class="epm-card__footer epm-card__footer--split">
 				<button type="button" class="epm-button-link epm-button-link--muted" data-action="back"><?php esc_html_e( 'Back', 'elementor-podcast-manager' ); ?></button>
@@ -449,7 +450,7 @@ $epm_steps = [
 				</label>
 			<?php endif; ?>
 
-			<p class="epm-field__error" data-error hidden></p>
+			<div class="epm-field__error" data-error hidden></div>
 
 			<div class="epm-card__footer epm-card__footer--split">
 				<button type="button" class="epm-button-link epm-button-link--muted" data-action="back"><?php esc_html_e( 'Back', 'elementor-podcast-manager' ); ?></button>

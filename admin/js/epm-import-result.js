@@ -257,7 +257,35 @@
 		return job.busy ? 3000 : 150;
 	}
 
+	function diagnostic( detail ) {
+		var disclosure = document.createElement( 'details' );
+		var label = document.createElement( 'summary' );
+		label.textContent = __( 'Technical details', 'elementor-podcast-manager' );
+		var text = document.createElement( 'p' );
+		text.textContent = detail;
+		disclosure.appendChild( label );
+		disclosure.appendChild( text );
+		return disclosure;
+	}
+
+	// Recovery instructions stay prominent; optional diagnostics are plain text.
+	function error( element, failure ) {
+		var message = typeof failure === 'string' ? failure : ( failure && failure.message ) || '';
+		element.textContent = message;
+		element.hidden = ! message;
+		var detail = failure && failure.data && failure.data.details;
+		if ( message && detail ) {
+			element.appendChild( diagnostic( detail ) );
+		}
+		return message;
+	}
+
 	window.epmImportResult = {
+		error: error,
+		details: function ( element, detail ) {
+			element.textContent = '';
+			if ( detail ) { element.appendChild( diagnostic( detail ) ); }
+		},
 		number: number,
 		progress: progress,
 		summary: summary,
