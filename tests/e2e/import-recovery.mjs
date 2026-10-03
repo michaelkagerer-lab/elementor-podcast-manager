@@ -59,7 +59,7 @@ try {
   setJob('running');
   steps=0;
   await page.setViewportSize({width:390,height:844});
-  await page.goto(`${BASE}/wp-admin/admin.php?page=epm-hosting`);
+  await page.goto(`${BASE}/wp-admin/admin.php?page=epm-hosting#epm-task-import`);
   await page.waitForSelector('[data-job-error]:not([hidden])');
   const hostError=page.locator('[data-job-error]');
   assert(await hostError.getAttribute('role')==='alert','Hosting & import announces connection errors through an alert');

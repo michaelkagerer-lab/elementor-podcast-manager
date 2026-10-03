@@ -2,9 +2,8 @@
 /**
  * Design screen (Global Podcast Styles).
  *
- * Left: preset gallery (apply is a confirmed POST), details a 1.1–1.3
- * preset suggested (when there are any), the token form in four sections,
- * "Details shown by default" (its own form), what differs from the preset,
+ * Left: collapsible presets, upgrade suggestions, one appearance/details
+ * form with named disclosures, what differs from the preset,
  * and export/import. Right: a sticky live preview that renders the real
  * components exactly as the site does — the Podcast Player widget, the
  * automatic episode page player and the Episode List widget with their
@@ -22,7 +21,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 use EPM\Admin;
 use EPM\DesignSettings;
 use EPM\Details;
-use EPM\EpisodeTemplate;
 
 $epm_design    = epm()->design->all();
 $epm_presets   = epm()->presets->all();
@@ -134,10 +132,7 @@ foreach ( $epm_site_details as $epm_flags ) {
 }
 
 $epm_preview       = Admin::design_preview_episodes();
-$epm_renderer      = epm()->renderer;
 $epm_player_layout = (string) $epm_design['default_player_layout'];
-$epm_list_layout   = (string) $epm_design['default_episode_layout'];
-$epm_is_cards      = in_array( $epm_list_layout, [ 'cards', 'grid' ], true );
 
 /**
  * Inline style attribute from CSS custom properties.
@@ -158,6 +153,7 @@ $epm_style = static function ( array $vars ): string {
 	<hr class="wp-header-end" />
 	<p class="epm-design__lede"><?php esc_html_e( 'How the player, episode lists and subscribe links look on your site. Elementor widgets use these values unless you style a widget yourself.', 'elementor-podcast-manager' ); ?></p>
 
+	<p class="epm-design__inheritance" data-epm-design-inheritance><?php esc_html_e( 'These are your podcast defaults. Each Elementor widget can override its layout, details or styles. Choose Podcast design in the widget to inherit again. Save design saves appearance and details together; applying a preset replaces both.', 'elementor-podcast-manager' ); ?></p>
 	<?php settings_errors(); ?>
 	<?php if ( 'preset-applied' === $epm_notice ) : ?>
 		<div class="notice notice-success is-dismissible">
@@ -197,7 +193,7 @@ $epm_style = static function ( array $vars ): string {
 		<div class="epm-design__main">
 
 			<!-- Presets -->
-			<section class="epm-card epm-design__presets" aria-labelledby="epm-presets-title">
+			<details class="epm-card epm-design__presets epm-fold"><summary><?php esc_html_e( 'Choose a preset', 'elementor-podcast-manager' ); ?> <span class="epm-muted"><?php echo esc_html( $epm_active ? $epm_active['name'] : $epm_active_id ); ?></span></summary>
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" data-epm-preset-form>
 					<input type="hidden" name="action" value="epm_design_preset" />
 					<?php wp_nonce_field( 'epm_design_preset', '_epm_preset_nonce', true, true ); ?>
@@ -258,7 +254,7 @@ $epm_style = static function ( array $vars ): string {
 						</div>
 					</dialog>
 				</form>
-			</section>
+			</details>
 
 			<?php if ( ! empty( $epm_suggested ) ) : ?>
 				<!-- Details a 1.1–1.3 preset stored but never applied -->
@@ -300,12 +296,14 @@ $epm_style = static function ( array $vars ): string {
 			<!-- Design values -->
 			<form method="post" action="options.php" class="epm-design__form" id="epm-design-form" data-epm-design-form>
 				<?php settings_fields( 'epm_design_settings_group' ); ?>
+				<input type="hidden" name="epm_design_settings[details_form]" value="1" />
+				<input type="hidden" name="epm_design_settings[details_reset]" value="0" data-epm-details-reset-value />
 				<?php /* Keeps the preset identity when customized values are saved. */ ?>
 				<input type="hidden" name="epm_design_settings[preset]" value="<?php echo esc_attr( $epm_active_id ); ?>" />
 
 				<?php foreach ( $epm_sections as $epm_section_id => $epm_section ) : ?>
-					<section class="epm-card epm-design__section" aria-labelledby="epm-section-<?php echo esc_attr( $epm_section_id ); ?>">
-						<h2 class="epm-card__title" id="epm-section-<?php echo esc_attr( $epm_section_id ); ?>"><?php echo esc_html( $epm_section['title'] ); ?></h2>
+					<details class="epm-card epm-design__section epm-fold">
+						<summary id="epm-section-<?php echo esc_attr( $epm_section_id ); ?>"><?php echo esc_html( $epm_section['title'] ); ?></summary>
 						<p class="epm-card__lede"><?php echo esc_html( $epm_section['lede'] ); ?></p>
 						<div class="epm-design__fields epm-design__fields--<?php echo esc_attr( $epm_section_id ); ?>">
 							<?php foreach ( $epm_section['fields'] as $epm_key => $epm_field ) : ?>
@@ -423,24 +421,16 @@ $epm_style = static function ( array $vars ): string {
 								</ul>
 							</div>
 						<?php endif; ?>
-					</section>
+					</details>
 				<?php endforeach; ?>
 
-				<div class="epm-design__savebar">
-					<p class="epm-design__dirty" data-epm-dirty role="status"></p>
-					<button type="reset" class="button" data-epm-design-reset hidden><?php esc_html_e( 'Discard changes', 'elementor-podcast-manager' ); ?></button>
-					<?php submit_button( __( 'Save design', 'elementor-podcast-manager' ), 'primary', 'submit', false, [ 'id' => 'epm-design-save-submit' ] ); ?>
-				</div>
-			</form>
 
 			<!-- Details shown by default -->
-			<section class="epm-card epm-design__details" id="epm-details" aria-labelledby="epm-details-title">
-				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" data-epm-details-form>
-					<input type="hidden" name="action" value="epm_design_details" />
-					<?php wp_nonce_field( 'epm_design_details', '_epm_details_nonce', true, true ); ?>
-					<h2 class="epm-card__title" id="epm-details-title"><?php esc_html_e( 'Details shown by default', 'elementor-podcast-manager' ); ?></h2>
+			<details class="epm-card epm-design__details epm-fold" id="epm-details" data-epm-details-form><summary id="epm-details-title"><?php esc_html_e( 'Details shown by default', 'elementor-podcast-manager' ); ?></summary>
 					<p class="epm-card__lede"><?php esc_html_e( 'Which parts players and lists show where a widget or shortcode leaves the choice to the site. A widget set to Show or Hide, or a shortcode attribute, always wins. Colors, fonts and the styles above never change these.', 'elementor-podcast-manager' ); ?></p>
-					<div class="epm-details">
+					<label for="epm-details-context-choice"><?php esc_html_e( 'Details for', 'elementor-podcast-manager' ); ?></label>
+<select id="epm-details-context-choice" data-epm-details-context-choice><?php foreach ( Details::CONTEXTS as $epm_context ) : ?><option value="<?php echo esc_attr( $epm_context ); ?>"><?php echo esc_html( Details::context_label( $epm_context ) ); ?></option><?php endforeach; ?></select>
+<div class="epm-details">
 						<?php foreach ( Details::CONTEXTS as $epm_context ) : ?>
 							<?php
 							$epm_effective = Details::effective( $epm_context );
@@ -459,26 +449,33 @@ $epm_style = static function ( array $vars ): string {
 										?>
 										<li>
 											<label class="epm-check" for="<?php echo esc_attr( $epm_check_id ); ?>">
-												<input type="checkbox" id="<?php echo esc_attr( $epm_check_id ); ?>" name="epm_details[<?php echo esc_attr( $epm_context ); ?>][<?php echo esc_attr( $epm_flag ); ?>]" value="1" <?php checked( ! empty( $epm_effective[ $epm_flag ] ) ); ?> aria-labelledby="<?php echo esc_attr( $epm_check_id ); ?>-label <?php echo esc_attr( $epm_legend_id ); ?>" />
+												<input type="hidden" name="epm_design_settings[details][<?php echo esc_attr( $epm_context ); ?>][<?php echo esc_attr( $epm_flag ); ?>]" value="0" />
+												<input type="checkbox" id="<?php echo esc_attr( $epm_check_id ); ?>" name="epm_design_settings[details][<?php echo esc_attr( $epm_context ); ?>][<?php echo esc_attr( $epm_flag ); ?>]" value="1" <?php checked( ! empty( $epm_effective[ $epm_flag ] ) ); ?> aria-labelledby="<?php echo esc_attr( $epm_check_id ); ?>-label <?php echo esc_attr( $epm_legend_id ); ?>" />
 												<span id="<?php echo esc_attr( $epm_check_id ); ?>-label"><?php echo esc_html( Details::label( $epm_flag ) ); ?></span>
 											</label>
+ <small class="epm-details__effect" data-epm-detail-effect="<?php echo esc_attr( $epm_context . ':' . $epm_flag ); ?>"></small>
 										</li>
 									<?php endforeach; ?>
 								</ul>
 							</fieldset>
 						<?php endforeach; ?>
 					</div>
-					<div class="epm-card__footer">
-						<button type="submit" class="button button-primary" name="epm_details_action" value="save"><?php esc_html_e( 'Save details', 'elementor-podcast-manager' ); ?></button>
-						<p class="epm-design__dirty epm-details__dirty" data-epm-details-dirty role="status"></p>
-						<?php if ( $epm_details_set > 0 ) : ?>
-							<button type="submit" class="button" name="epm_details_action" value="reset" aria-describedby="epm-details-reset-help"><?php esc_html_e( 'Use built-in details', 'elementor-podcast-manager' ); ?></button>
-							<p class="description" id="epm-details-reset-help"><?php esc_html_e( 'Built-in details are what each widget and shortcode showed before you chose any here.', 'elementor-podcast-manager' ); ?></p>
-						<?php endif; ?>
-					</div>
-				</form>
-			</section>
+				<button type="button" class="button" data-epm-details-reset><?php esc_html_e( 'Use built-in details', 'elementor-podcast-manager' ); ?></button>
+			</details>
+				<div class="epm-design__savebar">
+					<p class="epm-design__dirty" data-epm-dirty role="status"></p>
+					<button type="reset" class="button" data-epm-design-reset hidden><?php esc_html_e( 'Discard changes', 'elementor-podcast-manager' ); ?></button>
+					<?php submit_button( __( 'Save design', 'elementor-podcast-manager' ), 'primary', 'submit', false, [ 'id' => 'epm-design-save-submit' ] ); ?>
+				</div>
 
+			</form>
+
+<details class="epm-card epm-fold" id="epm-starters"><summary><?php esc_html_e( 'Starter pages and layouts', 'elementor-podcast-manager' ); ?></summary>
+<p><?php esc_html_e( 'Create a draft you can review and publish yourself, or insert a layout inside Elementor using any Podcast widget’s Usage and starter layouts section. Existing pages stay intact.', 'elementor-podcast-manager' ); ?></p>
+<?php if ( current_user_can( 'edit_pages' ) ) : ?><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><input type="hidden" name="action" value="epm_starter_draft" /><?php wp_nonce_field( 'epm_starter_draft', '_epm_starter_nonce' ); ?>
+<label for="epm-starter-kind"><?php esc_html_e( 'Starter page', 'elementor-podcast-manager' ); ?></label><select name="kind" id="epm-starter-kind"><option value="show"><?php esc_html_e( 'Show page', 'elementor-podcast-manager' ); ?></option><option value="archive"><?php esc_html_e( 'Episode archive', 'elementor-podcast-manager' ); ?></option></select><button class="button" type="submit"><?php esc_html_e( 'Create starter draft', 'elementor-podcast-manager' ); ?></button></form><?php endif; ?>
+<p class="description"><?php esc_html_e( 'Without Elementor, the draft uses podcast shortcodes. Episode layouts require an episode document; save the inserted section as a reusable Elementor template. Elementor Pro is optional.', 'elementor-podcast-manager' ); ?></p>
+</details>
 			<!-- What differs from the preset -->
 			<details class="epm-card epm-design-summary">
 				<summary>
@@ -535,8 +532,8 @@ $epm_style = static function ( array $vars ): string {
 			</details>
 
 			<!-- Export / import -->
-			<section class="epm-card epm-design__io" aria-labelledby="epm-io-title">
-				<h2 class="epm-card__title" id="epm-io-title"><?php esc_html_e( 'Move this design to another site', 'elementor-podcast-manager' ); ?></h2>
+			<details class="epm-card epm-design__io epm-fold"><summary id="epm-io-title"><?php esc_html_e( 'Export or import design', 'elementor-podcast-manager' ); ?></summary>
+				<h2 class="epm-card__title"><?php esc_html_e( 'Move this design to another site', 'elementor-podcast-manager' ); ?></h2>
 				<p class="epm-card__lede"><?php esc_html_e( 'The file holds design values only: no episodes, media, text or web addresses.', 'elementor-podcast-manager' ); ?></p>
 				<div class="epm-design__io-grid">
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" data-epm-design-export>
@@ -556,7 +553,7 @@ $epm_style = static function ( array $vars ): string {
 						<?php submit_button( __( 'Import design file', 'elementor-podcast-manager' ), 'secondary', 'submit', false, [ 'id' => 'epm-design-import-submit' ] ); ?>
 					</form>
 				</div>
-			</section>
+			</details>
 		</div>
 
 		<!-- Live preview -->
@@ -565,62 +562,22 @@ $epm_style = static function ( array $vars ): string {
 				<div class="epm-design-preview__bar">
 					<h2 class="epm-design-preview__title" id="epm-preview-title"><?php esc_html_e( 'Preview', 'elementor-podcast-manager' ); ?></h2>
 				</div>
-				<p class="epm-design-preview__status" data-epm-preview-status role="status"><?php esc_html_e( 'Your design', 'elementor-podcast-manager' ); ?></p>
+				<label for="epm-preview-component"><?php esc_html_e( 'Preview component', 'elementor-podcast-manager' ); ?></label>
+<select id="epm-preview-component" data-epm-preview-component>
+<?php foreach ( [ 'player' => __( 'Player', 'elementor-podcast-manager' ), 'episode-page' => __( 'Episode page', 'elementor-podcast-manager' ), 'list' => __( 'Episode list', 'elementor-podcast-manager' ), 'subscribe' => __( 'Subscribe links', 'elementor-podcast-manager' ) ] as $epm_part => $epm_label ) : ?>
+<option value="<?php echo esc_attr( $epm_part ); ?>"><?php echo esc_html( $epm_label ); ?></option>
+<?php endforeach; ?></select>
+<button type="button" class="button" data-epm-preview-retry hidden><?php esc_html_e( 'Retry preview', 'elementor-podcast-manager' ); ?></button>
+<p class="epm-design-preview__status" data-epm-preview-status role="status"><?php esc_html_e( 'Your design', 'elementor-podcast-manager' ); ?></p>
 				<div class="epm-design-preview__preset" data-epm-preview-preset hidden>
 					<p data-epm-preview-preset-text></p>
 					<button type="button" class="button button-small" data-epm-preview-mine><?php esc_html_e( 'Show my design', 'elementor-podcast-manager' ); ?></button>
 				</div>
-				<div class="epm-design-preview__viewport" data-epm-preview-viewport>
+				<div class="epm-design-preview__viewport" data-epm-preview-viewport tabindex="0" role="region" aria-labelledby="epm-preview-title">
 					<div class="epm-design-preview__canvas<?php echo '' !== (string) ( DesignSettings::font_stacks()[ (string) $epm_design['font_family'] ] ?? '' ) ? ' has-custom-font' : ''; ?>" data-epm-preview-canvas style="<?php echo $epm_style( Admin::design_css_vars( $epm_design ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in $epm_style. ?>" inert>
-						<p class="epm-design-preview__label"><?php esc_html_e( 'Player', 'elementor-podcast-manager' ); ?></p>
-						<div data-epm-preview-part="player">
-							<?php
-							// What a Podcast Player widget with its defaults shows.
-							// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Renderer output is escaped.
-							echo $epm_renderer->player(
-								$epm_preview['player'],
-								array_merge(
-									Details::resolve( 'player' ),
-									[
-										'layout'    => '',
-										'sticky'    => false,
-										'player_id' => 'epm-design-preview-player',
-									]
-								)
-							);
-							?>
-						</div>
-						<p class="epm-design-preview__label"><?php esc_html_e( 'Episode page', 'elementor-podcast-manager' ); ?></p>
-						<div data-epm-preview-part="episode-page">
-							<?php
-							// The player every episode page gets automatically.
-							// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Renderer output is escaped.
-							echo $epm_renderer->player( $epm_preview['player'], array_merge( EpisodeTemplate::player_args( $epm_preview['player'] ), [ 'player_id' => 'epm-design-preview-episode-page' ] ) );
-							?>
-						</div>
-						<p class="epm-design-preview__label"><?php esc_html_e( 'Episode list', 'elementor-podcast-manager' ); ?></p>
-						<div data-epm-preview-part="list">
-							<?php
-							// What an Episode List widget with its defaults shows; the
-							// other kind (cards or rows) waits hidden for a layout change.
-							$epm_list_args = array_merge( Details::resolve( 'list' ), [ 'excerpt_length' => 20 ] );
-							$epm_lists     = [
-								'cards' => $epm_is_cards ? $epm_list_layout : 'cards',
-								'rows'  => $epm_is_cards ? 'list' : $epm_list_layout,
-							];
-							if ( ! $epm_is_cards ) {
-								$epm_lists = array_reverse( $epm_lists, true );
-							}
-							foreach ( $epm_lists as $epm_kind => $epm_layout ) :
-								$epm_hidden = ( 'cards' === $epm_kind ) !== $epm_is_cards;
-								?>
-								<div data-epm-preview-list="<?php echo esc_attr( $epm_kind ); ?>"<?php echo $epm_hidden ? ' hidden' : ''; ?>>
-									<?php echo $epm_renderer->episode_list_from_data( $epm_preview['list'], array_merge( $epm_list_args, [ 'layout' => $epm_layout ] ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Renderer output is escaped. ?>
-								</div>
-							<?php endforeach; ?>
-						</div>
-						<p class="epm-design-preview__label"><?php esc_html_e( 'Subscribe links', 'elementor-podcast-manager' ); ?></p>
-						<?php echo $epm_renderer->subscribe_links( Admin::design_preview_links(), [ 'display' => 'icon-text' ] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Renderer output is escaped. ?>
+<?php foreach ( Admin::render_design_preview( $epm_design )['html'] as $epm_part => $epm_html ) : ?>
+ <div data-epm-preview-part="<?php echo esc_attr( $epm_part ); ?>"<?php echo 'player' !== $epm_part ? ' hidden' : ''; ?>><?php echo $epm_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- real Renderer. ?></div>
+<?php endforeach; ?>
 					</div>
 				</div>
 				<p class="epm-design-preview__foot">

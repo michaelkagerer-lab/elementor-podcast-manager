@@ -1,8 +1,23 @@
 # Changelog
 
-## Unreleased
+## 1.4.0
+
+### Interface improvements
+
+- Preview unsaved design details with the real renderer, choose one preview component, and retry failed previews without losing changes.
+- Show submitted and listed directories separately, prioritize feed repairs, and group hosting, import and move tasks.
+- Start setup from the operator's situation; guide first-episode editing and offer explicit draft starters for show pages and archives.
+- Explain widget tasks and inherited style values, reset individual overrides with Undo, and insert reusable starter layouts in Elementor.
+- Improve secondary text, reduce repeated borders and status decoration, and fit Full players to narrow desktop columns while preserving manual artwork sizes.
 
 ### Fixed
+
+- Block cloud-metadata and other special-purpose IPv4 targets on older supported WordPress versions, including redirects and audio/delivery HEAD checks.
+
+- Register the podcast widget category on Elementor's actual category hook, so all twelve widgets can be searched and inserted from the sidebar.
+- Respect current site privacy and notification opt-out when a queued Podcast Index ping runs.
+- Preserve literal comparisons in imported titles and descriptions even when both angle brackets occur.
+- Give settings checkboxes adequately spaced hit targets and make the scrollable Design preview keyboard accessible with visible focus.
 
 - Podcast Index notification: the cron event and the opt-out filter
   shared the name `epm_ping_podcast_index`, so publishing an episode ran

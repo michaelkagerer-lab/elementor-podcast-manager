@@ -16,7 +16,7 @@ try {
   if(partial) return route.fulfill({json:{success:true,data:{feed_url:'https://feeds.example.test/error.xml',token:'partial-probe',episodes:1,existing:0,duplicates:[],blocked:0,channel:{title:'Partial probe'},catalog:{complete:false,retry:true,message:'The next page did not answer in time.',details:'cURL error 28: page two probe'}}}});
   return route.fulfill({json:{success:false,data:{message:'The podcast host did not answer in time. Try again in a few minutes.',details:'cURL error 28: <img src=x onerror=alert(1)> private probe'}}});
  });
- await page.goto(`${BASE}/wp-admin/admin.php?page=epm-hosting`);
+ await page.goto(`${BASE}/wp-admin/admin.php?page=epm-hosting#epm-task-import`);
  await page.locator('[data-import-form] [name="url"]').fill('https://feeds.example.test/error.xml');
  await page.locator('[data-action="check"]').click();
  const error=page.locator('[data-import-form] [data-error]');

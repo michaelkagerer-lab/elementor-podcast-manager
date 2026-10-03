@@ -81,14 +81,17 @@ $make_episode = static function ( array $args = [], array $meta = [] ) use ( &$c
  * @return int
  */
 $make_file = static function ( string $name, string $bytes, string $mime ) use ( &$cleanup ): int {
-	$upload = wp_upload_bits( $name, null, $bytes );
+	$directory = wp_upload_dir();
+	wp_mkdir_p( $directory['path'] );
+	$file = trailingslashit( $directory['path'] ) . wp_unique_filename( $directory['path'], $name );
+	if ( false === file_put_contents( $file, $bytes ) ) { throw new RuntimeException( 'Could not create attachment fixture.' ); }
 	$id     = wp_insert_attachment(
 		[
 			'post_mime_type' => $mime,
 			'post_title'     => $name,
 			'post_status'    => 'inherit',
 		],
-		$upload['file']
+		$file
 	);
 	$cleanup[] = (int) $id;
 
@@ -1021,7 +1024,11 @@ $t->test(
 		$t->same( count( Admin::contrast_pairs() ), substr_count( $html, 'data-epm-contrast-pair' ), 'contrast pairs' );
 		$t->assert( false !== strpos( $html, 'data-epm-design-export' ), 'export form marked (it does not warn about unsaved changes)' );
 		$t->assert( false !== strpos( $html, 'data-epm-preview-canvas' ) && false !== strpos( $html, 'data-epm-player' ), 'preview renders a real player' );
-		$t->assert( false !== strpos( $html, 'epm-episode-card' ) && false !== strpos( $html, 'epm-episode-row' ), 'cards and rows' );
+		$t->assert( false !== strpos( $html, 'data-epm-preview-part="list"' ), 'selected list preview exists' );
+        foreach ( [ 'cards' => 'epm-episode-card', 'list' => 'epm-episode-row' ] as $layout => $class ) {
+            $input = epm()->design->all(); $input['default_episode_layout'] = $layout;
+            $t->assert( str_contains( Admin::render_design_preview( $input )['html']['list'], $class ), 'real preview supports ' . $layout );
+        }
 		$t->assert( false !== strpos( $html, 'epm-subscribe' ), 'subscribe links' );
 		$t->assert( false !== strpos( $html, 'data-epm-preset-dialog' ), 'confirmation dialog' );
 		$t->assert( (bool) preg_match( '/<label[^>]*for="epm-design-file"/', $html ), 'import file labelled' );

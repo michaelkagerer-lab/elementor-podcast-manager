@@ -1,17 +1,10 @@
 /**
  * Design screen: live preview, preset gallery and contrast check.
  *
- * window.epmDesign comes from EPM\Admin::design_preview_config(): the
- * table of design tokens (which --epm-* variable each one sets and how its
- * value is written), the saved values, every preset's values and details,
- * the details shown by default (built-in and the site's) and the
- * dark-background rule. Nothing here is saved: the token form saves
- * through options.php, the details form and applying a preset are POSTs.
- *
- * The preview renders the saved details (the server renders it exactly
- * as the site does). Previewing a preset shows its looks and layouts and
- * lists the details it would change; the confirmation dialog lists them
- * again.
+ * Tokens update CSS immediately. Structural choices and unsaved details use
+ * a bounded, nonce-protected read-only render, with debounce and stale-response
+ * suppression. Saving remains explicit through the shared options.php form.
+ * Presets are previews until confirmed; failures keep the last valid render.
  */
 (function () {
 	'use strict';
@@ -60,6 +53,53 @@
 	var managedVars = Object.keys(map).map(function (key) {
 		return map[key]['var'];
 	}).filter(Boolean).concat(Object.keys((config.dark && config.dark.vars) || {}));
+
+	var previewTimer, previewController, previewVersion = 0;
+	var component = root.querySelector('[data-epm-preview-component]');
+	var retryPreview = root.querySelector('[data-epm-preview-retry]');
+	function selectComponent() {
+		canvas.querySelectorAll('[data-epm-preview-part]').forEach(function (part) { part.hidden = part.dataset.epmPreviewPart !== component.value; });
+	}
+	if (component) { component.addEventListener('change', selectComponent); selectComponent(); }
+	var detailContext = root.querySelector('[data-epm-details-context-choice]');
+ function selectDetailContext() { root.querySelectorAll('[data-epm-details-context]').forEach(function (group) { group.hidden = group.dataset.epmDetailsContext !== detailContext.value; }); }
+ if (detailContext) { detailContext.addEventListener('change', selectDetailContext); selectDetailContext(); }
+ function readDetails() {
+		var out = Object.assign({}, detailsConfig.site || {});
+		if (root.querySelector('[data-epm-details-reset-value]').value === '1') { out = {}; }
+		root.querySelectorAll('[data-epm-details-context]').forEach(function (group) {
+			var context = group.dataset.epmDetailsContext;
+			out[context] = Object.assign({}, out[context] || {});
+			group.querySelectorAll('input[type="checkbox"]').forEach(function (input) { var match = input.name.match(/\[([^\]]+)\]$/); if (match) { out[context][match[1]] = input.checked; } });
+		});
+		return out;
+	}
+	function queuePreview(values, details) {
+		var version = ++previewVersion;
+		window.clearTimeout(previewTimer);
+		if (previewController) { previewController.abort(); }
+		var payload = Object.assign({}, values, { details: details === undefined ? readDetails() : details });
+		previewTimer = window.setTimeout(function () {
+			previewController = new AbortController();
+			var controller = previewController;
+			var timeout = window.setTimeout(function () { controller.abort(); }, 10000);
+			var body = new FormData(); body.append('action', 'epm_design_preview'); body.append('nonce', config.nonce); body.append('values', JSON.stringify(payload));
+			canvas.setAttribute('aria-busy', 'true');
+			statusEl.textContent = __('Updating preview…', 'elementor-podcast-manager');
+			fetch(config.ajaxUrl, { method: 'POST', credentials: 'same-origin', body: body, signal: controller.signal }).then(function (r) { if (!r.ok) { throw new Error('preview'); } return r.json(); }).then(function (json) {
+				if (version !== previewVersion) { return; }
+				if (!json.success || !json.data || !json.data.html) { throw new Error('preview'); }
+				Object.keys(json.data.html).forEach(function (part) { var target = canvas.querySelector('[data-epm-preview-part="' + part + '"]'); if (target) { target.innerHTML = json.data.html[part]; } });
+				root.querySelectorAll('[data-epm-detail-effect]').forEach(function (el) { var parts = el.dataset.epmDetailEffect.split(':'); el.textContent = (json.data.effects[parts[0]] || {})[parts[1]] || ''; });
+				selectComponent(); retryPreview.hidden = true;
+				statusEl.textContent = mode === 'preset' ? __('Preset preview — not applied', 'elementor-podcast-manager') : __('Preview updated. Save design to apply your changes.', 'elementor-podcast-manager');
+			}).catch(function () {
+				if (version !== previewVersion) { return; }
+				statusEl.textContent = __('Preview could not update. Your last preview and unsaved choices are kept. Retry.', 'elementor-podcast-manager'); retryPreview.hidden = false;
+			}).finally(function () { window.clearTimeout(timeout); if (version === previewVersion) { canvas.removeAttribute('aria-busy'); } });
+		}, 250);
+	}
+	if (retryPreview) { retryPreview.addEventListener('click', function () { if (mode === 'preset') { var selected = presetForm.querySelector('input:checked'); if (selected) { previewPreset(selected.value); } } else { showMine(); } }); }
 
 	/**
 	 * Announce a message to screen readers.
@@ -222,26 +262,6 @@
 		return vars;
 	}
 
-	/**
-	 * Replace the modifier classes of an element.
-	 *
-	 * @param {Element} el       Element.
-	 * @param {string}  prefix   Class prefix, e.g. "epm-player--".
-	 * @param {Array}   modifiers Classes to add.
-	 */
-	function setModifiers(el, prefix, modifiers) {
-		if (!el) {
-			return;
-		}
-		Array.prototype.slice.call(el.classList).forEach(function (name) {
-			if (name.indexOf(prefix) === 0) {
-				el.classList.remove(name);
-			}
-		});
-		modifiers.forEach(function (name) {
-			el.classList.add(name);
-		});
-	}
 
 	/**
 	 * Every detail of every context: built-in defaults with a sparse map
@@ -322,23 +342,6 @@
 		return sprintf(format, change.label, listOf(change.places));
 	}
 
-	/**
-	 * The episode page's player layout: Minimal and Compact become Full
-	 * while it shows a control those layouts hide (as on the site).
-	 *
-	 * @param {string} layout  Player layout.
-	 * @param {Object} details Every detail of every context.
-	 * @return {string} Layout.
-	 */
-	function episodePageLayout(layout, details) {
-		if (layout !== 'minimal' && layout !== 'compact') {
-			return layout;
-		}
-		var page = details.episode_page || {};
-		return (config.episodePageFull || []).some(function (flag) {
-			return !!page[flag];
-		}) ? 'full' : layout;
-	}
 
 	/**
 	 * Show a set of values in the preview.
@@ -359,31 +362,6 @@
 		var font = map.font_family && map.font_family.values ? map.font_family.values[values.font_family] : '';
 		canvas.classList.toggle('has-custom-font', !!font);
 
-		var all = effectiveDetails(details === undefined ? detailsConfig.site : details);
-		canvas.querySelectorAll('[data-epm-preview-part="player"] .epm-player').forEach(function (el) {
-			setModifiers(el, 'epm-player--', ['epm-player--' + values.default_player_layout]);
-		});
-		canvas.querySelectorAll('[data-epm-preview-part="episode-page"] .epm-player').forEach(function (el) {
-			setModifiers(el, 'epm-player--', ['epm-player--' + episodePageLayout(String(values.default_player_layout), all)]);
-		});
-
-		var layout = String(values.default_episode_layout || 'list');
-		var isCards = (config.cardLayouts || []).indexOf(layout) !== -1;
-		var cards = canvas.querySelector('[data-epm-preview-list="cards"]');
-		var rows = canvas.querySelector('[data-epm-preview-list="rows"]');
-		var rowLayout = isCards ? 'list' : layout;
-		var numbers = !all.list || all.list.show_episode_number !== false;
-
-		setModifiers(cards && cards.querySelector('.epm-episode-list'), 'epm-episode-list--', ['epm-episode-list--' + (isCards ? layout : 'cards')]);
-		setModifiers(rows && rows.querySelector('.epm-episode-list'), 'epm-episode-list--', ['epm-episode-list--' + rowLayout].concat(
-			numbers && (config.numberedLayouts || []).indexOf(rowLayout) !== -1 && rows.querySelector('.epm-episode-row__number') ? ['epm-episode-list--numbered'] : []
-		));
-		if (cards) {
-			cards.hidden = !isCards;
-		}
-		if (rows) {
-			rows.hidden = isCards;
-		}
 	}
 
 	/**
@@ -526,6 +504,7 @@
 			presetNote.hidden = true;
 		}
 		applyPreview(readForm());
+		queuePreview(readForm());
 		if (wasPreset && statusEl) {
 			statusEl.textContent = __('Your design', 'elementor-podcast-manager');
 		}
@@ -543,6 +522,7 @@
 		}
 		mode = 'preset';
 		applyPreview(preset.values, preset.details || {});
+		queuePreview(preset.values, preset.details || {});
 		if (presetNote && presetNoteText) {
 			var changes = detailChanges(preset.details || {});
 			/* translators: %s: preset name */
@@ -606,6 +586,7 @@
 			}
 		});
 		applyPreview(values);
+		queuePreview(values);
 		updateContrast(values, false);
 		setDirty(true);
 	}
@@ -672,6 +653,8 @@
 	// field too, not only in the browser's bubble.
 	form.addEventListener('invalid', function (e) {
 		var target = e.target;
+		var group = target.closest('details');
+		if (group) { group.open = true; }
 		if (target.matches('[data-epm-token]')) {
 			setFieldError(target, fieldProblem(target) || target.validationMessage);
 		}
@@ -694,6 +677,7 @@
 			showMine();
 			updateContrast(values, true);
 			setDirty(false);
+			detailsDirty = false;
 			speak(__('Changes discarded. The saved design is shown again.', 'elementor-podcast-manager'));
 		}, 0);
 	});
@@ -701,6 +685,7 @@
 	form.addEventListener('submit', function () {
 		// Saving leaves the page: no "unsaved" warning is needed.
 		setDirty(false);
+		detailsDirty = false;
 	});
 
 	// Leaving with unsaved changes asks first (the browser shows its own
@@ -732,14 +717,42 @@
 				return;
 			}
 			detailsDirty = true;
+			setDirty(true);
+			showMine();
 			if (detailsDirtyEl) {
-				detailsDirtyEl.textContent = __('Unsaved changes. Save the details to see them in the preview and on your site.', 'elementor-podcast-manager');
+				detailsDirtyEl.textContent = __('Unsaved changes. Save design applies appearance and details together.', 'elementor-podcast-manager');
 			}
 		});
 		detailsForm.addEventListener('submit', function () {
 			detailsDirty = false;
 		});
 	}
+
+	var detailsReset = root.querySelector('[data-epm-details-reset]');
+	if (detailsReset && detailsForm) {
+		detailsReset.addEventListener('click', function () {
+			root.querySelector('[data-epm-details-reset-value]').value = '1';
+			detailsForm.querySelectorAll('input[type="checkbox"]').forEach(function (input) {
+				var group = input.closest('[data-epm-details-context]');
+				var flag = input.name.match(/\[([^\]]+)\]$/);
+				var defaults = detailsConfig.neutral[group.getAttribute('data-epm-details-context')] || {};
+				if (flag) { input.checked = !!defaults[flag[1]]; }
+			});
+			detailsDirty = true;
+			setDirty(true);
+			showMine();
+			speak(__('Built-in details selected. Save design to apply them.', 'elementor-podcast-manager'));
+		});
+	}
+	function revealDesignTarget() {
+		var target = document.getElementById(window.location.hash.slice(1));
+		if (target && root.contains(target)) {
+			var fold = target.closest('details');
+			if (fold) { fold.open = true; }
+		}
+	}
+	window.addEventListener('hashchange', revealDesignTarget);
+	revealDesignTarget();
 
 	// ---------------------------------------------------------------------
 	// Preset gallery.
@@ -836,5 +849,6 @@
 
 	var initial = readForm();
 	applyPreview(initial);
+	queuePreview(initial);
 	updateContrast(initial, true);
 })();

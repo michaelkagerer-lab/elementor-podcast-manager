@@ -26,6 +26,11 @@ class PackageTests(unittest.TestCase):
                     self.assertIn(f"elementor-podcast-manager/{name}", names)
                 self.assertTrue(any("/includes/" in name for name in names))
                 self.assertTrue(any("/assets/" in name for name in names))
+                plugin = archive.read("elementor-podcast-manager/elementor-podcast-manager.php").decode()
+                readme = archive.read("elementor-podcast-manager/readme.txt").decode()
+                self.assertIn("Version:           1.4.0", plugin)
+                self.assertIn("define( 'EPM_VERSION', '1.4.0' )", plugin)
+                self.assertIn("Stable tag: 1.4.0", readme)
                 for name in names:
                     self.assertNotRegex(name, r"/(tests|docs|tools|node_modules|screenshots|\.github|\.git)/")
                     self.assertNotIn("seed.php", name)

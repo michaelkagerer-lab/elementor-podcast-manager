@@ -87,14 +87,14 @@ differs from the baseline instance.
 |---|---|---|---|---|---|
 | Podcast Player | `container_background` | Container → Background | rest | works | `.epm-player` |
 | Podcast Player | `container_radius` | Container → Border Radius | rest | works | `.epm-player` |
-| Podcast Player | `container_padding` | Container → Padding | rest | works | `.epm-player` |
-| Podcast Player | `container_gap` | Container → Gap | rest | works | `.epm-player` |
+| Podcast Player | `container_padding` | Container → Padding | rest | works | `.epm-player-frame` |
+| Podcast Player | `container_gap` | Container → Gap | rest | works | `.epm-player-frame` |
 | Podcast Player | `artwork_size` | Artwork → Size | rest | works | `.epm-player__artwork` |
 | Podcast Player | `artwork_radius` | Artwork → Border Radius | rest | works | `.epm-artwork` |
 | Podcast Player | `label_color` | Label → Color | rest | works | `.epm-player__label` |
 | Podcast Player | `title_color` | Title → Color | rest | works | `.epm-player__title` |
 | Podcast Player | `meta_color` | Metadata → Color | rest | works | `.epm-meta` |
-| Podcast Player | `play_button_size` | Play Button → Size | rest | works | `.epm-player` |
+| Podcast Player | `play_button_size` | Play Button → Size | rest | works | `.epm-player-frame` |
 | Podcast Player | `play_button_radius` | Play Button → Border Radius | rest | works | `.epm-player__play` |
 | Podcast Player | `play_button_background` | Play Button → Background | rest | works | `.epm-player__play` |
 | Podcast Player | `play_button_color` | Play Button → Icon Color | rest | works | `.epm-player__play` |
@@ -104,17 +104,17 @@ differs from the baseline instance.
 | Podcast Player | `timeline_played_color` | Timeline → Played Color | rest | works | `.epm-player__progress` |
 | Podcast Player | `timeline_height` | Timeline → Height | rest | works | `.epm-player__track` |
 | Podcast Player | `time_color` | Time & Secondary Controls → Time Color | rest | works | `.epm-player__times` |
-| Podcast Player | `secondary_icon_size` | Time & Secondary Controls → Secondary Icon Size | rest | works | `.epm-player` |
+| Podcast Player | `secondary_icon_size` | Time & Secondary Controls → Secondary Icon Size | rest | works | `.epm-player-frame` |
 | Podcast Player | `secondary_button_shape` | Time & Secondary Controls → Button Shape | rest | works | `.epm-player__speed` |
 | Podcast Player | `secondary_color` | Time & Secondary Controls → Secondary Color | rest | works | `.epm-player__speed` |
 | Podcast Player | `secondary_color_hover` | Time & Secondary Controls → Secondary Hover Color | hover | works | `.epm-player__speed` |
-| Podcast Player | `container_border (group)` | Container → Border Type | rest | works | `.epm-player` |
+| Podcast Player | `container_border (group)` | Container → Border Type | rest | works | `.epm-player-frame` |
 | Podcast Player | `container_shadow (group)` | Container → Box Shadow | rest | works | `.epm-player` |
-| Podcast Player | `label_typography (group)` | Label → Typography | rest | works | `.epm-player` |
-| Podcast Player | `title_typography (group)` | Title → Typography | rest | works | `.epm-player` |
-| Podcast Player | `meta_typography (group)` | Metadata → Typography | rest | works | `.epm-player` |
+| Podcast Player | `label_typography (group)` | Label → Typography | rest | works | `.epm-player-frame` |
+| Podcast Player | `title_typography (group)` | Title → Typography | rest | works | `.epm-player-frame` |
+| Podcast Player | `meta_typography (group)` | Metadata → Typography | rest | works | `.epm-player-frame` |
 | Podcast Player | `play_button_border (group)` | Play Button → Border Type | rest | works | `.epm-player__play` |
-| Podcast Player | `time_typography (group)` | Time & Secondary Controls → Typography | rest | works | `.epm-player` |
+| Podcast Player | `time_typography (group)` | Time & Secondary Controls → Typography | rest | works | `.epm-player-frame` |
 | Episode List | `list_background` | List → Background | rest | works | `.epm-episode-list` |
 | Episode List | `list_text` | List → Text Color | rest | works | `.epm-episode-card` |
 | Episode List | `list_muted` | List → Muted Text Color | rest | works | `.epm-meta` |

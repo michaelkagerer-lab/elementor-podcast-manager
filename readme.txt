@@ -4,7 +4,7 @@ Tags: podcast, elementor, audio player, rss, episodes
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.3.0
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -91,6 +91,12 @@ Episodes use the classic screen so the audio upload sits right under the title. 
 
 == Changelog ==
 
+= 1.4.0 =
+* Fixed: Elementor widget discovery and editor initialization, design inheritance and player controls.
+* Fixed: import/sync integrity, bounded media downloads, feed caching, hosting redirect validation and safe upgrades.
+* Improved: setup and recovery, accessibility, German translations, test safety and reproducible packaging.
+* Fixed: queued Podcast Index notifications respect current privacy and opt-out settings; feed titles preserve literal comparisons.
+
 = 1.3.0 =
 * Added: hosting modes. "This website" publishes the feed as before; "Another podcast host" mirrors a show hosted at Spotify for Creators, Buzzsprout, Libsyn or any other host, syncs it hourly and redirects the site's feed to the host's feed (301).
 * Added: feed import from a feed address, an Apple Podcasts link or a web page; tolerant parser for feeds from any host; paged feeds; batched background import; episode GUIDs and the podcast GUID kept; chapters and transcripts converted; optional copy of audio, images and caption files into the Media Library, with a list of episodes whose audio could not be copied; locked feeds require ownership confirmation.
@@ -147,6 +153,9 @@ Episodes use the classic screen so the audio upload sits right under the title. 
 * Initial release.
 
 == Upgrade Notice ==
+
+= 1.4.0 =
+Preserves episode and podcast GUIDs, URLs, local episode edits and existing widget settings. Includes import, feed, player, Elementor and accessibility fixes. Large catalogs are upgraded in background batches.
 
 = 1.3.0 =
 Adds hosting modes (keep your host or move a show), import and sync, a setup assistant, a distribution center, transcript files, share links, embeds, video, topics and a new Design screen. Existing sites keep working; see MIGRATION.md.

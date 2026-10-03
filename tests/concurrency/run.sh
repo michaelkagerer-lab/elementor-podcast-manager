@@ -35,7 +35,8 @@ FAILED=()
 RAN=0
 
 for line in "${LIST[@]}"; do
-	read -r name roles flag <<< "$line"
+	read -r marker name roles flag <<< "$line"
+	[ "$marker" = EPM_RACE_SCENARIO ] || continue
 	[ -n "$name" ] || continue
 	if [ "$#" -gt 0 ]; then
 		wanted=""

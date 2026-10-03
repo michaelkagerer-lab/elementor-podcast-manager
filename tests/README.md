@@ -71,6 +71,7 @@ site provisioning and require no extra Python packages.
 | Actual German package | `i18n/test_catalog.py`, `e2e/german.mjs` | Complete PO/MO and six JS catalogs, printf/plural/hash validation; actual German setup/editor/player and five admin screens at 390px |
 | cURL unavailable | `media/no-curl.php` (through `media/run.sh`) | Real PHP process with curl_exec disabled: no media request starts, original URL retained and recovery requirement reported |
 
+| Independent merged-state review | `integration/independent-audit.php`, `e2e/independent-elementor.mjs`, `e2e/independent-accessibility.mjs` | Actual Elementor category lifecycle, twelve sidebar tiles, native search and drag-and-drop; deferred notification privacy/opt-out; literal comparison preservation; minimum-core metadata-address protection for GET/HEAD and redirects; axe WCAG 2.0–2.2 AA scans of six admin screens and all five player layouts at desktop/mobile widths. Automated scans complement the interaction suites and do not certify every assistive technology. |
 | Lint | `bin/lint.sh` | `php -l` on every PHP file, `node --check` on every script and browser suite |
 | Integration | `integration/run.php` | rewrite-rule order, capabilities per role and with a filtered capability, meta sanitizers (HTML/line breaks kept), visibility of draft/private/scheduled/password episodes, GUID immutability, duration detection, pure helpers (durations, timestamps, languages, categories, UUIDv5), feed contents (items, channel tags, categories, explicit, chapters/transcript tags, episode artwork rules, feed window and serial order, distribution options), feed cache invalidation, shortcodes, automatic episode pages, readiness report and its links, the CTA's assets, Elementor widget registration (no duplicate control IDs, dynamic content), no `_doing_it_wrong` |
 | | `integration/admin.php` | Topics taxonomy and its capabilities (contributors assign, editors manage, filtered capabilities), the Podcast menu and sentence-case labels, default hidden list columns; episode editor: next episode number, paste-chapters disclosure, video field help, transcript files (fill the text, SRT accepted, other files rejected, hosted file shown), episode search and media AJAX for contributors (no other authors' private episodes or media); Quick Edit and Bulk Edit (*Number from*); design export allowlist and import validation, the Design screen's token table against `DesignSettings::output_tokens()` for every preset, the script data, the WCAG contrast formula and pairs (every preset passes), the Design screen render |
@@ -401,3 +402,55 @@ German date/month names require WordPress's own German language pack. Disposable
 profiles install pinned, checksum-verified packs from `tests/versions.json`.
 Copying media during a move requires PHP cURL; the podcast remains usable without
 it and the original media addresses are retained when copying cannot start.
+
+## UX clarity and the follow-up UI audit
+
+`integration/ux-clarity.php` covers editor-only sample disclosure, the combined
+appearance/details form, source labels and layout availability, dashboard
+priority, real Elementor starter data/reuse, and preservation of inherited or
+unavailable detail flags. `e2e/ux-clarity.mjs` exercises the actual shared save,
+keyboard disclosures, compact mobile views, optional-directory fragment links,
+the primary dashboard action and rendered Elementor starter components. It
+restores settings and deletes its page. Run on a marked disposable site only.
+
+The separate audit inventory/report are `docs/UI-INVENTORY-2026-10-03.md` and
+`docs/UI-AUDIT-2026-10-03.md`; the owner's phase checkpoints are recorded in
+`docs/ui-audit-work-order.md`.
+
+
+## Ten approved UI measures (phase four)
+
+`integration/ui-phase4.php` covers submitted/listed counts, feed-repair priority,
+task navigation, situation-first setup, real unsaved Renderer previews, malformed
+preview inputs, per-control inheritance resets and distinct starter definitions.
+`e2e/ui-phase4.mjs` checks phone layouts, unsaved share toggles, no option writes,
+nonce/authentication/input limits, stale-response suppression, failed requests
+and Retry, resumable task navigation, explicit draft creation, all twelve widget
+library descriptions, native Elementor reset/insertion Undo and episode context
+restrictions. Both refuse an unmarked site. The browser suite restores options
+and removes its drafts in `finally`; run it without another mutating suite on
+that site. Use separate marked sites to compare versions.
+
+```sh
+WP_CLI=/tmp/epm-wp/wp
+"$WP_CLI" eval-file tests/integration/ui-phase4.php
+cd tests/e2e
+WP_URL=http://localhost:8889 WP_CLI="$WP_CLI" timeout 180 node ui-phase4.mjs
+```
+
+The compatibility suite `compat/elementor-off.php` also covers the read-only
+preview and shortcode starter fallbacks. `independent-accessibility.mjs` checks
+Full players in 320/390/480 px containers inside a desktop viewport, besides
+its existing semantic/contrast scans. The admin attachment fixture writes bytes
+directly rather than calling `wp_upload_bits`: that API still applies the site's
+upload MIME allowlist, contrary to the fixture's stated purpose. Tests of actual
+uploads remain separate; production MIME restrictions are preserved. Successful
+caption-copy scenarios in `integration/hosting.php` temporarily permit VTT/SRT
+in the disposable network upload allowlist and restore its previous value. Its
+uninstall probe is constrained to the site whose data it snapshots; the separate
+network lifecycle tests cover iteration across sites.
+
+Local screenshots are generated in `e2e/screenshots/`; phase-four evidence and
+scope limits are recorded in `docs/UI-IMPLEMENTATION-2026-10-03.md`. Each browser
+command has a 180-second limit. No hosted CI result from an older commit proves
+these changes.

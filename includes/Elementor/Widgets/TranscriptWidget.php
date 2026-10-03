@@ -150,6 +150,7 @@ final class TranscriptWidget extends Widget_Base {
 		);
 
 		$this->end_controls_section();
+		$this->add_task_guidance();
 	}
 
 	/**

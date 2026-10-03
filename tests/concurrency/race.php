@@ -996,7 +996,7 @@ $epm_race_phase = (string) ( $args[1] ?? '' );
 
 if ( 'list' === $epm_race_name ) {
 	foreach ( $epm_race_scenarios as $name => $scenario ) {
-		echo $name . ' ' . implode( ',', $scenario['roles'] ) . ( ! empty( $scenario['stress'] ) ? ' stress' : '' ) . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo 'EPM_RACE_SCENARIO ' . $name . ' ' . implode( ',', $scenario['roles'] ) . ( ! empty( $scenario['stress'] ) ? ' stress' : '' ) . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 	return;
 }

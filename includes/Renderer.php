@@ -1267,6 +1267,7 @@ final class Renderer {
 		$out .= '</div>'; // .epm-player__main
 		$out .= '</div>'; // .epm-player
 
+		if ( 'full' === $layout ) { $out = '<div class="epm-player-frame">' . $out . '</div>'; }
 		return apply_filters( 'epm_player_html', $out, $episode, $args );
 	}
 

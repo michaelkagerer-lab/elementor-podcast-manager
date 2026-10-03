@@ -5,6 +5,13 @@
 For all work in this repository, read and apply
 [the project-design skill](.agents/skills/project-design/SKILL.md) and the owner's
 [Design-Learnings & Regeln](docs/design-learnings-und-regeln.md).
+For every UI task also read [the compact design skill](docs/design-skills.md).
+The additional [UI audit work order](docs/ui-audit-work-order.md) specifies
+review checkpoints after its audit and plan phases when that order is invoked.
+External skill links are references, not installed tools or verified claims.
+Native WordPress/Elementor conventions and explicit user choices take priority
+over generic typography or visual-anchor prescriptions.
+
 Part 1 is the primary rule collection; Parts 2 and 3 supply rationale and
 attribution. These rules guide product behavior as well as interfaces,
 accessibility, copy and error recovery. Apply them in context; user instructions

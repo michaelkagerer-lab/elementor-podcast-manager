@@ -19,6 +19,10 @@ User instructions take precedence. The reference explicitly treats rules as
 context-dependent; explain intentional exceptions through the user goal,
 platform constraints and evidence.
 
+Also read [the compact design skill](../../../docs/design-skills.md) for UI tasks.
+Apply its hierarchy, content and interaction rules in the existing native
+WordPress/Elementor design direction; preserve deliberate frontend presets.
+
 ## Working method
 
 1. State the user's task, audience, key message and next useful action before

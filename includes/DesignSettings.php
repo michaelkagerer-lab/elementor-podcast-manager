@@ -342,6 +342,25 @@ final class DesignSettings {
 
 		$stored_maps = is_array( $stored ) ? $stored : [];
 
+		// A combined UI save only changes rendered flags. Retain unavailable
+		// fields and keep untouched built-in defaults inherited rather than
+		// freezing them as overrides just because the user saved a color.
+		if ( ! empty( $input['details_form'] ) ) {
+			$old_details = empty( $input['details_reset'] ) ? Details::sanitize_map( $stored_maps['details'] ?? [] ) : [];
+			$submitted = Details::sanitize_map( $input['details'] ?? [] );
+			$merged = $old_details;
+			foreach ( $submitted as $context => $flags ) {
+				$neutral = Details::neutral( $context );
+				foreach ( $flags as $flag => $value ) {
+					if ( ! array_key_exists( $flag, $old_details[ $context ] ?? [] ) && $value === ( $neutral[ $flag ] ?? false ) ) {
+						continue;
+					}
+					$merged[ $context ][ $flag ] = $value;
+				}
+			}
+			$input['details'] = $merged;
+		}
+
 		// Site details: explicit input wins (details form, preset, import);
 		// otherwise the stored values stay, so a token save never changes
 		// which details show.

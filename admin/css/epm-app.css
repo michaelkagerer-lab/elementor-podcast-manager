@@ -200,7 +200,11 @@
 }
 
 .epm-steps__item.is-done::before {
-	content: "✓";
+	content: "";
+ background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%232a6830' stroke-width='2' d='m6 12 4 4 8-8'/%3E%3C/svg%3E");
+ background-size: 18px;
+ background-repeat: no-repeat;
+ background-position: center;
 	border-color: var(--epm-app-ok);
 	background: var(--epm-app-ok-soft);
 	color: var(--epm-app-ok);
@@ -1184,3 +1188,35 @@ fieldset.epm-field > legend {
 		outline: 2px solid Highlight;
 	}
 }
+
+/* Native disclosures keep secondary work reachable without a script. */
+.epm-app .epm-fold > summary {
+ min-block-size: 44px;
+ box-sizing: border-box;
+ padding-block: 10px;
+ cursor: pointer;
+ font-size: 15px;
+ font-weight: 600;
+ line-height: 1.6;
+}
+.epm-app .epm-fold > summary:focus-visible {
+ outline: 2px solid var(--epm-app-accent, #2271b1);
+ outline-offset: 4px;
+}
+.epm-app .epm-fold[open] > summary { margin-block-end: 16px; }
+.epm-app .epm-fold:not([open]) { padding-block: 8px; }
+
+/* Readable task guidance on plugin surfaces; native admin elsewhere is untouched. */
+.epm-app .epm-field__help, .epm-app .epm-choice__text,
+.epm-app .epm-panel__lede, .epm-app .epm-card__lede { font-size: 14px; line-height: 1.5; }
+.epm-readiness__technical { font-size: 13px; }
+.epm-readiness__technical > summary { cursor: pointer; padding-block: 12px; }
+
+.epm-hosting-tasks { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 16px; }
+.epm-hosting-tasks .button { min-block-size: 44px; display: inline-flex; align-items: center; }
+.epm-hosting-tasks [aria-current] { box-shadow: inset 0 -3px var(--epm-app-accent); font-weight: 600; }
+.epm-hosting-layout { display: block; max-inline-size: 920px; }
+.epm-hosting-layout > aside { margin-block-start: 24px; }
+.epm-hosting-layout [hidden], [data-epm-situation] ~ [hidden] { display: none; }
+
+.epm-checklist__icon svg { inline-size: 18px; block-size: 18px; }

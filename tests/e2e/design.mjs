@@ -21,7 +21,15 @@
  * Pages created here are deleted and the design option removed at the end.
  */
 import fs from 'node:fs';
-import { BASE, php, assert, finish, launch, newPage, login, noOverflow, focusRingVisible, tabTo, section } from './lib.mjs';
+import { BASE, php, assert, finish, launch, newPage as rawNewPage, login, noOverflow, focusRingVisible, tabTo, section } from './lib.mjs';
+
+async function newPage(...args) {
+ const page = await rawNewPage(...args);
+ await page.addInitScript(() => document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.epm-design details').forEach(el => { el.open = true; });
+ }));
+ return page;
+}
 
 const fx = php(`echo wp_json_encode( get_option( 'epm_test_fixtures' ) );`);
 const legacy = JSON.parse(fs.readFileSync(new URL('../fixtures/elementor-1.3.0.json', import.meta.url), 'utf8').split('%ep1%').join(String(fx.ep1)));
@@ -126,23 +134,24 @@ try {
 		const page = await newPage(browser);
 		await login(page);
 		await page.goto(`${BASE}/wp-admin/admin.php?page=epm-design`);
+		await page.locator('.epm-design').evaluateAll(roots => roots.forEach(root => root.querySelectorAll('details').forEach(el => { el.open = true; })));
 		const form = page.locator('[data-epm-details-form]');
 		assert(await form.isVisible(), 'the Design screen has a details form');
 		const contexts = await form.locator('fieldset legend, [data-epm-details-context]').count();
 		assert(contexts >= 4, `one group per context (${contexts})`);
-		const volume = page.locator('input[name="epm_details[player][show_volume]"][type="checkbox"]');
+		const volume = page.locator('input[name="epm_design_settings[details][player][show_volume]"][type="checkbox"]');
 		assert(await volume.isChecked(), 'Player → Volume slider is on by default');
 		const name = await volume.evaluate((input) => (input.labels && input.labels.length ? [...input.labels].map((l) => l.textContent.trim()).join(' ') : '') + ' ' + (input.getAttribute('aria-label') || '') + ' ' + (input.getAttribute('aria-labelledby') ? input.getAttribute('aria-labelledby').split(' ').map((id) => (document.getElementById(id) || { textContent: '' }).textContent.trim()).join(' ') : ''));
 		assert(/volume/i.test(name) && /player/i.test(name), `the checkbox names its detail and context ("${name.trim()}")`);
 
-		const reached = await tabTo(page, () => document.activeElement && document.activeElement.name === 'epm_details[player][show_volume]', { max: 160 });
+		const reached = await tabTo(page, () => document.activeElement && document.activeElement.name === 'epm_design_settings[details][player][show_volume]', { max: 160 });
 		assert(reached, 'the keyboard reaches the details checkboxes');
 		assert(await focusRingVisible(page), 'with a visible focus ring');
 		await page.keyboard.press('Space');
 		assert(!(await volume.isChecked()), 'Space unchecks it');
-		await Promise.all([page.waitForNavigation(), form.locator('[type="submit"]').first().click()]);
+		await Promise.all([page.waitForNavigation(), page.locator('#epm-design-save-submit').click()]);
 		assert(await page.locator('.notice-success').first().isVisible(), 'saved with a confirmation');
-		assert(!(await page.locator('input[name="epm_details[player][show_volume]"][type="checkbox"]').isChecked()), 'the choice is kept');
+		assert(!(await page.locator('input[name="epm_design_settings[details][player][show_volume]"][type="checkbox"]').isChecked()), 'the choice is kept');
 		const preview = await page.evaluate(() => !!document.querySelector('[data-epm-preview-part="player"] [data-epm-volume]'));
 		assert(!preview, 'the player preview follows the saved details');
 		assert(await page.locator('[data-epm-preview-part="episode-page"] [data-epm-player]').count() === 1, 'the preview shows the episode page player too');
@@ -156,6 +165,7 @@ try {
 
 		await page.setViewportSize({ width: 390, height: 844 });
 		await page.reload();
+		await page.locator('.epm-design').evaluateAll(roots => roots.forEach(root => root.querySelectorAll('details').forEach(el => { el.open = true; })));
 		assert(await noOverflow(page), 'the details form fits 390 px');
 		await page.locator('[data-epm-details-form]').screenshot({ path: 'screenshots/design-details-390.png' });
 		assert(page.problems.length === 0, `no browser errors ${page.problems.join(' | ')}`);
@@ -186,6 +196,7 @@ try {
 		const page = await newPage(browser);
 		await login(page);
 		await page.goto(`${BASE}/wp-admin/admin.php?page=epm-design`);
+		await page.locator('.epm-design').evaluateAll(roots => roots.forEach(root => root.querySelectorAll('details').forEach(el => { el.open = true; })));
 		const card = page.locator('[data-epm-details-suggested]');
 		assert(await card.isVisible(), 'the Design screen offers the preset\'s suggestions');
 		const text = await card.innerText();
@@ -199,9 +210,10 @@ try {
 
 		stored130();
 		await page.goto(`${BASE}/wp-admin/admin.php?page=epm-design`);
+		await page.locator('.epm-design').evaluateAll(roots => roots.forEach(root => root.querySelectorAll('details').forEach(el => { el.open = true; })));
 		await Promise.all([page.waitForNavigation(), page.locator('[data-epm-details-suggested] button[value="apply"], [data-epm-suggestion-apply]').first().click()]);
 		assert(!(await page.locator('[data-epm-details-suggested]').count()), 'applied: the card is gone');
-		assert(!(await page.locator('input[name="epm_details[player][show_volume]"][type="checkbox"]').isChecked()), 'the details form shows the applied values');
+		assert(!(await page.locator('input[name="epm_design_settings[details][player][show_volume]"][type="checkbox"]').isChecked()), 'the details form shows the applied values');
 		await site.reload();
 		const after = await playersOn(site);
 		assert(!after[0].volume && after[0].description, `applied: new widgets follow (${JSON.stringify(after[0])})`);
@@ -219,6 +231,7 @@ try {
 		const page = await newPage(browser, { width: 1500, height: 1000 });
 		await login(page);
 		await page.goto(`${BASE}/wp-admin/post.php?post=${editId}&action=elementor`);
+		await page.locator('.epm-design').evaluateAll(roots => roots.forEach(root => root.querySelectorAll('details').forEach(el => { el.open = true; })));
 		await page.waitForSelector('#elementor-preview-iframe', { timeout: 120000 });
 		await page.waitForFunction(() => {
 			try {
@@ -283,6 +296,7 @@ try {
 		const page = await newPage(browser, { width: 1500, height: 1000 });
 		await login(page);
 		await page.goto(`${BASE}/wp-admin/post.php?post=${legacyId}&action=elementor`);
+		await page.locator('.epm-design').evaluateAll(roots => roots.forEach(root => root.querySelectorAll('details').forEach(el => { el.open = true; })));
 		await page.waitForSelector('#elementor-preview-iframe', { timeout: 120000 });
 		await page.frameLocator('#elementor-preview-iframe').locator('.elementor-element-p130001 [data-epm-player]').waitFor({ timeout: 120000 });
 		await page.waitForTimeout(1500);
@@ -345,6 +359,7 @@ try {
 		const radius = (page, sel) => page.evaluate((sel) => { const el = document.querySelector(sel); return el ? getComputedStyle(el).borderTopLeftRadius : 'missing'; }, sel);
 		const page = await newPage(browser);
 		await page.goto(elUrl);
+		await page.locator('.epm-design').evaluateAll(roots => roots.forEach(root => root.querySelectorAll('details').forEach(el => { el.open = true; })));
 		const values = {
 			player: await radius(page, '.elementor-element-r000001 .epm-player__artwork img'),
 			custom: await radius(page, '.elementor-element-r000002 .epm-player__artwork img'),
@@ -364,6 +379,7 @@ try {
 		await page.locator('.elementor-element-r000001').screenshot({ path: 'screenshots/design-radius-elementor.png' });
 
 		await page.goto(scUrl);
+		await page.locator('.epm-design').evaluateAll(roots => roots.forEach(root => root.querySelectorAll('details').forEach(el => { el.open = true; })));
 		const sc = {
 			player: await radius(page, '.epm-player__artwork img'),
 			guest: await radius(page, '.epm-guest__image'),
@@ -372,8 +388,10 @@ try {
 		assert(sc.player === '8px' && sc.guest === '50%', `the same on a shortcode page (${JSON.stringify(sc)})`);
 		applyPreset('card');
 		await page.reload();
+		await page.locator('.epm-design').evaluateAll(roots => roots.forEach(root => root.querySelectorAll('details').forEach(el => { el.open = true; })));
 		const cardPreset = await radius(page, '.epm-player__artwork img');
 		await page.goto(elUrl);
+		await page.locator('.epm-design').evaluateAll(roots => roots.forEach(root => root.querySelectorAll('details').forEach(el => { el.open = true; })));
 		const cardPresetEl = await radius(page, '.elementor-element-r000001 .epm-player__artwork img');
 		assert(cardPreset === '16px' && cardPresetEl === '16px', `a preset's artwork radius reaches both (${cardPreset} / ${cardPresetEl})`);
 		php(`delete_post_meta( ${fx.ep1}, '_epm_guest_image_id' ); EPM\\Episodes::clear_data_cache( ${fx.ep1} ); echo 1;`);

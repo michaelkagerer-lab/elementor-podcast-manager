@@ -21,7 +21,14 @@
 		return count === 1 ? single : plural;
 	};
 
-	var announcer = root.querySelector( '[data-epm-announce]' );
+	function selectTask() {
+ var task = location.hash.replace('#epm-task-', '');
+ if (['hosting', 'import', 'move'].indexOf(task) === -1) { task = 'hosting'; }
+ root.querySelectorAll('[data-epm-task-panel]').forEach(function (panel) { panel.hidden = panel.dataset.epmTaskPanel !== task; });
+ root.querySelectorAll('[data-epm-hosting-task]').forEach(function (link) { if (link.dataset.epmHostingTask === task) { link.setAttribute('aria-current', 'page'); } else { link.removeAttribute('aria-current'); } });
+ }
+ window.addEventListener('hashchange', selectTask); selectTask();
+ var announcer = root.querySelector( '[data-epm-announce]' );
 	// check: bumped when the address changes, so a feed that is still
 	// being read page by page stops updating the screen.
 	var state = { preview: null, stepping: false, check: 0 };
@@ -472,6 +479,7 @@
 			return;
 		}
 		jobBox.hidden = false;
+ root.querySelector('[data-epm-active-job]').hidden = false;
 		var retryProgress = $( '[data-action="retry-progress"]', jobBox );
 		var retryFocus = state.retrying && ( ! document.activeElement || document.activeElement === document.body || document.activeElement === retryProgress );
 		state.retrying = false;

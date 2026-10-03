@@ -482,7 +482,7 @@ body.epm-custom-font :where(.epm-player, .epm-episode-list, .epm-podcast-hero, .
 .epm-player__times {
 	display: flex;
 	justify-content: space-between;
-	font-size: 12px;
+	font-size: 13px;
 	color: var(--epm-text-muted, #6b7280);
 	font-variant-numeric: tabular-nums;
 }
@@ -1483,7 +1483,7 @@ body:has(.epm-sticky:not([hidden])) {
 
 .epm-sticky__time {
 	grid-area: time;
-	font-size: 12px;
+	font-size: 13px;
 	color: var(--epm-text-muted, #6b7280);
 	font-variant-numeric: tabular-nums;
 	white-space: nowrap;
@@ -2667,4 +2667,17 @@ body:has(.epm-sticky:not([hidden])) {
 	.epm-chapters__item::before {
 		transition: opacity 150ms ease-out;
 	}
+}
+
+/* Full layout gives listening controls priority in narrow player columns.
+   Artwork remains the deliberate focus of the Artwork layout. */
+@media (max-width: 480px) {
+ .epm-player--full .epm-player__artwork { width: min(var(--epm-artwork-size, 112px), 35%); }
+ .epm-player--full .epm-player__volume input { width: 80px; }
+}
+
+.epm-player-frame { container: epm-player-frame / inline-size; inline-size: 100%; min-inline-size: 0; }
+@container epm-player-frame (max-width: 480px) {
+ .epm-player--full .epm-player__artwork { width: min(var(--epm-artwork-size, 112px), 35%); }
+ .epm-player--full .epm-player__volume input { width: 80px; }
 }

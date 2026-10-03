@@ -16,6 +16,17 @@
 		return text;
 	};
 
+	function revealTarget() {
+		var target = document.getElementById( window.location.hash.slice( 1 ) );
+		if ( ! target || ! root.contains( target ) ) { return; }
+		for ( var parent = target.parentElement; parent && parent !== root; parent = parent.parentElement ) {
+			if ( parent.tagName === 'DETAILS' ) { parent.open = true; }
+		}
+		target.scrollIntoView( { block: 'start' } );
+	}
+	window.addEventListener( 'hashchange', revealTarget );
+	revealTarget();
+
 	var announcer = root.querySelector( '[data-epm-announce]' );
 
 	function announce( message ) {
@@ -61,26 +72,27 @@
 	 */
 	function updateProgress() {
 		var rows = Array.prototype.slice.call( root.querySelectorAll( '[data-essential]' ) );
-		var done = 0;
+		var submitted = 0;
+		var listed = 0;
 		var next = null;
 
 		rows.forEach( function ( row ) {
 			var badge = row.querySelector( '[data-status-badge]' );
 			if ( badge && badge.getAttribute( 'data-status' ) ) {
-				done++;
+				if ( badge.getAttribute( 'data-status' ) === 'listed' ) { listed++; } else { submitted++; }
 			} else if ( ! next ) {
 				next = row;
 			}
 		} );
 
 		root.querySelectorAll( '[data-submit-link]' ).forEach( function ( link ) {
-			link.classList.toggle( 'button-primary', !! next && next.contains( link ) );
+			link.classList.toggle( 'button-primary', root.dataset.feedBlocked !== '1' && !! next && next.contains( link ) );
 		} );
 
 		var score = root.querySelector( '[data-dist-score]' );
 		if ( score ) {
-			/* translators: 1: platforms done, 2: essential platforms */
-			score.textContent = format( __( '%1$s of %2$s', 'elementor-podcast-manager' ), done, rows.length );
+			/* translators: 1: submitted platforms, 2: listed platforms */
+			score.textContent = format( __( '%1$s submitted, %2$s listed', 'elementor-podcast-manager' ), submitted, listed );
 		}
 	}
 
@@ -191,7 +203,11 @@
 					var icon = document.createElement( 'span' );
 					icon.className = 'epm-checklist__icon';
 					icon.setAttribute( 'aria-hidden', 'true' );
-					icon.textContent = check.status === 'ok' ? '✓' : '!';
+					var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'currentColor'); svg.setAttribute('stroke-width', '1.8');
+                    var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    path.setAttribute('d', check.status === 'ok' ? 'M5 12.5l4.5 4.5L19 7.5' : 'M12 8v5m0 3h.01M12 3 2 21h20L12 3Z');
+                    svg.appendChild(path); icon.appendChild(svg);
 					var label = document.createElement( 'span' );
 					label.className = 'epm-checklist__label';
 					label.textContent = check.label;
