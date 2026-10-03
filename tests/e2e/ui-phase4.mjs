@@ -87,8 +87,8 @@ try {
   container.settings.set('epm_starter_kind','archive'); elementor.channels.editor.trigger('epm:starter:insert',{container}); const inserted=elementor.getPreviewContainer().model.get('elements').length;
   $e.run('document/history/undo'); return {reset,undone,blocked,before,inserted,after:elementor.getPreviewContainer().model.get('elements').length,resets:epmEditor.resets};
  });
- 
- 
+
+
  assert(result.reset===''&&result.undone==='#123456','per-value reset supports Undo');
  assert(result.blocked,'episode starter is refused on a normal page');
  assert(result.inserted===result.before+1&&result.after===result.before,'starter insertion supports Undo');
