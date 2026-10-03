@@ -687,9 +687,9 @@ final class FeedParser {
 		// Feed text is element text, so a literal '<' is ordinary content.
 		// Remove only actual tags before decoding a second time; blindly
 		// stripping tags after decode truncates phrases such as "C < 3".
-		$text = (string) preg_replace( '/<[^>]*>/', ' ', $text );
+		$text = (string) preg_replace( '/<!--.*?-->|<\/?[a-zA-Z][a-zA-Z0-9:-]*(?:\s+[^<>]*?)?\s*\/?>/s', ' ', $text );
 		$text = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
-		$text = (string) preg_replace( '/<[^>]*>/', ' ', $text );
+		$text = (string) preg_replace( '/<!--.*?-->|<\/?[a-zA-Z][a-zA-Z0-9:-]*(?:\s+[^<>]*?)?\s*\/?>/s', ' ', $text );
 
 		return trim( (string) preg_replace( '/\s+/u', ' ', $text ) );
 	}

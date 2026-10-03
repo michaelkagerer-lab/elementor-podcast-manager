@@ -991,6 +991,11 @@ html:has(.epm-design__savebar) {
 	overscroll-behavior: contain;
 }
 
+.epm-design-preview__viewport:focus-visible {
+	outline: 2px solid var(--wp-admin-theme-color, #2271b1);
+	outline-offset: 2px;
+}
+
 .epm-design-preview__canvas {
 	display: grid;
 	gap: 12px;

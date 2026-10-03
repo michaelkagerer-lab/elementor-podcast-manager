@@ -1,8 +1,15 @@
 # Changelog
 
-## Unreleased
+## 1.4.0
 
 ### Fixed
+
+- Block cloud-metadata and other special-purpose IPv4 targets on older supported WordPress versions, including redirects and audio/delivery HEAD checks.
+
+- Register the podcast widget category on Elementor's actual category hook, so all twelve widgets can be searched and inserted from the sidebar.
+- Respect current site privacy and notification opt-out when a queued Podcast Index ping runs.
+- Preserve literal comparisons in imported titles and descriptions even when both angle brackets occur.
+- Give settings checkboxes adequately spaced hit targets and make the scrollable Design preview keyboard accessible with visible focus.
 
 - Podcast Index notification: the cron event and the opt-out filter
   shared the name `epm_ping_podcast_index`, so publishing an episode ran

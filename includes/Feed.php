@@ -798,7 +798,8 @@ final class Feed {
 	 * @return void
 	 */
 	public static function ping_podcast_index(): void {
-		if ( Hosting::is_external() ) {
+		// Eligibility can change while the deferred notification waits for cron.
+		if ( Hosting::is_external() || ! get_option( 'blog_public' ) || ! (bool) apply_filters( self::PING_FILTER, true ) ) {
 			return;
 		}
 

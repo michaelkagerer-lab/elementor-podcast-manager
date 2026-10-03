@@ -570,7 +570,7 @@ $epm_style = static function ( array $vars ): string {
 					<p data-epm-preview-preset-text></p>
 					<button type="button" class="button button-small" data-epm-preview-mine><?php esc_html_e( 'Show my design', 'elementor-podcast-manager' ); ?></button>
 				</div>
-				<div class="epm-design-preview__viewport" data-epm-preview-viewport>
+				<div class="epm-design-preview__viewport" data-epm-preview-viewport tabindex="0" role="region" aria-labelledby="epm-preview-title">
 					<div class="epm-design-preview__canvas<?php echo '' !== (string) ( DesignSettings::font_stacks()[ (string) $epm_design['font_family'] ] ?? '' ) ? ' has-custom-font' : ''; ?>" data-epm-preview-canvas style="<?php echo $epm_style( Admin::design_css_vars( $epm_design ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in $epm_style. ?>" inert>
 						<p class="epm-design-preview__label"><?php esc_html_e( 'Player', 'elementor-podcast-manager' ); ?></p>
 						<div data-epm-preview-part="player">

@@ -189,6 +189,8 @@ else
 	python3 "$DEPS" download elementor "$ELEMENTOR_VERSION" "$WP_DIR/elementor.zip"
 	"$WP" plugin install "$WP_DIR/elementor.zip" --force --quiet
 	"$WP" plugin activate elementor --quiet
+	# Fixture documents use Flexbox Containers, experimental in minimum Elementor.
+	"$WP" option update elementor_experiment-container active --quiet
 fi
 
 ln -sfn "$PLUGIN_DIR" "$SITE/wp-content/plugins/elementor-podcast-manager"

@@ -387,7 +387,7 @@ final class MediaDownload {
 		}
 
 		// A broken connection: what arrived is kept for the next attempt.
-		if ( 'epm_insecure_redirect' === $error->get_error_code() ) {
+		if ( in_array( $error->get_error_code(), [ 'epm_insecure_redirect', 'epm_unsafe_url' ], true ) ) {
 			return self::fail( $d, 'unsafe', $error->get_error_message() );
 		}
 		if ( ! ( $data && $written > 0 && self::keep( $d, $watch, $target, $written, $resume ) ) ) {

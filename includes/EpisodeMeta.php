@@ -495,7 +495,7 @@ final class EpisodeMeta {
 			}
 		};
 
-		$response = wp_safe_remote_head( $url, $args );
+		$response = SafeHttp::head( $url, $args );
 
 		if ( is_wp_error( $response ) ) {
 			$out['error'] = $response->get_error_message();
@@ -505,7 +505,7 @@ final class EpisodeMeta {
 
 		// Servers that refuse HEAD (405, 403 …) or send no length.
 		if ( ! is_wp_error( $response ) && ( ! $out['ok'] || $out['size'] <= 0 ) ) {
-			$ranged = wp_safe_remote_get(
+			$ranged = SafeHttp::get(
 				$url,
 				$args + [
 					'headers'             => [ 'Range' => 'bytes=0-0' ],

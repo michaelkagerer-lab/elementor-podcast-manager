@@ -8,5 +8,8 @@
   },
   "dependencies": {
     "playwright": "1.63.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.11.0"
   }
 }

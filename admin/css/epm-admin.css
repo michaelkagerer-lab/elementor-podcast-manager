@@ -961,7 +961,8 @@ textarea[aria-invalid="true"] {
    under itself instead of under the box. */
 .epm-settings .form-table td > label:has(> input[type="checkbox"]) {
 	display: flex;
-	align-items: flex-start;
+	align-items: center;
+	min-block-size: 44px;
 	gap: 8px;
 	max-inline-size: 65ch;
 	margin-block: 4px;
