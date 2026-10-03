@@ -308,6 +308,7 @@ console.log('Design (presets, export, import)');
 	await login(page);
 	const applyPreset = async (id) => {
 		await page.goto(`${BASE}/wp-admin/admin.php?page=epm-design`);
+		await page.locator('.epm-design__presets > summary').click();
 		// Preset tiles are a radio group; applying asks for confirmation.
 		await page.check(`input[name="epm_preset"][value="${id}"]`);
 		await page.click('[data-epm-preset-apply]');
@@ -315,6 +316,7 @@ console.log('Design (presets, export, import)');
 	};
 	await applyPreset('business-tuning');
 	assert((await page.textContent('.epm-design-summary')).includes('Business Tuning'), 'preset applied');
+	await page.locator('.epm-design__io > summary').click();
 	const [download] = await Promise.all([page.waitForEvent('download'), page.click('input[name="action"][value="epm_design_export"] ~ input[type=submit]')]);
 	const exported = JSON.parse(fs.readFileSync(await download.path(), 'utf8'));
 	assert(exported.format === 'epm-design' && exported.design.accent === '#b9ff22', 'export contains the design tokens');
@@ -322,6 +324,7 @@ console.log('Design (presets, export, import)');
 	const file = 'screenshots/design-import.json';
 	fs.writeFileSync(file, JSON.stringify({ ...exported, design: { ...exported.design, accent: '#ff00aa' } }));
 	await applyPreset('neutral');
+	await page.locator('.epm-design__io > summary').click();
 	await page.setInputFiles('input[name="epm_design_file"]', file);
 	await Promise.all([page.waitForURL(/epm_design=imported/), page.click('form[enctype="multipart/form-data"] input[type=submit]')]);
 	await page.goto(permalink(fixtures.ep1));

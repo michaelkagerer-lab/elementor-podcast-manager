@@ -74,6 +74,21 @@ Alle Tests verwenden markierte, wegwerfbare Sites. Browserläufe haben je
 Screenshots liegen lokal unter `tests/e2e/screenshots/`, sind nicht eingecheckt.
 Die neuen Suites und Ausführung stehen in [tests/README.md](../tests/README.md).
 
+## Zusätzliche Merge-Abnahme
+
+Die erste vollständige CI auf dem neuen UI-Stand fand drei veraltete
+Abnahmeannahmen: `e2e/run.mjs` öffnete Presets und Dateiaktionen nicht,
+`e2e/feed-errors.mjs` öffnete die Import-Aufgabe nicht, und die generierte
+Stil-Tabelle benannte bei neun Größen-/Typografie-Reglern noch den Player statt
+des neuen äußersten Player-Containers als erstes verändertes Element.
+
+Die Browser bedienen jetzt die sichtbaren Aufklappbereiche und die Import-
+Navigation. Export/Import und Fehler-Recovery wurden lokal erneut vollständig
+geprüft. Die Audit-Tabelle wurde aus 88 tatsächlichen Computed-Style-Messungen
+regeneriert: alle Regler wirken, die harte Vergleichsprüfung bleibt bestehen.
+Die Follow-up-Korrektur verändert Tests und den Audit-Nachweis, keinen
+Produktcode. Vor dem Merge muss die CI auf der endgültigen Commit-ID bestehen.
+
 ## Grenzen
 
 Automatisierte Accessibility-Scans ersetzen keine Screenreader-Nutzerprüfung.
