@@ -92,11 +92,8 @@ try {
 		await page.check('input[name="epm_design_settings[button_shape]"][value="square"]');
 		assert(await canvasVar('--epm-button-radius') === '2px', 'button shape maps to --epm-button-radius');
 		await page.selectOption('#epm-d-default_episode_layout', 'cards');
-		const lists = await page.evaluate(() => ({
-			cards: document.querySelector('[data-epm-preview-list="cards"]').hidden,
-			rows: document.querySelector('[data-epm-preview-list="rows"]').hidden,
-		}));
-		assert(!lists.cards && lists.rows, 'episode list layout switches the preview to cards');
+		await page.waitForFunction(() => !!document.querySelector('[data-epm-preview-part="list"] .epm-episode-list--cards'));
+		assert(await page.locator('[data-epm-preview-part="list"] .epm-episode-list--cards').count() === 1, 'episode list layout switches the real preview to cards');
 		assert((await page.textContent('[data-epm-dirty]')).trim() !== '', 'unsaved changes are flagged');
 
 		// Leaving with unsaved changes asks first (dismissed: the page stays);

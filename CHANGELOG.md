@@ -2,6 +2,14 @@
 
 ## 1.4.0
 
+### Interface improvements
+
+- Preview unsaved design details with the real renderer, choose one preview component, and retry failed previews without losing changes.
+- Show submitted and listed directories separately, prioritize feed repairs, and group hosting, import and move tasks.
+- Start setup from the operator's situation; guide first-episode editing and offer explicit draft starters for show pages and archives.
+- Explain widget tasks and inherited style values, reset individual overrides with Undo, and insert reusable starter layouts in Elementor.
+- Improve secondary text, reduce repeated borders and status decoration, and fit Full players to narrow desktop columns while preserving manual artwork sizes.
+
 ### Fixed
 
 - Block cloud-metadata and other special-purpose IPv4 targets on older supported WordPress versions, including redirects and audio/delivery HEAD checks.

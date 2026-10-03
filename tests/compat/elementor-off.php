@@ -28,4 +28,15 @@ $t->test( 'podcasts remain usable with Elementor off', static function ( EPM_Tes
 	epm()->elementor_missing_notice();
 	$t->same( '', ob_get_clean(), 'the notice stays on podcast screens' );
 } );
+$t->test( 'design preview and starter content work without Elementor', static function ( EPM_Test_Runner $t ) {
+ $saved = get_option( 'epm_design_settings' );
+ $preview = \EPM\Admin::render_design_preview( [] );
+ $t->assert( false !== strpos( $preview['html']['player'], 'data-epm-player' ), 'live preview uses the shortcode renderer' );
+ $t->same( $saved, get_option( 'epm_design_settings' ), 'preview saves nothing' );
+ foreach ( [ 'show', 'archive' ] as $kind ) {
+  $content = \EPM\AdminPages::starter_content( $kind )['content'];
+  $t->assert( false !== strpos( do_shortcode( $content ), 'epm-episode-list' ), $kind . ' starter has a working shortcode fallback' );
+ }
+} );
+
 $t->finish();

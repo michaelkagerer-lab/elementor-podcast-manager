@@ -2,8 +2,9 @@
 
 Stand: 3. Oktober 2026. Ausgangspunkt: Commit `3adfcab` und die 15 Befunde
 UA-01 bis UA-15 in `docs/UI-AUDIT-2026-10-03.md`.
-Das Go nach Phase 2 autorisiert diesen Plan. Die Auswahl für Phase 4 steht noch
-aus, entsprechend `docs/ui-audit-work-order.md`.
+Das Go nach Phase 2 autorisierte diesen Plan. Anschließend autorisierte der
+Eigentümer mit „alle zehn“ sämtliche Maßnahmen für Phase 4. Umsetzung und
+Abnahme stehen in [UI-IMPLEMENTATION-2026-10-03.md](UI-IMPLEMENTATION-2026-10-03.md).
 
 ## Ziel und gemeinsame Vorgaben
 
@@ -176,6 +177,6 @@ Alte Daten und explizite Widget-Werte erhalten Regressionstests. Die
 Mindestversions-/Datenbank-/Browser-Matrix folgt nach den betroffenen Änderungen;
 vorherige CI-Ergebnisse werden nicht für neue Commits übernommen.
 
-Dieser Plan ändert noch keinen Plugin-Code. Die Auswahl kann über die Nummern
-1–10 erfolgen; empfohlen sind alle Maßnahmen in dieser Reihenfolge. Ein Merge,
+Der Plan beschreibt die Entscheidung vor der Umsetzung. Alle zehn Maßnahmen
+wurden anschließend beauftragt und umgesetzt. Ein Merge,
 Release, Deployment oder eine Produktionsaktion ist kein Bestandteil von Phase 4.

@@ -7,7 +7,7 @@ try {
  const page = await newPage(browser);
  await login(page);
  await page.goto(`${BASE}/wp-admin/admin.php?page=epm-setup`);
- await page.check('[name="path"][value="new"]');
+ await page.check('[name="situation"][value="new"]');
  await page.click('[data-step-form="path"] [type="submit"]');
  await page.waitForFunction(() => !document.querySelector('[data-panel="show"]').hidden);
  await page.waitForTimeout(300);

@@ -47,6 +47,14 @@ if ( ! is_array( $fx ) || empty( $fx['ep1'] ) ) {
 	WP_CLI::error( 'Run tests/fixtures/seed.php first.' );
 }
 
+// Successful caption-copy scenarios require a site that allows these uploads.
+// Multisite's default network allowlist excludes captions even when core knows them.
+$epm_h_upload_types = is_multisite() ? get_site_option( 'upload_filetypes' ) : null;
+if ( is_multisite() ) {
+	update_site_option( 'upload_filetypes', trim( (string) $epm_h_upload_types . ' vtt srt' ) );
+}
+
+
 $GLOBALS['epm_test_doing_it_wrong'] = [];
 add_action(
 	'doing_it_wrong_run',
@@ -2908,7 +2916,8 @@ $t->test(
 
 		try {
 			// End to end, whatever this server's libmagic reports.
-			$result = wp_check_filetype_and_ext( $srt, 'captions.srt' );
+			$accepted = [ 'srt' => 'text/plain', 'vtt' => 'text/vtt' ];
+			$result = wp_check_filetype_and_ext( $srt, 'captions.srt', $accepted );
 			$t->same( [ 'srt', 'application/x-subrip' ], [ $result['ext'], $result['type'] ], 'upload check' );
 
 			// libmagic reporting text/plain: WordPress accepts it as text/plain.
@@ -2920,7 +2929,7 @@ $t->test(
 			// Newer libmagic reporting application/x-subrip: WordPress rejects it.
 			$t->same(
 				[ 'ext' => 'srt', 'type' => 'application/x-subrip', 'proper_filename' => false ],
-				Transcripts::check_filetype( $blank, $srt, 'captions.srt', null, 'application/x-subrip' ),
+				Transcripts::check_filetype( $blank, $srt, 'captions.srt', $accepted, 'application/x-subrip' ),
 				'application/x-subrip detection'
 			);
 
@@ -2930,7 +2939,7 @@ $t->test(
 			$t->same( [ 'ext' => 'png', 'type' => 'image/png', 'proper_filename' => false ], Transcripts::check_filetype( [ 'ext' => 'png', 'type' => 'image/png', 'proper_filename' => false ], $srt, 'a.png', null, 'image/png' ) );
 			$t->same( $blank, Transcripts::check_filetype( $blank, $srt, 'fake.srt', null, 'application/x-dosexec' ), 'binary named .srt' );
 
-			$t->same( 'text/vtt', get_allowed_mime_types()['vtt'] ?? '', 'WebVTT is a WordPress type already' );
+			$t->same( 'text/vtt', wp_check_filetype( 'captions.vtt', $accepted )['type'], 'WebVTT works where the site allows it' );
 		} finally {
 			wp_delete_file( $srt );
 		}
@@ -3342,6 +3351,10 @@ $t->test(
 			return $all ? [ $term_id ] : $pre;
 		};
 		add_filter( 'terms_pre_query', $terms, 10, 2 );
+		// This probe snapshots only this site. Network-wide cleanup is tested separately.
+		$probe_blog = get_current_blog_id();
+		$sites = static function () use ( $probe_blog ) { return [ $probe_blog ]; };
+		add_filter( 'sites_pre_query', $sites );
 		add_filter( 'epm_delete_data_on_uninstall', '__return_true' );
 		unregister_taxonomy( EpisodePostType::TOPIC );
 		try {
@@ -3362,6 +3375,7 @@ $t->test(
 			wp_cache_flush();
 			$t->same( EpisodePostType::CPT, get_post_type( (int) $fx['ep1'] ), 'protected episodes have their original type restored' );
 			remove_filter( 'terms_pre_query', $terms, 10 );
+			remove_filter( 'sites_pre_query', $sites );
 			remove_filter( 'epm_delete_data_on_uninstall', '__return_true' );
 			if ( false === $rewrite_rules ) {
 				delete_option( 'rewrite_rules' );
@@ -3417,4 +3431,8 @@ foreach ( [ Hosting::CRON_HOOK, ImportJob::CRON_HOOK, Feed::PING_HOOK, Feed::PIN
 Feed::flush_cache();
 WP_CLI::log( sprintf( 'Cleaned up %d posts created by the run.', count( $epm_h_created ) ) );
 
+if ( is_multisite() ) {
+	if ( false === $epm_h_upload_types ) { delete_site_option( 'upload_filetypes' ); }
+	else { update_site_option( 'upload_filetypes', $epm_h_upload_types ); }
+}
 $t->finish();

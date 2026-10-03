@@ -123,6 +123,7 @@ final class PodcastPlayerWidget extends Widget_Base {
 		$this->end_controls_section();
 
 		$this->register_style_controls();
+		$this->add_task_guidance();
 	}
 
 	/**

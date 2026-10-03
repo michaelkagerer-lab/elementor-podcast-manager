@@ -32,6 +32,8 @@ $epm_essential  = array_filter(
 		return 'essential' === $dir['priority'] && '' === $dir['via'];
 	}
 );
+$epm_summary = \EPM\Admin::distribution_summary();
+$epm_blocked = ! $epm_external && ! empty( $epm_problems );
 $epm_done_count = 0;
 $epm_next       = ''; // The one platform to submit to next (primary button).
 foreach ( array_keys( $epm_essential ) as $epm_id ) {
@@ -83,15 +85,15 @@ $epm_icon = static function ( array $dir ): string {
 	return '<span aria-hidden="true">' . esc_html( function_exists( 'mb_substr' ) ? mb_substr( $name, 0, 1 ) : substr( $name, 0, 1 ) ) . '</span>';
 };
 ?>
-<div class="wrap epm-app" data-epm-distribution>
+<div class="wrap epm-app" data-epm-distribution data-feed-blocked="<?php echo $epm_blocked ? '1' : '0'; ?>">
 	<header class="epm-app__header">
 		<div>
 			<h1 class="epm-app__title"><?php esc_html_e( 'Distribution', 'elementor-podcast-manager' ); ?></h1>
 			<p class="epm-app__lede"><?php esc_html_e( 'Get your podcast into Apple Podcasts, Spotify, YouTube and every other app. Each platform needs your feed address once.', 'elementor-podcast-manager' ); ?></p>
 		</div>
 		<p class="epm-distribution__score">
-			<strong class="epm-tabular" data-dist-score><?php echo esc_html( sprintf( /* translators: 1: platforms done, 2: essential platforms */ __( '%1$s of %2$s', 'elementor-podcast-manager' ), number_format_i18n( $epm_done_count ), number_format_i18n( count( $epm_essential ) ) ) ); ?></strong>
-			<span><?php esc_html_e( 'essential platforms submitted', 'elementor-podcast-manager' ); ?></span>
+			<strong class="epm-tabular" data-dist-score><?php echo esc_html( sprintf( /* translators: 1: submitted platforms, 2: listed platforms */ __( '%1$s submitted, %2$s listed', 'elementor-podcast-manager' ), number_format_i18n( $epm_summary['submitted'] ), number_format_i18n( $epm_summary['listed'] ) ) ); ?></strong>
+			<span data-dist-manual><?php esc_html_e( 'Essential platforms — your records, not verified by this plugin.', 'elementor-podcast-manager' ); ?></span>
 		</p>
 	</header>
 
@@ -135,7 +137,7 @@ $epm_icon = static function ( array $dir ): string {
 		<?php endif; ?>
 		<div class="epm-copy">
 			<code class="epm-copy__value"><?php echo esc_html( $epm_feed ); ?></code>
-			<button type="button" class="button button-primary" data-epm-copy="<?php echo esc_attr( $epm_feed ); ?>"><?php esc_html_e( 'Copy feed address', 'elementor-podcast-manager' ); ?></button>
+			<button type="button" class="button" data-epm-copy="<?php echo esc_attr( $epm_feed ); ?>"><?php esc_html_e( 'Copy feed address', 'elementor-podcast-manager' ); ?></button>
 			<a class="button" href="<?php echo esc_url( $epm_feed ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'View feed', 'elementor-podcast-manager' ); ?></a>
 		</div>
 		<p class="epm-field__help">
@@ -165,7 +167,7 @@ $epm_icon = static function ( array $dir ): string {
 						<li><strong><?php echo esc_html( $epm_check['label'] ); ?>:</strong> <?php echo esc_html( $epm_check['message'] ); ?></li>
 					<?php endforeach; ?>
 				</ul>
-				<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=epm-settings' ) ); ?>"><?php esc_html_e( 'Open podcast settings', 'elementor-podcast-manager' ); ?></a></p>
+				<p><a class="button button-primary" href="<?php echo esc_url( $epm_problems[0]['url'] ?: admin_url( 'admin.php?page=epm-settings' ) ); ?>"><?php echo esc_html( $epm_problems[0]['fix_label'] ?: __( 'Open podcast settings', 'elementor-podcast-manager' ) ); ?></a></p>
 			</div>
 		<?php endif; ?>
 	</section>
@@ -198,7 +200,7 @@ $epm_icon = static function ( array $dir ): string {
 						</h3>
 						<div class="epm-platform__actions">
 							<?php if ( '' !== $epm_dir['submit_url'] ) : ?>
-								<a class="button<?php echo $epm_id === $epm_next ? ' button-primary' : ''; ?>" href="<?php echo esc_url( (string) $epm_dir['submit_url'] ); ?>" target="_blank" rel="noopener" data-submit-link>
+								<a class="button<?php echo $epm_id === $epm_next && ! $epm_blocked ? ' button-primary' : ''; ?>" href="<?php echo esc_url( (string) $epm_dir['submit_url'] ); ?>" target="_blank" rel="noopener" data-submit-link>
 									<?php
 									/* translators: %s: platform name */
 									echo esc_html( sprintf( $epm_auto ? __( 'Open %s', 'elementor-podcast-manager' ) : __( 'Submit to %s', 'elementor-podcast-manager' ), (string) $epm_dir['name'] ) );

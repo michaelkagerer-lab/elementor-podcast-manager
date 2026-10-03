@@ -40,6 +40,7 @@ final class AdminPages {
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue' ] );
 		add_action( 'admin_init', [ $this, 'maybe_redirect_after_activation' ] );
 		add_action( 'admin_notices', [ $this, 'notices' ] );
+		add_action( 'admin_post_epm_starter_draft', [ $this, 'create_starter_draft' ] );
 		add_action( 'wp_ajax_epm_setup_save', [ $this, 'ajax_setup_save' ] );
 		add_action( 'wp_ajax_epm_distribution_save', [ $this, 'ajax_distribution_save' ] );
 		add_action( 'wp_ajax_epm_setup_dismiss', [ $this, 'ajax_setup_dismiss' ] );
@@ -553,6 +554,36 @@ final class AdminPages {
 		$out['ok'] = empty( $out['messages'] );
 
 		return $out;
+	}
+
+	/** Native starter definitions: no page is written until explicitly requested. */
+	public static function starter_content( string $kind ): array {
+		$types = [ 'show' => [ 'epm-podcast-hero', 'epm-latest-episode', 'epm-subscribe-links', 'epm-episode-list' ], 'archive' => [ 'epm-episode-list', 'epm-subscribe-links' ], 'episode' => [ 'epm-episode-header', 'epm-podcast-player', 'epm-show-notes', 'epm-chapters', 'epm-transcript' ] ];
+		if ( ! isset( $types[ $kind ] ) ) { return []; }
+		$widgets = [];
+		foreach ( $types[ $kind ] as $index => $type ) {
+			$settings = [ 'epm_schema' => '2' ];
+			if ( 'episode' === $kind ) { $settings['source'] = 'current'; }
+			$widgets[] = [ 'id' => 'epmstart' . $index, 'elType' => 'widget', 'widgetType' => $type, 'settings' => $settings, 'elements' => [] ];
+		}
+		$shortcodes = [ 'show' => '[podcast_latest]\n[podcast_subscribe]\n[podcast_episodes]', 'archive' => '[podcast_episodes]\n[podcast_subscribe]', 'episode' => '[podcast_player]\n[podcast_show_notes]\n[podcast_chapters]\n[podcast_transcript]' ];
+		return [ 'elements' => [ [ 'id' => 'epmstarter', 'elType' => 'section', 'settings' => [], 'elements' => [ [ 'id' => 'epmstartercolumn', 'elType' => 'column', 'settings' => [ '_column_size' => 100 ], 'elements' => $widgets ] ] ] ], 'content' => str_replace( '\n', "\n\n", $shortcodes[ $kind ] ) ];
+	}
+
+	public function create_starter_draft(): void {
+		check_admin_referer( 'epm_starter_draft', '_epm_starter_nonce' );
+		if ( ! Capabilities::can_manage_podcast() || ! current_user_can( 'edit_pages' ) ) { wp_die( esc_html__( 'You cannot create pages.', 'elementor-podcast-manager' ), '', [ 'response' => 403 ] ); }
+		$kind = isset( $_POST['kind'] ) && is_string( $_POST['kind'] ) ? sanitize_key( wp_unslash( $_POST['kind'] ) ) : '';
+		if ( ! in_array( $kind, [ 'show', 'archive' ], true ) ) { wp_die( esc_html__( 'Choose a show page or episode archive.', 'elementor-podcast-manager' ) ); }
+		$starter = self::starter_content( $kind );
+		$id = wp_insert_post( wp_slash( [ 'post_type' => 'page', 'post_status' => 'draft', 'post_title' => 'show' === $kind ? __( 'Podcast', 'elementor-podcast-manager' ) : __( 'All episodes', 'elementor-podcast-manager' ), 'post_content' => $starter['content'] ] ), true );
+		if ( is_wp_error( $id ) ) { wp_die( esc_html( $id->get_error_message() ) ); }
+		if ( epm()->has_elementor() ) {
+			update_post_meta( $id, '_elementor_data', wp_slash( wp_json_encode( $starter['elements'] ) ) );
+			update_post_meta( $id, '_elementor_edit_mode', 'builder' );
+			update_post_meta( $id, '_elementor_version', ELEMENTOR_VERSION );
+		}
+		wp_safe_redirect( get_edit_post_link( $id, 'raw' ) ); exit;
 	}
 
 	/**

@@ -42,6 +42,13 @@ try {
    assert(result.violations.length===0,`player ${index} at ${width}px: WCAG scan ${result.violations.map(x=>`${x.id} (${x.nodes.length})`).join(', ') || 'passes'}`);
    assert(await noOverflow(site),`player ${index} at ${width}px fits the viewport`);
    await site.locator('[data-epm-player]').screenshot({path:`screenshots/independent-player-${index}-${width}.png`});
+   if (width === 1280 && index === 4) {
+    for (const size of [320,390,480]) {
+     await site.locator('.epm-player-frame').evaluate((el,size)=>{el.style.inlineSize=size+'px';},size);
+     const fit=await site.locator('[data-epm-player]').evaluate(el=>({width:el.clientWidth,scroll:el.scrollWidth,art:el.querySelector('.epm-player__artwork').getBoundingClientRect().width}));
+     assert(fit.scroll<=fit.width+1 && fit.art<=fit.width*.35+1,`Full fits a ${size}px component inside a desktop viewport`);
+    }
+   }
   }
   await site.context().close();
  }

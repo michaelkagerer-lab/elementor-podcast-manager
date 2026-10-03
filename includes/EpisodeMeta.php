@@ -262,6 +262,7 @@ final class EpisodeMeta {
 		}
 
 		echo '<div class="epm-after-title">';
+ echo '<nav class="epm-episode-basics" aria-label="' . esc_attr__( 'Publish an episode', 'elementor-podcast-manager' ) . '"><strong>' . esc_html__( 'Start with audio, then description, then publish.', 'elementor-podcast-manager' ) . '</strong><p><a href="#epm-audio">' . esc_html__( 'Audio', 'elementor-podcast-manager' ) . '</a> · <a href="#postdivrich">' . esc_html__( 'Description', 'elementor-podcast-manager' ) . '</a> · <a href="#submitdiv">' . esc_html__( 'Publish', 'elementor-podcast-manager' ) . '</a></p><details><summary>' . esc_html__( 'Optional episode details', 'elementor-podcast-manager' ) . '</summary><p>' . esc_html__( 'Artwork, episode information, chapters, guest, platform links, transcript and video are available below and in the sidebar. Use Screen Options to show or hide boxes; your arrangement is kept.', 'elementor-podcast-manager' ) . '</p></details></nav>';
 		do_meta_boxes( get_current_screen(), 'epm_after_title', $post );
 		echo '<h2 class="epm-description-heading">' . esc_html__( 'Episode description', 'elementor-podcast-manager' ) . '</h2>';
 		echo '</div>';

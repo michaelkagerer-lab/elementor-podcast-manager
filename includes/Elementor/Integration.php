@@ -40,6 +40,19 @@ final class Integration {
 	 * @return void
 	 */
 	public function enqueue_editor_script(): void {
+		$resets       = [];
+		$descriptions = [];
+		$titles       = [];
+		foreach ( \Elementor\Plugin::$instance->widgets_manager->get_widget_types() as $widget ) {
+			if ( ! str_starts_with( $widget->get_name(), 'epm-' ) ) { continue; }
+			$descriptions[ $widget->get_name() ] = $widget->task_description();
+			$titles[ $widget->get_name() ] = $widget->get_title();
+			foreach ( $widget->get_controls() as $control ) {
+				if ( 'button' === ( $control['type'] ?? '' ) && str_starts_with( $control['event'] ?? '', 'epm:style:inherit:' ) ) {
+					$resets[] = substr( $control['event'], strlen( 'epm:style:inherit:' ) );
+				}
+			}
+		}
 		wp_enqueue_script(
 			'epm-elementor-editor',
 			EPM_URL . 'admin/js/epm-elementor-editor.js',
@@ -47,6 +60,22 @@ final class Integration {
 			EPM_VERSION,
 			true
 		);
+		wp_add_inline_style( 'elementor-editor', '.epm-widget-purpose { display: block; padding: 4px 8px 8px; font-size: 12px; line-height: 1.4; font-weight: 400; text-wrap: pretty; }' );
+		$post_id = isset( $_GET['post'] ) && is_scalar( $_GET['post'] ) ? absint( $_GET['post'] ) : 0;
+		$config = [
+			'titles'       => $titles,
+			'descriptions' => $descriptions,
+			'resets'       => array_values( array_unique( $resets ) ),
+			'starters'     => [],
+			'documentId'   => $post_id,
+			'episode'      => \EPM\EpisodePostType::CPT === get_post_type( $post_id ),
+			'contextError' => __( 'Use the episode layout inside an episode document. On a show page, choose Show page or Episode archive.', 'elementor-podcast-manager' ),
+			'insertError'  => __( 'The layout could not be inserted. Keep your document open and try again.', 'elementor-podcast-manager' ),
+		];
+		foreach ( [ 'show', 'archive', 'episode' ] as $kind ) {
+			$config['starters'][ $kind ] = \EPM\AdminPages::starter_content( $kind )['elements'][0];
+		}
+		wp_add_inline_script( 'epm-elementor-editor', 'window.epmEditor = ' . wp_json_encode( $config ) . ';', 'before' );
 	}
 
 	/**

@@ -109,7 +109,7 @@ console.log('Setup assistant: keep the current host (keyboard)');
 	// Step 1 with the keyboard only: WordPress's skip link, then Tab.
 	await tabTo(page, () => document.activeElement && document.activeElement.getAttribute('href') === '#wpbody-content', { max: 5 });
 	await page.keyboard.press('Enter');
-	const reached = await tabTo(page, () => document.activeElement && document.activeElement.name === 'path', { max: 20 });
+	const reached = await tabTo(page, () => document.activeElement && document.activeElement.name === 'situation', { max: 20 });
 	assert(reached, 'Tab reaches the hosting choices');
 	assert(await focusRingVisible(page), `the focused choice shows a focus ring (${await focused(page)})`);
 	await tabTo(page, () => document.activeElement && document.activeElement.type === 'submit' && !!document.activeElement.closest('[data-step-form="path"]'));
@@ -126,8 +126,10 @@ console.log('Setup assistant: keep the current host (keyboard)');
 	}));
 	assert(told.live === told.error && told.live.length > 0, `the error is announced ("${told.live}")`);
 	assert(told.described === 'epm-setup-path-error', 'and tied to the choices');
-	assert(told.focus === 'path', `focus goes to the choices (${told.focus})`);
-	// Arrow keys move through the choices (and select); Space selects the focused one.
+	assert(told.focus === 'situation', `focus goes to the choices (${told.focus})`);
+	await page.keyboard.press('ArrowDown');
+	await tabTo(page, () => document.activeElement && document.activeElement.name === 'path', { max: 10 });
+	// Arrow keys move through the existing-podcast hosting choices.
 	for (let i = 0; i < 4; i++) {
 		const current = await page.evaluate(() => document.activeElement.value);
 		if (current === 'external') {
@@ -247,7 +249,7 @@ console.log('Setup assistant: host on this website (390 px)');
 	await login(page);
 	await page.goto(`${BASE}/wp-admin/admin.php?page=epm-setup`);
 	assert(await noOverflow(page), 'step 1 fits 390 px');
-	await page.check('input[name="path"][value="new"]');
+	await page.check('input[name="situation"][value="new"]');
 	await page.click('[data-step-form="path"] [type="submit"]');
 	await page.waitForSelector('[data-panel="show"]:not([hidden])');
 	assert((await focusedPanel(page)) === 'show', 'focus moves to the show details');
@@ -314,6 +316,7 @@ console.log('Setup assistant: move a locked show here');
 	const page = await newPage(browser);
 	await login(page);
 	await page.goto(`${BASE}/wp-admin/admin.php?page=epm-setup`);
+	await page.check('[name="situation"][value="existing"]');
 	await page.check('input[name="path"][value="move"]');
 	await page.click('[data-step-form="path"] [type="submit"]');
 	await page.waitForSelector('[data-panel="connect"]:not([hidden])');
@@ -386,6 +389,7 @@ console.log('Setup assistant: a move that leaves a file at the old host');
 	const page = await newPage(browser);
 	await login(page);
 	await page.goto(`${BASE}/wp-admin/admin.php?page=epm-setup`);
+	await page.check('[name="situation"][value="existing"]');
 	await page.check('input[name="path"][value="move"]');
 	await page.click('[data-step-form="path"] [type="submit"]');
 	await page.waitForSelector('[data-panel="connect"]:not([hidden])');
@@ -442,6 +446,7 @@ console.log('Hosting & import');
 	await page.screenshot({ path: 'screenshots/hosting-external.png', fullPage: true });
 
 	// A one-off import of a locked feed.
+	await page.locator('[data-epm-hosting-task="import"]').click();
 	await page.fill('#epm-import-url', LOCKED_FEED);
 	await page.click('[data-import-form] [data-action="check"]');
 	await page.waitForSelector('[data-import-form] [data-preview]:not([hidden])', { timeout: 30000 });
@@ -457,6 +462,7 @@ console.log('Hosting & import');
 	// Copying a show while mirroring its host: asked first. A file that
 	// could not be copied is listed with a link to its episode, and the
 	// move is not finished until it is copied or left behind knowingly.
+	await page.locator('[data-epm-hosting-task="import"]').click();
 	await page.fill('#epm-import-url', 'https://feeds.example.test/synthetic/missing-audio.xml');
 	await page.click('[data-import-form] [data-action="check"]');
 	await page.waitForSelector('[data-import-form] [data-preview]:not([hidden])', { timeout: 30000 });
@@ -503,6 +509,7 @@ console.log('Hosting & import');
 
 	// A host that answers 429: the import waits (and says until when)
 	// instead of failing the episode; it can be stopped while it waits.
+	await page.locator('[data-epm-hosting-task="import"]').click();
 	await page.fill('#epm-import-url', 'https://feeds.example.test/synthetic/rate-limited.xml');
 	await page.click('[data-import-form] [data-action="check"]');
 	await page.waitForSelector('[data-import-form] [data-preview]:not([hidden])', { timeout: 30000 });
@@ -523,6 +530,7 @@ console.log('Hosting & import');
 	await page.setViewportSize({ width: 390, height: 844 });
 	assert(await noOverflow(page), 'Hosting & import fits 390 px');
 
+	await page.locator('[data-epm-hosting-task="hosting"]').click();
 	await page.check('input[name="epm_hosting[mode]"][value="self"]');
 	await Promise.all([page.waitForURL(/settings-updated=true/), page.click('[data-hosting-form] [type="submit"]')]);
 	assert(await page.locator('[data-sync-card]').count() === 0, 'back on this website: no sync card');
@@ -540,6 +548,7 @@ console.log('A feed that cannot be read completely');
 	await login(page);
 	await page.goto(`${BASE}/wp-admin/admin.php?page=epm-hosting`);
 
+	await page.locator('[data-epm-hosting-task="import"]').click();
 	await page.fill('#epm-import-url', BROKEN);
 	await page.click('[data-import-form] [data-action="check"]');
 	await page.waitForSelector('[data-import-form] [data-preview]:not([hidden])', { timeout: 30000 });
@@ -591,6 +600,7 @@ console.log('A feed that cannot be read completely');
 	const setup = await newPage(browser);
 	await login(setup);
 	await setup.goto(`${BASE}/wp-admin/admin.php?page=epm-setup`);
+	await setup.check('[name="situation"][value="existing"]');
 	await setup.check('input[name="path"][value="move"]');
 	await setup.click('[data-step-form="path"] [type="submit"]');
 	await setup.waitForSelector('[data-panel="connect"]:not([hidden])');
@@ -624,13 +634,13 @@ console.log('Distribution');
 			primary: Array.from(document.querySelectorAll('[data-epm-distribution] [data-submit-link].button-primary')).map((a) => a.closest('[data-directory]').getAttribute('data-directory')),
 		}));
 	const before = await progress();
-	assert(before.score === '0 of 4' && JSON.stringify(before.primary) === '["apple"]', `one "Submit" button is primary: the next platform (${JSON.stringify(before)})`);
+	assert(before.score === '0 submitted, 0 listed' && JSON.stringify(before.primary) === '[]', `feed repair takes priority on an incomplete site (${JSON.stringify(before)})`);
 	const apple = page.locator('[data-directory="apple"]');
 	await apple.locator('summary').click();
 	await apple.locator('[name="submitted"]').check();
-	await page.waitForFunction(() => document.querySelector('[data-dist-score]').textContent.trim() === '1 of 4', null, { timeout: 10000 }).catch(() => {});
+	await page.waitForFunction(() => document.querySelector('[data-dist-score]').textContent.trim() === '1 submitted, 0 listed', null, { timeout: 10000 }).catch(() => {});
 	const after = await progress();
-	assert(after.score === '1 of 4' && JSON.stringify(after.primary) === '["spotify"]', `the count and the next platform follow at once (${JSON.stringify(after)})`);
+	assert(after.score === '1 submitted, 0 listed' && JSON.stringify(after.primary) === '[]', `the submitted count updates while feed repair stays primary (${JSON.stringify(after)})`);
 	const gaps = await page.evaluate(() => {
 		const copy = document.querySelector('[data-epm-distribution] .epm-copy').getBoundingClientRect();
 		const help = document.querySelector('[data-epm-distribution] .epm-copy + .epm-field__help').getBoundingClientRect();
@@ -640,6 +650,7 @@ console.log('Distribution');
 	assert(gaps.copyToHelp >= 8 && gaps.helpToCheck >= 16, `the feed card is spaced (${JSON.stringify(gaps)})`);
 
 	const row = page.locator('[data-directory="pocketcasts"]');
+	await page.locator('[data-epm-directory-group]').filter({has:row}).locator(':scope > summary').click();
 	await row.locator('summary').click();
 	await row.locator('[name="submitted"]').check();
 	await page.waitForFunction(() => document.querySelector('[data-directory="pocketcasts"] [data-status-badge]').textContent.trim() === 'Submitted', null, { timeout: 10000 }).catch(() => {});

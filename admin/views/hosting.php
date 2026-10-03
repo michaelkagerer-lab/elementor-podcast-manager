@@ -45,10 +45,37 @@ $epm_when = static function ( int $timestamp ): string {
 
 	<p class="epm-sr-only" role="status" aria-live="polite" data-epm-announce></p>
 
+<nav class="epm-hosting-tasks" aria-label="<?php esc_attr_e( 'Hosting tasks', 'elementor-podcast-manager' ); ?>">
+<?php foreach ( [ 'hosting' => __( 'Hosting and sync', 'elementor-podcast-manager' ), 'import' => __( 'Import episodes', 'elementor-podcast-manager' ), 'move' => __( 'Move podcast', 'elementor-podcast-manager' ) ] as $epm_task => $epm_label ) : ?><a class="button" href="#epm-task-<?php echo esc_attr( $epm_task ); ?>" data-epm-hosting-task="<?php echo esc_attr( $epm_task ); ?>"><?php echo esc_html( $epm_label ); ?></a><?php endforeach; ?>
+</nav>
+<section class="epm-card" data-epm-active-job <?php echo in_array( $epm_job['status'], [ 'running', 'waiting', 'done_with_problems', 'cancelled', 'failed' ], true ) ? '' : 'hidden'; ?>><h2><?php esc_html_e( 'Import progress', 'elementor-podcast-manager' ); ?></h2>				<div class="epm-stack" data-job <?php echo in_array( $epm_job['status'], [ 'running', 'waiting', 'done_with_problems', 'cancelled', 'failed' ], true ) ? '' : 'hidden'; ?>>
+					<div class="epm-progress">
+						<div class="epm-progress__track" role="progressbar" aria-labelledby="epm-hosting-import-title" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+							<div class="epm-progress__bar"></div>
+						</div>
+						<div class="epm-progress__label">
+							<span data-job-count></span>
+							<span data-job-summary></span>
+						</div>
+					</div>
+					<div class="epm-callout epm-callout--error" data-job-error role="alert" hidden><p></p></div>
+					<button type="button" class="button" data-action="retry-progress" hidden><?php esc_html_e( 'Retry progress check', 'elementor-podcast-manager' ); ?></button>
+					<div class="epm-callout epm-callout--warn" data-job-stopped hidden><p></p></div>
+					<div class="epm-callout epm-callout--warn" data-job-incomplete hidden><p></p></div>
+					<?php require EPM_PATH . 'admin/views/partials/import-result.php'; ?>
+					<details class="epm-details">
+						<summary><?php esc_html_e( 'Show the import log', 'elementor-podcast-manager' ); ?></summary>
+						<div class="epm-details__body"><ul class="epm-log" data-job-log></ul></div>
+					</details>
+					<div>
+						<button type="button" class="epm-button-link epm-button-link--danger" data-action="cancel" hidden><?php esc_html_e( 'Stop the import', 'elementor-podcast-manager' ); ?></button>
+						<a class="button" data-job-episodes href="<?php echo esc_url( admin_url( 'edit.php?post_type=' . \EPM\EpisodePostType::CPT ) ); ?>" hidden><?php esc_html_e( 'View episodes', 'elementor-podcast-manager' ); ?></a>
+					</div>
+				</div></section>
 	<div class="epm-hosting-layout">
 		<div class="epm-stack">
 			<!-- Hosting mode -->
-			<section class="epm-card" aria-labelledby="epm-hosting-mode-title">
+			<section class="epm-card" id="epm-task-hosting" data-epm-task-panel="hosting" aria-labelledby="epm-hosting-mode-title">
 				<h2 class="epm-card__title" id="epm-hosting-mode-title"><?php esc_html_e( 'Where your podcast is hosted', 'elementor-podcast-manager' ); ?></h2>
 				<p class="epm-card__lede"><?php esc_html_e( 'The host publishes the RSS feed that Apple Podcasts, Spotify and other apps read.', 'elementor-podcast-manager' ); ?></p>
 
@@ -153,7 +180,7 @@ $epm_when = static function ( int $timestamp ): string {
 
 			<!-- Sync status -->
 			<?php if ( $epm_external ) : ?>
-				<section class="epm-card" aria-labelledby="epm-hosting-sync-title" data-sync-card>
+				<section class="epm-card" aria-labelledby="epm-hosting-sync-title" data-epm-task-panel="hosting" data-sync-card>
 					<h2 class="epm-card__title" id="epm-hosting-sync-title"><?php esc_html_e( 'Sync with your host', 'elementor-podcast-manager' ); ?></h2>
 					<dl class="epm-kv">
 						<dt><?php esc_html_e( 'Status', 'elementor-podcast-manager' ); ?></dt>
@@ -184,7 +211,7 @@ $epm_when = static function ( int $timestamp ): string {
 			<?php endif; ?>
 
 			<!-- One-off import -->
-			<section class="epm-card" aria-labelledby="epm-hosting-import-title" data-import-card>
+			<section class="epm-card" id="epm-task-import" aria-labelledby="epm-hosting-import-title" data-epm-task-panel="import" data-import-card>
 				<h2 class="epm-card__title" id="epm-hosting-import-title"><?php esc_html_e( 'Import episodes from a feed', 'elementor-podcast-manager' ); ?></h2>
 				<p class="epm-card__lede"><?php esc_html_e( 'Bring in episodes from any podcast feed you own. Episodes that already exist here are updated, never duplicated, and your edits on this site are kept.', 'elementor-podcast-manager' ); ?></p>
 
@@ -246,36 +273,15 @@ $epm_when = static function ( int $timestamp ): string {
 					</div>
 				</form>
 
-				<div class="epm-stack" data-job <?php echo in_array( $epm_job['status'], [ 'running', 'waiting', 'done_with_problems', 'cancelled', 'failed' ], true ) ? '' : 'hidden'; ?>>
-					<div class="epm-progress">
-						<div class="epm-progress__track" role="progressbar" aria-labelledby="epm-hosting-import-title" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-							<div class="epm-progress__bar"></div>
-						</div>
-						<div class="epm-progress__label">
-							<span data-job-count></span>
-							<span data-job-summary></span>
-						</div>
-					</div>
-					<div class="epm-callout epm-callout--error" data-job-error role="alert" hidden><p></p></div>
-					<button type="button" class="button" data-action="retry-progress" hidden><?php esc_html_e( 'Retry progress check', 'elementor-podcast-manager' ); ?></button>
-					<div class="epm-callout epm-callout--warn" data-job-stopped hidden><p></p></div>
-					<div class="epm-callout epm-callout--warn" data-job-incomplete hidden><p></p></div>
-					<?php require EPM_PATH . 'admin/views/partials/import-result.php'; ?>
-					<details class="epm-details">
-						<summary><?php esc_html_e( 'Show the import log', 'elementor-podcast-manager' ); ?></summary>
-						<div class="epm-details__body"><ul class="epm-log" data-job-log></ul></div>
-					</details>
-					<div>
-						<button type="button" class="epm-button-link epm-button-link--danger" data-action="cancel" hidden><?php esc_html_e( 'Stop the import', 'elementor-podcast-manager' ); ?></button>
-						<a class="button" data-job-episodes href="<?php echo esc_url( admin_url( 'edit.php?post_type=' . \EPM\EpisodePostType::CPT ) ); ?>" hidden><?php esc_html_e( 'View episodes', 'elementor-podcast-manager' ); ?></a>
-					</div>
-				</div>
+
 			</section>
 		</div>
 
-		<aside class="epm-stack" aria-label="<?php esc_attr_e( 'Moving your podcast', 'elementor-podcast-manager' ); ?>">
+		<aside id="epm-task-move" data-epm-task-panel="move" class="epm-stack" aria-label="<?php esc_attr_e( 'Moving your podcast', 'elementor-podcast-manager' ); ?>">
 			<section class="epm-card" aria-labelledby="epm-move-in-title">
-				<h2 class="epm-card__title" id="epm-move-in-title"><?php esc_html_e( 'Moving your podcast to this website', 'elementor-podcast-manager' ); ?></h2>
+				<p><a class="button button-primary" href="<?php echo esc_url( admin_url( 'admin.php?page=epm-setup#path' ) ); ?>"><?php esc_html_e( 'Plan a move in the setup assistant', 'elementor-podcast-manager' ); ?></a></p>
+<p class="epm-field__help"><?php esc_html_e( 'Keep the old host active until audio is copied and the redirect is verified. Starting setup does not switch hosting.', 'elementor-podcast-manager' ); ?></p>
+<h2 class="epm-card__title" id="epm-move-in-title"><?php esc_html_e( 'Moving your podcast to this website', 'elementor-podcast-manager' ); ?></h2>
 				<ol class="epm-checklist">
 					<li class="epm-checklist__item">
 						<span class="epm-checklist__icon" aria-hidden="true">1</span>

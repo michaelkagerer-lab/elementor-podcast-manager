@@ -17,7 +17,22 @@
 		return;
 	}
 
-	var FLOWS = {
+	var situation = root.querySelector('[data-epm-situation]');
+ var hostingChoice = root.querySelector('[data-epm-hosting-choice]');
+ function showSituation() {
+  var chosen = situation.querySelector('input:checked');
+  hostingChoice.hidden = !chosen || chosen.value === 'new';
+  hostingChoice.querySelector('[value="new"]').closest('label').hidden = true;
+ }
+ situation.addEventListener('change', function () {
+  var chosen = situation.querySelector('input:checked');
+  var selected = hostingChoice.querySelector('input:checked');
+  if (chosen.value === 'new') { hostingChoice.querySelector('[value="new"]').checked = true; }
+  else if (selected && selected.value === 'new') { selected.checked = false; }
+  showSituation();
+ });
+ showSituation();
+ var FLOWS = {
 		new: [ 'path', 'show', 'look', 'done' ],
 		move: [ 'path', 'connect', 'import', 'show', 'look', 'done' ],
 		external: [ 'path', 'connect', 'import', 'show', 'look', 'done' ],
@@ -213,6 +228,7 @@
 			var key = item.getAttribute( 'data-step' );
 			var position = steps.indexOf( key );
 			item.classList.toggle( 'is-done', position > -1 && position < index );
+ var completed = item.querySelector('[data-step-completed]'); if (!completed) { completed = document.createElement('span'); completed.className = 'screen-reader-text'; completed.dataset.stepCompleted = ''; item.appendChild(completed); } completed.textContent = position > -1 && position < index ? __('Completed', 'elementor-podcast-manager') : '';
 			if ( key === step ) {
 				item.setAttribute( 'aria-current', 'step' );
 			} else {
@@ -275,7 +291,7 @@
 
 		if ( ! values.path ) {
 			showError( form, __( 'Choose where your podcast lives to continue.', 'elementor-podcast-manager' ) );
-			form.querySelector( '[name="path"]' ).focus();
+			form.querySelector( hostingChoice.hidden ? '[name="situation"]' : '[name="path"][value="move"]' ).focus();
 			return;
 		}
 

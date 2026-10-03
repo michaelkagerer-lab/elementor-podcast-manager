@@ -1502,3 +1502,8 @@ textarea[aria-invalid="true"] {
  .epm-dashboard__next { flex-direction: column; align-items: flex-start; gap: 16px; }
  .epm-dashboard .epm-dashboard__grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+.epm-episode-basics { margin-block: 16px; padding: 12px 0; font-size: 14px; }
+.epm-episode-basics p { margin-block: 8px; }
+.epm-episode-basics summary { cursor: pointer; padding-block: 12px; }
+.epm-episode-basics a { display: inline-block; padding: 12px 4px; }

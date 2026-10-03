@@ -51,7 +51,6 @@ $epm_steps = [
 <div class="wrap epm-app epm-app--narrow" data-epm-setup data-path="<?php echo esc_attr( $epm_path ); ?>">
 	<header class="epm-app__header">
 		<div>
-			<p class="epm-app__eyebrow"><?php esc_html_e( 'Podcast', 'elementor-podcast-manager' ); ?></p>
 			<h1 class="epm-app__title"><?php esc_html_e( 'Set up your podcast', 'elementor-podcast-manager' ); ?></h1>
 			<p class="epm-app__lede"><?php esc_html_e( 'A few steps to a show that is ready for Apple Podcasts, Spotify and every other app. Each step is saved as you go.', 'elementor-podcast-manager' ); ?></p>
 		</div>
@@ -75,10 +74,15 @@ $epm_steps = [
 	<!-- Step 1: where the show is hosted. -->
 	<section class="epm-panel epm-card" data-panel="path" tabindex="-1" aria-labelledby="epm-setup-path-title">
 		<form data-step-form="path" novalidate>
-			<h2 class="epm-panel__title" id="epm-setup-path-title"><?php esc_html_e( 'Where should your podcast live?', 'elementor-podcast-manager' ); ?></h2>
+			<h2 class="epm-panel__title" id="epm-setup-path-title"><?php esc_html_e( 'Are you starting or bringing an existing podcast?', 'elementor-podcast-manager' ); ?></h2>
 			<p class="epm-panel__lede"><?php esc_html_e( 'The host is where the audio files and the RSS feed live. Podcast apps read the feed; your website shows the episodes either way.', 'elementor-podcast-manager' ); ?></p>
 
-			<fieldset class="epm-choices epm-choices--rows" aria-describedby="epm-setup-path-error">
+			<fieldset class="epm-choices epm-choices--rows" data-epm-situation aria-describedby="epm-setup-path-error">
+<legend class="epm-sr-only"><?php esc_html_e( 'Your situation', 'elementor-podcast-manager' ); ?></legend>
+<label class="epm-choice"><input type="radio" name="situation" value="new" <?php checked( $epm_path, 'new' ); ?> /><span class="epm-choice__title"><?php esc_html_e( 'I am starting a podcast', 'elementor-podcast-manager' ); ?></span><span class="epm-choice__text"><?php esc_html_e( 'Publish your first episode on this website.', 'elementor-podcast-manager' ); ?></span></label>
+<label class="epm-choice"><input type="radio" name="situation" value="existing" <?php checked( in_array( $epm_path, [ 'external', 'move' ], true ) ); ?> /><span class="epm-choice__title"><?php esc_html_e( 'I already have a podcast', 'elementor-podcast-manager' ); ?></span><span class="epm-choice__text"><?php esc_html_e( 'Keep your host or plan a move to this website.', 'elementor-podcast-manager' ); ?></span></label>
+</fieldset>
+<fieldset class="epm-choices epm-choices--rows" data-epm-hosting-choice aria-describedby="epm-setup-path-error">
 				<legend class="epm-sr-only"><?php esc_html_e( 'Hosting', 'elementor-podcast-manager' ); ?></legend>
 				<label class="epm-choice">
 					<input type="radio" name="path" value="new" <?php checked( $epm_path, 'new' ); ?> required />

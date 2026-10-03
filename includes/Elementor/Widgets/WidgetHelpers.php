@@ -19,6 +19,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 trait WidgetHelpers {
+	/** Identify inheritable style values, including responsive and group controls. */
+	public function add_control( $id, array $args, $options = [] ) {
+		$color = in_array( $args['type'] ?? '', [ 'color', 'slider', 'dimensions', 'select', 'font' ], true ) && ! empty( $args['selectors'] ) && ! str_starts_with( (string) $id, '_' );
+		if ( $color && empty( $args['condition'] ) ) { $args['condition'] = $this->custom_condition(); }
+		if ( $color ) {
+			$token = '';
+			foreach ( $args['selectors'] ?? [] as $rule ) { if ( preg_match( '/(--epm-[a-z-]+)\s*:/', $rule, $match ) ) { $token = $match[1]; break; } }
+			$value = \EPM\Admin::design_css_vars( epm()->design->all() )[ $token ] ?? __( 'Theme or inherited value', 'elementor-podcast-manager' );
+			/* translators: %s: global color or fallback description */
+			$args['description'] = sprintf( __( 'Podcast design: %s. A value here overrides it.', 'elementor-podcast-manager' ), $value );
+		}
+		$result = parent::add_control( $id, $args, $options );
+		if ( $color ) { parent::add_control( $id . '_inherit', [ 'type' => Controls_Manager::BUTTON, 'text' => sprintf( /* translators: %s: widget control label */ __( 'Use podcast value: %s', 'elementor-podcast-manager' ), $args['label'] ?? $id ), 'event' => 'epm:style:inherit:' . $id, 'condition' => $args['condition'] ] ); }
+		return $result;
+	}
+
+	public function task_description(): string {
+		$tasks = [ 'epm-podcast-player' => __( 'Play the current, latest or a selected episode. Use current only on an episode page or in an episode loop.', 'elementor-podcast-manager' ), 'epm-latest-episode' => __( 'Feature the newest episode on a show page or homepage.', 'elementor-podcast-manager' ), 'epm-episode-list' => __( 'Build a browsable episode archive.', 'elementor-podcast-manager' ), 'epm-subscribe-links' => __( 'Help listeners follow the show in their preferred app.', 'elementor-podcast-manager' ), 'epm-podcast-hero' => __( 'Introduce the show on its landing page.', 'elementor-podcast-manager' ) ];
+		return $tasks[ $this->get_name() ] ?? __( 'Add this part of the current episode to an episode page or episode loop. It needs matching episode data.', 'elementor-podcast-manager' );
+	}
+
+	protected function add_task_guidance(): void {
+		$help = $this->task_description();
+		$this->start_controls_section( 'epm_task_guidance', [ 'label' => __( 'Usage and starter layouts', 'elementor-podcast-manager' ) ] );
+		$this->add_control( 'epm_task_description', [ 'type' => Controls_Manager::RAW_HTML, 'raw' => esc_html( $help ) ] );
+		$this->add_control( 'epm_starter_kind', [ 'type' => Controls_Manager::SELECT, 'label' => __( 'Starter layout', 'elementor-podcast-manager' ), 'default' => 'show', 'options' => [ 'show' => __( 'Show page', 'elementor-podcast-manager' ), 'archive' => __( 'Episode archive', 'elementor-podcast-manager' ), 'episode' => __( 'Episode layout (episode pages only)', 'elementor-podcast-manager' ) ] ] );
+		$this->add_control( 'epm_starter_insert', [ 'type' => Controls_Manager::BUTTON, 'text' => __( 'Insert starter layout', 'elementor-podcast-manager' ), 'event' => 'epm:starter:insert', 'description' => __( 'Adds editable widgets to this document. Review before saving; Undo removes the inserted layout. Save it as an Elementor section template to reuse it.', 'elementor-podcast-manager' ) ] );
+		$this->end_controls_section();
+	}
+
+
 
 	/**
 	 * Content section: episode source (current / specific / latest).

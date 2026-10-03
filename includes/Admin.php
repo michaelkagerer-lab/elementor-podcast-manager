@@ -20,6 +20,7 @@ final class Admin {
 	 * @return void
 	 */
 	public function init(): void {
+		add_action( 'wp_ajax_epm_design_preview', [ $this, 'ajax_design_preview' ] );
 		add_action( 'admin_menu', [ $this, 'register_menu' ] );
 		add_filter( 'manage_' . EpisodePostType::CPT . '_posts_columns', [ $this, 'list_columns' ] );
 		add_filter( 'default_hidden_columns', [ $this, 'default_hidden_columns' ], 10, 2 );
@@ -425,13 +426,15 @@ final class Admin {
 	 * Progress on the essential directories: the ones every show should
 	 * submit to itself (priority "essential", not listed via another one).
 	 *
-	 * @return array{total: int, done: int, next: string, next_name: string, rows: array<int, array{id: string, name: string, icon: string, status: string}>}
+	 * @return array{total: int, done: int, submitted: int, listed: int, next: string, next_name: string, rows: array<int, array{id: string, name: string, icon: string, status: string}>}
 	 */
 	public static function distribution_summary(): array {
 		$progress = Directories::progress();
 		$out      = [
 			'total'     => 0,
 			'done'      => 0,
+			'submitted' => 0,
+			'listed'    => 0,
 			'next'      => '',
 			'next_name' => '',
 			'rows'      => [],
@@ -447,6 +450,7 @@ final class Admin {
 			++$out['total'];
 			if ( '' !== $status ) {
 				++$out['done'];
+				if ( in_array( $status, [ 'submitted', 'listed' ], true ) ) { ++$out[ $status ]; }
 			} elseif ( '' === $out['next'] ) {
 				$out['next']      = (string) $id;
 				$out['next_name'] = (string) $directory['name'];
@@ -1157,6 +1161,56 @@ final class Admin {
 		return array_intersect_key( $values, array_flip( self::design_export_keys() ) );
 	}
 
+	/** Read-only preview. Explicit args preserve stored options and local episode data. */
+	public static function render_design_preview( array $input ): array {
+		$input = array_filter( $input, static fn( $value, $key ) => 'details' === $key ? is_array( $value ) : is_scalar( $value ), ARRAY_FILTER_USE_BOTH );
+		$values = epm()->design->sanitize( array_intersect_key( $input, array_flip( array_merge( self::design_export_keys(), [ 'details', 'details_form', 'details_reset' ] ) ) ) );
+		$sparse = Details::sanitize_map( $values['details'] ?? [] );
+		$preview = self::design_preview_episodes();
+		$layout = (string) $values['default_player_layout'];
+		$page_layout = $layout;
+		$page = array_merge( Details::neutral( 'episode_page' ), $sparse['episode_page'] ?? [] );
+		if ( in_array( $layout, [ 'minimal', 'compact' ], true ) ) {
+			foreach ( [ 'show_playback_speed', 'show_volume', 'show_download', 'show_share', 'show_description' ] as $flag ) {
+				if ( ! empty( $page[ $flag ] ) ) { $page_layout = 'full'; break; }
+			}
+		}
+		$html = [];
+		foreach ( [ 'player' => 'player', 'episode-page' => 'episode_page' ] as $part => $context ) {
+			$args = array_merge( Details::neutral( $context ), $sparse[ $context ] ?? [], [ 'layout' => 'episode_page' === $context ? $page_layout : $layout, 'sticky' => 'episode_page' === $context, 'player_id' => 'epm-design-preview-' . $part ] );
+			if ( 'episode_page' === $context ) { $args['show_title'] = false; }
+			$html[ $part ] = epm()->renderer->player( $preview['player'], $args );
+		}
+		$list = array_merge( Details::neutral( 'list' ), $sparse['list'] ?? [], [ 'layout' => $values['default_episode_layout'], 'excerpt_length' => 20 ] );
+		$html['list'] = epm()->renderer->episode_list_from_data( $preview['list'], $list );
+		$html['subscribe'] = epm()->renderer->subscribe_links( self::design_preview_links(), [ 'display' => 'icon-text' ] );
+		$effects = [];
+		foreach ( Details::CONTEXTS as $context ) {
+			$effective_layout = 'episode_page' === $context ? $page_layout : $layout;
+			foreach ( Details::flags( $context ) as $flag ) {
+				$state = __( 'Available in this layout', 'elementor-podcast-manager' );
+				if ( 'list' !== $context && ( ( in_array( $effective_layout, [ 'minimal', 'editorial' ], true ) && 'show_artwork' === $flag ) || ( in_array( $effective_layout, [ 'minimal', 'compact' ], true ) && in_array( $flag, [ 'show_description', 'show_playback_speed', 'show_volume', 'show_download', 'show_share' ], true ) ) ) ) {
+					$state = __( 'Hidden by this layout; kept for other layouts', 'elementor-podcast-manager' );
+				} else {
+					$keys = [ 'show_guest' => 'guest_name', 'show_chapters_link' => 'chapters', 'show_episode_number' => 'episode_number', 'show_season' => 'season_number', 'show_description' => 'short_description' ];
+					if ( isset( $keys[ $flag ] ) && empty( $preview['player'][ $keys[ $flag ] ] ) ) { $state = __( 'No matching data in the preview episode', 'elementor-podcast-manager' ); }
+				}
+				$effects[ $context ][ $flag ] = $state;
+			}
+		}
+		return [ 'html' => $html, 'effects' => $effects ];
+	}
+
+	public function ajax_design_preview(): void {
+		check_ajax_referer( 'epm_design_preview', 'nonce' );
+		if ( ! Capabilities::can_manage_podcast() ) { wp_send_json_error( [ 'message' => __( 'You cannot manage this podcast.', 'elementor-podcast-manager' ) ], 403 ); }
+		$raw = isset( $_POST['values'] ) && is_string( $_POST['values'] ) ? wp_unslash( $_POST['values'] ) : '';
+		if ( strlen( $raw ) > 16384 ) { wp_send_json_error( null, 413 ); }
+		$input = json_decode( $raw, true );
+		if ( ! is_array( $input ) ) { wp_send_json_error( null, 400 ); }
+		wp_send_json_success( self::render_design_preview( $input ) );
+	}
+
 	/**
 	 * Data for admin/js/epm-design.js: the token table, the current values,
 	 * every preset's values and the dark-background rule.
@@ -1198,6 +1252,8 @@ final class Admin {
 		}
 
 		return [
+			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+			'nonce' => wp_create_nonce( 'epm_design_preview' ),
 			'map'     => $map,
 			'dark'    => [
 				// Same threshold as DesignSettings::is_dark().

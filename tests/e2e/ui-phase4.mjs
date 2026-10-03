@@ -1,0 +1,98 @@
+import {BASE, php, fixtures, assert, finish, launch, newPage, login, noOverflow} from './lib.mjs';
+if (!php("echo wp_json_encode(is_file(dirname(rtrim(ABSPATH, '/\\\\')).'/.epm-test-site'));")) throw new Error('Requires a marked disposable test site.');
+const browser=await launch(), saved=php("echo wp_json_encode(get_option('epm_design_settings'));"), setup=php("echo wp_json_encode(get_option('epm_setup'));");
+let draft, editorPage;
+try {
+ const page=await newPage(browser,{width:390,height:844}); await login(page);
+ await page.goto(`${BASE}/wp-admin/admin.php?page=epm-design`);
+ const waitPreview=()=>page.waitForFunction(()=>document.querySelector('[data-epm-preview-status]').textContent.includes('Preview updated'),null,{timeout:15000});
+ await waitPreview();
+ const nonce=await page.evaluate(()=>epmDesign.nonce);
+ const denied=await page.request.post(`${BASE}/wp-admin/admin-ajax.php`,{form:{action:'epm_design_preview',nonce:'invalid',values:'{}'}});
+ assert(denied.status()===403,'preview rejects an invalid nonce');
+ const oversized=await page.request.post(`${BASE}/wp-admin/admin-ajax.php`,{form:{action:'epm_design_preview',nonce,values:' '.repeat(17000)}});
+ assert(oversized.status()===413,'preview bounds input size');
+ const anonymous=await browser.newContext();
+ const publicResult=await anonymous.request.post(`${BASE}/wp-admin/admin-ajax.php`,{form:{action:'epm_design_preview',nonce,values:'{}'}});
+ assert(publicResult.status()>=400,'preview is unavailable without authentication'); await anonymous.close();
+ assert(await page.locator('[data-epm-preview-part]:visible').count()===1,'one component shown');
+ assert(await page.locator('[data-epm-preview-viewport]').evaluate(el=>el.scrollHeight<=el.clientHeight+1),'phone preview has natural height');
+ await page.locator('#epm-details > summary').click();
+ await page.locator('#epm-details-player-show-share').setChecked(false); await page.waitForFunction(()=>!document.querySelector('[data-epm-preview-part="player"] [data-epm-share-toggle]')); await waitPreview();
+ assert(await page.locator('[data-epm-preview-part="player"] [data-epm-share-toggle]').count()===0,'share removed before save');
+ await page.locator('#epm-details-player-show-share').setChecked(true); await page.waitForFunction(()=>!!document.querySelector('[data-epm-preview-part="player"] [data-epm-share-toggle]')); await waitPreview();
+ assert(await page.locator('[data-epm-preview-part="player"] [data-epm-share-toggle]').count()===1,'share restored before save');
+ await page.evaluate(()=>{
+  window.epmOriginalFetch=window.fetch; window.epmDelayedResolved=false;
+  window.fetch=function(url,args){
+   if(args?.body?.get('action')!=='epm_design_preview')return window.epmOriginalFetch(url,args);
+   const values=JSON.parse(args.body.get('values')), options={...args};delete options.signal;
+   return window.epmOriginalFetch(url,options).then(response=>new Promise(resolve=>setTimeout(()=>{if(values.details.player.show_share===false)window.epmDelayedResolved=true;resolve(response);},values.details.player.show_share===false?900:0)));
+  };
+ });
+ const olderResponse=page.waitForResponse(r=>r.url().includes('admin-ajax.php')&&r.request().postData()?.includes('epm_design_preview'));
+ await page.locator('#epm-details-player-show-share').setChecked(false); await olderResponse;
+ await page.locator('#epm-details-player-show-share').setChecked(true);
+ await page.waitForFunction(()=>window.epmDelayedResolved); await waitPreview();
+ assert(await page.locator('[data-epm-preview-part="player"] [data-epm-share-toggle]').count()===1,'a delayed old response cannot overwrite the newest choice');
+ await page.evaluate(()=>{window.fetch=window.epmOriginalFetch;delete window.epmOriginalFetch;delete window.epmDelayedResolved;});
+ assert(JSON.stringify(php("echo wp_json_encode(get_option('epm_design_settings'));"))===JSON.stringify(saved),'preview writes no option');
+ await page.selectOption('[data-epm-preview-component]','list');
+ assert(await page.locator('[data-epm-preview-part="list"]').isVisible(),'component selector works');
+ assert(await noOverflow(page),'design fits phone');
+ await page.screenshot({path:'screenshots/ui-phase4-design-390.png',fullPage:true});
+ await page.route('**/admin-ajax.php',async route=>route.request().postData()?.includes('epm_design_preview')?route.abort():route.continue());
+ await page.locator('#epm-details-player-show-share').setChecked(false); await page.locator('[data-epm-preview-retry]').waitFor({state:'visible'});
+ assert(await page.locator('[data-epm-preview-part="list"] .epm-episode-list').count()===1,'failure keeps last valid render');
+ await page.unroute('**/admin-ajax.php'); await page.locator('[data-epm-preview-retry]').click(); await waitPreview();
+ assert(await page.locator('[data-epm-preview-retry]').isHidden(),'retry recovers');
+ page.on('dialog',dialog=>dialog.accept());
+ await page.goto(`${BASE}/wp-admin/admin.php?page=epm-hosting#epm-task-import`);
+ assert(await page.locator('[data-import-card]').isVisible()&&await page.locator('#epm-task-hosting').isHidden(),'direct import task isolates relevant form');
+ await page.locator('[data-epm-hosting-task="move"]').click(); await page.reload();
+ assert(await page.locator('#epm-task-move').isVisible(),'move task survives reload');
+ assert(await noOverflow(page),'hosting fits phone'); await page.screenshot({path:'screenshots/ui-phase4-hosting-390.png',fullPage:true});
+ php("delete_option('epm_setup'); echo 1;");
+ await page.goto(`${BASE}/wp-admin/admin.php?page=epm-setup`);
+ await page.check('[name="situation"][value="existing"]');
+ assert(await page.locator('[data-epm-hosting-choice]').isVisible(),'existing situation offers keep or move');
+ await page.check('[name="path"][value="external"]');
+ assert(!php("echo wp_json_encode(\\EPM\\AdminPages::setup_state()['path']);"),'selection saves nothing');
+ await page.check('[name="situation"][value="new"]');
+ assert(await page.isChecked('[name="path"][value="new"]'),'new situation maps to original path');
+ await page.locator('[data-step-form="path"] [type="submit"]').click(); await page.locator('[data-panel="show"]').waitFor({state:'visible'});
+ assert(php("echo wp_json_encode(\\EPM\\AdminPages::setup_state()['path']);")==='new','Continue saves original path');
+ await page.goto(`${BASE}/wp-admin/admin.php?page=epm-design`); await page.locator('#epm-starters > summary').click(); await page.selectOption('#epm-starter-kind','archive');
+ await page.getByRole('button',{name:'Create starter draft',exact:true}).click(); await page.waitForURL(/post.php\?post=/); draft=Number(new URL(page.url()).searchParams.get('post'));
+ assert(php(`echo wp_json_encode(get_post_status(${draft}));`)==='draft','explicit starter is a draft');
+ assert(php(`echo wp_json_encode(get_post(${draft})->post_content);`).includes('[podcast_episodes]'),'draft keeps shortcode fallback');
+ editorPage=php(`$id=wp_insert_post(['post_type'=>'page','post_status'=>'draft','post_title'=>'Phase four editor test']); $data=\\EPM\\AdminPages::starter_content('episode')['elements']; update_post_meta($id,'_elementor_data',wp_slash(wp_json_encode($data))); update_post_meta($id,'_elementor_edit_mode','builder'); update_post_meta($id,'_elementor_version',ELEMENTOR_VERSION); echo wp_json_encode($id);`);
+ await page.setViewportSize({width:1280,height:900});
+ await page.goto(`${BASE}/wp-admin/post.php?post=${editorPage}&action=elementor`);
+ await page.waitForFunction(()=>window.elementor?.loaded&&window.$e&&window.epmEditor,null,{timeout:45000});
+ await page.waitForFunction(()=>{try{return !!window.elementor.getContainer('epmstart1');}catch{return false;}},null,{timeout:15000});
+ await page.evaluate(()=>window.$e.route('panel/elements/categories'));
+ await page.locator('#elementor-panel-category-epm-podcast').waitFor();
+ await page.locator('#elementor-panel-category-epm-podcast .elementor-panel-category-title').click();
+ await page.waitForFunction(()=>document.querySelectorAll('#elementor-panel-category-epm-podcast .epm-widget-purpose').length===12);
+ assert(await page.locator('#elementor-panel-category-epm-podcast .epm-widget-purpose').count()===12,'widget library names all twelve tasks');
+ await page.evaluate(()=>{const container=elementor.getContainer('epmstart1'); $e.run('document/elements/settings',{container,settings:{container_background:'#123456',style_source:'custom'},options:{external:true}});});
+ await page.waitForTimeout(400); // Separate user actions; Elementor coalesces changes in a single event turn.
+ const result=await page.evaluate(async ()=>{
+  const container=elementor.getContainer('epmstart1'), name='container_background';
+  elementor.channels.editor.trigger('epm:style:inherit:'+name,{container}); const reset=container.settings.get(name);
+  $e.run('document/history/undo'); await new Promise(resolve=>setTimeout(resolve,300)); const undone=elementor.getContainer('epmstart1').settings.get(name);
+  const before=elementor.getPreviewContainer().model.get('elements').length;
+  container.settings.set('epm_starter_kind','episode'); elementor.channels.editor.trigger('epm:starter:insert',{container}); const blocked=elementor.getPreviewContainer().model.get('elements').length===before;
+  container.settings.set('epm_starter_kind','archive'); elementor.channels.editor.trigger('epm:starter:insert',{container}); const inserted=elementor.getPreviewContainer().model.get('elements').length;
+  $e.run('document/history/undo'); return {reset,undone,blocked,before,inserted,after:elementor.getPreviewContainer().model.get('elements').length,resets:epmEditor.resets};
+ });
+ 
+ 
+ assert(result.reset===''&&result.undone==='#123456','per-value reset supports Undo');
+ assert(result.blocked,'episode starter is refused on a normal page');
+ assert(result.inserted===result.before+1&&result.after===result.before,'starter insertion supports Undo');
+ assert(page.problems.length===0,`no plugin browser errors: ${page.problems.join(' | ')}`);
+ await page.context().close();
+} finally {if(editorPage)php(`wp_delete_post(${editorPage},true); echo 1;`);if(draft)php(`wp_delete_post(${draft},true); echo 1;`);php(`update_option('epm_design_settings',json_decode(${JSON.stringify(JSON.stringify(saved))},true)); update_option('epm_setup',json_decode(${JSON.stringify(JSON.stringify(setup))},true)); echo 1;`);await browser.close();}
+finish('phase four UI');

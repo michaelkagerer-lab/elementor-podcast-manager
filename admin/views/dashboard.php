@@ -225,11 +225,11 @@ $epm_status_label = [
 				<p class="epm-dashboard__score">
 					<strong>
 						<?php
-						/* translators: 1: platforms done, 2: essential platforms */
-						echo esc_html( sprintf( __( '%1$s of %2$s', 'elementor-podcast-manager' ), number_format_i18n( (int) $distribution['done'] ), number_format_i18n( (int) $distribution['total'] ) ) );
+						/* translators: 1: submitted platforms, 2: listed platforms */
+						echo esc_html( sprintf( __( '%1$s submitted, %2$s listed', 'elementor-podcast-manager' ), number_format_i18n( (int) $distribution['submitted'] ), number_format_i18n( (int) $distribution['listed'] ) ) );
 						?>
 					</strong>
-					<span class="epm-muted"><?php esc_html_e( 'essential platforms submitted', 'elementor-podcast-manager' ); ?></span>
+					<span class="epm-muted"><?php esc_html_e( 'Essential platforms — your records, not verified by this plugin.', 'elementor-podcast-manager' ); ?></span>
 				</p>
 				<div class="epm-dashboard__meter" aria-hidden="true"><span style="--epm-progress: <?php echo esc_attr( (string) ( $distribution['total'] > 0 ? round( $distribution['done'] / $distribution['total'], 3 ) : 0 ) ); ?>"></span></div>
 				<ul class="epm-dashboard__platforms">
@@ -367,7 +367,7 @@ $epm_status_label = [
 				</p>
 			</div>
 			<?php if ( $epm_checks_total > 0 ) : ?>
-				<span class="epm-readiness__count">
+				<details class="epm-readiness__technical"><summary><?php esc_html_e( 'Technical check count', 'elementor-podcast-manager' ); ?></summary><span class="epm-readiness__count">
 					<span aria-hidden="true"><strong><?php echo esc_html( number_format_i18n( $epm_checks_ok ) ); ?></strong><span>/<?php echo esc_html( number_format_i18n( $epm_checks_total ) ); ?></span></span>
 					<span class="screen-reader-text">
 						<?php
@@ -375,7 +375,7 @@ $epm_status_label = [
 						echo esc_html( sprintf( __( '%1$s of %2$s checks complete', 'elementor-podcast-manager' ), number_format_i18n( $epm_checks_ok ), number_format_i18n( $epm_checks_total ) ) );
 						?>
 					</span>
-				</span>
+				</span></details>
 			<?php endif; ?>
 		</div>
 		<?php echo \EPM\Readiness::render_html( $readiness ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in render_html(). ?>
