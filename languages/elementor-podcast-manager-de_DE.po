@@ -83,16 +83,6 @@ msgstr "Folge hinzufügen"
 msgid "Set up your podcast"
 msgstr "Podcast einrichten"
 
-#: admin/views/dashboard.php:70
-msgid ""
-"Choose where your show is hosted, add its details and artwork, and get the "
-"feed address for Apple Podcasts and Spotify. It takes about five minutes, "
-"and you can change everything later."
-msgstr ""
-"Wähle das Hosting für deinen Podcast, ergänze Angaben und Cover und erhalte "
-"die Feed-Adresse für Apple Podcasts und Spotify. Das dauert etwa fünf "
-"Minuten. Alle Angaben lassen sich später ändern."
-
 #: admin/views/dashboard.php:73 includes/AdminPages.php:302
 msgid "Start setup"
 msgstr "Einrichtung starten"
@@ -312,12 +302,6 @@ msgstr "Bereitschaftsprüfung"
 #, php-format
 msgid "What keeps this website in sync with %s."
 msgstr "So bleibt diese Website mit %s synchron."
-
-#: admin/views/dashboard.php:332
-msgid "What Apple Podcasts, Spotify and other directories check in your feed."
-msgstr ""
-"Diese Angaben prüfen Apple Podcasts, Spotify und andere Verzeichnisse in "
-"deinem Feed."
 
 #. translators: 1: passed checks, 2: all checks
 #: admin/views/dashboard.php:343
@@ -867,21 +851,9 @@ msgstr ""
 "Shortcode-Attribute haben Vorrang. Farben, Schriften und die Stile oben "
 "ändern diese Auswahl nicht."
 
-#: admin/views/design.php:472
-msgid "Save details"
-msgstr "Zusatzangaben speichern"
-
 #: admin/views/design.php:475
 msgid "Use built-in details"
 msgstr "Ursprüngliche Zusatzangaben verwenden"
-
-#: admin/views/design.php:476
-msgid ""
-"Built-in details are what each widget and shortcode showed before you chose "
-"any here."
-msgstr ""
-"Die ursprünglichen Zusatzangaben entsprechen der Anzeige vor deiner Auswahl "
-"auf dieser Seite."
 
 #. translators: %s: preset name
 #: admin/views/design.php:489
@@ -1019,14 +991,6 @@ msgstr ""
 #: admin/views/distribution.php:47
 msgid "Start here"
 msgstr "Hier beginnen"
-
-#: admin/views/distribution.php:48
-msgid ""
-"Together these reach almost every listener. Submit your feed once; new "
-"episodes follow automatically."
-msgstr ""
-"Zusammen erreichen diese Plattformen fast alle Hörer. Reiche deinen Feed "
-"einmal ein; neue Folgen erscheinen automatisch."
 
 #: admin/views/distribution.php:51
 msgid "Recommended"
@@ -4999,14 +4963,6 @@ msgstr "Ausblenden"
 msgid "Default (Podcast → Design: %s)"
 msgstr "Standard (Podcast → Design: %s)"
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:255
-msgid "Default (shown)"
-msgstr "Standard (sichtbar)"
-
-#: includes/Elementor/Widgets/WidgetHelpers.php:256
-msgid "Default (hidden)"
-msgstr "Standard (ausgeblendet)"
-
 #: includes/Elementor/Widgets/WidgetHelpers.php:276
 msgid "Details"
 msgstr "Zusatzangaben"
@@ -5032,10 +4988,6 @@ msgstr "Stilquelle"
 #: includes/Elementor/Widgets/WidgetHelpers.php:370
 msgid "Use Podcast → Design styles"
 msgstr "Stile aus Podcast → Design verwenden"
-
-#: includes/Elementor/Widgets/WidgetHelpers.php:371
-msgid "Custom"
-msgstr "Individuell"
 
 #: includes/Elementor/Widgets/WidgetHelpers.php:396
 msgid "Heading Level"
@@ -7877,14 +7829,6 @@ msgstr "Vorlagenvorschau: %s"
 msgid "Changes discarded. The saved design is shown again."
 msgstr "Änderungen verworfen. Das gespeicherte Design wird wieder angezeigt."
 
-#: admin/js/epm-design.js:736
-msgid ""
-"Unsaved changes. Save the details to see them in the preview and on your "
-"site."
-msgstr ""
-"Ungespeicherte Änderungen. Speichere die Zusatzangaben für die Vorschau und "
-"deine Website."
-
 #. translators: %s: preset name
 #: admin/js/epm-design.js:780
 #, js-format
@@ -8252,3 +8196,113 @@ msgstr "Weiterleitung bei %1$s einrichten"
 #: admin/js/epm-setup.js:1160
 msgid "Your show details have unsaved changes."
 msgstr "Deine Podcast-Angaben enthalten ungespeicherte Änderungen."
+
+
+#: admin/views/dashboard.php:73
+msgid "Publish your next episode"
+msgstr "Veröffentliche deine nächste Episode"
+
+#: admin/views/dashboard.php:74
+msgid "Add audio and show notes, then publish when the episode is ready."
+msgstr "Füge Audio und Shownotes hinzu und veröffentliche die Episode, sobald sie fertig ist."
+
+#: admin/views/dashboard.php:78
+msgid "Finish setting up your podcast"
+msgstr "Schließe die Einrichtung deines Podcasts ab"
+
+#: admin/views/dashboard.php:79
+msgid "Choose hosting, add your show details and create your podcast page."
+msgstr "Wähle das Hosting, ergänze deine Podcast-Angaben und erstelle deine Podcast-Seite."
+
+#: admin/views/dashboard.php:80
+msgid "Continue setup"
+msgstr "Einrichtung fortsetzen"
+
+#: admin/views/dashboard.php:83
+msgid "Review the episodes and feed before submitting"
+msgstr "Prüfe Episoden und Feed vor der Einreichung"
+
+#: admin/views/dashboard.php:85
+msgid "Review feed checks"
+msgstr "Feed-Prüfungen ansehen"
+
+#: admin/views/dashboard.php:88
+msgid "List your podcast in the next directory"
+msgstr "Trage deinen Podcast im nächsten Verzeichnis ein"
+
+#: admin/views/dashboard.php:89
+msgid "Open distribution to check your feed and record the directory listing link."
+msgstr "Öffne die Verbreitung, um deinen Feed zu prüfen und den Link zum Verzeichniseintrag zu hinterlegen."
+
+#: admin/views/dashboard.php:102
+msgid "Choose hosting, add your show details and artwork, then create your podcast page. Importing an existing catalog and moving its media can take longer; progress is saved as you go."
+msgstr "Wähle das Hosting, ergänze Podcast-Angaben und Cover und erstelle deine Podcast-Seite. Der Import vorhandener Episoden und der Umzug ihrer Medien können länger dauern; der Fortschritt wird laufend gespeichert."
+
+#: admin/views/dashboard.php:364
+msgid "These checks apply to the feed. Episodes without supported audio stay outside it; review the warnings to include them."
+msgstr "Diese Prüfungen gelten für den Feed. Episoden ohne unterstütztes Audio bleiben außerhalb des Feeds; beachte die Warnungen, um sie aufzunehmen."
+
+#: admin/views/design.php:160
+msgid "These are your podcast defaults. Each Elementor widget can override its layout, details or styles. Choose Podcast design in the widget to inherit again. Save design saves appearance and details together; applying a preset replaces both."
+msgstr "Dies sind deine Podcast-Vorgaben. Jedes Elementor-Widget kann Layout, Details oder Stile überschreiben. Wähle im Widget das Podcast-Design, um die Vorgaben wieder zu übernehmen. „Design speichern“ speichert Aussehen und Details gemeinsam; eine Vorlage ersetzt beides."
+
+#: admin/views/design.php:200
+msgid "Choose a preset"
+msgstr "Vorlage auswählen"
+
+#: admin/views/design.php:529
+msgid "Export or import design"
+msgstr "Design exportieren oder importieren"
+
+#: admin/views/distribution.php:48
+msgid "Submit your feed to the main directories first. After a platform lists your show, it picks up new episodes from your feed."
+msgstr "Reiche deinen Feed zuerst bei den wichtigsten Verzeichnissen ein. Sobald eine Plattform deinen Podcast aufnimmt, übernimmt sie neue Episoden aus deinem Feed."
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:44
+msgid "Current Episode follows the episode page or loop item. Use Latest Episode on your homepage, or Specific Episode for a fixed selection."
+msgstr "„Aktuelle Episode“ folgt der Episodenseite oder dem Schleifeneintrag. Nutze „Neueste Episode“ auf deiner Startseite oder „Bestimmte Episode“ für eine feste Auswahl."
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:81
+msgid "Preview episode only. Current Episode appears on episode pages. For this page, choose Latest Episode or Specific Episode in the Episode settings."
+msgstr "Nur eine Vorschau-Episode. „Aktuelle Episode“ erscheint auf Episodenseiten. Wähle für diese Seite „Neueste Episode“ oder „Bestimmte Episode“ in den Episodeneinstellungen."
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:125
+msgid "Manage episodes (opens in a new tab)"
+msgstr "Episoden verwalten (öffnet einen neuen Tab)"
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:164
+msgid "On"
+msgstr "An"
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:165
+msgid "Off"
+msgstr "Aus"
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:281
+msgid "Podcast design (shown)"
+msgstr "Podcast-Design (sichtbar)"
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:282
+msgid "Podcast design (hidden)"
+msgstr "Podcast-Design (ausgeblendet)"
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:393
+msgid "Podcast design follows global colors and fonts. Override this widget keeps its own styles. Switch back to Podcast design to inherit again; saved custom values are kept."
+msgstr "Das Podcast-Design übernimmt globale Farben und Schriften. „Dieses Widget überschreiben“ behält eigene Stile. Wechsle zum Podcast-Design zurück, um die Vorgaben wieder zu übernehmen; gespeicherte eigene Werte bleiben erhalten."
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:398
+msgid "Override this widget"
+msgstr "Dieses Widget überschreiben"
+
+#: admin/js/epm-design.js:740
+#: admin/js/epm-design.js:761
+msgid "Save design to preview the changed details."
+msgstr "Speichere das Design, um die geänderten Details in der Vorschau zu sehen."
+
+#: admin/js/epm-design.js:742
+msgid "Unsaved changes. Save design applies appearance and details together."
+msgstr "Ungespeicherte Änderungen. „Design speichern“ übernimmt Aussehen und Details gemeinsam."
+
+#: admin/js/epm-design.js:762
+msgid "Built-in details selected. Save design to apply them."
+msgstr "Integrierte Details ausgewählt. Speichere das Design, um sie zu übernehmen."

@@ -2668,3 +2668,10 @@ body:has(.epm-sticky:not([hidden])) {
 		transition: opacity 150ms ease-out;
 	}
 }
+
+/* Full layout gives listening controls priority in narrow player columns.
+   Artwork remains the deliberate focus of the Artwork layout. */
+@media (max-width: 480px) {
+ .epm-player--full .epm-player__artwork { width: min(112px, 35%); }
+ .epm-player--full .epm-player__volume input { width: 80px; }
+}

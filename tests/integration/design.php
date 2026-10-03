@@ -160,7 +160,7 @@ $t->test(
 		ob_start();
 		( new Admin() )->render_design();
 		$html = (string) ob_get_clean();
-		foreach ( [ '_epm_preset_nonce', '_epm_details_nonce', '_epm_export_nonce', '_epm_import_nonce' ] as $nonce_name ) {
+		foreach ( [ '_epm_preset_nonce', '_wpnonce', '_epm_export_nonce', '_epm_import_nonce' ] as $nonce_name ) {
 			$t->assert( (bool) preg_match( '/name="' . preg_quote( $nonce_name, '/' ) . '"[^>]*value="[^"]+"/', $html ), $nonce_name . ' is rendered for form submission' );
 		}
 		preg_match_all( '~\\s+id=["\']([^"\']+)["\']~', $html, $matches );
@@ -757,9 +757,9 @@ $t->test(
 			( new Admin() )->render_design();
 			$html = (string) ob_get_clean();
 			$t->assert( false === strpos( $html, 'Installed by the preset' ), 'old claim removed' );
-			$t->assert( false !== strpos( $html, 'name="action" value="epm_design_details"' ), 'details form' );
+			$t->assert( false !== strpos( $html, 'id="epm-design-form"' ), 'details form' );
 			foreach ( \EPM\Details::CONTEXTS as $context ) {
-				$t->assert( false !== strpos( $html, 'name="epm_details[' . $context . '][show_' ), 'fields for ' . $context );
+				$t->assert( false !== strpos( $html, 'name="epm_design_settings[details][' . $context . '][show_' ), 'fields for ' . $context );
 			}
 			$t->assert( false !== strpos( $html, 'data-epm-preview-part="episode-page"' ), 'episode page preview' );
 		} finally {

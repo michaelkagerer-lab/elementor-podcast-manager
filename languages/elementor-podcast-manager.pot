@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-02T12:54:38+00:00\n"
+"POT-Creation-Date: 2026-10-03T17:33:59+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: elementor-podcast-manager\n"
@@ -51,19 +51,19 @@ msgstr ""
 
 #: admin/views/dashboard.php:56
 #: admin/views/distribution.php:71
-#: admin/js/epm-distribution.js:32
+#: admin/js/epm-distribution.js:43
 msgid "Not submitted"
 msgstr ""
 
 #: admin/views/dashboard.php:57
 #: admin/views/distribution.php:72
-#: admin/js/epm-distribution.js:33
+#: admin/js/epm-distribution.js:44
 msgid "Submitted"
 msgstr ""
 
 #: admin/views/dashboard.php:58
 #: admin/views/distribution.php:73
-#: admin/js/epm-distribution.js:34
+#: admin/js/epm-distribution.js:45
 msgid "Listed"
 msgstr ""
 
@@ -79,86 +79,131 @@ msgid "Podcast"
 msgstr ""
 
 #: admin/views/dashboard.php:63
+#: admin/views/dashboard.php:75
 #: includes/Admin.php:346
 #: includes/Admin.php:347
 #: includes/EpisodePostType.php:132
 msgid "Add episode"
 msgstr ""
 
-#: admin/views/dashboard.php:69
+#: admin/views/dashboard.php:73
+msgid "Publish your next episode"
+msgstr ""
+
+#: admin/views/dashboard.php:74
+msgid "Add audio and show notes, then publish when the episode is ready."
+msgstr ""
+
+#: admin/views/dashboard.php:78
+msgid "Finish setting up your podcast"
+msgstr ""
+
+#: admin/views/dashboard.php:79
+msgid "Choose hosting, add your show details and create your podcast page."
+msgstr ""
+
+#: admin/views/dashboard.php:80
+msgid "Continue setup"
+msgstr ""
+
+#: admin/views/dashboard.php:83
+msgid "Review the episodes and feed before submitting"
+msgstr ""
+
+#: admin/views/dashboard.php:85
+msgid "Review feed checks"
+msgstr ""
+
+#: admin/views/dashboard.php:88
+msgid "List your podcast in the next directory"
+msgstr ""
+
+#: admin/views/dashboard.php:89
+msgid "Open distribution to check your feed and record the directory listing link."
+msgstr ""
+
+#. translators: %s: platform name
+#: admin/views/dashboard.php:90
+#: admin/views/dashboard.php:263
+#: admin/views/distribution.php:204
+#, php-format
+msgid "Submit to %s"
+msgstr ""
+
+#: admin/views/dashboard.php:101
 #: admin/views/setup.php:55
 msgid "Set up your podcast"
 msgstr ""
 
-#: admin/views/dashboard.php:70
-msgid "Choose where your show is hosted, add its details and artwork, and get the feed address for Apple Podcasts and Spotify. It takes about five minutes, and you can change everything later."
+#: admin/views/dashboard.php:102
+msgid "Choose hosting, add your show details and artwork, then create your podcast page. Importing an existing catalog and moving its media can take longer; progress is saved as you go."
 msgstr ""
 
-#: admin/views/dashboard.php:73
+#: admin/views/dashboard.php:105
 #: includes/AdminPages.php:302
 msgid "Start setup"
 msgstr ""
 
-#: admin/views/dashboard.php:74
+#: admin/views/dashboard.php:106
 msgid "Skip for now"
 msgstr ""
 
-#: admin/views/dashboard.php:88
+#: admin/views/dashboard.php:120
 msgid "Untitled podcast"
 msgstr ""
 
-#: admin/views/dashboard.php:91
+#: admin/views/dashboard.php:123
 msgid "Configured"
 msgstr ""
 
-#: admin/views/dashboard.php:93
+#: admin/views/dashboard.php:125
 msgid "Not configured yet"
 msgstr ""
 
 #. translators: %s: podcast host name
-#: admin/views/dashboard.php:100
+#: admin/views/dashboard.php:132
 #, php-format
 msgid "Hosted on %s"
 msgstr ""
 
-#: admin/views/dashboard.php:101
+#: admin/views/dashboard.php:133
 msgid "Hosted on this website"
 msgstr ""
 
-#: admin/views/dashboard.php:109
+#: admin/views/dashboard.php:141
 msgid "published episode"
 msgid_plural "published episodes"
 msgstr[0] ""
 msgstr[1] ""
 
-#: admin/views/dashboard.php:113
+#: admin/views/dashboard.php:145
 msgid "draft"
 msgid_plural "drafts"
 msgstr[0] ""
 msgstr[1] ""
 
-#: admin/views/dashboard.php:117
+#: admin/views/dashboard.php:149
 msgid "scheduled"
 msgstr ""
 
-#: admin/views/dashboard.php:122
+#: admin/views/dashboard.php:154
 msgid "View all episodes"
 msgstr ""
 
-#: admin/views/dashboard.php:124
+#: admin/views/dashboard.php:156
 msgid "Edit podcast details"
 msgstr ""
 
-#: admin/views/dashboard.php:125
+#: admin/views/dashboard.php:157
 msgid "Customize design"
 msgstr ""
 
-#: admin/views/dashboard.php:128
+#: admin/views/dashboard.php:160
 #: admin/views/setup.php:521
 msgid "View podcast page"
 msgstr ""
 
-#: admin/views/dashboard.php:136
+#: admin/views/dashboard.php:168
 #: admin/views/hosting.php:59
 #: admin/views/setup.php:43
 #: admin/views/setup.php:82
@@ -167,22 +212,22 @@ msgid "Hosting"
 msgstr ""
 
 #. translators: %s: podcast host name
-#: admin/views/dashboard.php:143
+#: admin/views/dashboard.php:175
 #, php-format
 msgid "%s publishes your RSS feed. This website mirrors the episodes."
 msgstr ""
 
-#: admin/views/dashboard.php:147
+#: admin/views/dashboard.php:179
 msgid "This website publishes your RSS feed and serves the audio."
 msgstr ""
 
-#: admin/views/dashboard.php:152
+#: admin/views/dashboard.php:184
 #: admin/views/settings.php:180
 #: includes/Readiness.php:94
 msgid "Feed address"
 msgstr ""
 
-#: admin/views/dashboard.php:155
+#: admin/views/dashboard.php:187
 #: admin/views/distribution.php:138
 #: admin/views/hosting.php:296
 #: admin/views/settings.php:184
@@ -191,57 +236,57 @@ msgstr ""
 msgid "Copy feed address"
 msgstr ""
 
-#: admin/views/dashboard.php:155
+#: admin/views/dashboard.php:187
 #: admin/views/settings.php:184
 msgid "Feed address copied."
 msgstr ""
 
-#: admin/views/dashboard.php:160
+#: admin/views/dashboard.php:192
 msgid "Sync"
 msgstr ""
 
-#: admin/views/dashboard.php:163
+#: admin/views/dashboard.php:195
 #: admin/views/hosting.php:162
 #: admin/js/epm-hosting.js:153
 msgid "Problem"
 msgstr ""
 
-#: admin/views/dashboard.php:165
+#: admin/views/dashboard.php:197
 #: admin/views/hosting.php:164
 #: admin/js/epm-hosting.js:143
 msgid "Working"
 msgstr ""
 
-#: admin/views/dashboard.php:167
+#: admin/views/dashboard.php:199
 #: admin/views/hosting.php:166
 msgid "Not synced yet"
 msgstr ""
 
-#: admin/views/dashboard.php:170
+#: admin/views/dashboard.php:202
 #: admin/views/hosting.php:173
 msgid "Automatic sync is off"
 msgstr ""
 
-#: admin/views/dashboard.php:173
+#: admin/views/dashboard.php:205
 #: admin/views/hosting.php:170
 msgid "Last check"
 msgstr ""
 
-#: admin/views/dashboard.php:183
+#: admin/views/dashboard.php:215
 msgid "Manage sync and hosting"
 msgstr ""
 
-#: admin/views/dashboard.php:183
+#: admin/views/dashboard.php:215
 msgid "Change hosting"
 msgstr ""
 
-#: admin/views/dashboard.php:185
+#: admin/views/dashboard.php:217
 #: admin/views/distribution.php:139
 #: admin/views/settings.php:185
 msgid "View feed"
 msgstr ""
 
-#: admin/views/dashboard.php:191
+#: admin/views/dashboard.php:223
 #: admin/views/distribution.php:89
 #: includes/AdminPages.php:119
 #: includes/AdminPages.php:120
@@ -249,162 +294,155 @@ msgid "Distribution"
 msgstr ""
 
 #. translators: 1: platforms done, 2: essential platforms
-#: admin/views/dashboard.php:197
+#: admin/views/dashboard.php:229
 #: admin/views/distribution.php:93
-#: admin/js/epm-distribution.js:83
+#: admin/js/epm-distribution.js:94
 #, php-format,js-format
 msgid "%1$s of %2$s"
 msgstr ""
 
 #. translators: 1: platforms done, 2: essential platforms
-#: admin/views/dashboard.php:200
+#: admin/views/dashboard.php:232
 #: admin/views/distribution.php:94
 msgid "essential platforms submitted"
 msgstr ""
 
-#. translators: %s: platform name
-#: admin/views/dashboard.php:231
-#: admin/views/distribution.php:204
-#, php-format
-msgid "Submit to %s"
-msgstr ""
-
-#: admin/views/dashboard.php:235
+#: admin/views/dashboard.php:267
 msgid "See all platforms"
 msgstr ""
 
-#: admin/views/dashboard.php:235
+#: admin/views/dashboard.php:267
 msgid "Add more platforms"
 msgstr ""
 
-#: admin/views/dashboard.php:242
+#: admin/views/dashboard.php:274
 #: includes/Details.php:199
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:124
 msgid "Latest episode"
 msgstr ""
 
 #. translators: %s: episode number
-#: admin/views/dashboard.php:277
+#: admin/views/dashboard.php:309
 #: includes/Renderer.php:296
 #, php-format
 msgid "Episode %s"
 msgstr ""
 
-#: admin/views/dashboard.php:291
+#: admin/views/dashboard.php:323
 #: includes/EpisodePostType.php:134
 #: includes/Readiness.php:242
 msgid "Edit episode"
 msgstr ""
 
-#: admin/views/dashboard.php:293
+#: admin/views/dashboard.php:325
 #: includes/Admin.php:104
 #: includes/EpisodePostType.php:135
 msgid "View episode"
 msgstr ""
 
-#: admin/views/dashboard.php:300
+#: admin/views/dashboard.php:332
 msgid "No episodes yet. Import your show from your host, or add an episode here."
 msgstr ""
 
-#: admin/views/dashboard.php:301
+#: admin/views/dashboard.php:333
 msgid "No episodes yet. Add your first one: upload the audio, give it a title and publish. It appears in your feed right away."
 msgstr ""
 
-#: admin/views/dashboard.php:306
+#: admin/views/dashboard.php:338
 #: admin/views/setup.php:518
 msgid "Add your first episode"
 msgstr ""
 
-#: admin/views/dashboard.php:308
+#: admin/views/dashboard.php:340
 #: admin/views/hosting.php:188
 msgid "Import episodes from a feed"
 msgstr ""
 
-#: admin/views/dashboard.php:322
+#: admin/views/dashboard.php:354
 msgid "Readiness"
 msgstr ""
 
 #. translators: %s: podcast host name
-#: admin/views/dashboard.php:328
+#: admin/views/dashboard.php:360
 #, php-format
 msgid "What keeps this website in sync with %s."
 msgstr ""
 
-#: admin/views/dashboard.php:332
-msgid "What Apple Podcasts, Spotify and other directories check in your feed."
+#: admin/views/dashboard.php:364
+msgid "These checks apply to the feed. Episodes without supported audio stay outside it; review the warnings to include them."
 msgstr ""
 
 #. translators: 1: passed checks, 2: all checks
-#: admin/views/dashboard.php:343
+#: admin/views/dashboard.php:375
 #, php-format
 msgid "%1$s of %2$s checks complete"
 msgstr ""
 
-#: admin/views/design.php:38
-#: admin/views/design.php:51
-#: includes/Elementor/Widgets/WidgetHelpers.php:427
+#: admin/views/design.php:37
+#: admin/views/design.php:50
+#: includes/Elementor/Widgets/WidgetHelpers.php:462
 msgid "Rounded"
 msgstr ""
 
-#: admin/views/design.php:39
-#: includes/Elementor/Widgets/WidgetHelpers.php:428
+#: admin/views/design.php:38
+#: includes/Elementor/Widgets/WidgetHelpers.php:463
 msgid "Pill"
 msgstr ""
 
-#: admin/views/design.php:40
-#: includes/Elementor/Widgets/WidgetHelpers.php:429
+#: admin/views/design.php:39
+#: includes/Elementor/Widgets/WidgetHelpers.php:464
 msgid "Square"
 msgstr ""
 
-#: admin/views/design.php:43
+#: admin/views/design.php:42
 #: includes/Elementor/Widgets/EpisodeListWidget.php:183
 msgid "None"
 msgstr ""
 
-#: admin/views/design.php:44
+#: admin/views/design.php:43
 msgid "Soft"
 msgstr ""
 
-#: admin/views/design.php:45
+#: admin/views/design.php:44
 msgid "Lifted"
 msgstr ""
 
-#: admin/views/design.php:48
+#: admin/views/design.php:47
 msgid "Theme font"
 msgstr ""
 
-#: admin/views/design.php:49
+#: admin/views/design.php:48
 msgid "System"
 msgstr ""
 
-#: admin/views/design.php:50
+#: admin/views/design.php:49
 msgid "Serif"
 msgstr ""
 
-#: admin/views/design.php:52
+#: admin/views/design.php:51
 msgid "Monospace"
 msgstr ""
 
-#: admin/views/design.php:57
+#: admin/views/design.php:56
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:106
 #: includes/Elementor/Widgets/PodcastPlayerWidget.php:135
 #: includes/Presets.php:134
 msgid "Minimal"
 msgstr ""
 
-#: admin/views/design.php:58
+#: admin/views/design.php:57
 #: includes/Elementor/Widgets/PodcastPlayerWidget.php:136
 msgid "Compact"
 msgstr ""
 
-#: admin/views/design.php:59
+#: admin/views/design.php:58
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:105
 #: includes/Elementor/Widgets/PodcastPlayerWidget.php:137
 #: includes/Presets.php:174
 msgid "Editorial"
 msgstr ""
 
-#: admin/views/design.php:60
+#: admin/views/design.php:59
 #: admin/views/settings.php:133
 #: includes/Admin.php:1461
 #: includes/Details.php:165
@@ -417,46 +455,46 @@ msgstr ""
 msgid "Artwork"
 msgstr ""
 
-#: admin/views/design.php:61
+#: admin/views/design.php:60
 #: includes/Admin.php:1603
 #: includes/Elementor/Widgets/PodcastPlayerWidget.php:139
 msgid "Full"
 msgstr ""
 
-#: admin/views/design.php:65
+#: admin/views/design.php:64
 #: includes/Elementor/Widgets/EpisodeListWidget.php:194
 #: includes/Elementor/Widgets/EpisodeListWidget.php:202
 #: includes/Elementor/Widgets/EpisodeListWidget.php:247
 msgid "List"
 msgstr ""
 
-#: admin/views/design.php:66
+#: admin/views/design.php:65
 msgid "Editorial rows"
 msgstr ""
 
-#: admin/views/design.php:67
+#: admin/views/design.php:66
 #: includes/Elementor/Widgets/EpisodeListWidget.php:204
 msgid "Cards"
 msgstr ""
 
-#: admin/views/design.php:68
+#: admin/views/design.php:67
 #: includes/Elementor/Widgets/EpisodeListWidget.php:205
 msgid "Grid"
 msgstr ""
 
-#: admin/views/design.php:69
+#: admin/views/design.php:68
 msgid "Minimal list"
 msgstr ""
 
-#: admin/views/design.php:74
+#: admin/views/design.php:73
 msgid "Colors"
 msgstr ""
 
-#: admin/views/design.php:75
+#: admin/views/design.php:74
 msgid "Start with your site’s background, then pick text and accent colors that read well on it. The contrast check below updates as you go."
 msgstr ""
 
-#: admin/views/design.php:77
+#: admin/views/design.php:76
 #: includes/Elementor/Widgets/EpisodeListWidget.php:258
 #: includes/Elementor/Widgets/LatestEpisodeWidget.php:183
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:171
@@ -466,183 +504,187 @@ msgstr ""
 msgid "Background"
 msgstr ""
 
-#: admin/views/design.php:77
+#: admin/views/design.php:76
 msgid "Players and the area around podcast components. Usually your site’s background color."
 msgstr ""
 
-#: admin/views/design.php:78
+#: admin/views/design.php:77
 msgid "Surface"
 msgstr ""
 
-#: admin/views/design.php:78
+#: admin/views/design.php:77
 msgid "Episode cards, the sticky player and error messages."
 msgstr ""
 
-#: admin/views/design.php:79
+#: admin/views/design.php:78
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:147
 #: includes/Elementor/Widgets/SubscribeLinksWidget.php:102
 msgid "Text"
 msgstr ""
 
-#: admin/views/design.php:79
+#: admin/views/design.php:78
 msgid "Titles and body text."
 msgstr ""
 
-#: admin/views/design.php:80
+#: admin/views/design.php:79
 msgid "Muted text"
 msgstr ""
 
-#: admin/views/design.php:80
+#: admin/views/design.php:79
 msgid "Dates, durations and other secondary details."
 msgstr ""
 
-#: admin/views/design.php:81
+#: admin/views/design.php:80
 msgid "Accent"
 msgstr ""
 
-#: admin/views/design.php:81
+#: admin/views/design.php:80
 msgid "Play buttons, links and the played part of timelines."
 msgstr ""
 
-#: admin/views/design.php:82
+#: admin/views/design.php:81
 #: includes/Admin.php:1301
 msgid "Text on accent"
 msgstr ""
 
-#: admin/views/design.php:82
+#: admin/views/design.php:81
 msgid "Icons and text on accent-colored buttons."
 msgstr ""
 
-#: admin/views/design.php:83
+#: admin/views/design.php:82
 msgid "Borders"
 msgstr ""
 
-#: admin/views/design.php:83
+#: admin/views/design.php:82
 msgid "Dividers and outlines."
 msgstr ""
 
-#: admin/views/design.php:84
+#: admin/views/design.php:83
 msgid "Timeline track"
 msgstr ""
 
-#: admin/views/design.php:84
+#: admin/views/design.php:83
 msgid "The unplayed part of timelines. Leave it empty (Automatic) to use the muted text color."
 msgstr ""
 
-#: admin/views/design.php:88
+#: admin/views/design.php:87
 msgid "Shape and depth"
 msgstr ""
 
-#: admin/views/design.php:89
+#: admin/views/design.php:88
 msgid "Corners, button shapes and shadows. Softer shapes feel friendly, square ones precise."
 msgstr ""
 
-#: admin/views/design.php:91
+#: admin/views/design.php:90
 msgid "Corner radius"
 msgstr ""
 
-#: admin/views/design.php:91
+#: admin/views/design.php:90
 msgid "Rounds players, cards and the sticky player."
 msgstr ""
 
-#: admin/views/design.php:92
+#: admin/views/design.php:91
 msgid "Artwork corner radius"
 msgstr ""
 
-#: admin/views/design.php:92
+#: admin/views/design.php:91
 msgid "Rounds episode and podcast artwork."
 msgstr ""
 
-#: admin/views/design.php:93
+#: admin/views/design.php:92
 msgid "Button shape"
 msgstr ""
 
-#: admin/views/design.php:93
+#: admin/views/design.php:92
 msgid "Text buttons such as Play, playback speed and subscribe links. The round play button keeps its shape."
 msgstr ""
 
-#: admin/views/design.php:94
+#: admin/views/design.php:93
 msgid "Shadow"
 msgstr ""
 
-#: admin/views/design.php:94
+#: admin/views/design.php:93
 msgid "Depth for players, cards and the sticky player."
 msgstr ""
 
-#: admin/views/design.php:98
+#: admin/views/design.php:97
 #: includes/Elementor/Widgets/EpisodeListWidget.php:314
 msgid "Typography"
 msgstr ""
 
-#: admin/views/design.php:99
+#: admin/views/design.php:98
 msgid "Theme font keeps the fonts of your theme and Elementor. Pick another font only when podcast components should stand apart."
 msgstr ""
 
-#: admin/views/design.php:101
+#: admin/views/design.php:100
 msgid "Font"
 msgstr ""
 
-#: admin/views/design.php:101
+#: admin/views/design.php:100
 msgid "Uses fonts already on your visitors’ devices, so nothing extra loads."
 msgstr ""
 
-#: admin/views/design.php:102
+#: admin/views/design.php:101
 msgid "Player title size"
 msgstr ""
 
-#: admin/views/design.php:102
+#: admin/views/design.php:101
 msgid "Episode titles in players."
 msgstr ""
 
-#: admin/views/design.php:103
+#: admin/views/design.php:102
 msgid "Details size"
 msgstr ""
 
-#: admin/views/design.php:103
+#: admin/views/design.php:102
 msgid "Dates, durations and guest names."
 msgstr ""
 
-#: admin/views/design.php:107
+#: admin/views/design.php:106
 msgid "Layout defaults"
 msgstr ""
 
-#: admin/views/design.php:108
+#: admin/views/design.php:107
 msgid "Widgets and shortcodes use these unless you choose another layout for them."
 msgstr ""
 
-#: admin/views/design.php:110
+#: admin/views/design.php:109
 msgid "Spacing"
 msgstr ""
 
-#: admin/views/design.php:110
+#: admin/views/design.php:109
 msgid "Space between the parts of a component and between list items."
 msgstr ""
 
-#: admin/views/design.php:111
+#: admin/views/design.php:110
 msgid "Player layout"
 msgstr ""
 
-#: admin/views/design.php:111
+#: admin/views/design.php:110
 msgid "Minimal shows the essentials; Artwork and Full add large artwork and more controls."
 msgstr ""
 
-#: admin/views/design.php:112
+#: admin/views/design.php:111
 msgid "Episode list layout"
 msgstr ""
 
-#: admin/views/design.php:112
+#: admin/views/design.php:111
 msgid "Rows suit long archives; cards and grids suit shows with strong artwork."
 msgstr ""
 
-#: admin/views/design.php:157
+#: admin/views/design.php:156
 #: includes/Admin.php:375
 #: includes/Admin.php:376
 #: includes/Categories.php:62
 msgid "Design"
 msgstr ""
 
-#: admin/views/design.php:159
+#: admin/views/design.php:158
 msgid "How the player, episode lists and subscribe links look on your site. Elementor widgets use these values unless you style a widget yourself."
+msgstr ""
+
+#: admin/views/design.php:160
+msgid "These are your podcast defaults. Each Elementor widget can override its layout, details or styles. Choose Podcast design in the widget to inherit again. Save design saves appearance and details together; applying a preset replaces both."
 msgstr ""
 
 #. translators: %s: preset name
@@ -673,6 +715,10 @@ msgstr ""
 
 #: admin/views/design.php:185
 msgid "Every widget and shortcode shows its built-in details again."
+msgstr ""
+
+#: admin/views/design.php:200
+msgid "Choose a preset"
 msgstr ""
 
 #: admin/views/design.php:206
@@ -765,182 +811,178 @@ msgstr ""
 msgid "Keep my site as it is"
 msgstr ""
 
-#: admin/views/design.php:327
+#: admin/views/design.php:328
 msgid "color picker"
 msgstr ""
 
-#: admin/views/design.php:332
+#: admin/views/design.php:333
 msgid "Automatic"
 msgstr ""
 
-#: admin/views/design.php:344
+#: admin/views/design.php:345
 msgctxt "pixels"
 msgid "px"
 msgstr ""
 
-#: admin/views/design.php:393
+#: admin/views/design.php:394
 msgid "Contrast check"
 msgstr ""
 
-#: admin/views/design.php:394
+#: admin/views/design.php:395
 msgid "Text needs a contrast ratio of at least 4.5:1 and the timeline track 3:1 (WCAG AA), on the background and on the surface of episode cards and the sticky player, so everyone can read and use them."
 msgstr ""
 
-#: admin/views/design.php:414
+#: admin/views/design.php:415
 #: admin/js/epm-design.js:418
 msgid "Pass"
 msgstr ""
 
 #. translators: %s: required contrast ratio, e.g. 4.5
-#: admin/views/design.php:416
+#: admin/views/design.php:417
 #: admin/js/epm-design.js:420
 #, php-format,js-format
 msgid "Too low, needs %s:1"
 msgstr ""
 
-#: admin/views/design.php:431
-msgid "Discard changes"
-msgstr ""
-
 #: admin/views/design.php:432
-msgid "Save design"
-msgstr ""
-
-#: admin/views/design.php:441
-#: admin/views/design.php:517
+#: admin/views/design.php:508
 msgid "Details shown by default"
 msgstr ""
 
-#: admin/views/design.php:442
+#: admin/views/design.php:433
 msgid "Which parts players and lists show where a widget or shortcode leaves the choice to the site. A widget set to Show or Hide, or a shortcode attribute, always wins. Colors, fonts and the styles above never change these."
 msgstr ""
 
-#: admin/views/design.php:472
-msgid "Save details"
-msgstr ""
-
-#: admin/views/design.php:475
+#: admin/views/design.php:463
 msgid "Use built-in details"
 msgstr ""
 
-#: admin/views/design.php:476
-msgid "Built-in details are what each widget and shortcode showed before you chose any here."
+#: admin/views/design.php:467
+msgid "Discard changes"
+msgstr ""
+
+#: admin/views/design.php:468
+msgid "Save design"
 msgstr ""
 
 #. translators: %s: preset name
-#: admin/views/design.php:489
+#: admin/views/design.php:480
 #, php-format
 msgid "Active preset: %s"
 msgstr ""
 
-#: admin/views/design.php:498
+#: admin/views/design.php:489
 msgid "No values changed"
 msgstr ""
 
 #. translators: %s: number of changed values
-#: admin/views/design.php:500
+#: admin/views/design.php:491
 #, php-format
 msgid "%s value changed"
 msgid_plural "%s values changed"
 msgstr[0] ""
 msgstr[1] ""
 
-#: admin/views/design.php:506
+#: admin/views/design.php:497
 msgid "Changed from the preset"
 msgstr ""
 
-#: admin/views/design.php:508
+#: admin/views/design.php:499
 msgid "Every value matches the preset."
 msgstr ""
 
-#: admin/views/design.php:521
+#: admin/views/design.php:512
 msgid "Built-in details: every widget and shortcode shows what it showed before."
 msgstr ""
 
 #. translators: %s: number of details
-#: admin/views/design.php:526
+#: admin/views/design.php:517
 #, php-format
 msgid "%s detail differs from the built-in details."
 msgid_plural "%s details differ from the built-in details."
 msgstr[0] ""
 msgstr[1] ""
 
-#: admin/views/design.php:532
+#: admin/views/design.php:523
 msgid "Review the details"
 msgstr ""
 
-#: admin/views/design.php:539
+#: admin/views/design.php:529
+msgid "Export or import design"
+msgstr ""
+
+#: admin/views/design.php:530
 msgid "Move this design to another site"
 msgstr ""
 
-#: admin/views/design.php:540
+#: admin/views/design.php:531
 msgid "The file holds design values only: no episodes, media, text or web addresses."
 msgstr ""
 
-#: admin/views/design.php:543
+#: admin/views/design.php:534
 msgid "Export"
 msgstr ""
 
-#: admin/views/design.php:544
+#: admin/views/design.php:535
 msgid "Downloads the saved design as a .json file."
 msgstr ""
 
-#: admin/views/design.php:547
+#: admin/views/design.php:538
 msgid "Export design file"
 msgstr ""
 
-#: admin/views/design.php:550
+#: admin/views/design.php:541
 msgid "Import"
 msgstr ""
 
-#: admin/views/design.php:553
+#: admin/views/design.php:544
 msgid "Design file (.json)"
 msgstr ""
 
-#: admin/views/design.php:555
+#: admin/views/design.php:546
 msgid "Replaces the current design. Export it first to keep a copy."
 msgstr ""
 
-#: admin/views/design.php:556
+#: admin/views/design.php:547
 msgid "Import design file"
 msgstr ""
 
-#: admin/views/design.php:566
+#: admin/views/design.php:557
 msgid "Preview"
 msgstr ""
 
-#: admin/views/design.php:568
+#: admin/views/design.php:559
 #: admin/js/epm-design.js:530
 msgid "Your design"
 msgstr ""
 
-#: admin/views/design.php:571
+#: admin/views/design.php:562
 msgid "Show my design"
 msgstr ""
 
-#: admin/views/design.php:575
+#: admin/views/design.php:566
 #: includes/Details.php:198
 #: includes/Elementor/Widgets/PodcastPlayerWidget.php:103
 msgid "Player"
 msgstr ""
 
-#: admin/views/design.php:593
+#: admin/views/design.php:584
 msgid "Episode page"
 msgstr ""
 
-#: admin/views/design.php:601
+#: admin/views/design.php:592
 msgid "Episode list"
 msgstr ""
 
-#: admin/views/design.php:622
+#: admin/views/design.php:613
 msgid "Subscribe links"
 msgstr ""
 
-#: admin/views/design.php:630
+#: admin/views/design.php:621
 msgid "Sample episodes are shown until you publish one. The preview updates as you edit; save the design to use it on your site."
 msgstr ""
 
-#: admin/views/design.php:631
+#: admin/views/design.php:622
 msgid "Shows your latest episodes. The preview updates as you edit; save the design to use it on your site."
 msgstr ""
 
@@ -949,7 +991,7 @@ msgid "Start here"
 msgstr ""
 
 #: admin/views/distribution.php:48
-msgid "Together these reach almost every listener. Submit your feed once; new episodes follow automatically."
+msgid "Submit your feed to the main directories first. After a platform lists your show, it picks up new episodes from your feed."
 msgstr ""
 
 #: admin/views/distribution.php:51
@@ -2361,7 +2403,7 @@ msgstr ""
 #: includes/Admin.php:390
 #: includes/Admin.php:718
 #: includes/Admin.php:731
-#: includes/AdminPages.php:824
+#: includes/AdminPages.php:836
 msgid "You do not have permission to access this page."
 msgstr ""
 
@@ -2589,7 +2631,7 @@ msgid "Duration"
 msgstr ""
 
 #: includes/Admin.php:1470
-#: includes/AdminPages.php:706
+#: includes/AdminPages.php:718
 msgid "Audio"
 msgstr ""
 
@@ -2807,125 +2849,126 @@ msgid "The image is %d px wide. Use 1400 to 3000 px (3000 px is best)."
 msgstr ""
 
 #: includes/AdminPages.php:583
+#: includes/AdminPages.php:610
 msgid "All episodes"
 msgstr ""
 
-#: includes/AdminPages.php:629
+#: includes/AdminPages.php:641
 msgid "Unknown platform."
 msgstr ""
 
-#: includes/AdminPages.php:684
-#: includes/AdminPages.php:690
-#: includes/AdminPages.php:692
-#: includes/AdminPages.php:694
+#: includes/AdminPages.php:696
+#: includes/AdminPages.php:702
+#: includes/AdminPages.php:704
+#: includes/AdminPages.php:706
 msgid "Feed"
 msgstr ""
 
 #. translators: %d: HTTP status
-#: includes/AdminPages.php:690
+#: includes/AdminPages.php:702
 #, php-format
 msgid "The feed answers with HTTP status %d instead of 200."
 msgstr ""
 
-#: includes/AdminPages.php:692
+#: includes/AdminPages.php:704
 msgid "The feed address returns something other than RSS. A caching or security plugin may be replacing it; exclude the feed address from it."
 msgstr ""
 
 #. translators: %s: content type
-#: includes/AdminPages.php:694
+#: includes/AdminPages.php:706
 #, php-format
 msgid "Loads correctly (%s)."
 msgstr ""
 
-#: includes/AdminPages.php:698
+#: includes/AdminPages.php:710
 msgid "HTTPS"
 msgstr ""
 
-#: includes/AdminPages.php:698
+#: includes/AdminPages.php:710
 msgid "The feed address uses http://. Apple Podcasts and Spotify expect HTTPS; turn on HTTPS for your site before submitting."
 msgstr ""
 
-#: includes/AdminPages.php:706
+#: includes/AdminPages.php:718
 msgid "Publish an episode with MP3 or M4A audio to test how the audio is served."
 msgstr ""
 
-#: includes/AdminPages.php:713
+#: includes/AdminPages.php:725
 msgid "Episode tested"
 msgstr ""
 
 #. translators: 1: episode title, 2: audio address from the feed
-#: includes/AdminPages.php:716
+#: includes/AdminPages.php:728
 #, php-format
 msgid "“%1$s”, the first episode in the feed: %2$s"
 msgstr ""
 
-#: includes/AdminPages.php:724
-#: includes/AdminPages.php:730
-#: includes/AdminPages.php:732
-#: includes/AdminPages.php:734
-#: includes/AdminPages.php:738
-#: includes/AdminPages.php:747
+#: includes/AdminPages.php:736
+#: includes/AdminPages.php:742
+#: includes/AdminPages.php:744
+#: includes/AdminPages.php:746
+#: includes/AdminPages.php:750
+#: includes/AdminPages.php:759
 msgid "Audio (HEAD)"
 msgstr ""
 
-#: includes/AdminPages.php:724
-#: includes/AdminPages.php:753
+#: includes/AdminPages.php:736
+#: includes/AdminPages.php:765
 msgid "The audio file could not be reached. Check its address and try again."
 msgstr ""
 
 #. translators: %d: HTTP status
-#: includes/AdminPages.php:730
+#: includes/AdminPages.php:742
 #, php-format
 msgid "The audio answers a HEAD request with HTTP status %d instead of 200."
 msgstr ""
 
-#: includes/AdminPages.php:732
+#: includes/AdminPages.php:744
 msgid "The server does not report the file size (Content-Length). Apps need it to show download progress."
 msgstr ""
 
 #. translators: %s: content type
-#: includes/AdminPages.php:734
+#: includes/AdminPages.php:746
 #, php-format
 msgid "The audio is served as %s. It should be served with an audio type such as audio/mpeg."
 msgstr ""
 
 #. translators: 1: file size in the feed, 2: file size the server reports
-#: includes/AdminPages.php:741
+#: includes/AdminPages.php:753
 #, php-format
 msgid "The feed gives the file size as %1$s bytes, the server as %2$s bytes. Apps may stop the download early or call the file damaged. Attach the file again, or correct the size at the host."
 msgstr ""
 
 #. translators: 1: file size, 2: content type
-#: includes/AdminPages.php:747
+#: includes/AdminPages.php:759
 #, php-format
 msgid "%1$s, %2$s."
 msgstr ""
 
-#: includes/AdminPages.php:753
-#: includes/AdminPages.php:760
-#: includes/AdminPages.php:771
-#: includes/AdminPages.php:780
+#: includes/AdminPages.php:765
+#: includes/AdminPages.php:772
 #: includes/AdminPages.php:783
+#: includes/AdminPages.php:792
+#: includes/AdminPages.php:795
 msgid "Audio (byte ranges)"
 msgstr ""
 
 #. translators: 1: Content-Range header, 2: Content-Length header
-#: includes/AdminPages.php:763
+#: includes/AdminPages.php:775
 #, php-format
 msgid "The server answers a request for the first two bytes with a wrong range (Content-Range “%1$s”, Content-Length “%2$s”). Apps that seek would get the wrong part of the file. Ask your web host to check byte-range support for audio files."
 msgstr ""
 
 #. translators: 1: file size in the feed, 2: file size from the server's Content-Range
-#: includes/AdminPages.php:774
+#: includes/AdminPages.php:786
 #, php-format
 msgid "Supported, but the feed gives the file size as %1$s bytes and the server as %2$s bytes."
 msgstr ""
 
-#: includes/AdminPages.php:780
+#: includes/AdminPages.php:792
 msgid "Supported: listeners can seek and apps can stream."
 msgstr ""
 
-#: includes/AdminPages.php:783
+#: includes/AdminPages.php:795
 msgid "The server ignores byte-range requests. Apple Podcasts rejects such shows. Ask your web host to enable range requests for audio files, or serve the audio from a CDN or storage bucket."
 msgstr ""
 
@@ -4053,7 +4096,7 @@ msgstr ""
 #: includes/Elementor/Widgets/LatestEpisodeWidget.php:42
 #: includes/Elementor/Widgets/LatestEpisodeWidget.php:99
 #: includes/Elementor/Widgets/LatestEpisodeWidget.php:171
-#: includes/Elementor/Widgets/WidgetHelpers.php:47
+#: includes/Elementor/Widgets/WidgetHelpers.php:48
 msgid "Latest Episode"
 msgstr ""
 
@@ -4120,7 +4163,7 @@ msgid "Accent Color"
 msgstr ""
 
 #: includes/Elementor/Widgets/LatestEpisodeWidget.php:229
-#: includes/Elementor/Widgets/WidgetHelpers.php:132
+#: includes/Elementor/Widgets/WidgetHelpers.php:140
 msgid "No published episode with audio yet."
 msgstr ""
 
@@ -4374,87 +4417,111 @@ msgstr ""
 msgid "Episode Source"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:45
-msgid "Current Episode"
+#: includes/Elementor/Widgets/WidgetHelpers.php:44
+msgid "Current Episode follows the episode page or loop item. Use Latest Episode on your homepage, or Specific Episode for a fixed selection."
 msgstr ""
 
 #: includes/Elementor/Widgets/WidgetHelpers.php:46
+msgid "Current Episode"
+msgstr ""
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:47
 msgid "Specific Episode"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:55
+#: includes/Elementor/Widgets/WidgetHelpers.php:56
 msgid "Choose Episode"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:128
+#: includes/Elementor/Widgets/WidgetHelpers.php:82
+msgid "Preview episode only. Current Episode appears on episode pages. For this page, choose Latest Episode or Specific Episode in the Episode settings."
+msgstr ""
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:123
+msgid "Manage episodes (opens in a new tab)"
+msgstr ""
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:136
 msgid "Choose an episode in the widget settings."
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:135
+#: includes/Elementor/Widgets/WidgetHelpers.php:143
 msgid "Shows the current episode on episode pages. Publish an episode to preview it here."
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:154
-#: includes/Elementor/Widgets/WidgetHelpers.php:257
+#: includes/Elementor/Widgets/WidgetHelpers.php:162
+msgid "On"
+msgstr ""
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:162
+#: includes/Elementor/Widgets/WidgetHelpers.php:291
 msgid "Show"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:155
-#: includes/Elementor/Widgets/WidgetHelpers.php:258
+#: includes/Elementor/Widgets/WidgetHelpers.php:163
+msgid "Off"
+msgstr ""
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:163
+#: includes/Elementor/Widgets/WidgetHelpers.php:292
 msgid "Hide"
 msgstr ""
 
 #. translators: %s: layout name, e.g. Minimal
-#: includes/Elementor/Widgets/WidgetHelpers.php:224
+#: includes/Elementor/Widgets/WidgetHelpers.php:232
 #, php-format
 msgid "Default (Podcast → Design: %s)"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:255
-msgid "Default (shown)"
+#: includes/Elementor/Widgets/WidgetHelpers.php:289
+msgid "Podcast design (shown)"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:256
-msgid "Default (hidden)"
+#: includes/Elementor/Widgets/WidgetHelpers.php:290
+msgid "Podcast design (hidden)"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:276
+#: includes/Elementor/Widgets/WidgetHelpers.php:310
 msgid "Details"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:278
+#: includes/Elementor/Widgets/WidgetHelpers.php:312
 msgid "Use Podcast → Design defaults"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:281
+#: includes/Elementor/Widgets/WidgetHelpers.php:315
 msgid "Each detail below shows, hides or follows Podcast → Design → Details shown by default (\"Default\"). This button sets every detail of this widget to Default."
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:366
+#: includes/Elementor/Widgets/WidgetHelpers.php:400
 msgid "Style Source"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:370
+#: includes/Elementor/Widgets/WidgetHelpers.php:401
+msgid "Podcast design follows global colors and fonts. Override this widget keeps its own styles. Switch back to Podcast design to inherit again; saved custom values are kept."
+msgstr ""
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:405
 msgid "Use Podcast → Design styles"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:371
-msgid "Custom"
+#: includes/Elementor/Widgets/WidgetHelpers.php:406
+msgid "Override this widget"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:396
+#: includes/Elementor/Widgets/WidgetHelpers.php:431
 msgid "Heading Level"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:404
+#: includes/Elementor/Widgets/WidgetHelpers.php:439
 msgid "Pick the level that follows the heading above this widget, so screen reader users can navigate by headings."
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:422
+#: includes/Elementor/Widgets/WidgetHelpers.php:457
 msgid "Button Shape"
 msgstr ""
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:426
+#: includes/Elementor/Widgets/WidgetHelpers.php:461
 msgid "Default"
 msgstr ""
 
@@ -5059,17 +5126,17 @@ msgctxt "The post type archive label"
 msgid "Episode archives"
 msgstr ""
 
-#: includes/Feed.php:1396
+#: includes/Feed.php:1397
 msgid "Support the show"
 msgstr ""
 
 #. translators: %s: episode title
-#: includes/Feed.php:1705
+#: includes/Feed.php:1706
 #, php-format
 msgid "Transcript: %s"
 msgstr ""
 
-#: includes/Feed.php:1721
+#: includes/Feed.php:1722
 msgid "Not found."
 msgstr ""
 
@@ -5682,6 +5749,8 @@ msgid "The file is larger than the limit of %1$s for this kind of file (filter %
 msgstr ""
 
 #: includes/MediaDownload.php:868
+#: includes/SafeHttp.php:23
+#: includes/SafeHttp.php:34
 msgid "The address (or an address it redirects to) is not allowed: it is not a public web address."
 msgstr ""
 
@@ -6581,39 +6650,48 @@ msgstr ""
 msgid "Preset preview: %s"
 msgstr ""
 
-#: admin/js/epm-design.js:697
+#: admin/js/epm-design.js:700
 msgid "Changes discarded. The saved design is shown again."
 msgstr ""
 
-#: admin/js/epm-design.js:736
-msgid "Unsaved changes. Save the details to see them in the preview and on your site."
+#: admin/js/epm-design.js:740
+#: admin/js/epm-design.js:761
+msgid "Save design to preview the changed details."
+msgstr ""
+
+#: admin/js/epm-design.js:742
+msgid "Unsaved changes. Save design applies appearance and details together."
+msgstr ""
+
+#: admin/js/epm-design.js:762
+msgid "Built-in details selected. Save design to apply them."
 msgstr ""
 
 #. translators: %s: preset name
-#: admin/js/epm-design.js:780
+#: admin/js/epm-design.js:811
 #, js-format
 msgid "Apply “%s”?"
 msgstr ""
 
-#: admin/js/epm-distribution.js:96
+#: admin/js/epm-distribution.js:107
 msgid "Paste the full link to your show, starting with https://"
 msgstr ""
 
-#: admin/js/epm-distribution.js:139
+#: admin/js/epm-distribution.js:150
 #, js-format
 msgid "Saved: %s"
 msgstr ""
 
-#: admin/js/epm-distribution.js:204
+#: admin/js/epm-distribution.js:215
 #: admin/js/epm-import-result.js:263
 msgid "Technical details"
 msgstr ""
 
-#: admin/js/epm-distribution.js:222
+#: admin/js/epm-distribution.js:233
 msgid "The delivery test found problems."
 msgstr ""
 
-#: admin/js/epm-distribution.js:223
+#: admin/js/epm-distribution.js:234
 msgid "The delivery test passed."
 msgstr ""
 

@@ -52,6 +52,9 @@ async function newPage(viewport = { width: 1280, height: 900 }) {
 	const context = await browser.newContext({ viewport });
 	await context.route((url) => url.origin !== new URL(BASE).origin, (route) => route.abort('blockedbyclient'));
 	const page = await context.newPage();
+	await page.addInitScript(() => document.addEventListener('DOMContentLoaded', () => {
+		document.querySelectorAll('.epm-design details').forEach(el => { el.open = true; });
+	}));
 	page.problems = [];
 	page.on('pageerror', (e) => page.problems.push(`pageerror: ${e.message}`));
 	page.on('console', (m) => {
@@ -77,6 +80,7 @@ try {
 	{
 		const page = await newPage();
 		await page.goto(`${BASE}/wp-admin/admin.php?page=epm-design`);
+		await page.locator('.epm-design').evaluateAll(roots => roots.forEach(root => root.querySelectorAll('details').forEach(el => { el.open = true; })));
 		const canvasVar = (name) => page.evaluate((n) => document.querySelector('[data-epm-preview-canvas]').style.getPropertyValue(n).trim(), name);
 		assert(await page.evaluate(() => [...document.querySelectorAll('.epm-preset__desc')].every((d) => d.scrollHeight <= d.clientHeight + 1)), 'preset descriptions are shown in full');
 
@@ -180,6 +184,7 @@ try {
 
 		// Keyboard: every focusable control shows a focus indicator.
 		await page.goto(`${BASE}/wp-admin/admin.php?page=epm-design`);
+		await page.locator('.epm-design').evaluateAll(roots => roots.forEach(root => root.querySelectorAll('details').forEach(el => { el.open = true; })));
 		// Start on the first stop of the screen (the preset tiles), so the
 		// loop walks the Design screen and not the admin menu.
 		await page.focus('input[name="epm_preset"]:checked');
@@ -226,12 +231,13 @@ try {
 	{
 		const page = await newPage({ width: 390, height: 844 });
 		await page.goto(`${BASE}/wp-admin/admin.php?page=epm-design`);
+		await page.locator('.epm-design').evaluateAll(roots => roots.forEach(root => root.querySelectorAll('details').forEach(el => { el.open = true; })));
 		assert(await noOverflow(page), 'Design screen has no horizontal overflow at 390px');
 		const order = await page.evaluate(() => {
 			const top = (s) => document.querySelector(s).getBoundingClientRect().top;
-			return top('.epm-design__presets') < top('.epm-design__preview') && top('.epm-design__preview') < top('.epm-design__form');
+			return top('.epm-design__presets') < top('.epm-design__form') && top('.epm-design__form') < top('.epm-design__preview');
 		});
-		assert(order, 'on phones the preview follows the presets');
+		assert(order, 'on phones editing controls precede the preview');
 		assert(await page.evaluate(() => [...document.querySelectorAll('.epm-preset__desc')].every((d) => d.scrollHeight <= d.clientHeight + 1)), 'preset descriptions are shown in full on phones');
 		// Tab through the form: the sticky save bar never covers the field.
 		await page.focus('#epm-d-background');
@@ -263,6 +269,7 @@ try {
 	{
 		const page = await newPage({ width: 1280, height: 900 });
 		await page.goto(`${BASE}/wp-admin/post-new.php?post_type=podcast_episode`);
+		await page.locator('.epm-design').evaluateAll(roots => roots.forEach(root => root.querySelectorAll('details').forEach(el => { el.open = true; })));
 		await page.waitForSelector('#title');
 		const next = await page.evaluate(() => JSON.parse(document.querySelector('[data-epm-next-hint]').dataset.epmNextNumbers));
 		assert(await page.isVisible('[data-epm-next-number]') && (await page.inputValue('#epm-episode-number')) === '', 'a new episode suggests the next number without filling it in');
@@ -328,6 +335,7 @@ try {
 		// checked; the button and the result say which one happened.
 		const page = await newPage({ width: 1280, height: 900 });
 		await page.goto(`${BASE}/wp-admin/post-new.php?post_type=podcast_episode`);
+		await page.locator('.epm-design').evaluateAll(roots => roots.forEach(root => root.querySelectorAll('details').forEach(el => { el.open = true; })));
 		await page.waitForSelector('#title');
 		const rowCount = () => page.$$eval('[data-epm-repeat="chapters"] [data-epm-repeat-rows] [data-epm-repeat-row]', (list) => list.length);
 		const label = async () => (await page.textContent('[data-epm-paste-apply]')).trim();
@@ -359,6 +367,7 @@ try {
 		const draftId = firstNumber(wp(['post', 'create', '--post_type=podcast_episode', '--post_status=draft', '--post_title=E2E transcript', '--porcelain']));
 		const page = await newPage({ width: 1280, height: 900 });
 		await page.goto(`${BASE}/wp-admin/post.php?post=${draftId}&action=edit`);
+		await page.locator('.epm-design').evaluateAll(roots => roots.forEach(root => root.querySelectorAll('details').forEach(el => { el.open = true; })));
 		await page.locator('[data-epm-transcript-choose]').scrollIntoViewIfNeeded();
 		await page.click('[data-epm-transcript-choose]');
 		const tile = page.locator(`.media-modal li.attachment[data-id="${fileId}"]`);
@@ -382,6 +391,7 @@ try {
 	{
 		const page = await newPage({ width: 390, height: 844 });
 		await page.goto(`${BASE}/wp-admin/post.php?post=${fixtures.ep1}&action=edit`);
+		await page.locator('.epm-design').evaluateAll(roots => roots.forEach(root => root.querySelectorAll('details').forEach(el => { el.open = true; })));
 		await page.waitForSelector('#title');
 		assert(await noOverflow(page), 'episode editor has no horizontal overflow at 390px');
 		await page.screenshot({ path: 'screenshots/admin-editor-mobile.png', fullPage: true });
@@ -396,6 +406,7 @@ try {
 		const before = { number: meta(id, '_epm_episode_number'), type: meta(id, '_epm_episode_type'), explicit: meta(id, '_epm_explicit') };
 		const page = await newPage({ width: 1280, height: 900 });
 		await page.goto(`${BASE}/wp-admin/edit.php?post_type=podcast_episode`);
+		await page.locator('.epm-design').evaluateAll(roots => roots.forEach(root => root.querySelectorAll('details').forEach(el => { el.open = true; })));
 		const columns = await page.evaluate(() => ({
 			title: Math.round(document.querySelector('.wp-list-table thead th#title').getBoundingClientRect().width),
 			author: !!(document.querySelector('.wp-list-table thead th#author') || {}).offsetParent,

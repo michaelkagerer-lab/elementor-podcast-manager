@@ -16,6 +16,17 @@
 		return text;
 	};
 
+	function revealTarget() {
+		var target = document.getElementById( window.location.hash.slice( 1 ) );
+		if ( ! target || ! root.contains( target ) ) { return; }
+		for ( var parent = target.parentElement; parent && parent !== root; parent = parent.parentElement ) {
+			if ( parent.tagName === 'DETAILS' ) { parent.open = true; }
+		}
+		target.scrollIntoView( { block: 'start' } );
+	}
+	window.addEventListener( 'hashchange', revealTarget );
+	revealTarget();
+
 	var announcer = root.querySelector( '[data-epm-announce]' );
 
 	function announce( message ) {

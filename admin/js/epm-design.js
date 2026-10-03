@@ -672,6 +672,8 @@
 	// field too, not only in the browser's bubble.
 	form.addEventListener('invalid', function (e) {
 		var target = e.target;
+		var group = target.closest('details');
+		if (group) { group.open = true; }
 		if (target.matches('[data-epm-token]')) {
 			setFieldError(target, fieldProblem(target) || target.validationMessage);
 		}
@@ -694,6 +696,7 @@
 			showMine();
 			updateContrast(values, true);
 			setDirty(false);
+			detailsDirty = false;
 			speak(__('Changes discarded. The saved design is shown again.', 'elementor-podcast-manager'));
 		}, 0);
 	});
@@ -701,6 +704,7 @@
 	form.addEventListener('submit', function () {
 		// Saving leaves the page: no "unsaved" warning is needed.
 		setDirty(false);
+		detailsDirty = false;
 	});
 
 	// Leaving with unsaved changes asks first (the browser shows its own
@@ -732,14 +736,42 @@
 				return;
 			}
 			detailsDirty = true;
+			setDirty(true);
+			if (statusEl) { statusEl.textContent = __('Save design to preview the changed details.', 'elementor-podcast-manager'); }
 			if (detailsDirtyEl) {
-				detailsDirtyEl.textContent = __('Unsaved changes. Save the details to see them in the preview and on your site.', 'elementor-podcast-manager');
+				detailsDirtyEl.textContent = __('Unsaved changes. Save design applies appearance and details together.', 'elementor-podcast-manager');
 			}
 		});
 		detailsForm.addEventListener('submit', function () {
 			detailsDirty = false;
 		});
 	}
+
+	var detailsReset = root.querySelector('[data-epm-details-reset]');
+	if (detailsReset && detailsForm) {
+		detailsReset.addEventListener('click', function () {
+			root.querySelector('[data-epm-details-reset-value]').value = '1';
+			detailsForm.querySelectorAll('input[type="checkbox"]').forEach(function (input) {
+				var group = input.closest('[data-epm-details-context]');
+				var flag = input.name.match(/\[([^\]]+)\]$/);
+				var defaults = detailsConfig.neutral[group.getAttribute('data-epm-details-context')] || {};
+				if (flag) { input.checked = !!defaults[flag[1]]; }
+			});
+			detailsDirty = true;
+			setDirty(true);
+			if (statusEl) { statusEl.textContent = __('Save design to preview the changed details.', 'elementor-podcast-manager'); }
+			speak(__('Built-in details selected. Save design to apply them.', 'elementor-podcast-manager'));
+		});
+	}
+	function revealDesignTarget() {
+		var target = document.getElementById(window.location.hash.slice(1));
+		if (target && root.contains(target)) {
+			var fold = target.closest('details');
+			if (fold) { fold.open = true; }
+		}
+	}
+	window.addEventListener('hashchange', revealDesignTarget);
+	revealDesignTarget();
 
 	// ---------------------------------------------------------------------
 	// Preset gallery.

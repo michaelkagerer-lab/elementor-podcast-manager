@@ -560,7 +560,7 @@ final class AdminPages {
 	 * the episode list and the subscribe links.
 	 *
 	 * Uses the plugin's shortcodes so it works with every theme and editor;
-	 * the page can be rebuilt in Elementor with the podcast widgets later.
+	 * new pages also include editable Elementor widgets when it is active.
 	 *
 	 * @return array{id: int, url: string, edit: string}|\WP_Error
 	 */
@@ -600,6 +600,18 @@ final class AdminPages {
 
 		if ( is_wp_error( $page_id ) ) {
 			return $page_id;
+		}
+
+		if ( epm()->has_elementor() ) {
+			$widgets = [];
+			foreach ( [ 'epm-latest-episode', 'epm-subscribe-links', 'epm-episode-list' ] as $index => $type ) {
+				$widgets[] = [ 'id' => 'epmstart' . $index, 'elType' => 'widget', 'widgetType' => $type, 'settings' => [ 'epm_schema' => '2' ], 'elements' => [] ];
+			}
+			$widgets = array_merge( array_slice( $widgets, 0, 2 ), [ [ 'id' => 'epmheading', 'elType' => 'widget', 'widgetType' => 'heading', 'settings' => [ 'title' => __( 'All episodes', 'elementor-podcast-manager' ), 'header_size' => 'h2' ], 'elements' => [] ] ], array_slice( $widgets, 2 ) );
+			$data = [ [ 'id' => 'epmsection', 'elType' => 'section', 'settings' => [], 'elements' => [ [ 'id' => 'epmcolumn', 'elType' => 'column', 'settings' => [ '_column_size' => 100 ], 'elements' => $widgets ] ] ] ];
+			update_post_meta( $page_id, '_elementor_data', wp_slash( wp_json_encode( $data ) ) );
+			update_post_meta( $page_id, '_elementor_edit_mode', 'builder' );
+			update_post_meta( $page_id, '_elementor_version', ELEMENTOR_VERSION );
 		}
 
 		self::update_setup_state( [ 'page_id' => (int) $page_id ] );

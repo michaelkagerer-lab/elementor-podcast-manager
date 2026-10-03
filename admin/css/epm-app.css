@@ -1184,3 +1184,20 @@ fieldset.epm-field > legend {
 		outline: 2px solid Highlight;
 	}
 }
+
+/* Native disclosures keep secondary work reachable without a script. */
+.epm-app .epm-fold > summary {
+ min-block-size: 44px;
+ box-sizing: border-box;
+ padding-block: 10px;
+ cursor: pointer;
+ font-size: 15px;
+ font-weight: 600;
+ line-height: 1.6;
+}
+.epm-app .epm-fold > summary:focus-visible {
+ outline: 2px solid var(--epm-app-accent, #2271b1);
+ outline-offset: 4px;
+}
+.epm-app .epm-fold[open] > summary { margin-block-end: 16px; }
+.epm-app .epm-fold:not([open]) { padding-block: 8px; }

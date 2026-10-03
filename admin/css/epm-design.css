@@ -1114,3 +1114,15 @@ html:has(.epm-design__savebar) {
 		outline: 2px solid Highlight;
 	}
 }
+
+.epm-design__inheritance { max-inline-size: 75ch; color: var(--epm-app-muted); }
+.epm-design__form { display: grid; gap: 16px; min-inline-size: 0; }
+.epm-design__preview { order: 2; }
+.epm-design-preview__viewport { max-block-size: 420px; overflow: auto; }
+.epm-design__presets > summary .epm-muted { margin-inline-start: 8px; font-weight: 400; }
+
+.epm-design__savebar { order: 6; position: static; }
+.epm-design__form:has(.epm-fold[open]) .epm-design__savebar { position: sticky; }
+/* Narrow screens reach their editing controls before the preview. */
+.epm-design__form { order: 2; }
+.epm-design__preview { order: 3; }

@@ -402,3 +402,17 @@ German date/month names require WordPress's own German language pack. Disposable
 profiles install pinned, checksum-verified packs from `tests/versions.json`.
 Copying media during a move requires PHP cURL; the podcast remains usable without
 it and the original media addresses are retained when copying cannot start.
+
+## UX clarity and the follow-up UI audit
+
+`integration/ux-clarity.php` covers editor-only sample disclosure, the combined
+appearance/details form, source labels and layout availability, dashboard
+priority, real Elementor starter data/reuse, and preservation of inherited or
+unavailable detail flags. `e2e/ux-clarity.mjs` exercises the actual shared save,
+keyboard disclosures, compact mobile views, optional-directory fragment links,
+the primary dashboard action and rendered Elementor starter components. It
+restores settings and deletes its page. Run on a marked disposable site only.
+
+The separate audit inventory/report are `docs/UI-INVENTORY-2026-10-03.md` and
+`docs/UI-AUDIT-2026-10-03.md`; the owner's phase checkpoints are recorded in
+`docs/ui-audit-work-order.md`.

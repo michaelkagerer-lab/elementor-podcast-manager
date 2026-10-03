@@ -41,6 +41,7 @@ trait WidgetHelpers {
 				'label'   => __( 'Episode Source', 'elementor-podcast-manager' ),
 				'type'    => Controls_Manager::SELECT,
 				'default' => $default,
+				'description' => __( 'Current Episode follows the episode page or loop item. Use Latest Episode on your homepage, or Specific Episode for a fixed selection.', 'elementor-podcast-manager' ),
 				'options' => [
 					'current'  => __( 'Current Episode', 'elementor-podcast-manager' ),
 					'specific' => __( 'Specific Episode', 'elementor-podcast-manager' ),
@@ -70,10 +71,17 @@ trait WidgetHelpers {
 	 * @return array<string, mixed>|null
 	 */
 	protected function resolve_widget_episode( array $settings, string $default_source = 'current' ): ?array {
-		return epm()->renderer->resolve_episode(
-			sanitize_key( $settings['source'] ?? $default_source ),
-			(int) ( $settings['episode_id'] ?? 0 )
-		);
+		$source = sanitize_key( $settings['source'] ?? $default_source );
+		$episode = epm()->renderer->resolve_episode( $source, (int) ( $settings['episode_id'] ?? 0 ) );
+		$loop = get_post();
+		$queried = get_queried_object();
+		if ( $episode && 'current' === $source && $this->is_editor()
+			&& ! ( $loop instanceof \WP_Post && \EPM\EpisodePostType::CPT === $loop->post_type )
+			&& ! ( $queried instanceof \WP_Post && \EPM\EpisodePostType::CPT === $queried->post_type ) ) {
+			\EPM\Assets::enqueue_style();
+			echo '<p class="epm-editor-placeholder" data-epm-preview-context>' . esc_html__( 'Preview episode only. Current Episode appears on episode pages. For this page, choose Latest Episode or Specific Episode in the Episode settings.', 'elementor-podcast-manager' ) . '</p>';
+		}
+		return $episode;
 	}
 
 	/**
@@ -112,7 +120,19 @@ trait WidgetHelpers {
 
 		\EPM\Assets::enqueue_style();
 
-		echo '<div class="epm-editor-placeholder">' . esc_html( $message ) . '</div>';
+		$action = '';
+		if ( __( 'The call to action shows once it has a text and a link (CTA URL).', 'elementor-podcast-manager' ) !== $message ) {
+			$url = admin_url( 'edit.php?post_type=' . \EPM\EpisodePostType::CPT );
+			$label = __( 'Manage episodes (opens in a new tab)', 'elementor-podcast-manager' );
+			if ( 'epm-subscribe-links' === $this->get_name() ) {
+				$url = \EPM\Capabilities::can_manage_podcast() ? admin_url( 'admin.php?page=epm-settings' ) : '';
+				$label = __( 'Podcast settings', 'elementor-podcast-manager' ) . ' ' . __( '(opens in a new tab)', 'elementor-podcast-manager' );
+			}
+			if ( $url ) {
+				$action = '<p><a href="' . esc_url( $url ) . '" target="_blank" rel="noopener">' . esc_html( $label ) . '</a></p>';
+			}
+		}
+		echo '<div class="epm-editor-placeholder">' . esc_html( $message ) . $action . '</div>';
 	}
 
 	/**
@@ -151,8 +171,8 @@ trait WidgetHelpers {
 				[
 					'label'        => $label,
 					'type'         => Controls_Manager::SWITCHER,
-					'label_on'     => __( 'Show', 'elementor-podcast-manager' ),
-					'label_off'    => __( 'Hide', 'elementor-podcast-manager' ),
+					'label_on'     => 'sticky' === $id ? __( 'On', 'elementor-podcast-manager' ) : __( 'Show', 'elementor-podcast-manager' ),
+					'label_off'    => 'sticky' === $id ? __( 'Off', 'elementor-podcast-manager' ) : __( 'Hide', 'elementor-podcast-manager' ),
 					'return_value' => 'yes',
 					'default'      => $default ? 'yes' : '',
 				],
@@ -242,6 +262,32 @@ trait WidgetHelpers {
 	 */
 	protected function add_detail_control( string $id, string $label, string $context, array $extra = [] ): void {
 		$shown = Details::effective( $context )[ $id ] ?? false;
+		if ( in_array( $context, [ 'player', 'latest' ], true ) ) {
+			$unsupported = [];
+			if ( in_array( $id, [ 'show_description', 'show_playback_speed', 'show_volume', 'show_download', 'show_share' ], true ) ) {
+				$unsupported = [ 'minimal', 'compact' ];
+			} elseif ( 'show_artwork' === $id ) {
+				$unsupported = [ 'minimal', 'editorial' ];
+			}
+			if ( $unsupported ) {
+				$terms = [ [ 'name' => 'layout', 'operator' => '!in', 'value' => $unsupported ] ];
+				if ( in_array( epm()->design->get( 'default_player_layout' ), $unsupported, true ) ) {
+					$terms[] = [ 'name' => 'layout', 'operator' => '!==', 'value' => '' ];
+				}
+				if ( 'latest' === $context ) {
+					if ( isset( $extra['condition']['show_player'] ) ) {
+						$terms[] = [ 'name' => 'show_player', 'operator' => '===', 'value' => 'yes' ];
+						unset( $extra['condition'] );
+						$extra['conditions'] = [ 'terms' => $terms ];
+					} else {
+						$extra['conditions'] = [ 'relation' => 'or', 'terms' => [ [ 'name' => 'show_player', 'operator' => '!==', 'value' => 'yes' ], [ 'terms' => $terms ] ] ];
+					}
+				} else {
+					$extra['conditions'] = [ 'terms' => $terms ];
+				}
+			}
+		}
+
 
 		$this->add_control(
 			$id,
@@ -252,8 +298,8 @@ trait WidgetHelpers {
 					'default' => '',
 					'options' => [
 						'' => $shown
-							? __( 'Default (shown)', 'elementor-podcast-manager' )
-							: __( 'Default (hidden)', 'elementor-podcast-manager' ),
+							? __( 'Podcast design (shown)', 'elementor-podcast-manager' )
+							: __( 'Podcast design (hidden)', 'elementor-podcast-manager' ),
 						'yes' => __( 'Show', 'elementor-podcast-manager' ),
 						'no'  => __( 'Hide', 'elementor-podcast-manager' ),
 					],
@@ -364,11 +410,12 @@ trait WidgetHelpers {
 			'style_source',
 			[
 				'label'   => __( 'Style Source', 'elementor-podcast-manager' ),
+				'description' => __( 'Podcast design follows global colors and fonts. Override this widget keeps its own styles. Switch back to Podcast design to inherit again; saved custom values are kept.', 'elementor-podcast-manager' ),
 				'type'    => Controls_Manager::SELECT,
 				'default' => 'global',
 				'options' => [
 					'global' => __( 'Use Podcast → Design styles', 'elementor-podcast-manager' ),
-					'custom' => __( 'Custom', 'elementor-podcast-manager' ),
+					'custom' => __( 'Override this widget', 'elementor-podcast-manager' ),
 				],
 			]
 		);

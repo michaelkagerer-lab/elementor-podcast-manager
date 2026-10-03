@@ -45,7 +45,7 @@ foreach ( array_keys( $epm_essential ) as $epm_id ) {
 $epm_groups = [
 	'essential'   => [
 		'title' => __( 'Start here', 'elementor-podcast-manager' ),
-		'lede'  => __( 'Together these reach almost every listener. Submit your feed once; new episodes follow automatically.', 'elementor-podcast-manager' ),
+		'lede'  => __( 'Submit your feed to the main directories first. After a platform lists your show, it picks up new episodes from your feed.', 'elementor-podcast-manager' ),
 	],
 	'recommended' => [
 		'title' => __( 'Recommended', 'elementor-podcast-manager' ),
@@ -172,7 +172,7 @@ $epm_icon = static function ( array $dir ): string {
 
 	<?php foreach ( $epm_groups as $epm_group => $epm_meta ) : ?>
 		<?php if ( empty( $epm_grouped[ $epm_group ] ) ) { continue; } ?>
-		<section class="epm-card" aria-labelledby="epm-dist-<?php echo esc_attr( $epm_group ); ?>">
+		<?php if ( 'essential' !== $epm_group ) : ?><details class="epm-card epm-fold" data-epm-directory-group><summary><?php echo esc_html( $epm_meta['title'] ); ?></summary><?php else : ?><section class="epm-card" aria-labelledby="epm-dist-<?php echo esc_attr( $epm_group ); ?>"><?php endif; ?>
 			<h2 class="epm-card__title" id="epm-dist-<?php echo esc_attr( $epm_group ); ?>"><?php echo esc_html( $epm_meta['title'] ); ?></h2>
 			<p class="epm-card__lede"><?php echo esc_html( $epm_meta['lede'] ); ?></p>
 
@@ -249,6 +249,6 @@ $epm_icon = static function ( array $dir ): string {
 					</article>
 				<?php endforeach; ?>
 			</div>
-		</section>
+		<?php if ( 'essential' !== $epm_group ) : ?></details><?php else : ?></section><?php endif; ?>
 	<?php endforeach; ?>
 </div>
