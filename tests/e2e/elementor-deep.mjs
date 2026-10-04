@@ -27,7 +27,7 @@ try{
  await page.screenshot({path:'screenshots/elementor-deep-text-200.png',fullPage:true});
  await page.locator('.epm-player').first().screenshot({path:'screenshots/elementor-player-text-200.png'});
  await page.goto(data[2]);
- const heroHtml=php(`require_once getcwd().'/tests/integration/lib.php';$saved=epm()->settings->all();$filter=static fn()=>array_replace($saved,['description'=>${JSON.stringify(rich)}]);add_filter('pre_option_'.\\EPM\\PodcastSettings::OPTION,$filter);try{echo wp_json_encode(epm_test_widget('epm-podcast-hero',[]));}finally{remove_filter('pre_option_'.\\EPM\\PodcastSettings::OPTION,$filter);}`);
+ const heroHtml=php(`require_once EPM_PATH.'tests/integration/lib.php';$saved=epm()->settings->all();$filter=static fn()=>array_replace($saved,['description'=>${JSON.stringify(rich)}]);add_filter('pre_option_'.\\EPM\\PodcastSettings::OPTION,$filter);try{echo wp_json_encode(epm_test_widget('epm-podcast-hero',[]));}finally{remove_filter('pre_option_'.\\EPM\\PodcastSettings::OPTION,$filter);}`);
  await page.locator('.epm-podcast-hero').evaluate((el,html)=>{el.outerHTML=html;},heroHtml);
  assert(await page.locator('.epm-podcast-hero').evaluate(el=>el.scrollWidth<=el.clientWidth+1),'hero prose contains wide tables and code');
  const region=page.locator('.epm-show-notes .epm-rich-scroll');await region.focus();await page.keyboard.press('ArrowRight');await page.waitForTimeout(200);
