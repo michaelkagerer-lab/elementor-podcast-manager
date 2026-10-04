@@ -2835,7 +2835,7 @@ msgstr "Dashboard"
 #: includes/Details.php:184
 #: includes/Elementor/Widgets/EpisodeListWidget.php:227
 #: includes/EpisodePostType.php:69
-#: includes/Renderer.php:993
+#: includes/Renderer.php:994
 msgid "Topics"
 msgstr "Themen"
 
@@ -3115,7 +3115,7 @@ msgstr "S%s"
 
 #: includes/Admin.php:1611
 #: includes/Renderer.php:304
-#: includes/Renderer.php:1345
+#: includes/Renderer.php:1346
 #. translators: %s: season number
 #, php-format
 msgid "Season %s"
@@ -3123,13 +3123,13 @@ msgstr "Staffel %s"
 
 #: includes/Admin.php:1660
 #: includes/Renderer.php:327
-#: includes/Renderer.php:1349
+#: includes/Renderer.php:1350
 msgid "Trailer"
 msgstr "Trailer"
 
 #: includes/Admin.php:1661
 #: includes/Renderer.php:328
-#: includes/Renderer.php:1350
+#: includes/Renderer.php:1351
 msgid "Bonus"
 msgstr "Bonus"
 
@@ -3522,24 +3522,24 @@ msgstr ""
 #: includes/Assets.php:300
 #: includes/Assets.php:416
 #: includes/Assets.php:417
-#: includes/Renderer.php:1413
+#: includes/Renderer.php:1414
 msgid "Play"
 msgstr "Abspielen"
 
 #: includes/Assets.php:301
 #: includes/Assets.php:418
-#: includes/Renderer.php:1414
+#: includes/Renderer.php:1415
 msgid "Pause"
 msgstr "Pausieren"
 
 #: includes/Assets.php:302
-#: includes/Renderer.php:1199
 #: includes/Renderer.php:1200
+#: includes/Renderer.php:1201
 msgid "Play episode"
 msgstr "Folge abspielen"
 
 #: includes/Assets.php:303
-#: includes/Renderer.php:1201
+#: includes/Renderer.php:1202
 msgid "Pause episode"
 msgstr "Folge pausieren"
 
@@ -3548,7 +3548,7 @@ msgid "Play or pause"
 msgstr "Abspielen oder pausieren"
 
 #: includes/Assets.php:307
-#: includes/Renderer.php:1407
+#: includes/Renderer.php:1408
 #. translators: %s: episode title
 #, php-format
 msgid "Play %s"
@@ -3574,7 +3574,8 @@ msgstr ""
 
 #: includes/Assets.php:313
 #: includes/Assets.php:419
-#: includes/Renderer.php:1415
+#: includes/Elementor/Controls/TopicSelectControl.php:14
+#: includes/Renderer.php:1416
 msgid "Retry"
 msgstr "Erneut versuchen"
 
@@ -3626,13 +3627,13 @@ msgid "Audio player"
 msgstr "Audioplayer"
 
 #: includes/Assets.php:409
-#: includes/Renderer.php:1222
+#: includes/Renderer.php:1223
 msgid "Seek"
 msgstr "Wiedergabeposition"
 
 #: includes/Assets.php:423
 #: includes/Details.php:175
-#: includes/Renderer.php:1238
+#: includes/Renderer.php:1239
 msgid "Playback speed"
 msgstr "Wiedergabegeschwindigkeit"
 
@@ -4114,12 +4115,12 @@ msgid "Date"
 msgstr "Datum"
 
 #: includes/Details.php:176
-#: includes/Renderer.php:1206
+#: includes/Renderer.php:1207
 msgid "Skip back 15 seconds"
 msgstr "15 Sekunden zurück"
 
 #: includes/Details.php:177
-#: includes/Renderer.php:1212
+#: includes/Renderer.php:1213
 msgid "Skip forward 30 seconds"
 msgstr "30 Sekunden vor"
 
@@ -4143,7 +4144,7 @@ msgstr "Teilen-Menü"
 #: includes/EpisodeMeta.php:316
 #: includes/Importer.php:1401
 #: includes/Renderer.php:463
-#: includes/Renderer.php:1273
+#: includes/Renderer.php:1274
 #: includes/Shortcodes.php:205
 msgid "Chapters"
 msgstr "Kapitel"
@@ -4937,7 +4938,7 @@ msgid "Skip Forward (+30s)"
 msgstr "Vorspringen (+30 s)"
 
 #: includes/Elementor/Widgets/PodcastPlayerWidget.php:166
-#: includes/Renderer.php:1245
+#: includes/Renderer.php:1246
 msgid "Volume"
 msgstr "Lautstärke"
 
@@ -5102,7 +5103,7 @@ msgid "This episode has no transcript yet."
 msgstr "Diese Folge hat noch kein Transkript."
 
 #: includes/Elementor/Widgets/WidgetHelpers.php:103
-#: includes/Renderer.php:1340
+#: includes/Renderer.php:1341
 msgid "Episode"
 msgstr "Folge"
 
@@ -7784,47 +7785,47 @@ msgid "Your browser blocked copying. Select the text and copy it."
 msgstr ""
 "Dein Browser hat das Kopieren blockiert. Markiere den Text und kopiere ihn."
 
-#: includes/Renderer.php:930
+#: includes/Renderer.php:931
 #. translators: %s: episode title
 #, php-format
 msgid "Watch the video of %s"
 msgstr "Video von %s ansehen"
 
-#: includes/Renderer.php:937
+#: includes/Renderer.php:938
 #. translators: %s: episode title
 #, php-format
 msgid "Video: %s"
 msgstr "Video: %s"
 
-#: includes/Renderer.php:949
+#: includes/Renderer.php:950
 #. translators: %s: episode title
 #, php-format
 msgid "Play video: %s"
 msgstr "Video abspielen: %s"
 
-#: includes/Renderer.php:963
+#: includes/Renderer.php:964
 #. translators: %s: video platform, e.g. YouTube
 #, php-format
 msgid "The video loads from %s when you play it."
 msgstr "Das Video lädt beim Abspielen von %s."
 
-#: includes/Renderer.php:1054
+#: includes/Renderer.php:1055
 msgid "Audio is not available for this episode yet."
 msgstr "Für diese Folge ist noch kein Audio verfügbar."
 
-#: includes/Renderer.php:1248
+#: includes/Renderer.php:1249
 msgid "Download episode"
 msgstr "Folge herunterladen"
 
-#: includes/Renderer.php:1632
+#: includes/Renderer.php:1633
 msgid "No episodes in this selection yet."
 msgstr "Noch keine Folgen in dieser Auswahl."
 
-#: includes/Renderer.php:1633
+#: includes/Renderer.php:1634
 msgid "No episodes yet. New episodes will appear here."
 msgstr "Noch keine Folgen. Neue Folgen erscheinen hier."
 
-#: includes/Renderer.php:1637
+#: includes/Renderer.php:1638
 msgid "Browse all episodes"
 msgstr "Alle Folgen durchsuchen"
 
@@ -8776,7 +8777,7 @@ msgid "No episode selected. Search and choose an episode."
 msgstr "Keine Episode ausgewählt. Suche und wähle eine Episode."
 
 #: includes/Elementor/Controls/EpisodeSelectControl.php:94
-#: includes/Renderer.php:969
+#: includes/Renderer.php:970
 msgid "Try again"
 msgstr "Erneut versuchen"
 
@@ -8811,7 +8812,7 @@ msgid "The selected episode could not be loaded. Try again or reload the editor.
 msgstr "Die ausgewählte Episode konnte nicht geladen werden. Versuche es erneut oder lade den Editor neu. Deine Auswahl bleibt erhalten."
 
 
-#: includes/Elementor/Controls/TopicSelectControl.php:14
+#: includes/Elementor/Controls/TopicSelectControl.php:15
 msgid "Topics could not be loaded. Search again or reload the editor. Your selection is kept."
 msgstr "Die Themen konnten nicht geladen werden. Suche erneut oder lade den Editor neu. Deine Auswahl bleibt erhalten."
 
@@ -8859,10 +8860,10 @@ msgstr "Wähle eine Überschriftenebene, die zu dieser Seite passt. Nutze H1 fü
 msgid "Scrollable episode content"
 msgstr "Scrollbarer Episodeninhalt"
 
-#: includes/Renderer.php:968
+#: includes/Renderer.php:969
 msgid "The video could not be loaded. Try again or open the original video."
 msgstr "Das Video konnte nicht geladen werden. Versuche es erneut oder öffne das Originalvideo."
 
-#: includes/Renderer.php:971
+#: includes/Renderer.php:972
 msgid "Open original video"
 msgstr "Originalvideo öffnen"

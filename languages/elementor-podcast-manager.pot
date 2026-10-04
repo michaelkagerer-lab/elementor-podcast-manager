@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-04T11:15:37+00:00\n"
+"POT-Creation-Date: 2026-10-04T12:23:58+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: elementor-podcast-manager\n"
@@ -2490,7 +2490,7 @@ msgstr ""
 #: includes/Details.php:184
 #: includes/Elementor/Widgets/EpisodeListWidget.php:227
 #: includes/EpisodePostType.php:69
-#: includes/Renderer.php:993
+#: includes/Renderer.php:994
 msgid "Topics"
 msgstr ""
 
@@ -2763,20 +2763,20 @@ msgstr ""
 #. translators: %s: season number
 #: includes/Admin.php:1611
 #: includes/Renderer.php:304
-#: includes/Renderer.php:1345
+#: includes/Renderer.php:1346
 #, php-format
 msgid "Season %s"
 msgstr ""
 
 #: includes/Admin.php:1660
 #: includes/Renderer.php:327
-#: includes/Renderer.php:1349
+#: includes/Renderer.php:1350
 msgid "Trailer"
 msgstr ""
 
 #: includes/Admin.php:1661
 #: includes/Renderer.php:328
-#: includes/Renderer.php:1350
+#: includes/Renderer.php:1351
 msgid "Bonus"
 msgstr ""
 
@@ -3095,24 +3095,24 @@ msgstr ""
 #: includes/Assets.php:300
 #: includes/Assets.php:416
 #: includes/Assets.php:417
-#: includes/Renderer.php:1413
+#: includes/Renderer.php:1414
 msgid "Play"
 msgstr ""
 
 #: includes/Assets.php:301
 #: includes/Assets.php:418
-#: includes/Renderer.php:1414
+#: includes/Renderer.php:1415
 msgid "Pause"
 msgstr ""
 
 #: includes/Assets.php:302
-#: includes/Renderer.php:1199
 #: includes/Renderer.php:1200
+#: includes/Renderer.php:1201
 msgid "Play episode"
 msgstr ""
 
 #: includes/Assets.php:303
-#: includes/Renderer.php:1201
+#: includes/Renderer.php:1202
 msgid "Pause episode"
 msgstr ""
 
@@ -3122,7 +3122,7 @@ msgstr ""
 
 #. translators: %s: episode title
 #: includes/Assets.php:307
-#: includes/Renderer.php:1407
+#: includes/Renderer.php:1408
 #, php-format
 msgid "Play %s"
 msgstr ""
@@ -3145,7 +3145,8 @@ msgstr ""
 
 #: includes/Assets.php:313
 #: includes/Assets.php:419
-#: includes/Renderer.php:1415
+#: includes/Elementor/Controls/TopicSelectControl.php:14
+#: includes/Renderer.php:1416
 msgid "Retry"
 msgstr ""
 
@@ -3197,13 +3198,13 @@ msgid "Audio player"
 msgstr ""
 
 #: includes/Assets.php:409
-#: includes/Renderer.php:1222
+#: includes/Renderer.php:1223
 msgid "Seek"
 msgstr ""
 
 #: includes/Assets.php:423
 #: includes/Details.php:175
-#: includes/Renderer.php:1238
+#: includes/Renderer.php:1239
 msgid "Playback speed"
 msgstr ""
 
@@ -3685,12 +3686,12 @@ msgid "Date"
 msgstr ""
 
 #: includes/Details.php:176
-#: includes/Renderer.php:1206
+#: includes/Renderer.php:1207
 msgid "Skip back 15 seconds"
 msgstr ""
 
 #: includes/Details.php:177
-#: includes/Renderer.php:1212
+#: includes/Renderer.php:1213
 msgid "Skip forward 30 seconds"
 msgstr ""
 
@@ -3714,7 +3715,7 @@ msgstr ""
 #: includes/EpisodeMeta.php:316
 #: includes/Importer.php:1401
 #: includes/Renderer.php:463
-#: includes/Renderer.php:1273
+#: includes/Renderer.php:1274
 #: includes/Shortcodes.php:205
 msgid "Chapters"
 msgstr ""
@@ -3936,7 +3937,7 @@ msgid "No episode selected. Search and choose an episode."
 msgstr ""
 
 #: includes/Elementor/Controls/EpisodeSelectControl.php:94
-#: includes/Renderer.php:969
+#: includes/Renderer.php:970
 msgid "Try again"
 msgstr ""
 
@@ -3952,7 +3953,7 @@ msgstr ""
 msgid "Use the arrow keys to browse results, Enter to choose and Escape to close."
 msgstr ""
 
-#: includes/Elementor/Controls/TopicSelectControl.php:14
+#: includes/Elementor/Controls/TopicSelectControl.php:15
 msgid "Topics could not be loaded. Search again or reload the editor. Your selection is kept."
 msgstr ""
 
@@ -4416,7 +4417,7 @@ msgid "Skip Forward (+30s)"
 msgstr ""
 
 #: includes/Elementor/Widgets/PodcastPlayerWidget.php:166
-#: includes/Renderer.php:1245
+#: includes/Renderer.php:1246
 msgid "Volume"
 msgstr ""
 
@@ -4673,7 +4674,7 @@ msgid "Adds editable widgets to this document. Review before saving; Undo remove
 msgstr ""
 
 #: includes/Elementor/Widgets/WidgetHelpers.php:103
-#: includes/Renderer.php:1340
+#: includes/Renderer.php:1341
 msgid "Episode"
 msgstr ""
 
@@ -6727,54 +6728,54 @@ msgid "Your browser blocked copying. Select the text and copy it."
 msgstr ""
 
 #. translators: %s: episode title
-#: includes/Renderer.php:930
+#: includes/Renderer.php:931
 #, php-format
 msgid "Watch the video of %s"
 msgstr ""
 
 #. translators: %s: episode title
-#: includes/Renderer.php:937
+#: includes/Renderer.php:938
 #, php-format
 msgid "Video: %s"
 msgstr ""
 
 #. translators: %s: episode title
-#: includes/Renderer.php:949
+#: includes/Renderer.php:950
 #, php-format
 msgid "Play video: %s"
 msgstr ""
 
 #. translators: %s: video platform, e.g. YouTube
-#: includes/Renderer.php:963
+#: includes/Renderer.php:964
 #, php-format
 msgid "The video loads from %s when you play it."
 msgstr ""
 
-#: includes/Renderer.php:968
+#: includes/Renderer.php:969
 msgid "The video could not be loaded. Try again or open the original video."
 msgstr ""
 
-#: includes/Renderer.php:971
+#: includes/Renderer.php:972
 msgid "Open original video"
 msgstr ""
 
-#: includes/Renderer.php:1054
+#: includes/Renderer.php:1055
 msgid "Audio is not available for this episode yet."
 msgstr ""
 
-#: includes/Renderer.php:1248
+#: includes/Renderer.php:1249
 msgid "Download episode"
 msgstr ""
 
-#: includes/Renderer.php:1632
+#: includes/Renderer.php:1633
 msgid "No episodes in this selection yet."
 msgstr ""
 
-#: includes/Renderer.php:1633
+#: includes/Renderer.php:1634
 msgid "No episodes yet. New episodes will appear here."
 msgstr ""
 
-#: includes/Renderer.php:1637
+#: includes/Renderer.php:1638
 msgid "Browse all episodes"
 msgstr ""
 

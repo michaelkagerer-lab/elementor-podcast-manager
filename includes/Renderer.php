@@ -848,7 +848,7 @@ final class Renderer {
 		}
 
 		$parts = wp_parse_url( $url );
-		if ( ! is_array( $parts ) || empty( $parts['host'] ) ) {
+		if ( ! is_array( $parts ) || empty( $parts['host'] ) || ! in_array( strtolower( (string) ( $parts['scheme'] ?? 'https' ) ), [ 'http', 'https' ], true ) ) {
 			return null;
 		}
 
@@ -861,7 +861,8 @@ final class Renderer {
 				$youtube = $m[1];
 			} else {
 				wp_parse_str( (string) ( $parts['query'] ?? '' ), $query );
-				$youtube = (string) ( $query['v'] ?? '' );
+				if ( isset( $query['v'] ) && ! is_string( $query['v'] ) ) { return null; }
+				$youtube = $query['v'] ?? '';
 			}
 		} elseif ( 'youtu.be' === $host ) {
 			$youtube = trim( $path, '/' );

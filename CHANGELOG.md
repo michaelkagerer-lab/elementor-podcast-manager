@@ -4,6 +4,9 @@
 
 ### Interface improvements
 
+- Keep topic names readable after interrupted Elementor label lookups, offer keyboard Retry on lookup failure, and name the native topic search field for assistive technology.
+- Reject malformed video identifiers and unsupported URL schemes without PHP warnings while retaining valid web URLs.
+
 - Give all twelve Elementor widgets distinct guidance, preserve functional style help, improve hint contrast and link missing episode data directly to its editor.
 - Add title heading choices without changing old defaults; search complete topic catalogs with paginated native controls and keep saved topic selections through errors.
 - Contain wide episode and Hero prose in named keyboard scroll areas, preserve lazy Hero cover ratios, and retain focus under theme resets.

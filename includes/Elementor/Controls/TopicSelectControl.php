@@ -11,6 +11,7 @@ class TopicSelectControl extends \Elementor\Control_Select2 {
 		wp_localize_script( 'epm-topic-select', 'epmTopicSelect', [
 			'url' => admin_url( 'admin-ajax.php' ),
 			'nonce' => wp_create_nonce( 'epm_topic_search' ),
+			'retry' => __( 'Retry', 'elementor-podcast-manager' ),
 			'error' => __( 'Topics could not be loaded. Search again or reload the editor. Your selection is kept.', 'elementor-podcast-manager' ),
 		] );
 	}

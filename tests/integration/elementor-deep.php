@@ -41,6 +41,20 @@ $t->test( 'Private Vimeo URL retains its access hash', static function ($t) {
   $t->assert(str_contains($html,'data-epm-video-hash="abcdef1234"'),'hash reaches the facade');
  }
 } );
+$t->test( 'Malformed video parameters degrade without PHP warnings', static function ($t) {
+ $warnings=[];
+ set_error_handler(static function($severity,$message) use (&$warnings){$warnings[]=$message;return true;});
+ try {
+  $source=\EPM\Renderer::video_source('https://youtube.com/watch?v[]=abcdefghi');
+  $t->same(null,$source,'array-valued video ID is rejected');
+  foreach(['ftp://example.com/movie.mp4','javascript://example.com/movie.mp4'] as $url){
+   $t->same(null,\EPM\Renderer::video_source($url),'unsupported scheme is rejected');
+  }
+ } finally {restore_error_handler();}
+ $t->same([],$warnings,'invalid input emits no warnings');
+ $t->same('file',\EPM\Renderer::video_source('//example.com/movie.mp4')['kind']??null,'existing protocol-relative web videos stay valid');
+ $t->same('youtube',\EPM\Renderer::video_source('https://youtube.com/watch?v=abcdefghi')['kind']??null,'ordinary YouTube URLs stay valid');
+});
 $t->test( 'Topics beyond the initial options are searchable', static function ($t) {
  $c=epm_test_controls('epm-episode-list');
  $t->same('epm_topic_select',$c['topics']['type']??'', 'topics use a paginated native search rather than a capped SELECT2');
