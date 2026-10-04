@@ -304,9 +304,14 @@ try {
 		assert(settings.epm_schema === '2' && settings.show_volume === 'no' && settings.show_artwork === 'yes' && settings.show_description === 'no', `the editor shows its 1.3.0 values explicitly (${JSON.stringify({ volume: settings.show_volume, artwork: settings.show_artwork, description: settings.show_description })})`);
 		// Exercise Elementor's actual fresh-site promotion even on an existing
 		// disposable site whose automatic promotion has already been shown.
-		await page.evaluate(() => window.dispatchEvent(new CustomEvent('elementor/editor/create-widget', { detail: { entry_point: 'auto_show' } })));
-		await page.getByRole('dialog').waitFor({ timeout: 10000 });
-		assert(await page.getByRole('dialog').isVisible(), 'the fresh-site Elementor promotion is open before selecting controls');
+		// Elementor 3.12.2 has no create-widget promotion. Its legacy save/reset
+		// assertions below still run; only the absent platform feature is omitted.
+		const minimumEditor = php("echo wp_json_encode(ELEMENTOR_VERSION === '3.12.2');");
+		if (!minimumEditor) {
+			await page.evaluate(() => window.dispatchEvent(new CustomEvent('elementor/editor/create-widget', { detail: { entry_point: 'auto_show' } })));
+			await page.getByRole('dialog').waitFor({ timeout: 10000 });
+			assert(await page.getByRole('dialog').isVisible(), 'the fresh-site Elementor promotion is open before selecting controls');
+		}
 		await openPlayerControls(page, 'p130001');
 		assert(!(await page.getByRole('dialog').isVisible()), 'the promotion is dismissed without installing anything');
 		const volumeSelect = page.locator('.elementor-control-show_volume select >> visible=true');

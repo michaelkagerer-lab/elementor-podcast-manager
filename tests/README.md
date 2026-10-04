@@ -95,6 +95,9 @@ site provisioning and require no extra Python packages.
 | | `e2e/widgets.mjs` | row lists and the Latest Episode card in narrow columns and row containers at 320/390 px (WID-N1); two paginated lists on one page (WID-N2); copied markup gets its own share-menu ids and the volume is named once; the Latest Episode sticky option |
 | | `e2e/elementor-reliability.mjs` | Real editor episode combobox: keyboard and label relationships, safe loading/empty/error states, retry, paginated keyboard selection, selected-label races, inaccessible episode IDs kept, cancellation on widget switch, axe scan, per-device inherited style resets with Undo and exactly one visible reset button. Creates and deletes its own draft. Optional `EPM_TEST_LANGUAGE=de_DE` temporarily changes and restores the test administrator/site locale. |
 | | `e2e/elementor-content.mjs` | Real Show Notes, Transcript and Guest widgets with long German words, URLs, roles and companies in a 320px Elementor column at desktop/390/320 viewport widths; creates and deletes its own episode/page without changing existing episodes. |
+| | `e2e/elementor-deep.mjs` | All 12 real widgets in a narrow column at desktop/390/320 widths; Hero cover ratio, wide notes/transcripts/Hero prose, readable table columns, named keyboard scroll region, theme-reset focus, native-video errors and fallback, scoped axe and browser exceptions. Own posts only; Hero settings are overridden inside one PHP request without saving. |
+| | `e2e/elementor-topics.mjs` | Real native Elementor multi-select with 205 owned topics: saved labels beyond the initial 200, paginated endpoint, selection preservation, network error/recovery, nonce and anonymous rejection, scoped hint contrast. Creates and deletes its own draft and terms. |
+| | `integration/elementor-deep.php` | Twelve distinct task descriptions; retained functional style help; title levels/defaults and invalid tags; episode-specific empty-state action; Vimeo access hashes; paginated topic search; accessible Hero prose and no settings writes. Requires a marked site. |
 | | `e2e/style-audit.mjs` | every style control of every widget, set in a real Elementor page: a measured computed-style change on the element it names; fails when `CONTROL-AUDIT.md` differs from the measurement (regenerate with `EPM_WRITE_AUDIT=1`) |
 | | `e2e/media-focus.mjs` | focus returns after choosing and replacing episode audio, including a delayed metadata lookup |
 | | `e2e/sticky-focus.mjs` | a focused chapter remains visible above the sticky player on a short phone viewport |
@@ -456,3 +459,11 @@ Local screenshots are generated in `e2e/screenshots/`; phase-four evidence and
 scope limits are recorded in `docs/UI-IMPLEMENTATION-2026-10-03.md`. Each browser
 command has a 180-second limit. No hosted CI result from an older commit proves
 these changes.
+
+The deep Elementor review is documented in `docs/ELEMENTOR-DEEP-AUDIT-2026-10-04.md`.
+Run browser suites serially on each test site: temporary episodes change the
+newest items and thus the geometry of list controls. Separate test sites can run
+independently. `style-audit.mjs` keeps the primary `CONTROL-AUDIT.md` hard match
+and uses the additional measured `docs/CONTROL-AUDIT-minimum.md` only for the
+WordPress 6.2 / Elementor 3.12.2 combination. All 88 control assertions still
+apply; no runtime failures are exempted.

@@ -4,6 +4,12 @@
 
 ### Interface improvements
 
+- Give all twelve Elementor widgets distinct guidance, preserve functional style help, improve hint contrast and link missing episode data directly to its editor.
+- Add title heading choices without changing old defaults; search complete topic catalogs with paginated native controls and keep saved topic selections through errors.
+- Contain wide episode and Hero prose in named keyboard scroll areas, preserve lazy Hero cover ratios, and retain focus under theme resets.
+- Preserve unlisted Vimeo access hashes; explain failed native videos, offer Retry and retain an original-video link.
+- Bind Elementor player hooks after deferred frontend dependencies become available, including the minimum supported editor.
+
 - Make the Elementor episode picker keyboard accessible, show recoverable errors, preserve selected IDs and cancel searches when leaving a widget.
 - Reset responsive widget styles for the active device with Undo while keeping other device overrides; identify responsive fallback values as inherited.
 - Keep long show notes, transcripts and guest metadata inside narrow Elementor columns.

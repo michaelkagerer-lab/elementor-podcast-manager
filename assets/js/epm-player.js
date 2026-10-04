@@ -2352,7 +2352,9 @@
 			return;
 		}
 
-		button.addEventListener('click', function () {
+		var error = root.querySelector('[data-epm-video-error]');
+		var retry = root.querySelector('[data-epm-video-retry]');
+		function loadVideo() {
 			var kind = root.dataset.epmVideoKind || '';
 			var id = root.dataset.epmVideoId || '';
 			var title = root.dataset.epmVideoTitle || '';
@@ -2361,7 +2363,8 @@
 			if (kind === 'youtube' && /^[\w-]{6,20}$/.test(id)) {
 				media = videoFrame('https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&rel=0&playsinline=1', title);
 			} else if (kind === 'vimeo' && /^\d{5,12}$/.test(id)) {
-				media = videoFrame('https://player.vimeo.com/video/' + id + '?autoplay=1&dnt=1', title);
+				var hash = root.dataset.epmVideoHash || '';
+				media = videoFrame('https://player.vimeo.com/video/' + id + '?autoplay=1&dnt=1' + (/^[a-zA-Z0-9]{6,64}$/.test(hash) ? '&h=' + encodeURIComponent(hash) : ''), title);
 			} else if (kind === 'file' && root.dataset.epmVideoSrc) {
 				media = document.createElement('video');
 				media.className = 'epm-video__media';
@@ -2370,6 +2373,12 @@
 				media.playsInline = true;
 				media.src = root.dataset.epmVideoSrc;
 				media.setAttribute('aria-label', title);
+				media.addEventListener('error', function () {
+					var hadFocus = document.activeElement === media;
+					root.classList.add('has-error');
+					if (error) { error.hidden = false; }
+					if (hadFocus && retry) { retry.focus(); }
+				}, {once: true});
 				media.addEventListener('play', function () {
 					Registry.pauseOthers(null);
 				});
@@ -2380,12 +2389,16 @@
 
 			// Audio and video never play over each other.
 			Registry.pauseOthers(null);
-			button.parentNode.replaceChild(media, button);
+			root.classList.remove('has-error');
+			if (error) { error.hidden = true; }
+			root.querySelector('.epm-video__frame').replaceChildren(media);
 			root.classList.add('is-loaded');
 			try {
 				media.focus();
 			} catch (e) { /* focus is best-effort */ }
-		});
+		}
+		button.addEventListener('click', loadVideo);
+		if (retry) { retry.addEventListener('click', loadVideo); }
 	}
 
 	/* ------------------------------------------------------------------ */
@@ -2445,7 +2458,7 @@
 	// This script usually loads before elementor-frontend.js, whose hooks
 	// only exist after it fires "elementor/frontend/init" — so bind now if
 	// possible, otherwise on that event.
-	var elementorHooksBound = false;
+	var elementorHooksBound = null;
 
 	function onElementorWidget($scope) {
 		var el = $scope && $scope[0] ? $scope[0] : $scope;
@@ -2460,17 +2473,30 @@
 
 	function bindElementorHooks() {
 		var frontend = window.elementorFrontend;
-		if (elementorHooksBound || !frontend || !frontend.hooks || typeof frontend.hooks.addAction !== 'function') {
-			return elementorHooksBound;
+		if (!frontend || !frontend.hooks || typeof frontend.hooks.addAction !== 'function') {
+			return false;
 		}
-		elementorHooksBound = true;
+		if (elementorHooksBound === frontend.hooks) { return true; }
+		// Older Elementor frontends replace their hook object during initialization.
+		elementorHooksBound = frontend.hooks;
 		frontend.hooks.addAction('frontend/element_ready/widget', onElementorWidget);
 		return true;
 	}
 
-	if (!bindElementorHooks() && window.jQuery) {
-		window.jQuery(window).on('elementor/frontend/init', bindElementorHooks);
+	var elementorInitListenerBound = false;
+	function setupElementorHooks() {
+		bindElementorHooks();
+		if (window.jQuery && !elementorInitListenerBound) {
+			elementorInitListenerBound = true;
+			window.jQuery(window).on('elementor/frontend/init', bindElementorHooks);
+		}
 	}
+	setupElementorHooks();
+	// The engine has no jQuery dependency: old editors may load it later.
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', setupElementorHooks, {once: true});
+	}
+	window.addEventListener('load', setupElementorHooks, {once: true});
 
 	// Fallback for everything Elementor does not announce: content inserted
 	// later by other code (AJAX pagination, "load more", popups, page

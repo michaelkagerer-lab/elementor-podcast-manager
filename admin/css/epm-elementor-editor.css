@@ -1,0 +1,20 @@
+/* Plugin guidance follows native editor colors; other widgets are untouched. */
+.epm-widget-purpose {
+	display: block;
+	padding: 4px 8px 8px;
+	font-size: 12px;
+	line-height: 1.4;
+	font-weight: 400;
+	text-wrap: pretty;
+}
+.elementor-panel .epm-owned-control .elementor-control-field-description {
+	color: var(--e-a-color-txt, #515962);
+	font-size: 12px;
+	font-style: normal;
+	line-height: 1.5;
+	overflow-wrap: anywhere;
+}
+/* The minimum supported editor predates the current color tokens. */
+.elementor-editor-dark-mode .epm-owned-control .elementor-control-field-description {
+	color: var(--e-a-color-txt, #d5dadf);
+}

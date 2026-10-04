@@ -37,7 +37,7 @@ msgstr "Internal"
 #: admin/views/dashboard.php:33
 #: admin/views/distribution.php:208
 #: admin/views/settings.php:185
-#: includes/Elementor/Widgets/WidgetHelpers.php:185
+#: includes/Elementor/Widgets/WidgetHelpers.php:203
 #: includes/EpisodeMeta.php:689
 #: includes/EpisodeMeta.php:1155
 msgid "(opens in a new tab)"
@@ -80,7 +80,7 @@ msgstr "Gelistet"
 #: includes/AdminPages.php:136
 #: includes/AdminPages.php:579
 #: includes/AdminPages.php:624
-#: includes/Elementor/Integration.php:91
+#: includes/Elementor/Integration.php:92
 msgid "Podcast"
 msgstr "Podcast"
 
@@ -272,7 +272,7 @@ msgstr "Weitere Plattformen hinzufügen"
 
 #: admin/views/dashboard.php:274
 #: includes/Details.php:199
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:124
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:125
 msgid "Latest episode"
 msgstr "Neueste Folge"
 
@@ -338,17 +338,17 @@ msgstr "%1$s von %2$s Prüfungen abgeschlossen"
 
 #: admin/views/design.php:36
 #: admin/views/design.php:49
-#: includes/Elementor/Widgets/WidgetHelpers.php:530
+#: includes/Elementor/Widgets/WidgetHelpers.php:564
 msgid "Rounded"
 msgstr "Abgerundet"
 
 #: admin/views/design.php:37
-#: includes/Elementor/Widgets/WidgetHelpers.php:531
+#: includes/Elementor/Widgets/WidgetHelpers.php:565
 msgid "Pill"
 msgstr "Kapselform"
 
 #: admin/views/design.php:38
-#: includes/Elementor/Widgets/WidgetHelpers.php:532
+#: includes/Elementor/Widgets/WidgetHelpers.php:566
 msgid "Square"
 msgstr "Eckig"
 
@@ -404,7 +404,7 @@ msgstr "Redaktionell"
 #: admin/views/settings.php:133
 #: includes/Admin.php:1517
 #: includes/Details.php:165
-#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:102
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:103
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:111
 #: includes/Elementor/Widgets/PodcastPlayerWidget.php:139
 #: includes/Elementor/Widgets/PodcastPlayerWidget.php:154
@@ -460,7 +460,7 @@ msgstr ""
 #: admin/views/design.php:75
 #: includes/Elementor/Widgets/EpisodeListWidget.php:258
 #: includes/Elementor/Widgets/LatestEpisodeWidget.php:183
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:171
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:172
 #: includes/Elementor/Widgets/PodcastPlayerWidget.php:204
 #: includes/Elementor/Widgets/PodcastPlayerWidget.php:424
 #: includes/Elementor/Widgets/PodcastPlayerWidget.php:461
@@ -484,7 +484,7 @@ msgid "Episode cards, the sticky player and error messages."
 msgstr "Folgenkarten, fixierter Player und Fehlermeldungen."
 
 #: admin/views/design.php:77
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:147
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:148
 #: includes/Elementor/Widgets/SubscribeLinksWidget.php:102
 msgid "Text"
 msgstr "Text"
@@ -1257,7 +1257,7 @@ msgstr ""
 
 #: admin/views/hosting.php:102
 #: admin/views/setup.php:139
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:114
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:115
 msgid "Host"
 msgstr "Host"
 
@@ -1616,7 +1616,7 @@ msgstr ""
 #: admin/views/settings.php:17
 #: includes/Admin.php:367
 #: includes/Admin.php:368
-#: includes/Elementor/Widgets/WidgetHelpers.php:185
+#: includes/Elementor/Widgets/WidgetHelpers.php:203
 msgid "Podcast settings"
 msgstr "Podcast-Einstellungen"
 
@@ -1630,9 +1630,9 @@ msgstr "Podcast-Titel"
 #: admin/views/settings.php:31
 #: admin/views/setup.php:281
 #: includes/Details.php:171
-#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:103
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:113
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:211
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:104
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:114
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:212
 #: includes/Elementor/Widgets/PodcastPlayerWidget.php:160
 #: includes/EpisodeMeta.php:265
 msgid "Description"
@@ -2779,7 +2779,7 @@ msgstr ""
 #: includes/Admin.php:299
 #: includes/Admin.php:518
 #: includes/AdminPages.php:236
-#: includes/Renderer.php:799
+#: includes/Renderer.php:808
 msgid "Copied"
 msgstr "Kopiert"
 
@@ -2835,7 +2835,7 @@ msgstr "Dashboard"
 #: includes/Details.php:184
 #: includes/Elementor/Widgets/EpisodeListWidget.php:227
 #: includes/EpisodePostType.php:69
-#: includes/Renderer.php:972
+#: includes/Renderer.php:993
 msgid "Topics"
 msgstr "Themen"
 
@@ -3073,7 +3073,7 @@ msgstr "Folge Nr."
 
 #: includes/Admin.php:1524
 #: includes/Details.php:170
-#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:100
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:101
 #: includes/Elementor/Widgets/EpisodeListWidget.php:221
 #: includes/Elementor/Widgets/EpisodeMetadataWidget.php:108
 #: includes/Elementor/Widgets/GuestWidget.php:90
@@ -3115,7 +3115,7 @@ msgstr "S%s"
 
 #: includes/Admin.php:1611
 #: includes/Renderer.php:304
-#: includes/Renderer.php:1324
+#: includes/Renderer.php:1345
 #. translators: %s: season number
 #, php-format
 msgid "Season %s"
@@ -3123,13 +3123,13 @@ msgstr "Staffel %s"
 
 #: includes/Admin.php:1660
 #: includes/Renderer.php:327
-#: includes/Renderer.php:1328
+#: includes/Renderer.php:1349
 msgid "Trailer"
 msgstr "Trailer"
 
 #: includes/Admin.php:1661
 #: includes/Renderer.php:328
-#: includes/Renderer.php:1329
+#: includes/Renderer.php:1350
 msgid "Bonus"
 msgstr "Bonus"
 
@@ -3522,24 +3522,24 @@ msgstr ""
 #: includes/Assets.php:300
 #: includes/Assets.php:416
 #: includes/Assets.php:417
-#: includes/Renderer.php:1392
+#: includes/Renderer.php:1413
 msgid "Play"
 msgstr "Abspielen"
 
 #: includes/Assets.php:301
 #: includes/Assets.php:418
-#: includes/Renderer.php:1393
+#: includes/Renderer.php:1414
 msgid "Pause"
 msgstr "Pausieren"
 
 #: includes/Assets.php:302
-#: includes/Renderer.php:1178
-#: includes/Renderer.php:1179
+#: includes/Renderer.php:1199
+#: includes/Renderer.php:1200
 msgid "Play episode"
 msgstr "Folge abspielen"
 
 #: includes/Assets.php:303
-#: includes/Renderer.php:1180
+#: includes/Renderer.php:1201
 msgid "Pause episode"
 msgstr "Folge pausieren"
 
@@ -3548,7 +3548,7 @@ msgid "Play or pause"
 msgstr "Abspielen oder pausieren"
 
 #: includes/Assets.php:307
-#: includes/Renderer.php:1386
+#: includes/Renderer.php:1407
 #. translators: %s: episode title
 #, php-format
 msgid "Play %s"
@@ -3574,7 +3574,7 @@ msgstr ""
 
 #: includes/Assets.php:313
 #: includes/Assets.php:419
-#: includes/Renderer.php:1394
+#: includes/Renderer.php:1415
 msgid "Retry"
 msgstr "Erneut versuchen"
 
@@ -3626,13 +3626,13 @@ msgid "Audio player"
 msgstr "Audioplayer"
 
 #: includes/Assets.php:409
-#: includes/Renderer.php:1201
+#: includes/Renderer.php:1222
 msgid "Seek"
 msgstr "Wiedergabeposition"
 
 #: includes/Assets.php:423
 #: includes/Details.php:175
-#: includes/Renderer.php:1217
+#: includes/Renderer.php:1238
 msgid "Playback speed"
 msgstr "Wiedergabegeschwindigkeit"
 
@@ -4087,13 +4087,13 @@ msgstr "Folgennummer"
 
 #: includes/Details.php:169
 #: includes/Elementor/Widgets/EpisodeHeaderWidget.php:99
-#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:134
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:135
 #: includes/Elementor/Widgets/EpisodeListWidget.php:144
 #: includes/Elementor/Widgets/EpisodeListWidget.php:220
 #: includes/Elementor/Widgets/EpisodeListWidget.php:325
 #: includes/Elementor/Widgets/LatestEpisodeWidget.php:200
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:112
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:201
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:202
 #: includes/Elementor/Widgets/PodcastPlayerWidget.php:158
 #: includes/Elementor/Widgets/PodcastPlayerWidget.php:332
 #: includes/EpisodeMeta.php:1057
@@ -4106,7 +4106,7 @@ msgid "Excerpt"
 msgstr "Auszug"
 
 #: includes/Details.php:173
-#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:101
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:102
 #: includes/Elementor/Widgets/EpisodeListWidget.php:223
 #: includes/Elementor/Widgets/EpisodeMetadataWidget.php:106
 #: includes/Elementor/Widgets/PodcastPlayerWidget.php:161
@@ -4114,12 +4114,12 @@ msgid "Date"
 msgstr "Datum"
 
 #: includes/Details.php:176
-#: includes/Renderer.php:1185
+#: includes/Renderer.php:1206
 msgid "Skip back 15 seconds"
 msgstr "15 Sekunden zurück"
 
 #: includes/Details.php:177
-#: includes/Renderer.php:1191
+#: includes/Renderer.php:1212
 msgid "Skip forward 30 seconds"
 msgstr "30 Sekunden vor"
 
@@ -4142,8 +4142,8 @@ msgstr "Teilen-Menü"
 #: includes/Elementor/Widgets/ChaptersWidget.php:145
 #: includes/EpisodeMeta.php:316
 #: includes/Importer.php:1401
-#: includes/Renderer.php:454
-#: includes/Renderer.php:1252
+#: includes/Renderer.php:463
+#: includes/Renderer.php:1273
 #: includes/Shortcodes.php:205
 msgid "Chapters"
 msgstr "Kapitel"
@@ -4470,11 +4470,11 @@ msgid "Heading"
 msgstr "Überschrift"
 
 #: includes/Elementor/Widgets/ChaptersWidget.php:128
-#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:117
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:118
 #: includes/Elementor/Widgets/EpisodeListWidget.php:266
 #: includes/Elementor/Widgets/GuestWidget.php:112
 #: includes/Elementor/Widgets/LatestEpisodeWidget.php:191
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:179
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:180
 #: includes/Elementor/Widgets/ShowNotesWidget.php:118
 #: includes/Elementor/Widgets/SubscribeLinksWidget.php:122
 #: includes/Elementor/Widgets/TranscriptWidget.php:130
@@ -4494,7 +4494,7 @@ msgid "Podcast Episode Header"
 msgstr "Podcast-Folgenheader"
 
 #: includes/Elementor/Widgets/EpisodeHeaderWidget.php:91
-#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:111
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:112
 msgid "Header"
 msgstr "Header"
 
@@ -4513,21 +4513,21 @@ msgstr "Folgennummer in der Kennzeichnung"
 msgid "Season in Label"
 msgstr "Staffel in der Kennzeichnung"
 
-#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:118
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:119
 #: includes/Elementor/Widgets/EpisodeListWidget.php:267
 #: includes/Elementor/Widgets/GuestWidget.php:113
 #: includes/Elementor/Widgets/LatestEpisodeWidget.php:192
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:180
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:181
 msgid "Muted Text Color"
 msgstr "Farbe für dezenten Text"
 
-#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:124
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:125
 #: includes/Elementor/Widgets/PodcastPlayerWidget.php:309
 #: includes/Elementor/Widgets/SubscribeLinksWidget.php:155
 msgid "Label"
 msgstr "Kennzeichnung"
 
-#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:144
+#: includes/Elementor/Widgets/EpisodeHeaderWidget.php:145
 #: includes/Elementor/Widgets/EpisodeListWidget.php:335
 #: includes/Elementor/Widgets/EpisodeMetadataWidget.php:91
 #: includes/Elementor/Widgets/EpisodeMetadataWidget.php:130
@@ -4646,7 +4646,7 @@ msgid "Border Radius"
 msgstr "Rahmenradius"
 
 #: includes/Elementor/Widgets/EpisodeListWidget.php:286
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:186
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:187
 #: includes/Elementor/Widgets/PodcastPlayerWidget.php:248
 #: includes/Elementor/Widgets/SubscribeLinksWidget.php:140
 msgid "Gap"
@@ -4763,7 +4763,7 @@ msgstr "Diese Folge hat keinen Gast. Ergänze die Gastangaben im Folgeneditor."
 #: includes/Elementor/Widgets/LatestEpisodeWidget.php:42
 #: includes/Elementor/Widgets/LatestEpisodeWidget.php:99
 #: includes/Elementor/Widgets/LatestEpisodeWidget.php:171
-#: includes/Elementor/Widgets/WidgetHelpers.php:104
+#: includes/Elementor/Widgets/WidgetHelpers.php:118
 msgid "Latest Episode"
 msgstr "Neueste Folge"
 
@@ -4805,7 +4805,7 @@ msgstr ""
 "Bildschirmrand sichtbar."
 
 #: includes/Elementor/Widgets/LatestEpisodeWidget.php:143
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:115
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:116
 msgid "Call to Action"
 msgstr "Handlungsaufforderung"
 
@@ -4816,7 +4816,7 @@ msgstr ""
 " sind."
 
 #: includes/Elementor/Widgets/LatestEpisodeWidget.php:148
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:122
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:123
 msgid "CTA Text"
 msgstr "Schaltflächentext"
 
@@ -4825,28 +4825,27 @@ msgid "Listen now"
 msgstr "Jetzt anhören"
 
 #: includes/Elementor/Widgets/LatestEpisodeWidget.php:158
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:132
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:133
 msgid "CTA URL"
 msgstr "Ziel-URL"
 
 #: includes/Elementor/Widgets/LatestEpisodeWidget.php:160
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:134
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:135
 msgid "https://…"
 msgstr "https://…"
 
 #: includes/Elementor/Widgets/LatestEpisodeWidget.php:193
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:181
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:182
 msgid "Accent Color"
 msgstr "Akzentfarbe"
 
 #: includes/Elementor/Widgets/LatestEpisodeWidget.php:230
-#: includes/Elementor/Widgets/WidgetHelpers.php:208
+#: includes/Elementor/Widgets/WidgetHelpers.php:225
 msgid "No published episode with audio yet."
 msgstr "Noch keine veröffentlichte Folge mit Audio."
 
 #: includes/Elementor/Widgets/LatestEpisodeWidget.php:305
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:292
-#: includes/Elementor/Widgets/WidgetHelpers.php:180
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:294
 msgid "The call to action shows once it has a text and a link (CTA URL)."
 msgstr ""
 "Die Schaltfläche erscheint, sobald Text und Link (Ziel-URL) vorhanden sind."
@@ -4856,7 +4855,7 @@ msgid "Podcast Hero"
 msgstr "Podcast-Titelbereich"
 
 #: includes/Elementor/Widgets/PodcastHeroWidget.php:90
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:159
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:160
 msgid "Hero"
 msgstr "Titelbereich"
 
@@ -4872,33 +4871,33 @@ msgstr "Cover rechts"
 msgid "Centered"
 msgstr "Zentriert"
 
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:115
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:116
 msgid ""
 "A button next to the platform links. Shown once it has a text and a link."
 msgstr ""
 "Schaltfläche neben den Plattformlinks. Wird angezeigt, sobald Text und Link "
 "vorhanden sind."
 
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:116
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:117
 #: includes/Elementor/Widgets/PodcastPlayerWidget.php:170
 msgid "Platform Links"
 msgstr "Plattformlinks"
 
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:117
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:118
 #: includes/Elementor/Widgets/SubscribeLinksWidget.php:108
 msgid "RSS Link"
 msgstr "RSS-Link"
 
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:142
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:143
 msgid "Platform Links Display"
 msgstr "Anzeige der Plattformlinks"
 
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:146
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:147
 #: includes/Elementor/Widgets/SubscribeLinksWidget.php:101
 msgid "Icons"
 msgstr "Symbole"
 
-#: includes/Elementor/Widgets/PodcastHeroWidget.php:148
+#: includes/Elementor/Widgets/PodcastHeroWidget.php:149
 #: includes/Elementor/Widgets/SubscribeLinksWidget.php:103
 msgid "Icons + Text"
 msgstr "Symbole und Text"
@@ -4938,7 +4937,7 @@ msgid "Skip Forward (+30s)"
 msgstr "Vorspringen (+30 s)"
 
 #: includes/Elementor/Widgets/PodcastPlayerWidget.php:166
-#: includes/Renderer.php:1224
+#: includes/Renderer.php:1245
 msgid "Volume"
 msgstr "Lautstärke"
 
@@ -5035,7 +5034,7 @@ msgstr "Begleittext"
 
 #: includes/Elementor/Widgets/ShowNotesWidget.php:100
 #: includes/EpisodeMeta.php:957
-#: includes/Renderer.php:553
+#: includes/Renderer.php:562
 #: includes/Shortcodes.php:175
 msgid "Show notes"
 msgstr "Begleittext"
@@ -5080,8 +5079,8 @@ msgstr "Podcast-Transkript"
 #: includes/Elementor/Widgets/TranscriptWidget.php:124
 #: includes/EpisodeMeta.php:343
 #: includes/Importer.php:1492
-#: includes/Renderer.php:508
 #: includes/Renderer.php:517
+#: includes/Renderer.php:526
 #: includes/Shortcodes.php:235
 msgid "Transcript"
 msgstr "Transkript"
@@ -5102,32 +5101,32 @@ msgstr "Nein"
 msgid "This episode has no transcript yet."
 msgstr "Diese Folge hat noch kein Transkript."
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:89
-#: includes/Renderer.php:1319
+#: includes/Elementor/Widgets/WidgetHelpers.php:103
+#: includes/Renderer.php:1340
 msgid "Episode"
 msgstr "Folge"
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:97
+#: includes/Elementor/Widgets/WidgetHelpers.php:111
 msgid "Episode Source"
 msgstr "Folgenquelle"
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:102
+#: includes/Elementor/Widgets/WidgetHelpers.php:116
 msgid "Current Episode"
 msgstr "Aktuelle Folge"
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:103
+#: includes/Elementor/Widgets/WidgetHelpers.php:117
 msgid "Specific Episode"
 msgstr "Bestimmte Folge"
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:112
+#: includes/Elementor/Widgets/WidgetHelpers.php:126
 msgid "Choose Episode"
 msgstr "Folge wählen"
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:204
+#: includes/Elementor/Widgets/WidgetHelpers.php:221
 msgid "Choose an episode in the widget settings."
 msgstr "Wähle eine Folge in den Widget-Einstellungen."
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:211
+#: includes/Elementor/Widgets/WidgetHelpers.php:228
 msgid ""
 "Shows the current episode on episode pages. Publish an episode to preview it"
 " here."
@@ -5135,31 +5134,31 @@ msgstr ""
 "Zeigt die aktuelle Folge auf Folgenseiten. Veröffentliche eine Folge für die"
 " Vorschau."
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:230
-#: includes/Elementor/Widgets/WidgetHelpers.php:359
+#: includes/Elementor/Widgets/WidgetHelpers.php:264
+#: includes/Elementor/Widgets/WidgetHelpers.php:393
 msgid "Show"
 msgstr "Anzeigen"
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:231
-#: includes/Elementor/Widgets/WidgetHelpers.php:360
+#: includes/Elementor/Widgets/WidgetHelpers.php:265
+#: includes/Elementor/Widgets/WidgetHelpers.php:394
 msgid "Hide"
 msgstr "Ausblenden"
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:300
+#: includes/Elementor/Widgets/WidgetHelpers.php:334
 #. translators: %s: layout name, e.g. Minimal
 #, php-format
 msgid "Default (Podcast → Design: %s)"
 msgstr "Standard (Podcast → Design: %s)"
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:378
+#: includes/Elementor/Widgets/WidgetHelpers.php:412
 msgid "Details"
 msgstr "Zusatzangaben"
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:380
+#: includes/Elementor/Widgets/WidgetHelpers.php:414
 msgid "Use Podcast → Design defaults"
 msgstr "Standardwerte aus Podcast → Design verwenden"
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:383
+#: includes/Elementor/Widgets/WidgetHelpers.php:417
 msgid ""
 "Each detail below shows, hides or follows Podcast → Design → Details shown "
 "by default (\"Default\"). This button sets every detail of this widget to "
@@ -5169,19 +5168,19 @@ msgstr ""
 "Design → Standardmäßig sichtbare Zusatzangaben („Standard“). Diese "
 "Schaltfläche setzt alle Zusatzangaben dieses Widgets auf Standard."
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:468
+#: includes/Elementor/Widgets/WidgetHelpers.php:502
 msgid "Style Source"
 msgstr "Stilquelle"
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:473
+#: includes/Elementor/Widgets/WidgetHelpers.php:507
 msgid "Use Podcast → Design styles"
 msgstr "Stile aus Podcast → Design verwenden"
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:499
+#: includes/Elementor/Widgets/WidgetHelpers.php:533
 msgid "Heading Level"
 msgstr "Überschriftenebene"
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:507
+#: includes/Elementor/Widgets/WidgetHelpers.php:541
 msgid ""
 "Pick the level that follows the heading above this widget, so screen reader "
 "users can navigate by headings."
@@ -5189,11 +5188,11 @@ msgstr ""
 "Wähle die Ebene unterhalb der Überschrift vor diesem Widget, damit Nutzer "
 "von Screenreadern anhand der Überschriften navigieren können."
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:525
+#: includes/Elementor/Widgets/WidgetHelpers.php:559
 msgid "Button Shape"
 msgstr "Schaltflächenform"
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:529
+#: includes/Elementor/Widgets/WidgetHelpers.php:563
 msgid "Default"
 msgstr "Standard"
 
@@ -5501,7 +5500,7 @@ msgid "Add a chapter title."
 msgstr "Gib einen Kapiteltitel an."
 
 #: includes/EpisodeMeta.php:1061
-#: includes/Renderer.php:480
+#: includes/Renderer.php:489
 msgid "Link"
 msgstr "Link"
 
@@ -7746,86 +7745,86 @@ msgstr "Cover für %s"
 msgid "Full episode"
 msgstr "Vollständige Folge"
 
-#: includes/Renderer.php:603
+#: includes/Renderer.php:612
 msgid "Listen to the latest episode"
 msgstr "Neueste Folge anhören"
 
-#: includes/Renderer.php:628
+#: includes/Renderer.php:637
 msgid "RSS feed"
 msgstr "RSS-Feed"
 
-#: includes/Renderer.php:787
+#: includes/Renderer.php:796
 #. translators: %s: playback position, e.g. 12:34
 #, php-format
 msgid "Copy link at %s"
 msgstr "Link bei %s kopieren"
 
-#: includes/Renderer.php:798
+#: includes/Renderer.php:807
 msgid "Share"
 msgstr "Teilen"
 
-#: includes/Renderer.php:803
+#: includes/Renderer.php:812
 msgid "Share this episode"
 msgstr "Diese Folge teilen"
 
-#: includes/Renderer.php:804
+#: includes/Renderer.php:813
 msgid "Copy link"
 msgstr "Link kopieren"
 
-#: includes/Renderer.php:808
+#: includes/Renderer.php:817
 msgid "Share…"
 msgstr "Teilen …"
 
-#: includes/Renderer.php:810
+#: includes/Renderer.php:819
 msgid "Copy embed code"
 msgstr "Einbettungscode kopieren"
 
-#: includes/Renderer.php:816
+#: includes/Renderer.php:825
 msgid "Your browser blocked copying. Select the text and copy it."
 msgstr ""
 "Dein Browser hat das Kopieren blockiert. Markiere den Text und kopiere ihn."
 
-#: includes/Renderer.php:915
+#: includes/Renderer.php:930
 #. translators: %s: episode title
 #, php-format
 msgid "Watch the video of %s"
 msgstr "Video von %s ansehen"
 
-#: includes/Renderer.php:922
+#: includes/Renderer.php:937
 #. translators: %s: episode title
 #, php-format
 msgid "Video: %s"
 msgstr "Video: %s"
 
-#: includes/Renderer.php:933
+#: includes/Renderer.php:949
 #. translators: %s: episode title
 #, php-format
 msgid "Play video: %s"
 msgstr "Video abspielen: %s"
 
-#: includes/Renderer.php:947
+#: includes/Renderer.php:963
 #. translators: %s: video platform, e.g. YouTube
 #, php-format
 msgid "The video loads from %s when you play it."
 msgstr "Das Video lädt beim Abspielen von %s."
 
-#: includes/Renderer.php:1033
+#: includes/Renderer.php:1054
 msgid "Audio is not available for this episode yet."
 msgstr "Für diese Folge ist noch kein Audio verfügbar."
 
-#: includes/Renderer.php:1227
+#: includes/Renderer.php:1248
 msgid "Download episode"
 msgstr "Folge herunterladen"
 
-#: includes/Renderer.php:1611
+#: includes/Renderer.php:1632
 msgid "No episodes in this selection yet."
 msgstr "Noch keine Folgen in dieser Auswahl."
 
-#: includes/Renderer.php:1612
+#: includes/Renderer.php:1633
 msgid "No episodes yet. New episodes will appear here."
 msgstr "Noch keine Folgen. Neue Folgen erscheinen hier."
 
-#: includes/Renderer.php:1616
+#: includes/Renderer.php:1637
 msgid "Browse all episodes"
 msgstr "Alle Folgen durchsuchen"
 
@@ -8486,39 +8485,35 @@ msgstr "Design exportieren oder importieren"
 msgid "Submit your feed to the main directories first. After a platform lists your show, it picks up new episodes from your feed."
 msgstr "Reiche deinen Feed zuerst bei den wichtigsten Verzeichnissen ein. Sobald eine Plattform deinen Podcast aufnimmt, übernimmt sie neue Episoden aus deinem Feed."
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:100
+#: includes/Elementor/Widgets/WidgetHelpers.php:114
 msgid "Current Episode follows the episode page or loop item. Use Latest Episode on your homepage, or Specific Episode for a fixed selection."
 msgstr "„Aktuelle Episode“ folgt der Episodenseite oder dem Schleifeneintrag. Nutze „Neueste Episode“ auf deiner Startseite oder „Bestimmte Episode“ für eine feste Auswahl."
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:138
+#: includes/Elementor/Widgets/WidgetHelpers.php:153
 msgid "Preview episode only. Current Episode appears on episode pages. For this page, choose Latest Episode or Specific Episode in the Episode settings."
 msgstr "Nur eine Vorschau-Episode. „Aktuelle Episode“ erscheint auf Episodenseiten. Wähle für diese Seite „Neueste Episode“ oder „Bestimmte Episode“ in den Episodeneinstellungen."
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:182
-msgid "Manage episodes (opens in a new tab)"
-msgstr "Episoden verwalten (öffnet einen neuen Tab)"
-
-#: includes/Elementor/Widgets/WidgetHelpers.php:230
+#: includes/Elementor/Widgets/WidgetHelpers.php:264
 msgid "On"
 msgstr "An"
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:231
+#: includes/Elementor/Widgets/WidgetHelpers.php:265
 msgid "Off"
 msgstr "Aus"
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:357
+#: includes/Elementor/Widgets/WidgetHelpers.php:391
 msgid "Podcast design (shown)"
 msgstr "Podcast-Design (sichtbar)"
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:358
+#: includes/Elementor/Widgets/WidgetHelpers.php:392
 msgid "Podcast design (hidden)"
 msgstr "Podcast-Design (ausgeblendet)"
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:469
+#: includes/Elementor/Widgets/WidgetHelpers.php:503
 msgid "Podcast design follows global colors and fonts. Override this widget keeps its own styles. Switch back to Podcast design to inherit again; saved custom values are kept."
 msgstr "Das Podcast-Design übernimmt globale Farben und Schriften. „Dieses Widget überschreiben“ behält eigene Stile. Wechsle zum Podcast-Design zurück, um die Vorgaben wieder zu übernehmen; gespeicherte eigene Werte bleiben erhalten."
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:474
+#: includes/Elementor/Widgets/WidgetHelpers.php:508
 msgid "Override this widget"
 msgstr "Dieses Widget überschreiben"
 
@@ -8562,12 +8557,12 @@ msgid "Starter page"
 msgstr "Einstiegsseite"
 
 #: admin/views/design.php:476
-#: includes/Elementor/Widgets/WidgetHelpers.php:72
+#: includes/Elementor/Widgets/WidgetHelpers.php:86
 msgid "Show page"
 msgstr "Podcast-Seite"
 
 #: admin/views/design.php:476
-#: includes/Elementor/Widgets/WidgetHelpers.php:72
+#: includes/Elementor/Widgets/WidgetHelpers.php:86
 msgid "Episode archive"
 msgstr "Episodenarchiv"
 
@@ -8659,65 +8654,65 @@ msgstr "Du darfst keine Seiten erstellen."
 msgid "Choose a show page or episode archive."
 msgstr "Wähle eine Podcast-Seite oder ein Episodenarchiv."
 
-#: includes/Elementor/Integration.php:72
+#: includes/Elementor/Integration.php:73
 msgid "Use the episode layout inside an episode document. On a show page, choose Show page or Episode archive."
 msgstr "Nutze die Episodenvorlage in einem Episodendokument. Wähle auf einer Podcast-Seite „Podcast-Seite“ oder „Episodenarchiv“."
 
-#: includes/Elementor/Integration.php:73
+#: includes/Elementor/Integration.php:74
 msgid "The layout could not be inserted. Keep your document open and try again."
 msgstr "Die Vorlage konnte nicht eingefügt werden. Lass dein Dokument geöffnet und versuche es erneut."
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:37
+#: includes/Elementor/Widgets/WidgetHelpers.php:41
 msgid "Theme or inherited value"
 msgstr "Theme-Vorgabe oder geerbter Wert"
 
 #. translators: %s: global color or fallback description
-#: includes/Elementor/Widgets/WidgetHelpers.php:39
+#: includes/Elementor/Widgets/WidgetHelpers.php:43
 #, php-format
 msgid "Podcast design: %s. A value here overrides it."
 msgstr "Podcast-Design: %s. Ein eigener Wert überschreibt diese Vorgabe."
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:64
+#: includes/Elementor/Widgets/WidgetHelpers.php:69
 msgid "Play the current, latest or a selected episode. Use current only on an episode page or in an episode loop."
 msgstr "Spiele die aktuelle, neueste oder eine gewählte Episode ab. Nutze „aktuell“ nur auf einer Episodenseite oder in einer Episodenschleife."
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:64
+#: includes/Elementor/Widgets/WidgetHelpers.php:69
 msgid "Feature the newest episode on a show page or homepage."
 msgstr "Zeige die neueste Episode auf einer Podcast-Seite oder der Startseite."
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:64
+#: includes/Elementor/Widgets/WidgetHelpers.php:69
 msgid "Build a browsable episode archive."
 msgstr "Erstelle ein durchsuchbares Episodenarchiv."
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:64
+#: includes/Elementor/Widgets/WidgetHelpers.php:69
 msgid "Help listeners follow the show in their preferred app."
 msgstr "Hilf Hörern, den Podcast in ihrer bevorzugten App zu abonnieren."
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:64
+#: includes/Elementor/Widgets/WidgetHelpers.php:69
 msgid "Introduce the show on its landing page."
 msgstr "Stelle den Podcast auf seiner Startseite vor."
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:65
+#: includes/Elementor/Widgets/WidgetHelpers.php:79
 msgid "Add this part of the current episode to an episode page or episode loop. It needs matching episode data."
 msgstr "Füge diesen Teil der aktuellen Episode auf einer Episodenseite oder in einer Episodenschleife ein. Er benötigt passende Episodendaten."
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:70
+#: includes/Elementor/Widgets/WidgetHelpers.php:84
 msgid "Usage and starter layouts"
 msgstr "Verwendung und Einstiegsvorlagen"
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:72
+#: includes/Elementor/Widgets/WidgetHelpers.php:86
 msgid "Starter layout"
 msgstr "Einstiegsvorlage"
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:72
+#: includes/Elementor/Widgets/WidgetHelpers.php:86
 msgid "Episode layout (episode pages only)"
 msgstr "Episodenvorlage (nur Episodenseiten)"
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:73
+#: includes/Elementor/Widgets/WidgetHelpers.php:87
 msgid "Insert starter layout"
 msgstr "Einstiegsvorlage einfügen"
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:73
+#: includes/Elementor/Widgets/WidgetHelpers.php:87
 msgid "Adds editable widgets to this document. Review before saving; Undo removes the inserted layout. Save it as an Elementor section template to reuse it."
 msgstr "Fügt bearbeitbare Widgets in dieses Dokument ein. Prüfe sie vor dem Speichern; „Rückgängig“ entfernt die eingefügte Vorlage. Speichere sie als Elementor-Abschnittsvorlage, um sie wiederzuverwenden."
 
@@ -8766,7 +8761,7 @@ msgid "Details for"
 msgstr "Details für"
 
 #. translators: %s: widget control label
-#: includes/Elementor/Widgets/WidgetHelpers.php:46
+#: includes/Elementor/Widgets/WidgetHelpers.php:51
 #, php-format
 msgid "Use podcast value: %s"
 msgstr "Podcast-Vorgabe verwenden: %s"
@@ -8781,6 +8776,7 @@ msgid "No episode selected. Search and choose an episode."
 msgstr "Keine Episode ausgewählt. Suche und wähle eine Episode."
 
 #: includes/Elementor/Controls/EpisodeSelectControl.php:94
+#: includes/Renderer.php:969
 msgid "Try again"
 msgstr "Erneut versuchen"
 
@@ -8796,12 +8792,12 @@ msgstr "Auswahl aufheben"
 msgid "Use the arrow keys to browse results, Enter to choose and Escape to close."
 msgstr "Nutze die Pfeiltasten zum Durchgehen der Ergebnisse, Enter zum Auswählen und Escape zum Schließen."
 
-#: includes/Elementor/Widgets/WidgetHelpers.php:56
+#: includes/Elementor/Widgets/WidgetHelpers.php:61
 msgid "Resets this value for the current device. Other device overrides are kept."
 msgstr "Setzt diesen Wert für das aktuelle Gerät zurück. Eigene Werte für andere Geräte bleiben erhalten."
 
 #. translators: %s: widget control label
-#: includes/Elementor/Widgets/WidgetHelpers.php:55
+#: includes/Elementor/Widgets/WidgetHelpers.php:60
 #, php-format
 msgid "Use inherited value: %s"
 msgstr "Geerbten Wert verwenden: %s"
@@ -8813,3 +8809,60 @@ msgstr "Die Episoden konnten nicht geladen werden. Versuche es erneut oder lade 
 #: includes/Elementor/Controls/EpisodeSelectControl.php:68
 msgid "The selected episode could not be loaded. Try again or reload the editor. Your selection is kept."
 msgstr "Die ausgewählte Episode konnte nicht geladen werden. Versuche es erneut oder lade den Editor neu. Deine Auswahl bleibt erhalten."
+
+
+#: includes/Elementor/Controls/TopicSelectControl.php:14
+msgid "Topics could not be loaded. Search again or reload the editor. Your selection is kept."
+msgstr "Die Themen konnten nicht geladen werden. Suche erneut oder lade den Editor neu. Deine Auswahl bleibt erhalten."
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:71
+msgid "Introduce an episode with its title, artwork and summary."
+msgstr "Stelle eine Episode mit Titel, Cover und Zusammenfassung vor."
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:72
+msgid "Show the episode date, duration, season and episode number."
+msgstr "Zeige Datum, Dauer, Staffel und Episodennummer der Episode."
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:73
+msgid "Introduce the episode guest with their biography and website."
+msgstr "Stelle den Gast der Episode mit Biografie und Website vor."
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:74
+msgid "Display the episode show notes, including links and formatted content."
+msgstr "Zeige die Shownotes der Episode mit Links und formatierten Inhalten."
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:75
+msgid "Let listeners jump to chapters in the episode audio."
+msgstr "Lass Hörerinnen und Hörer zu Kapiteln in der Audiodatei springen."
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:76
+msgid "Make the episode transcript available for reading and searching."
+msgstr "Stelle das Transkript der Episode zum Lesen und Durchsuchen bereit."
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:77
+msgid "Show the episode video with a click-to-load player."
+msgstr "Zeige das Video der Episode mit einem Player, der erst nach einem Klick lädt."
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:200
+msgid "Edit episode (opens in a new tab)"
+msgstr "Episode bearbeiten (öffnet in einem neuen Tab)"
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:234
+msgid "Title HTML Tag"
+msgstr "HTML-Tag des Titels"
+
+#: includes/Elementor/Widgets/WidgetHelpers.php:239
+msgid "Choose a heading level that fits this page. Use H1 for its main heading."
+msgstr "Wähle eine Überschriftenebene, die zu dieser Seite passt. Nutze H1 für ihre Hauptüberschrift."
+
+#: includes/Renderer.php:341
+msgid "Scrollable episode content"
+msgstr "Scrollbarer Episodeninhalt"
+
+#: includes/Renderer.php:968
+msgid "The video could not be loaded. Try again or open the original video."
+msgstr "Das Video konnte nicht geladen werden. Versuche es erneut oder öffne das Originalvideo."
+
+#: includes/Renderer.php:971
+msgid "Open original video"
+msgstr "Originalvideo öffnen"

@@ -19,8 +19,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 trait WidgetHelpers {
+	private ?array $epm_resolved_episode = null;
 	/** Add provenance and an undoable reset beside inheritable style controls. */
 	public function add_control( $id, array $args, $options = [] ) {
+		if ( ! str_starts_with( (string) $id, '_' ) ) {
+			$args['classes'] = trim( ( $args['classes'] ?? '' ) . ' epm-owned-control' );
+		}
 		$inheritable = in_array( $args['type'] ?? '', [ 'color', 'slider', 'dimensions', 'select', 'font' ], true )
 			&& ! empty( $args['selectors'] ) && ! str_starts_with( (string) $id, '_' );
 		if ( $inheritable && empty( $args['condition'] ) ) {
@@ -36,12 +40,13 @@ trait WidgetHelpers {
 			}
 			$value = \EPM\Admin::design_css_vars( epm()->design->all() )[ $token ] ?? __( 'Theme or inherited value', 'elementor-podcast-manager' );
 			/* translators: %s: global color or fallback description */
-			$args['description'] = sprintf( __( 'Podcast design: %s. A value here overrides it.', 'elementor-podcast-manager' ), $value );
+			$args['description'] = ( empty( $args['description'] ) ? '' : $args['description'] . ' ' ) . sprintf( __( 'Podcast design: %s. A value here overrides it.', 'elementor-podcast-manager' ), $value );
 		}
 		$result = parent::add_control( $id, $args, $options );
 		if ( $inheritable ) {
 			$reset = [
 				'type'      => Controls_Manager::BUTTON,
+				'classes'   => 'epm-owned-control epm-inherit-control',
 				/* translators: %s: widget control label */
 				'text'      => sprintf( __( 'Use podcast value: %s', 'elementor-podcast-manager' ), $args['label'] ?? $id ),
 				'event'     => 'epm:style:inherit:' . $id,
@@ -62,6 +67,15 @@ trait WidgetHelpers {
 
 	public function task_description(): string {
 		$tasks = [ 'epm-podcast-player' => __( 'Play the current, latest or a selected episode. Use current only on an episode page or in an episode loop.', 'elementor-podcast-manager' ), 'epm-latest-episode' => __( 'Feature the newest episode on a show page or homepage.', 'elementor-podcast-manager' ), 'epm-episode-list' => __( 'Build a browsable episode archive.', 'elementor-podcast-manager' ), 'epm-subscribe-links' => __( 'Help listeners follow the show in their preferred app.', 'elementor-podcast-manager' ), 'epm-podcast-hero' => __( 'Introduce the show on its landing page.', 'elementor-podcast-manager' ) ];
+		$tasks += [
+			'epm-episode-header' => __( 'Introduce an episode with its title, artwork and summary.', 'elementor-podcast-manager' ),
+			'epm-episode-metadata' => __( 'Show the episode date, duration, season and episode number.', 'elementor-podcast-manager' ),
+			'epm-guest' => __( 'Introduce the episode guest with their biography and website.', 'elementor-podcast-manager' ),
+			'epm-show-notes' => __( 'Display the episode show notes, including links and formatted content.', 'elementor-podcast-manager' ),
+			'epm-chapters' => __( 'Let listeners jump to chapters in the episode audio.', 'elementor-podcast-manager' ),
+			'epm-transcript' => __( 'Make the episode transcript available for reading and searching.', 'elementor-podcast-manager' ),
+			'epm-episode-video' => __( 'Show the episode video with a click-to-load player.', 'elementor-podcast-manager' ),
+		];
 		return $tasks[ $this->get_name() ] ?? __( 'Add this part of the current episode to an episode page or episode loop. It needs matching episode data.', 'elementor-podcast-manager' );
 	}
 
@@ -129,6 +143,7 @@ trait WidgetHelpers {
 	protected function resolve_widget_episode( array $settings, string $default_source = 'current' ): ?array {
 		$source = sanitize_key( $settings['source'] ?? $default_source );
 		$episode = epm()->renderer->resolve_episode( $source, (int) ( $settings['episode_id'] ?? 0 ) );
+		$this->epm_resolved_episode = $episode;
 		$loop = get_post();
 		$queried = get_queried_object();
 		if ( $episode && 'current' === $source && $this->is_editor()
@@ -177,16 +192,18 @@ trait WidgetHelpers {
 		\EPM\Assets::enqueue_style();
 
 		$action = '';
-		if ( __( 'The call to action shows once it has a text and a link (CTA URL).', 'elementor-podcast-manager' ) !== $message ) {
-			$url = admin_url( 'edit.php?post_type=' . \EPM\EpisodePostType::CPT );
-			$label = __( 'Manage episodes (opens in a new tab)', 'elementor-podcast-manager' );
-			if ( 'epm-subscribe-links' === $this->get_name() ) {
-				$url = \EPM\Capabilities::can_manage_podcast() ? admin_url( 'admin.php?page=epm-settings' ) : '';
-				$label = __( 'Podcast settings', 'elementor-podcast-manager' ) . ' ' . __( '(opens in a new tab)', 'elementor-podcast-manager' );
-			}
-			if ( $url ) {
-				$action = '<p><a href="' . esc_url( $url ) . '" target="_blank" rel="noopener">' . esc_html( $label ) . '</a></p>';
-			}
+		$url = '';
+		$label = '';
+		$id = (int) ( $this->epm_resolved_episode['id'] ?? 0 );
+		if ( $id && current_user_can( 'edit_post', $id ) ) {
+			$url = get_edit_post_link( $id, 'raw' );
+			$label = __( 'Edit episode (opens in a new tab)', 'elementor-podcast-manager' );
+		} elseif ( 'epm-subscribe-links' === $this->get_name() && \EPM\Capabilities::can_manage_podcast() ) {
+			$url = admin_url( 'admin.php?page=epm-settings' );
+			$label = __( 'Podcast settings', 'elementor-podcast-manager' ) . ' ' . __( '(opens in a new tab)', 'elementor-podcast-manager' );
+		}
+		if ( $url ) {
+			$action = '<p><a href="' . esc_url( $url ) . '" target="_blank" rel="noopener">' . esc_html( $label ) . '</a></p>';
 		}
 		echo '<div class="epm-editor-placeholder">' . esc_html( $message ) . $action . '</div>';
 	}
@@ -209,6 +226,23 @@ trait WidgetHelpers {
 		}
 
 		return __( 'Shows the current episode on episode pages. Publish an episode to preview it here.', 'elementor-podcast-manager' );
+	}
+
+	/** Keep existing title levels while allowing an appropriate page outline. */
+	protected function add_title_tag_control( string $default ): void {
+		$this->add_control( 'title_tag', [
+			'label' => __( 'Title HTML Tag', 'elementor-podcast-manager' ),
+			'type' => Controls_Manager::SELECT,
+			'default' => $default,
+			'options' => array_combine( [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ], [ 'H1', 'H2', 'H3', 'H4', 'H5', 'H6' ] ),
+			'condition' => [ 'show_title' => 'yes' ],
+			'description' => __( 'Choose a heading level that fits this page. Use H1 for its main heading.', 'elementor-podcast-manager' ),
+		] );
+	}
+
+	protected function title_tag( array $settings, string $default ): string {
+		$tag = $settings['title_tag'] ?? $default;
+		return in_array( $tag, [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ], true ) ? $tag : $default;
 	}
 
 	/**

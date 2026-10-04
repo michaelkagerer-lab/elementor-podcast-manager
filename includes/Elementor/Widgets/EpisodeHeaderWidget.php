@@ -97,6 +97,7 @@ final class EpisodeHeaderWidget extends Widget_Base {
 		$this->add_toggle( 'show_episode_number', __( 'Episode Number in Label', 'elementor-podcast-manager' ), true );
 		$this->add_toggle( 'show_season', __( 'Season in Label', 'elementor-podcast-manager' ), false );
 		$this->add_toggle( 'show_title', __( 'Title', 'elementor-podcast-manager' ), true );
+		$this->add_title_tag_control( 'h1' );
 		$this->add_toggle( 'show_guest', __( 'Guest', 'elementor-podcast-manager' ), true );
 		$this->add_toggle( 'show_date', __( 'Date', 'elementor-podcast-manager' ), true );
 		$this->add_toggle( 'show_artwork', __( 'Artwork', 'elementor-podcast-manager' ), false );
@@ -191,7 +192,8 @@ final class EpisodeHeaderWidget extends Widget_Base {
 		}
 
 		if ( $this->toggle_on( $settings, 'show_title', true ) ) {
-			echo '<h1 class="epm-episode-header__title">' . esc_html( (string) $episode['title'] ) . '</h1>';
+			$tag = $this->title_tag( $settings, 'h1' );
+			echo '<' . $tag . ' class="epm-episode-header__title">' . esc_html( (string) $episode['title'] ) . '</' . $tag . '>';
 		}
 
 		$meta_fields = [];
