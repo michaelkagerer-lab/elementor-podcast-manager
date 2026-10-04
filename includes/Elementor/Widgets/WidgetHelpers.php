@@ -19,19 +19,44 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 trait WidgetHelpers {
-	/** Identify inheritable style values, including responsive and group controls. */
+	/** Add provenance and an undoable reset beside inheritable style controls. */
 	public function add_control( $id, array $args, $options = [] ) {
-		$color = in_array( $args['type'] ?? '', [ 'color', 'slider', 'dimensions', 'select', 'font' ], true ) && ! empty( $args['selectors'] ) && ! str_starts_with( (string) $id, '_' );
-		if ( $color && empty( $args['condition'] ) ) { $args['condition'] = $this->custom_condition(); }
-		if ( $color ) {
+		$inheritable = in_array( $args['type'] ?? '', [ 'color', 'slider', 'dimensions', 'select', 'font' ], true )
+			&& ! empty( $args['selectors'] ) && ! str_starts_with( (string) $id, '_' );
+		if ( $inheritable && empty( $args['condition'] ) ) {
+			$args['condition'] = $this->custom_condition();
+		}
+		if ( $inheritable ) {
 			$token = '';
-			foreach ( $args['selectors'] ?? [] as $rule ) { if ( preg_match( '/(--epm-[a-z-]+)\s*:/', $rule, $match ) ) { $token = $match[1]; break; } }
+			foreach ( $args['selectors'] as $rule ) {
+				if ( preg_match( '/(--epm-[a-z-]+)\s*:/', $rule, $match ) ) {
+					$token = $match[1];
+					break;
+				}
+			}
 			$value = \EPM\Admin::design_css_vars( epm()->design->all() )[ $token ] ?? __( 'Theme or inherited value', 'elementor-podcast-manager' );
 			/* translators: %s: global color or fallback description */
 			$args['description'] = sprintf( __( 'Podcast design: %s. A value here overrides it.', 'elementor-podcast-manager' ), $value );
 		}
 		$result = parent::add_control( $id, $args, $options );
-		if ( $color ) { parent::add_control( $id . '_inherit', [ 'type' => Controls_Manager::BUTTON, 'text' => sprintf( /* translators: %s: widget control label */ __( 'Use podcast value: %s', 'elementor-podcast-manager' ), $args['label'] ?? $id ), 'event' => 'epm:style:inherit:' . $id, 'condition' => $args['condition'] ] ); }
+		if ( $inheritable ) {
+			$reset = [
+				'type'      => Controls_Manager::BUTTON,
+				/* translators: %s: widget control label */
+				'text'      => sprintf( __( 'Use podcast value: %s', 'elementor-podcast-manager' ), $args['label'] ?? $id ),
+				'event'     => 'epm:style:inherit:' . $id,
+				'condition' => $args['condition'],
+			];
+			if ( array_key_exists( 'responsive', $args ) ) {
+				// Older editors create one control per device on the server. Its
+				// reset must have the same visibility, rather than three buttons.
+				$reset['responsive'] = $args['responsive'];
+				/* translators: %s: widget control label */
+				$reset['text'] = sprintf( __( 'Use inherited value: %s', 'elementor-podcast-manager' ), $args['label'] ?? $id );
+				$reset['description'] = __( 'Resets this value for the current device. Other device overrides are kept.', 'elementor-podcast-manager' );
+			}
+			parent::add_control( $id . '_inherit', $reset );
+		}
 		return $result;
 	}
 

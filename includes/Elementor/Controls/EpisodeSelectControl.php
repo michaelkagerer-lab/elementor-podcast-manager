@@ -52,6 +52,8 @@ class EpisodeSelectControl extends \Elementor\Base_Data_Control {
 			true
 		);
 
+		wp_enqueue_style( 'epm-episode-select', EPM_URL . 'admin/css/epm-episode-select.css', [], EPM_VERSION );
+
 		wp_localize_script(
 			'epm-episode-select',
 			'epmEpisodeSelect',
@@ -62,6 +64,10 @@ class EpisodeSelectControl extends \Elementor\Base_Data_Control {
 				'noResults'   => __( 'No episodes found.', 'elementor-podcast-manager' ),
 				'loading'     => __( 'Loading…', 'elementor-podcast-manager' ),
 				'loadMore'    => __( 'Load more…', 'elementor-podcast-manager' ),
+				'searchError' => __( 'Episodes could not be loaded. Try again or reload the editor. Your selection is kept.', 'elementor-podcast-manager' ),
+				'currentError' => __( 'The selected episode could not be loaded. Try again or reload the editor. Your selection is kept.', 'elementor-podcast-manager' ),
+				'unavailable' => __( 'The selected episode is unavailable or you do not have permission to view it. Choose another episode.', 'elementor-podcast-manager' ),
+				'noSelection' => __( 'No episode selected. Search and choose an episode.', 'elementor-podcast-manager' ),
 			]
 		);
 	}
@@ -74,7 +80,7 @@ class EpisodeSelectControl extends \Elementor\Base_Data_Control {
 	public function content_template(): void {
 		?>
 		<div class="elementor-control-field epm-episode-select">
-			<label class="elementor-control-title">{{{ data.label }}}</label>
+			<label class="elementor-control-title epm-episode-select__label">{{{ data.label }}}</label>
 			<div class="elementor-control-input-wrapper">
 				<input type="text"
 					class="epm-episode-select__search"
@@ -84,7 +90,13 @@ class EpisodeSelectControl extends \Elementor\Base_Data_Control {
 					aria-expanded="false"
 					aria-autocomplete="list" />
 				<ul class="epm-episode-select__results" role="listbox" hidden></ul>
-				<p class="epm-episode-select__current"></p>
+				<p class="epm-episode-select__status" role="status" aria-live="polite"></p>
+				<button type="button" class="elementor-button epm-episode-select__retry" hidden><?php esc_html_e( 'Try again', 'elementor-podcast-manager' ); ?></button>
+				<button type="button" class="elementor-button epm-episode-select__more" hidden><?php esc_html_e( 'Load more…', 'elementor-podcast-manager' ); ?></button>
+				<p class="epm-episode-select__current" role="status" aria-live="polite"></p>
+				<button type="button" class="elementor-button epm-episode-select__current-retry" hidden><?php esc_html_e( 'Reload selected episode', 'elementor-podcast-manager' ); ?></button>
+				<button type="button" class="elementor-button epm-episode-select__clear" hidden><?php esc_html_e( 'Clear selection', 'elementor-podcast-manager' ); ?></button>
+				<p class="elementor-control-field-description epm-episode-select__hint"><?php esc_html_e( 'Use the arrow keys to browse results, Enter to choose and Escape to close.', 'elementor-podcast-manager' ); ?></p>
 			</div>
 			<# if ( data.description ) { #>
 				<div class="elementor-control-field-description">{{{ data.description }}}</div>

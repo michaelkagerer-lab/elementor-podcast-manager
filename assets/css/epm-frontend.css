@@ -1295,6 +1295,12 @@ body.epm-custom-font :where(.epm-player, .epm-episode-list, .epm-podcast-hero, .
 	color: var(--epm-text-muted, #6b7280);
 }
 
+/* Imported prose and guest metadata must fit narrow Elementor columns too. */
+:is(.epm-show-notes__content, .epm-transcript__content, .epm-guest__details, .epm-guest__role, .epm-guest__company, .epm-guest__bio) {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
 /* ---------- Show notes ---------- */
 
 .epm-show-notes {

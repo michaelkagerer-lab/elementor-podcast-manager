@@ -4,6 +4,10 @@
 
 ### Interface improvements
 
+- Make the Elementor episode picker keyboard accessible, show recoverable errors, preserve selected IDs and cancel searches when leaving a widget.
+- Reset responsive widget styles for the active device with Undo while keeping other device overrides; identify responsive fallback values as inherited.
+- Keep long show notes, transcripts and guest metadata inside narrow Elementor columns.
+
 - Preview unsaved design details with the real renderer, choose one preview component, and retry failed previews without losing changes.
 - Show submitted and listed directories separately, prioritize feed repairs, and group hosting, import and move tasks.
 - Start setup from the operator's situation; guide first-episode editing and offer explicit draft starters for show pages and archives.
