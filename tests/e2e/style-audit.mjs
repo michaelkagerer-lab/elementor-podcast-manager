@@ -20,7 +20,11 @@
 import fs from 'node:fs';
 import { BASE, php, assert, finish, launch, newPage } from './lib.mjs';
 
-const AUDIT = new URL('../../CONTROL-AUDIT.md', import.meta.url);
+const versions = php("echo wp_json_encode([get_bloginfo('version'),ELEMENTOR_VERSION]);");
+// Older Elementor/WordPress geometry changes the first affected ancestor.
+// Keep both measured tables exact; never relax the per-control checks.
+const minimum = versions[0] === '6.2' && versions[1] === '3.12.2';
+const AUDIT = new URL(minimum ? '../../docs/CONTROL-AUDIT-minimum.md' : '../../CONTROL-AUDIT.md', import.meta.url);
 const START = '<!-- style-audit:start -->';
 const END = '<!-- style-audit:end -->';
 
@@ -61,9 +65,11 @@ const plan = php(`
 	];
 	// Register every control with its label: Elementor keeps only the
 	// CSS-relevant parts of style controls on frontend requests.
-	$optimized = new ReflectionProperty( \\Elementor\\Core\\Frontend\\Performance::class, 'is_frontend' );
-	$optimized->setAccessible( true );
-	$optimized->setValue( null, false );
+	if ( class_exists( \\Elementor\\Core\\Frontend\\Performance::class ) && property_exists( \\Elementor\\Core\\Frontend\\Performance::class, 'is_frontend' ) ) {
+		$optimized = new ReflectionProperty( \\Elementor\\Core\\Frontend\\Performance::class, 'is_frontend' );
+		$optimized->setAccessible( true );
+		$optimized->setValue( null, false );
+	}
 	$plan = [];
 	foreach ( $bases as $type => $base ) {
 		$base['style_source'] = 'custom';
@@ -256,7 +262,7 @@ if (process.env.EPM_WRITE_AUDIT) {
 	fs.writeFileSync(AUDIT, next);
 	console.log(`  (CONTROL-AUDIT.md table written: ${rows.length} controls)`);
 } else {
-	assert(current === table, 'CONTROL-AUDIT.md lists exactly what was measured (regenerate with EPM_WRITE_AUDIT=1)');
+	assert(current === table, `${minimum ? 'CONTROL-AUDIT-minimum.md' : 'CONTROL-AUDIT.md'} lists exactly what was measured (regenerate with EPM_WRITE_AUDIT=1)`);
 }
 
 finish('style audit');

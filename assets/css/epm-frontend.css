@@ -131,7 +131,7 @@ body.epm-custom-font :where(.epm-player, .epm-episode-list, .epm-podcast-hero, .
  * "[tabindex]:not([tabindex='-1']):focus-visible" is 0,3,0 and adds a
  * white halo that hides on light surfaces).
  */
-:is(.epm-player, .epm-episode-card, .epm-episode-row, .epm-chapters, .epm-transcript, .epm-sticky) :is(button, summary, a, input, [role="slider"], [role="menuitem"]):not(#epm):focus-visible {
+:is(.epm-player, .epm-episode-card, .epm-episode-row, .epm-chapters, .epm-transcript, .epm-sticky, .epm-podcast-hero, .epm-latest, .epm-subscribe, .epm-guest, .epm-show-notes, .epm-video, .epm-episode-header, .epm-meta, .epm-topics, .epm-pagination) :is(button, summary, a, input, [role="slider"], [role="menuitem"]):not(#epm):not(.epm-video__facade):focus-visible {
 	outline: 2px solid var(--epm-accent, #1d4ed8);
 	outline-offset: 2px;
 	box-shadow: none;
@@ -1089,10 +1089,12 @@ body.epm-custom-font :where(.epm-player, .epm-episode-list, .epm-podcast-hero, .
 }
 
 .epm-podcast-hero__artwork .epm-artwork {
-	aspect-ratio: auto;
+	/* Reserve the podcast cover ratio while native lazy sizes=auto contains it. */
+	aspect-ratio: auto 1 / 1;
 }
 
 .epm-podcast-hero__content {
+	max-width: 100%;
 	flex: 1 1 auto;
 	min-width: 0;
 }
@@ -1293,6 +1295,12 @@ body.epm-custom-font :where(.epm-player, .epm-episode-list, .epm-podcast-hero, .
 	min-height: 44px;
 	font-size: var(--epm-meta-size, 14px);
 	color: var(--epm-text-muted, #6b7280);
+}
+
+/* Imported prose and guest metadata must fit narrow Elementor columns too. */
+:is(.epm-show-notes__content, .epm-transcript__content, .epm-guest__details, .epm-guest__role, .epm-guest__company, .epm-guest__bio) {
+	min-width: 0;
+	overflow-wrap: anywhere;
 }
 
 /* ---------- Show notes ---------- */
@@ -2681,3 +2689,29 @@ body:has(.epm-sticky:not([hidden])) {
  .epm-player--full .epm-player__artwork { width: min(var(--epm-artwork-size, 112px), 35%); }
  .epm-player--full .epm-player__volume input { width: 80px; }
 }
+
+/* Wide episode content scrolls inside its own named, keyboard-accessible region. */
+.epm-rich-scroll {
+	max-width: 100%;
+	overflow-x: auto;
+}
+.epm-rich-scroll table { overflow-wrap: normal; }
+.epm-rich-scroll:not(#epm):focus-visible {
+	outline: 2px solid var(--epm-accent, #1d4ed8);
+	outline-offset: 2px;
+}
+.epm-video.has-error .epm-video__frame { display: none; }
+.epm-video__error { padding: 16px; border: 1px solid var(--epm-border, #e5e7eb); border-radius: var(--epm-radius, 12px); }
+.epm-video__error p { margin: 0 0 12px; }
+.epm-video__retry:not(#epm) {
+	min-height: 44px;
+	padding: 8px 16px;
+	border: 1px solid var(--epm-border, #e5e7eb);
+	border-radius: 6px;
+	background: var(--epm-surface, #ffffff);
+	color: var(--epm-text, #111827);
+	font: inherit;
+	cursor: pointer;
+}
+.epm-video__retry:not(#epm):focus-visible { outline: 2px solid var(--epm-accent, #1d4ed8); outline-offset: 2px; }
+.epm-video__fallback { margin: 8px 0 0; font-size: var(--epm-meta-size, 14px); }

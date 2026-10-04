@@ -334,6 +334,15 @@ final class Renderer {
 		}
 	}
 
+	/** Contain wide imported blocks without changing stored content or table semantics. */
+	public function rich_content( string $content ): string {
+		$html = wp_kses_post( wpautop( $content ) );
+		if ( preg_match( '/<(?:table|pre)\b/i', $html ) ) {
+			return '<div class="epm-rich-scroll" role="region" tabindex="0" aria-label="' . esc_attr__( 'Scrollable episode content', 'elementor-podcast-manager' ) . '">' . $html . '</div>';
+		}
+		return $html;
+	}
+
 	/**
 	 * Guest block: portrait, name, role and company on one line, bio.
 	 *
@@ -393,7 +402,7 @@ final class Renderer {
 			$out .= '<p class="epm-guest__details">' . implode( '<span class="epm-guest__sep" aria-hidden="true"> · </span>', $details ) . '</p>';
 		}
 		if ( $args['show_bio'] && '' !== (string) ( $episode['guest_bio'] ?? '' ) ) {
-			$out .= '<div class="epm-guest__bio">' . wp_kses_post( wpautop( (string) $episode['guest_bio'] ) ) . '</div>';
+			$out .= '<div class="epm-guest__bio">' . $this->rich_content( (string) $episode['guest_bio'] ) . '</div>';
 		}
 
 		$out .= '</div></div>';
@@ -511,7 +520,7 @@ final class Renderer {
 		);
 
 		$tag     = $this->heading_tag( $args );
-		$content = '<div class="epm-transcript__content">' . wp_kses_post( wpautop( $transcript ) ) . '</div>';
+		$content = '<div class="epm-transcript__content">' . $this->rich_content( $transcript ) . '</div>';
 
 		if ( $args['collapsible'] ) {
 			$heading = '' !== (string) $args['heading'] ? (string) $args['heading'] : __( 'Transcript', 'elementor-podcast-manager' );
@@ -560,7 +569,7 @@ final class Renderer {
 		if ( '' !== (string) $args['heading'] ) {
 			$out .= '<' . $tag . ' class="epm-show-notes__heading">' . esc_html( (string) $args['heading'] ) . '</' . $tag . '>';
 		}
-		$out .= '<div class="epm-show-notes__content">' . wp_kses_post( wpautop( $notes ) ) . '</div>';
+		$out .= '<div class="epm-show-notes__content">' . $this->rich_content( $notes ) . '</div>';
 		$out .= '</div>';
 
 		return $out;
@@ -839,7 +848,7 @@ final class Renderer {
 		}
 
 		$parts = wp_parse_url( $url );
-		if ( ! is_array( $parts ) || empty( $parts['host'] ) ) {
+		if ( ! is_array( $parts ) || empty( $parts['host'] ) || ! in_array( strtolower( (string) ( $parts['scheme'] ?? 'https' ) ), [ 'http', 'https' ], true ) ) {
 			return null;
 		}
 
@@ -852,7 +861,8 @@ final class Renderer {
 				$youtube = $m[1];
 			} else {
 				wp_parse_str( (string) ( $parts['query'] ?? '' ), $query );
-				$youtube = (string) ( $query['v'] ?? '' );
+				if ( isset( $query['v'] ) && ! is_string( $query['v'] ) ) { return null; }
+				$youtube = $query['v'] ?? '';
 			}
 		} elseif ( 'youtu.be' === $host ) {
 			$youtube = trim( $path, '/' );
@@ -865,7 +875,13 @@ final class Renderer {
 		}
 
 		if ( in_array( $host, [ 'vimeo.com', 'player.vimeo.com' ], true ) && preg_match( '#/(?:video/)?(\d{5,12})(?:/|$)#', $path, $m ) ) {
-			return [ 'kind' => 'vimeo', 'id' => $m[1], 'src' => '', 'host' => 'Vimeo' ];
+			$source = [ 'kind' => 'vimeo', 'id' => $m[1], 'src' => '', 'host' => 'Vimeo' ];
+			wp_parse_str( (string) ( $parts['query'] ?? '' ), $query );
+			$hash = $query['h'] ?? basename( rtrim( $path, '/' ) );
+			if ( is_string( $hash ) && $hash !== $m[1] && preg_match( '/^[a-zA-Z0-9]{6,64}$/', $hash ) ) {
+				$source['hash'] = $hash;
+			}
+			return $source;
 		}
 
 		$extension = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
@@ -926,6 +942,7 @@ final class Renderer {
 			. ' data-epm-video-kind="' . esc_attr( $source['kind'] ) . '"'
 			. ( '' !== $source['id'] ? ' data-epm-video-id="' . esc_attr( $source['id'] ) . '"' : '' )
 			. ( '' !== $source['src'] ? ' data-epm-video-src="' . esc_url( $source['src'] ) . '"' : '' )
+			. ( isset( $source['hash'] ) ? ' data-epm-video-hash="' . esc_attr( $source['hash'] ) . '"' : '' )
 			. ' data-epm-video-title="' . esc_attr( $frame_title ) . '">';
 
 		$out .= '<div class="epm-video__frame">';
@@ -948,6 +965,11 @@ final class Renderer {
 				. '</figcaption>';
 		}
 
+		$out .= '<div class="epm-video__error" data-epm-video-error role="alert" hidden><p>'
+			. esc_html__( 'The video could not be loaded. Try again or open the original video.', 'elementor-podcast-manager' )
+			. '</p><button type="button" class="epm-video__retry" data-epm-video-retry>' . esc_html__( 'Try again', 'elementor-podcast-manager' ) . '</button></div>';
+		$out .= '<p class="epm-video__fallback"><a class="epm-video__link" href="' . esc_url( (string) $episode[ $key ] ) . '">'
+			. esc_html__( 'Open original video', 'elementor-podcast-manager' ) . '</a></p>';
 		$out .= '</figure>';
 
 		return $out;

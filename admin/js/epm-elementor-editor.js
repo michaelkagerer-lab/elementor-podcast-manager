@@ -90,8 +90,15 @@
 			window.elementor.channels.editor.on('epm:style:inherit:' + name, function (view) {
 				var container = containerOf(view);
 				if (!container || !window.$e) { return; }
-				var settings = {}, control = container.settings.controls[name] || {};
-				settings[name] = control.type === 'slider' ? { size: '', unit: 'px', sizes: [] } :
+				var settings = {}, controls = container.settings.controls || {}, target = name;
+				var control = controls[name] || {}, device = window.elementor.channels.deviceMode.request('currentMode');
+				// New editors duplicate responsive controls in JS. Resolve the active
+				// device at click time so a mobile reset cannot erase desktop values.
+				if ((control.is_responsive || control.responsive) && device && device !== 'desktop' && controls[name + '_' + device]) {
+					target = name + '_' + device;
+					control = controls[target];
+				}
+				settings[target] = control.type === 'slider' ? { size: '', unit: 'px', sizes: [] } :
 					control.type === 'dimensions' ? { top: '', right: '', bottom: '', left: '', unit: 'px', isLinked: true } : '';
 				applySettings(container, settings);
 			});

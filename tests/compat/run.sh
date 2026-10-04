@@ -12,7 +12,7 @@ EPM_ALLOW_TEST_SEED=1 "$WP_CLI" eval-file "$ROOT/tests/fixtures/seed.php" > /dev
 if [ "${EPM_ELEMENTOR_OFF:-0}" = 1 ]; then
  "$WP_CLI" eval-file "$ROOT/tests/compat/elementor-off.php"
 else
- for suite in run admin audit-sync feed-errors import-overhead design feed frontend hosting import media widgets independent-audit ux-clarity ui-phase4; do
+ for suite in run admin audit-sync feed-errors import-overhead design feed frontend hosting import media widgets elementor-deep independent-audit ux-clarity ui-phase4; do
   EPM_ALLOW_TEST_SEED=1 "$WP_CLI" eval-file "$ROOT/tests/fixtures/seed.php" > /dev/null
   timeout 180 "$WP_CLI" eval-file "$ROOT/tests/integration/$suite.php"
  done

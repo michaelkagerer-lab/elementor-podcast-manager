@@ -110,6 +110,7 @@ final class PodcastHeroWidget extends Widget_Base {
 
 		$this->add_toggle( 'show_artwork', __( 'Artwork', 'elementor-podcast-manager' ), true );
 		$this->add_toggle( 'show_title', __( 'Title', 'elementor-podcast-manager' ), true );
+		$this->add_title_tag_control( 'h2' );
 		$this->add_toggle( 'show_description', __( 'Description', 'elementor-podcast-manager' ), true );
 		$this->add_toggle( 'show_host', __( 'Host', 'elementor-podcast-manager' ), true );
 		$this->add_toggle( 'show_cta', __( 'Call to Action', 'elementor-podcast-manager' ), false, [ 'description' => __( 'A button next to the platform links. Shown once it has a text and a link.', 'elementor-podcast-manager' ) ] );
@@ -258,7 +259,8 @@ final class PodcastHeroWidget extends Widget_Base {
 		if ( $this->toggle_on( $settings, 'show_title', true ) ) {
 			$title = (string) $podcast->get( 'title' );
 			if ( '' !== $title ) {
-				echo '<h2 class="epm-podcast-hero__title">' . esc_html( $title ) . '</h2>';
+				$tag = $this->title_tag( $settings, 'h2' );
+				echo '<' . $tag . ' class="epm-podcast-hero__title">' . esc_html( $title ) . '</' . $tag . '>';
 			}
 		}
 
@@ -272,7 +274,7 @@ final class PodcastHeroWidget extends Widget_Base {
 		if ( $this->toggle_on( $settings, 'show_description', true ) ) {
 			$description = (string) $podcast->get( 'description' );
 			if ( '' !== $description ) {
-				echo '<div class="epm-podcast-hero__description">' . wp_kses_post( wpautop( $description ) ) . '</div>';
+				echo '<div class="epm-podcast-hero__description">' . $renderer->rich_content( $description ) . '</div>';
 			}
 		}
 

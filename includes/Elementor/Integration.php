@@ -30,6 +30,7 @@ final class Integration {
 
 		add_action( 'elementor/elements/categories_registered', [ $this, 'register_category' ] );
 		add_action( 'elementor/widgets/register', [ $this, 'register_widgets' ] );
+		add_action( 'wp_ajax_epm_topic_search', [ Controls\TopicSelectControl::class, 'ajax_search' ] );
 		add_action( 'elementor/controls/register', [ $this, 'register_controls' ] );
 		add_action( 'elementor/editor/after_enqueue_scripts', [ $this, 'enqueue_editor_script' ] );
 	}
@@ -60,7 +61,7 @@ final class Integration {
 			EPM_VERSION,
 			true
 		);
-		wp_add_inline_style( 'elementor-editor', '.epm-widget-purpose { display: block; padding: 4px 8px 8px; font-size: 12px; line-height: 1.4; font-weight: 400; text-wrap: pretty; }' );
+		wp_enqueue_style( 'epm-elementor-editor', EPM_URL . 'admin/css/epm-elementor-editor.css', [ 'elementor-editor' ], EPM_VERSION );
 		$post_id = isset( $_GET['post'] ) && is_scalar( $_GET['post'] ) ? absint( $_GET['post'] ) : 0;
 		$config = [
 			'titles'       => $titles,
@@ -102,6 +103,7 @@ final class Integration {
 	 */
 	public function register_controls( \Elementor\Controls_Manager $controls_manager ): void {
 		$controls_manager->register( new Controls\EpisodeSelectControl() );
+		$controls_manager->register( new Controls\TopicSelectControl() );
 	}
 
 	/**

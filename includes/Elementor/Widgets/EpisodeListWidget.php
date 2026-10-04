@@ -164,7 +164,7 @@ final class EpisodeListWidget extends Widget_Base {
 				[
 					'label'       => __( 'Topic', 'elementor-podcast-manager' ),
 					'description' => __( 'Shows episodes with any of the chosen topics. Leave empty for all topics.', 'elementor-podcast-manager' ),
-					'type'        => Controls_Manager::SELECT2,
+					'type'        => 'epm_topic_select',
 					'multiple'    => true,
 					'label_block' => true,
 					'default'     => [],

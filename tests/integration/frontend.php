@@ -314,7 +314,8 @@ $t->test(
 		$t->assert( false !== strpos( $html, 'data-epm-video-id="dQw4w9WgXcQ"' ), 'id' );
 		$t->assert( (bool) preg_match( '/<button type="button" class="epm-video__facade" data-epm-video-play aria-label="Play video: Episode Two">/', $html ), 'play button with an accessible name' );
 		$t->assert( false === stripos( $html, '<iframe' ), 'no iframe' );
-		$t->assert( false === stripos( $html, '://www.youtube' ) && false === stripos( $html, 'youtube-nocookie' ) && false === stripos( $html, 'ytimg' ), 'no platform address' );
+		$t->assert( ! preg_match( '/(?:src|srcset|poster)=[\"\'][^\"\']*(?:youtube|vimeo|ytimg)/i', $html ), 'no resource attribute requests a video platform' );
+		$t->assert( str_contains( $html, 'href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"' ), 'an ordinary original-video link remains available without loading an embed' );
 		$t->same( [], epm_test_foreign_sources( $html ), 'every image comes from this site' );
 		$t->assert( false !== strpos( $html, 'The video loads from YouTube when you play it.' ), 'privacy note' );
 		$t->assert( false === strpos( epm()->renderer->video( $ep2, [ 'show_note' => false ] ), 'epm-video__note' ), 'note can be hidden' );

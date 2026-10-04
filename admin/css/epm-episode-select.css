@@ -1,0 +1,54 @@
+/* Inline search results stay in the panel flow, including old Elementor editors. */
+.epm-episode-select [hidden] { display: none !important; }
+.epm-episode-select .elementor-control-input-wrapper { min-width: 0; width: 100%; }
+.epm-episode-select__results {
+	list-style: none;
+	margin: 8px 0;
+	padding: 0;
+	max-height: 240px;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	border: 1px solid var(--e-a-border-color, #d5dadf);
+	border-radius: 3px;
+	background: var(--e-a-bg-default, #fff);
+}
+.epm-episode-select__results:empty { display: none; }
+.epm-episode-select__results [role="option"] {
+	margin: 0;
+	padding: 10px;
+	min-height: 44px;
+	line-height: 1.5;
+	color: var(--e-a-color-txt, #515962);
+	overflow-wrap: anywhere;
+	cursor: pointer;
+}
+.epm-episode-select__results [role="option"]:is(:hover, .is-active) {
+	background: var(--e-a-bg-hover, #e9ecef);
+	outline: 2px solid var(--e-a-color-txt, #515962);
+	outline-offset: -2px;
+}
+.epm-episode-select__results [aria-selected="true"] { font-weight: 600; }
+.epm-episode-select :is(.epm-episode-select__current, .epm-episode-select__status, .epm-episode-select__hint) {
+	margin: 8px 0;
+	line-height: 1.5;
+	overflow-wrap: anywhere;
+}
+.epm-episode-select__status:empty { display: none; }
+.epm-episode-select .elementor-button {
+	min-height: 32px;
+	margin-block: 4px;
+	white-space: normal;
+	line-height: 1.5;
+}
+.epm-episode-select .elementor-button:focus-visible {
+	outline: 2px solid var(--e-a-color-txt, #515962);
+	outline-offset: 2px;
+}
+@media (pointer: coarse) {
+	.epm-episode-select .elementor-button { min-height: 44px; }
+}
+.elementor-control-type-epm_episode_select .epm-episode-select .elementor-control-field-description {
+	color: var(--e-a-color-txt, #515962);
+	font-size: 12px;
+	font-style: normal;
+}
