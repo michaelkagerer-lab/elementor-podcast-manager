@@ -269,10 +269,11 @@ final class Assets {
 			EPM_VERSION
 		);
 
+		wp_register_script( 'epm-analytics', EPM_URL . 'assets/js/epm-analytics.js', [], EPM_VERSION, true );
 		wp_register_script(
 			'epm-player',
 			EPM_URL . 'assets/js/epm-player.js',
-			[],
+			[ 'epm-analytics' ],
 			EPM_VERSION,
 			true
 		);
@@ -292,6 +293,7 @@ final class Assets {
 			'epm-player',
 			'epmPlayer',
 			[
+				'analytics' => StudioAnalytics::client_config(),
 				// Shown as the "artist" in lock-screen / OS media controls.
 				'podcastTitle' => (string) epm()->settings->get( 'title' ),
 				// Resume each episode where the visitor stopped (browser storage).

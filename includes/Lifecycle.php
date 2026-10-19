@@ -58,6 +58,7 @@ final class Lifecycle {
 		self::each_site(
 			static function (): void {
 				Hosting::unschedule_all();
+				wp_clear_scheduled_hook( StudioAnalytics::CRON );
 				delete_option( 'rewrite_rules' );
 			},
 			$network_wide

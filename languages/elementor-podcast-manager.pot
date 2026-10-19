@@ -7290,3 +7290,67 @@ msgstr ""
 #: admin/js/epm-setup.js:1176
 msgid "Your show details have unsaved changes."
 msgstr ""
+
+#: includes/StudioAnalytics.php
+msgid "Studio Analytics"
+msgstr ""
+
+#: includes/StudioAnalytics.php
+msgid "Send daily website-player measurements to your Studio automatically. This does not include Spotify, Apple Podcasts, external downloads or unique listeners."
+msgstr ""
+
+#: includes/StudioAnalytics.php
+msgid "Pending daily snapshots: %d"
+msgstr ""
+
+#: includes/StudioAnalytics.php
+msgid "Last delivery succeeded."
+msgstr ""
+
+#: includes/StudioAnalytics.php
+msgid "Delivery failed. Check the key, Studio RSS import and network connection. Pending measurements are retained and retried."
+msgstr ""
+
+#: includes/StudioAnalytics.php
+msgid "Enable measurement and hourly delivery"
+msgstr ""
+
+#: includes/StudioAnalytics.php
+msgid "Studio connection key"
+msgstr ""
+
+#: includes/StudioAnalytics.php
+msgid "Create a key in Studio settings and paste it here."
+msgstr ""
+
+#: includes/StudioAnalytics.php
+msgid "A key is stored. Leave empty to keep it."
+msgstr ""
+
+#: includes/StudioAnalytics.php
+msgid "Measurement starts only after your consent manager grants window.epmAnalyticsConsent = true. It respects Do Not Track and Global Privacy Control. No analytics cookies or persistent browser identifiers are set. A playback counts after 10 seconds of actual playback; repeated page visits are separate sessions."
+msgstr ""
+
+#: includes/StudioAnalytics.php
+msgid "Save connection"
+msgstr ""
+
+#: includes/StudioAnalytics.php
+msgid "Send now / test connection"
+msgstr ""
+
+#: includes/StudioAnalytics.php
+msgid "Disconnect and stop measurement"
+msgstr ""
+
+#: includes/StudioAnalytics.php
+msgid "Invalid connection key."
+msgstr ""
+
+#: includes/StudioAnalytics.php
+msgid "Insufficient permissions."
+msgstr ""
+
+#: includes/StudioAnalytics.php
+msgid "For Borlabs Cookie 3, create a statistics service with ID epm-studio-analytics. Its consent is detected automatically; no custom opt-in code is needed."
+msgstr ""

@@ -110,6 +110,7 @@ final class Plugin {
 		$this->feed->init();
 		$this->assets->init();
 		( new Hosting() )->init();
+		( new StudioAnalytics() )->init();
 		( new ImportJob() )->init();
 		Upgrade::init();
 		Cli::register();
