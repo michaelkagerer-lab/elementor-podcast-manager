@@ -510,6 +510,7 @@
 	 * Runs before the views on every event.
 	 */
 	PlaybackController.prototype._syncPage = function (eventName) {
+		document.dispatchEvent(new CustomEvent('epm:playback', { detail: { episodeId: this.episodeId, event: eventName, audio: this.audio } }));
 		if (eventName === 'play' || eventName === 'pause' || eventName === 'ended' ||
 			eventName === 'error' || eventName === 'source') {
 			syncCardButtons(this.episodeId);

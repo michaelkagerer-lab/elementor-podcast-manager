@@ -50,6 +50,7 @@ $epm_uninstall_site = static function (): void {
 	delete_option( 'epm_import_job' );
 	delete_option( 'epm_import_lock' );
 	delete_option( 'epm_activation_redirect' );
+	wp_clear_scheduled_hook( 'epm_studio_analytics_sync' );
 
 	$delete = defined( 'EPM_DELETE_DATA' ) && EPM_DELETE_DATA;
 
@@ -59,6 +60,11 @@ $epm_uninstall_site = static function (): void {
 		return;
 	}
 
+
+	global $wpdb;
+	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}epm_studio_sessions" );
+	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}epm_studio_daily" );
+	foreach ( [ 'epm_studio_schema', 'epm_studio_analytics', 'epm_studio_status' ] as $option ) { delete_option( $option ); }
 
 	// The plugin is not loaded here: register the Topics taxonomy so that
 	// wp_delete_post() removes each episode's topic relationships.

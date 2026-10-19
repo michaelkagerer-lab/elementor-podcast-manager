@@ -8867,3 +8867,67 @@ msgstr "Das Video konnte nicht geladen werden. Versuche es erneut oder öffne da
 #: includes/Renderer.php:972
 msgid "Open original video"
 msgstr "Originalvideo öffnen"
+
+#: includes/StudioAnalytics.php
+msgid "Studio Analytics"
+msgstr "Studio-Analytics"
+
+#: includes/StudioAnalytics.php
+msgid "Send daily website-player measurements to your Studio automatically. This does not include Spotify, Apple Podcasts, external downloads or unique listeners."
+msgstr "Sende Tageswerte des Website-Players automatisch an dein Studio. Spotify, Apple Podcasts, externe Downloads und eindeutige Hörer sind darin nicht enthalten."
+
+#: includes/StudioAnalytics.php
+msgid "Pending daily snapshots: %d"
+msgstr "Ausstehende Tageswerte: %d"
+
+#: includes/StudioAnalytics.php
+msgid "Last delivery succeeded."
+msgstr "Letzte Übertragung erfolgreich."
+
+#: includes/StudioAnalytics.php
+msgid "Delivery failed. Check the key, Studio RSS import and network connection. Pending measurements are retained and retried."
+msgstr "Übertragung fehlgeschlagen. Prüfe Schlüssel, RSS-Import im Studio und Netzwerkverbindung. Ausstehende Messwerte bleiben erhalten und werden erneut gesendet."
+
+#: includes/StudioAnalytics.php
+msgid "Enable measurement and hourly delivery"
+msgstr "Messung und stündliche Übertragung aktivieren"
+
+#: includes/StudioAnalytics.php
+msgid "Studio connection key"
+msgstr "Studio-Verbindungsschlüssel"
+
+#: includes/StudioAnalytics.php
+msgid "Create a key in Studio settings and paste it here."
+msgstr "Erstelle einen Schlüssel in den Studio-Einstellungen und füge ihn hier ein."
+
+#: includes/StudioAnalytics.php
+msgid "A key is stored. Leave empty to keep it."
+msgstr "Ein Schlüssel ist gespeichert. Leer lassen, um ihn beizubehalten."
+
+#: includes/StudioAnalytics.php
+msgid "Measurement starts only after your consent manager grants window.epmAnalyticsConsent = true. It respects Do Not Track and Global Privacy Control. No analytics cookies or persistent browser identifiers are set. A playback counts after 10 seconds of actual playback; repeated page visits are separate sessions."
+msgstr "Die Messung startet erst nach Freigabe durch deinen Consent-Manager mit window.epmAnalyticsConsent = true. Do Not Track und Global Privacy Control werden berücksichtigt. Es werden keine Analytics-Cookies oder dauerhaften Browserkennungen gesetzt. Eine Wiedergabe zählt nach zehn tatsächlich abgespielten Sekunden; erneute Seitenbesuche sind eigene Sitzungen."
+
+#: includes/StudioAnalytics.php
+msgid "Save connection"
+msgstr "Verbindung speichern"
+
+#: includes/StudioAnalytics.php
+msgid "Send now / test connection"
+msgstr "Jetzt senden / Verbindung testen"
+
+#: includes/StudioAnalytics.php
+msgid "Disconnect and stop measurement"
+msgstr "Verbindung trennen und Messung stoppen"
+
+#: includes/StudioAnalytics.php
+msgid "Invalid connection key."
+msgstr "Ungültiger Verbindungsschlüssel."
+
+#: includes/StudioAnalytics.php
+msgid "Insufficient permissions."
+msgstr "Keine ausreichende Berechtigung."
+
+#: includes/StudioAnalytics.php
+msgid "For Borlabs Cookie 3, create a statistics service with ID epm-studio-analytics. Its consent is detected automatically; no custom opt-in code is needed."
+msgstr "Für Borlabs Cookie 3 einen Statistik-Dienst mit der ID epm-studio-analytics anlegen. Seine Einwilligung wird automatisch erkannt; eigener Opt-in-Code ist nicht nötig."
