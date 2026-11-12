@@ -24,15 +24,15 @@ class PackageTests(unittest.TestCase):
                 self.assertEqual(sorted(names), names)
                 for name in ("elementor-podcast-manager.php", "uninstall.php", "readme.txt", "LICENSE", "NOTICE"):
                     self.assertIn(f"elementor-podcast-manager/{name}", names)
-                for name in ("includes/Elementor/Controls/TopicSelectControl.php", "admin/js/epm-topic-select.js", "admin/css/epm-elementor-editor.css"):
+                for name in ("admin/views/partials/editorial-queue.php", "includes/Elementor/Controls/TopicSelectControl.php", "admin/js/epm-topic-select.js", "admin/css/epm-elementor-editor.css"):
                     self.assertIn(f"elementor-podcast-manager/{name}", names)
                 self.assertTrue(any("/includes/" in name for name in names))
                 self.assertTrue(any("/assets/" in name for name in names))
                 plugin = archive.read("elementor-podcast-manager/elementor-podcast-manager.php").decode()
                 readme = archive.read("elementor-podcast-manager/readme.txt").decode()
-                self.assertIn("Version:           1.5.0-rc.1", plugin)
-                self.assertIn("define( 'EPM_VERSION', '1.5.0-rc.1' )", plugin)
-                self.assertIn("Stable tag: 1.5.0-rc.1", readme)
+                self.assertIn("Version:           1.5.0-rc.2", plugin)
+                self.assertIn("define( 'EPM_VERSION', '1.5.0-rc.2' )", plugin)
+                self.assertIn("Stable tag: 1.5.0-rc.2", readme)
                 for name in names:
                     self.assertNotRegex(name, r"/(tests|docs|tools|node_modules|screenshots|\.github|\.git)/")
                     self.assertNotIn("seed.php", name)

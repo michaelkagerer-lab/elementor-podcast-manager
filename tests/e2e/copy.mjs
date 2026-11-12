@@ -3,7 +3,7 @@ import { BASE, assert, finish, launch, newPage, login, section } from './lib.mjs
 
 const browser = await launch();
 try {
-	for (const screen of ['setup', 'hosting', 'distribution']) {
+	for (const screen of ['dashboard', 'setup', 'hosting', 'distribution']) {
 		await section(`Feed copy on ${screen}`, async () => {
 			const page = await newPage(browser);
 			await login(page);

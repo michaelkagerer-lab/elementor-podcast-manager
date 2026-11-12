@@ -382,15 +382,41 @@ final class Admin {
 	}
 
 	/**
-	 * Dashboard screen.
+	 * A bounded editorial queue. Unpublished work never crosses author permissions.
+	 * Reading this queue does not normalize metadata or change episode identifiers.
 	 *
-	 * @return void
+	 * @param string $status draft or future.
+	 * @return \WP_Post[]
 	 */
+	public static function dashboard_queue( string $status ): array {
+		if ( ! Capabilities::can_manage_episodes() || ! in_array( $status, [ 'draft', 'future' ], true ) ) {
+			return [];
+		}
+		$type = get_post_type_object( EpisodePostType::CPT );
+		$args = [
+			'post_type' => EpisodePostType::CPT,
+			'post_status' => $status,
+			'posts_per_page' => 'future' === $status ? 3 : 5,
+			'orderby' => 'future' === $status ? 'date' : 'modified',
+			'order' => 'future' === $status ? 'ASC' : 'DESC',
+			'no_found_rows' => true,
+			'update_post_term_cache' => false,
+			'update_post_meta_cache' => false,
+		];
+		if ( ! current_user_can( $type->cap->edit_others_posts ) ) {
+			$args['author'] = get_current_user_id();
+		}
+		return array_values( array_filter( get_posts( $args ), static fn( $post ) => current_user_can( 'edit_post', $post->ID ) ) );
+	}
+
+	/** Render the native podcast dashboard. */
 	public function render_dashboard(): void {
 		if ( ! Capabilities::can_manage_episodes() ) {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'elementor-podcast-manager' ), '', [ 'response' => 403 ] );
 		}
 
+		$work_drafts = self::dashboard_queue( 'draft' );
+		$work_scheduled = self::dashboard_queue( 'future' );
 		$settings    = epm()->settings;
 		$latest      = epm()->episodes->get_latest();
 		$latest_data = $latest ? epm()->episodes->get_data( $latest ) : null;

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0-rc.2 (unreleased review candidate)
+
+- Bring recent drafts and upcoming scheduled episodes into the dashboard, with permission-aware edit links, catalog search and timezone-aware release dates.
+- Resume unfinished work directly; make status counts actionable and keep pending reviews separate from drafts.
+- Restore the last removed chapter or link with keyboard-accessible Undo, preserving edits to other rows.
+- Reduce duplicate setup instructions, improve narrow distribution layout, and supply German translations.
+- Retain the opt-in Studio Analytics integration from rc.1; no new episode schema or frontend style changes.
+
 ## 1.4.0
 
 ### Interface improvements

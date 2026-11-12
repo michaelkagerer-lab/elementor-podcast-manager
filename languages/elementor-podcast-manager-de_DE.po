@@ -8931,3 +8931,50 @@ msgstr "Keine ausreichende Berechtigung."
 #: includes/StudioAnalytics.php
 msgid "For Borlabs Cookie 3, create a statistics service with ID epm-studio-analytics. Its consent is detected automatically; no custom opt-in code is needed."
 msgstr "Für Borlabs Cookie 3 einen Statistik-Dienst mit der ID epm-studio-analytics anlegen. Seine Einwilligung wird automatisch erkannt; eigener Opt-in-Code ist nicht nötig."
+
+msgid "Pick up where you left off"
+msgstr "Dort weitermachen, wo du aufgehört hast"
+
+msgid "Continue editing"
+msgstr "Weiterbearbeiten"
+
+msgid "Your episodes"
+msgstr "Deine Episoden"
+
+msgid "Search"
+msgstr "Suchen"
+
+msgid "Recently edited drafts"
+msgstr "Zuletzt bearbeitete Entwürfe"
+
+msgid "Coming up next"
+msgstr "Als Nächstes geplant"
+
+msgid "All drafts"
+msgstr "Alle Entwürfe"
+
+msgid "All scheduled episodes"
+msgstr "Alle geplanten Episoden"
+
+#, php-format
+msgid "Scheduled for %1$s (%2$s)"
+msgstr "Geplant für %1$s (%2$s)"
+
+#, php-format
+msgid "Edited %s"
+msgstr "Bearbeitet am %s"
+
+msgid "No drafts or scheduled episodes to edit. Start your next episode when you are ready."
+msgstr "Keine Entwürfe oder geplanten Episoden zum Bearbeiten. Starte deine nächste Episode, wenn du bereit bist."
+
+msgid "Row removed. Save to keep this change."
+msgstr "Zeile entfernt. Speichere, um diese Änderung zu übernehmen."
+
+msgid "Undo last removal"
+msgstr "Letztes Entfernen rückgängig machen"
+
+msgid "Row restored. Save to keep this change."
+msgstr "Zeile wiederhergestellt. Speichere, um diese Änderung zu übernehmen."
+
+msgid "Undo last removal is available."
+msgstr "Du kannst das letzte Entfernen rückgängig machen."

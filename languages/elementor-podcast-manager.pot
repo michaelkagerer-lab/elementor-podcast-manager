@@ -7354,3 +7354,50 @@ msgstr ""
 #: includes/StudioAnalytics.php
 msgid "For Borlabs Cookie 3, create a statistics service with ID epm-studio-analytics. Its consent is detected automatically; no custom opt-in code is needed."
 msgstr ""
+
+msgid "Pick up where you left off"
+msgstr ""
+
+msgid "Continue editing"
+msgstr ""
+
+msgid "Your episodes"
+msgstr ""
+
+msgid "Search"
+msgstr ""
+
+msgid "Recently edited drafts"
+msgstr ""
+
+msgid "Coming up next"
+msgstr ""
+
+msgid "All drafts"
+msgstr ""
+
+msgid "All scheduled episodes"
+msgstr ""
+
+#, php-format
+msgid "Scheduled for %1$s (%2$s)"
+msgstr ""
+
+#, php-format
+msgid "Edited %s"
+msgstr ""
+
+msgid "No drafts or scheduled episodes to edit. Start your next episode when you are ready."
+msgstr ""
+
+msgid "Row removed. Save to keep this change."
+msgstr ""
+
+msgid "Undo last removal"
+msgstr ""
+
+msgid "Row restored. Save to keep this change."
+msgstr ""
+
+msgid "Undo last removal is available."
+msgstr ""

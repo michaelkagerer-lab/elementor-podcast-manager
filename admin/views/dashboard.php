@@ -79,6 +79,16 @@ $epm_status_label = [
 		$epm_next_text = __( 'Choose hosting, add your show details and create your podcast page.', 'elementor-podcast-manager' );
 		$epm_next_label = __( 'Continue setup', 'elementor-podcast-manager' );
 		$epm_next_url = admin_url( 'admin.php?page=epm-setup' );
+	} elseif ( $epm_problem && 'error' === $epm_problem['status'] && ! $hosting['external'] ) {
+		$epm_next_title = __( 'Review the episodes and feed before submitting', 'elementor-podcast-manager' );
+		$epm_next_text = $epm_problem['message'];
+		$epm_next_label = __( 'Review feed checks', 'elementor-podcast-manager' );
+		$epm_next_url = '#epm-dash-ready-title';
+	} elseif ( ! empty( $work_drafts ) ) {
+		$epm_next_title = __( 'Pick up where you left off', 'elementor-podcast-manager' );
+		$epm_next_text = get_the_title( $work_drafts[0] ) ?: __( 'Untitled episode', 'elementor-podcast-manager' );
+		$epm_next_label = __( 'Continue editing', 'elementor-podcast-manager' );
+		$epm_next_url = get_edit_post_link( $work_drafts[0]->ID, 'raw' );
 	} elseif ( $epm_problem && ! $hosting['external'] ) {
 		$epm_next_title = __( 'Review the episodes and feed before submitting', 'elementor-podcast-manager' );
 		$epm_next_text = $epm_problem['message'];
@@ -91,22 +101,6 @@ $epm_status_label = [
 		$epm_next_url = admin_url( 'admin.php?page=epm-distribution' ) . '#epm-dir-' . rawurlencode( $distribution['next'] );
 	}
 	?>
-	<section class="epm-dashboard__next" data-epm-next-action aria-labelledby="epm-next-title">
-		<div><h2 id="epm-next-title"><?php echo esc_html( $epm_next_title ); ?></h2><p><?php echo esc_html( $epm_next_text ); ?></p></div>
-		<a class="button button-primary" href="<?php echo esc_url( $epm_next_url ); ?>"><?php echo esc_html( $epm_next_label ); ?></a>
-	</section>
-	<?php if ( $needs_setup ) : ?>
-		<section class="epm-card epm-dashboard__setup" aria-labelledby="epm-dash-setup-title" data-epm-setup-card>
-			<div>
-				<h2 class="epm-card__title" id="epm-dash-setup-title"><?php esc_html_e( 'Set up your podcast', 'elementor-podcast-manager' ); ?></h2>
-				<p class="epm-card__lede"><?php esc_html_e( 'Choose hosting, add your show details and artwork, then create your podcast page. Importing an existing catalog and moving its media can take longer; progress is saved as you go.', 'elementor-podcast-manager' ); ?></p>
-			</div>
-			<p class="epm-dashboard__setup-actions">
-				<a class="button button-large" href="<?php echo esc_url( admin_url( 'admin.php?page=epm-setup' ) ); ?>"><?php esc_html_e( 'Start setup', 'elementor-podcast-manager' ); ?></a>
-				<button type="button" class="epm-button-link epm-button-link--muted" data-epm-setup-dismiss data-nonce="<?php echo esc_attr( wp_create_nonce( 'epm_setup' ) ); ?>"><?php esc_html_e( 'Skip for now', 'elementor-podcast-manager' ); ?></button>
-			</p>
-		</section>
-	<?php endif; ?>
 
 	<section class="epm-card epm-dashboard__show" aria-labelledby="epm-dash-show-title">
 		<div class="epm-dashboard__art">
@@ -137,17 +131,20 @@ $epm_status_label = [
 			</p>
 			<ul class="epm-facts">
 				<li>
-					<strong><?php echo esc_html( number_format_i18n( $count ) ); ?></strong>
-					<span><?php echo esc_html( _n( 'published episode', 'published episodes', $count, 'elementor-podcast-manager' ) ); ?></span>
+					<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=podcast_episode&post_status=publish' ) ); ?>"><strong><?php echo esc_html( number_format_i18n( $count ) ); ?></strong>
+					<span><?php echo esc_html( _n( 'published episode', 'published episodes', $count, 'elementor-podcast-manager' ) ); ?></span></a>
 				</li>
 				<li>
-					<strong><?php echo esc_html( number_format_i18n( $drafts ) ); ?></strong>
-					<span><?php echo esc_html( _n( 'draft', 'drafts', $drafts, 'elementor-podcast-manager' ) ); ?></span>
+					<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=podcast_episode&post_status=draft' ) ); ?>"><strong><?php echo esc_html( number_format_i18n( (int) ( $counts->draft ?? 0 ) ) ); ?></strong>
+					<span><?php echo esc_html( _n( 'draft', 'drafts', (int) ( $counts->draft ?? 0 ), 'elementor-podcast-manager' ) ); ?></span></a>
 				</li>
 				<li>
-					<strong><?php echo esc_html( number_format_i18n( $scheduled ) ); ?></strong>
-					<span><?php esc_html_e( 'scheduled', 'elementor-podcast-manager' ); ?></span>
+					<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=podcast_episode&post_status=future' ) ); ?>"><strong><?php echo esc_html( number_format_i18n( $scheduled ) ); ?></strong>
+					<span><?php esc_html_e( 'scheduled', 'elementor-podcast-manager' ); ?></span></a>
 				</li>
+				<?php if ( ! empty( $counts->pending ) ) : ?>
+				<li><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=podcast_episode&post_status=pending' ) ); ?>"><strong><?php echo esc_html( number_format_i18n( $counts->pending ) ); ?></strong><span><?php esc_html_e( 'Pending review', 'elementor-podcast-manager' ); ?></span></a></li>
+				<?php endif; ?>
 			</ul>
 		</div>
 		<div class="epm-dashboard__show-actions">
@@ -162,7 +159,89 @@ $epm_status_label = [
 		</div>
 	</section>
 
+	<section class="epm-dashboard__next" data-epm-next-action aria-labelledby="epm-next-title"<?php echo $needs_setup ? ' data-epm-setup-card' : ''; ?>>
+		<div><h2 id="epm-next-title"><?php echo esc_html( $epm_next_title ); ?></h2><p><?php echo esc_html( $epm_next_text ); ?></p></div>
+		<div class="epm-dashboard__setup-actions"><a class="button button-primary" href="<?php echo esc_url( $epm_next_url ); ?>"><?php echo esc_html( $epm_next_label ); ?></a>
+		<?php if ( $needs_setup ) : ?><button type="button" class="epm-button-link epm-button-link--muted" data-epm-setup-dismiss data-nonce="<?php echo esc_attr( wp_create_nonce( 'epm_setup' ) ); ?>"><?php esc_html_e( 'Skip for now', 'elementor-podcast-manager' ); ?></button><?php endif; ?></div>
+	</section>
+
+	<?php require EPM_PATH . 'admin/views/partials/editorial-queue.php'; ?>
+
 	<div class="epm-grid epm-dashboard__grid">
+		<!-- Latest episode -->
+		<section class="epm-card" aria-labelledby="epm-dash-latest-title">
+			<h2 class="epm-card__title" id="epm-dash-latest-title"><?php esc_html_e( 'Latest episode', 'elementor-podcast-manager' ); ?></h2>
+			<?php if ( $latest_data ) : ?>
+				<?php
+				$epm_audio   = \EPM\Admin::audio_status( $latest_data );
+				$epm_thumb   = '' !== (string) $latest_data['artwork_url']
+					? (string) $latest_data['artwork_url']
+					: ( (int) $latest_data['artwork_id'] > 0 ? (string) wp_get_attachment_image_url( (int) $latest_data['artwork_id'], 'thumbnail' ) : '' );
+				$epm_meta    = array_filter(
+					[
+						(string) $latest_data['date'],
+						(string) $latest_data['duration'],
+					]
+				);
+				$epm_edit    = get_edit_post_link( $latest );
+				$epm_number  = (string) $latest_data['episode_number'];
+				?>
+				<div class="epm-dashboard__body">
+					<div class="epm-dashboard__episode">
+						<?php if ( '' !== $epm_thumb ) : ?>
+							<img class="epm-dashboard__episode-art" src="<?php echo esc_url( $epm_thumb ); ?>" alt="" width="64" height="64" loading="lazy" />
+						<?php else : ?>
+							<span class="epm-dashboard__episode-art" aria-hidden="true"></span>
+						<?php endif; ?>
+						<div>
+							<p class="epm-dashboard__episode-title">
+								<?php if ( $epm_edit ) : ?>
+									<a href="<?php echo esc_url( $epm_edit ); ?>"><?php echo esc_html( (string) $latest_data['title'] ); ?></a>
+								<?php else : ?>
+									<?php echo esc_html( (string) $latest_data['title'] ); ?>
+								<?php endif; ?>
+							</p>
+							<p class="epm-dashboard__meta">
+								<?php
+								if ( '' !== $epm_number ) {
+									/* translators: %s: episode number */
+									echo esc_html( sprintf( __( 'Episode %s', 'elementor-podcast-manager' ), $epm_number ) ) . ' · ';
+								}
+								echo esc_html( implode( ' · ', $epm_meta ) );
+								?>
+							</p>
+							<span class="epm-status epm-status--<?php echo esc_attr( $epm_audio['key'] ); ?>"><?php echo esc_html( $epm_audio['label'] ); ?></span>
+						</div>
+					</div>
+					<?php if ( '' !== $epm_audio['title'] ) : ?>
+						<p class="epm-muted"><?php echo esc_html( $epm_audio['title'] ); ?></p>
+					<?php endif; ?>
+				</div>
+				<div class="epm-card__footer">
+					<?php if ( $epm_edit ) : ?>
+						<a class="button" href="<?php echo esc_url( $epm_edit ); ?>"><?php esc_html_e( 'Edit episode', 'elementor-podcast-manager' ); ?></a>
+					<?php endif; ?>
+					<a class="epm-button-link" href="<?php echo esc_url( (string) $latest_data['url'] ); ?>"><?php esc_html_e( 'View episode', 'elementor-podcast-manager' ); ?></a>
+				</div>
+			<?php else : ?>
+				<p class="epm-dashboard__empty">
+					<?php
+					echo esc_html(
+						$hosting['external']
+							? __( 'No episodes yet. Import your show from your host, or add an episode here.', 'elementor-podcast-manager' )
+							: __( 'No episodes yet. Add your first one: upload the audio, give it a title and publish. It appears in your feed right away.', 'elementor-podcast-manager' )
+					);
+					?>
+				</p>
+				<div class="epm-card__footer">
+					<a class="button" href="<?php echo esc_url( $epm_new_episode ); ?>"><?php esc_html_e( 'Add your first episode', 'elementor-podcast-manager' ); ?></a>
+					<?php if ( $can_manage ) : ?>
+						<a class="epm-button-link" href="<?php echo esc_url( admin_url( 'admin.php?page=epm-hosting' ) ); ?>"><?php esc_html_e( 'Import episodes from a feed', 'elementor-podcast-manager' ); ?></a>
+					<?php endif; ?>
+				</div>
+			<?php endif; ?>
+		</section>
+
 		<!-- Hosting -->
 		<section class="epm-card" aria-labelledby="epm-dash-hosting-title">
 			<h2 class="epm-card__title" id="epm-dash-hosting-title"><?php esc_html_e( 'Hosting', 'elementor-podcast-manager' ); ?></h2>
@@ -269,79 +348,7 @@ $epm_status_label = [
 			<?php endif; ?>
 		</section>
 
-		<!-- Latest episode -->
-		<section class="epm-card" aria-labelledby="epm-dash-latest-title">
-			<h2 class="epm-card__title" id="epm-dash-latest-title"><?php esc_html_e( 'Latest episode', 'elementor-podcast-manager' ); ?></h2>
-			<?php if ( $latest_data ) : ?>
-				<?php
-				$epm_audio   = \EPM\Admin::audio_status( $latest_data );
-				$epm_thumb   = '' !== (string) $latest_data['artwork_url']
-					? (string) $latest_data['artwork_url']
-					: ( (int) $latest_data['artwork_id'] > 0 ? (string) wp_get_attachment_image_url( (int) $latest_data['artwork_id'], 'thumbnail' ) : '' );
-				$epm_meta    = array_filter(
-					[
-						(string) $latest_data['date'],
-						(string) $latest_data['duration'],
-					]
-				);
-				$epm_edit    = get_edit_post_link( $latest );
-				$epm_number  = (string) $latest_data['episode_number'];
-				?>
-				<div class="epm-dashboard__body">
-					<div class="epm-dashboard__episode">
-						<?php if ( '' !== $epm_thumb ) : ?>
-							<img class="epm-dashboard__episode-art" src="<?php echo esc_url( $epm_thumb ); ?>" alt="" width="64" height="64" loading="lazy" />
-						<?php else : ?>
-							<span class="epm-dashboard__episode-art" aria-hidden="true"></span>
-						<?php endif; ?>
-						<div>
-							<p class="epm-dashboard__episode-title">
-								<?php if ( $epm_edit ) : ?>
-									<a href="<?php echo esc_url( $epm_edit ); ?>"><?php echo esc_html( (string) $latest_data['title'] ); ?></a>
-								<?php else : ?>
-									<?php echo esc_html( (string) $latest_data['title'] ); ?>
-								<?php endif; ?>
-							</p>
-							<p class="epm-dashboard__meta">
-								<?php
-								if ( '' !== $epm_number ) {
-									/* translators: %s: episode number */
-									echo esc_html( sprintf( __( 'Episode %s', 'elementor-podcast-manager' ), $epm_number ) ) . ' · ';
-								}
-								echo esc_html( implode( ' · ', $epm_meta ) );
-								?>
-							</p>
-							<span class="epm-status epm-status--<?php echo esc_attr( $epm_audio['key'] ); ?>"><?php echo esc_html( $epm_audio['label'] ); ?></span>
-						</div>
-					</div>
-					<?php if ( '' !== $epm_audio['title'] ) : ?>
-						<p class="epm-muted"><?php echo esc_html( $epm_audio['title'] ); ?></p>
-					<?php endif; ?>
-				</div>
-				<div class="epm-card__footer">
-					<?php if ( $epm_edit ) : ?>
-						<a class="button" href="<?php echo esc_url( $epm_edit ); ?>"><?php esc_html_e( 'Edit episode', 'elementor-podcast-manager' ); ?></a>
-					<?php endif; ?>
-					<a class="epm-button-link" href="<?php echo esc_url( (string) $latest_data['url'] ); ?>"><?php esc_html_e( 'View episode', 'elementor-podcast-manager' ); ?></a>
-				</div>
-			<?php else : ?>
-				<p class="epm-dashboard__empty">
-					<?php
-					echo esc_html(
-						$hosting['external']
-							? __( 'No episodes yet. Import your show from your host, or add an episode here.', 'elementor-podcast-manager' )
-							: __( 'No episodes yet. Add your first one: upload the audio, give it a title and publish. It appears in your feed right away.', 'elementor-podcast-manager' )
-					);
-					?>
-				</p>
-				<div class="epm-card__footer">
-					<a class="button" href="<?php echo esc_url( $epm_new_episode ); ?>"><?php esc_html_e( 'Add your first episode', 'elementor-podcast-manager' ); ?></a>
-					<?php if ( $can_manage ) : ?>
-						<a class="epm-button-link" href="<?php echo esc_url( admin_url( 'admin.php?page=epm-hosting' ) ); ?>"><?php esc_html_e( 'Import episodes from a feed', 'elementor-podcast-manager' ); ?></a>
-					<?php endif; ?>
-				</div>
-			<?php endif; ?>
-		</section>
+
 	</div>
 
 	<section class="epm-card epm-dashboard__readiness" aria-labelledby="epm-dash-ready-title">

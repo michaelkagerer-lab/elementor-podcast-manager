@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "project": {
+    "name": "Elementor Podcast Manager",
+    "productType": "WordPress podcast publishing plugin",
+    "stack": [
+      "PHP",
+      "WordPress",
+      "jQuery"
+    ]
+  },
+  "sources": {
+    "tokens": [
+      "admin/css/epm-app.css",
+      "assets/css/epm-frontend.css"
+    ],
+    "components": [],
+    "assets": [
+      "assets"
+    ],
+    "instructions": [
+      "DESIGN.md",
+      "AGENTS.md",
+      "CLAUDE.md"
+    ]
+  },
+  "design": {
+    "colorMode": "unknown",
+    "colors": {},
+    "typography": {},
+    "spacing": {},
+    "radius": {},
+    "shadows": {},
+    "motion": {},
+    "density": "unknown"
+  },
+  "components": {
+    "installed": [],
+    "preferredPrimitives": [],
+    "patterns": []
+  },
+  "constraints": {
+    "must": [
+      "Native WordPress admin",
+      "Preserve stored frontend designs, feeds, GUIDs and URLs",
+      "No new frontend dependency"
+    ],
+    "avoid": []
+  },
+  "decisions": [
+    {
+      "decision": "Use a bounded editorial queue, native catalog search and explicit status links, inspired by Mobbin Kajabi and 21st Table with Filters. Adapt structure only; do not add React/TanStack to WordPress.",
+      "sources": [
+        "https://mobbin.com/screens/8f05c696-c47c-4754-bef7-7ac629fa02b2",
+        "https://21st.dev/@felipemenezes098/components/table-12"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "fact": "project.instructions",
+      "source": "AGENTS.md"
+    },
+    {
+      "fact": "project.instructions",
+      "source": "CLAUDE.md"
+    },
+    {
+      "fact": "project.instructions",
+      "source": "DESIGN.md"
+    }
+  ],
+  "generatedAt": "2026-11-12T04:12:42.941Z"
+}

@@ -735,6 +735,41 @@
 		speak(wrap.data('epm-msg-added'));
 	});
 
+	// Keep only the last removed row, outside the submitted form. Other edits
+	// remain untouched when restoring it; there is no timeout to race against.
+	function clearRemovalUndo(wrap) {
+		var previous = wrap.data('epm-removed-row');
+		if (previous) {
+			previous.row.remove();
+		}
+		wrap.removeData('epm-removed-row');
+		wrap.children('[data-epm-removal-undo]').remove();
+	}
+
+	function rememberRemovedRow(wrap, row) {
+		clearRemovalUndo(wrap);
+		wrap.data('epm-removed-row', { row: row, index: rowsOf(wrap).index(row) });
+		var notice = $('<div class="epm-repeat-undo" data-epm-removal-undo />');
+		notice.append($('<span />').text(__('Row removed. Save to keep this change.', 'elementor-podcast-manager')));
+		notice.append($('<button type="button" class="button" data-epm-undo-remove />').text(__('Undo last removal', 'elementor-podcast-manager')));
+		wrap.append(notice);
+		row.detach();
+	}
+
+	$(document).on('click', '[data-epm-undo-remove]', function () {
+		var wrap = $(this).closest('[data-epm-repeat]');
+		var removed = wrap.data('epm-removed-row');
+		if (!removed) { return; }
+		var before = rowsOf(wrap).eq(removed.index);
+		if (before.length) { removed.row.insertBefore(before); }
+		else { wrap.find('[data-epm-repeat-rows]').first().append(removed.row); }
+		wrap.removeData('epm-removed-row');
+		wrap.children('[data-epm-removal-undo]').remove();
+		updateOrderButtons(wrap);
+		removed.row.find('input, select').first().trigger('focus');
+		speak(__('Row restored. Save to keep this change.', 'elementor-podcast-manager'));
+	});
+
 	$(document).on('click', '[data-epm-repeat-remove]', function (e) {
 		e.preventDefault();
 		var row = $(this).closest('[data-epm-repeat-row]');
@@ -743,14 +778,14 @@
 		if (!target.length) {
 			target = row.prev('[data-epm-repeat-row]');
 		}
-		row.remove();
+		rememberRemovedRow(wrap, row);
 		updateOrderButtons(wrap);
 		if (target.length) {
 			target.find('input, select').first().trigger('focus');
 		} else {
 			wrap.find('[data-epm-repeat-add]').trigger('focus');
 		}
-		speak(wrap.data('epm-msg-removed'));
+		speak(String(wrap.data('epm-msg-removed') || '') + ' ' + __('Undo last removal is available.', 'elementor-podcast-manager'));
 	});
 
 	/**
@@ -1018,6 +1053,7 @@
 		var existing = rowsWithContent(wrap);
 		var removed = (replace && existing.length) ? existing.length : 0;
 		if (replace || !existing.length) {
+			clearRemovalUndo(wrap);
 			rowsOf(wrap).remove();
 		}
 
