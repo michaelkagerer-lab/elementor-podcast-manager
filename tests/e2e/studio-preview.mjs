@@ -1,0 +1,32 @@
+import {launch,login,BASE,assert,finish,php} from './lib.mjs';
+import AxeBuilder from '@axe-core/playwright';
+import fs from 'node:fs';
+if (!php("echo wp_json_encode(is_file(dirname(rtrim(ABSPATH, '/')).'/.epm-test-site') && wp_get_environment_type() !== 'production');")) throw new Error('Marked disposable site required.');
+const output=process.env.EPM_REVIEW_DIR || 'screenshots';fs.mkdirSync(output,{recursive:true});
+const browser=await launch();const context=await browser.newContext();const page=await context.newPage();await login(page);await page.goto(BASE+'/wp-admin/admin.php?page=epm-dashboard');
+assert(await page.locator('.epm-studio__published li').count()<=6,'published shelf stays bounded to six episodes');
+assert(await page.locator('.epm-studio .button-primary').count()===1,'one primary publishing action');
+assert(await page.locator('.epm-studio__audio').getAttribute('preload')==='none','preview does not preload podcast audio');
+assert(await page.locator('.epm-studio__audio').isHidden(),'unloaded native zero-duration controls are hidden');
+await page.locator('[data-epm-preview-play]').focus();await page.keyboard.press('Enter');
+await page.waitForFunction(()=>document.querySelector('.epm-studio__audio')?.currentTime>1,{},{timeout:45000});
+assert(true,'dashboard preview plays original podcast audio');
+await page.locator('.epm-studio__audio').evaluate(a=>a.pause());
+await page.reload();const source=await page.locator('.epm-studio__audio').getAttribute('src');await page.route(source,r=>r.abort());await page.locator('[data-epm-preview-play]').click();await page.locator('[data-epm-preview-error]').waitFor({state:'visible'});
+assert(await page.locator('[data-epm-preview-play]').isEnabled(),'failed audio offers enabled Retry');
+await page.unroute(source);await page.locator('[data-epm-preview-play]').click();await page.waitForFunction(()=>document.querySelector('.epm-studio__audio')?.currentTime>1,{},{timeout:45000});assert(true,'Retry recovers playback');await page.locator('.epm-studio__audio').evaluate(a=>a.pause());
+for(const width of [320,390,834,1440]){
+ await page.setViewportSize({width,height:900});
+ assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`no overflow at ${width}`);
+ const axe=await new AxeBuilder({page}).include('.epm-studio').withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
+ fs.writeFileSync(`/tmp/epm-studio-axe-${width}.json`,JSON.stringify(axe.violations,null,2));
+ assert(axe.violations.length===0,`scoped accessibility checks ${width}`);
+}
+await page.setViewportSize({width:1440,height:1000});await page.evaluate(()=>document.documentElement.style.zoom='2');
+assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'200% zoom reflows');
+await page.screenshot({path:output+'/zoom.png',fullPage:true});
+await page.evaluate(()=>document.documentElement.style.zoom='');
+await page.locator('.epm-studio .button-primary').focus();
+assert(await page.locator('.epm-studio .button-primary').evaluate(e=>getComputedStyle(e).outlineStyle!=='none'),'keyboard focus visible');
+await page.keyboard.press('Enter');await page.waitForURL(/post-new.php/);assert(true,'keyboard opens new episode');
+const fallback=await browser.newContext({javaScriptEnabled:false,storageState:await context.storageState()});const fallbackPage=await fallback.newPage();await fallbackPage.goto(BASE+'/wp-admin/admin.php?page=epm-dashboard');assert(await fallbackPage.locator('.epm-studio__audio').isVisible(),'native controls remain available without JavaScript');await browser.close();finish('studio review');

@@ -85,7 +85,7 @@ $epm_icon = static function ( array $dir ): string {
 	return '<span aria-hidden="true">' . esc_html( function_exists( 'mb_substr' ) ? mb_substr( $name, 0, 1 ) : substr( $name, 0, 1 ) ) . '</span>';
 };
 ?>
-<div class="wrap epm-app" data-epm-distribution data-feed-blocked="<?php echo $epm_blocked ? '1' : '0'; ?>">
+<div class="wrap epm-workspace epm-app" data-epm-distribution data-feed-blocked="<?php echo $epm_blocked ? '1' : '0'; ?>">
 	<header class="epm-app__header">
 		<div>
 			<h1 class="epm-app__title"><?php esc_html_e( 'Distribution', 'elementor-podcast-manager' ); ?></h1>
@@ -135,6 +135,7 @@ $epm_icon = static function ( array $dir ): string {
 				</form>
 			</div>
 		<?php endif; ?>
+		<?php if ( '' !== $epm_feed ) : ?>
 		<div class="epm-copy">
 			<code class="epm-copy__value"><?php echo esc_html( $epm_feed ); ?></code>
 			<button type="button" class="button" data-epm-copy="<?php echo esc_attr( $epm_feed ); ?>"><?php esc_html_e( 'Copy feed address', 'elementor-podcast-manager' ); ?></button>
@@ -150,6 +151,9 @@ $epm_icon = static function ( array $dir ): string {
 			);
 			?>
 		</p>
+		<?php else : ?>
+		<p><?php esc_html_e( 'This feed address contains credentials and cannot be shared publicly.', 'elementor-podcast-manager' ); ?> <a href="<?php echo esc_url( admin_url( 'admin.php?page=epm-hosting' ) ); ?>"><?php esc_html_e( 'Hosting & import', 'elementor-podcast-manager' ); ?></a></p>
+		<?php endif; ?>
 
 		<div class="epm-stack--tight epm-dist-check" id="epm-dist-check">
 			<div>

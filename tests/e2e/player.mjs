@@ -93,9 +93,9 @@ const made = php(`
 	$ids = [];
 	$ids['remote_known'] = $episode( 'epm-player-remote-known', 'Remote, known duration', [ 'audio_url' => $remote, 'audio_type' => 'audio/mpeg', 'duration' => '1:02', 'chapters' => [ [ 'time' => '0:00', 'title' => 'Start', 'url' => '' ], [ 'time' => '0:40', 'title' => 'Later', 'url' => '' ] ] ] );
 	$ids['remote_unknown'] = $episode( 'epm-player-remote-unknown', 'Remote, unknown duration', [ 'audio_url' => $remote, 'audio_type' => 'audio/mpeg' ] );
-	$ids['two'] = $page( 'epm-player-two', '[podcast_player id="' . $f['ep1'] . '" layout="full" sticky="yes"]' . "\\n\\n" . '[podcast_player id="' . $f['ep1'] . '" layout="full"]' . "\\n\\n" . '[podcast_chapters id="' . $f['ep1'] . '"]' . "\\n\\n" . '[podcast_episodes limit="10" layout="cards"]' );
-	$ids['plain_list'] = $page( 'epm-player-plain-list', '[podcast_player id="' . $f['ep1'] . '" layout="full"]' . "\\n\\n" . '[podcast_episodes limit="10" layout="cards"]' );
-	$ids['chapters_cards'] = $page( 'epm-player-chapters-cards', '[podcast_chapters id="' . $f['ep1'] . '"]' . "\\n\\n" . '[podcast_episodes limit="10" layout="cards"]' );
+	$ids['two'] = $page( 'epm-player-two', '[podcast_player id="' . $f['ep1'] . '" layout="full" sticky="yes"]' . "\\n\\n" . '[podcast_player id="' . $f['ep1'] . '" layout="full"]' . "\\n\\n" . '[podcast_chapters id="' . $f['ep1'] . '"]' . "\\n\\n" . '[podcast_episodes limit="100" layout="cards"]' );
+	$ids['plain_list'] = $page( 'epm-player-plain-list', '[podcast_player id="' . $f['ep1'] . '" layout="full"]' . "\\n\\n" . '[podcast_episodes limit="100" layout="cards"]' );
+	$ids['chapters_cards'] = $page( 'epm-player-chapters-cards', '[podcast_chapters id="' . $f['ep1'] . '"]' . "\\n\\n" . '[podcast_episodes limit="100" layout="cards"]' );
 	$ids['no_shell'] = $page( 'epm-player-no-shell', '[podcast_player id="' . $f['ep2'] . '" layout="compact"]' );
 	// Elementor page: two players of episode one, sticky off.
 	$el = wp_insert_post( [ 'post_type' => 'page', 'post_status' => 'publish', 'post_title' => 'epm-player-widgets', 'post_name' => 'epm-player-widgets' ] );

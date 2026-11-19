@@ -24,9 +24,6 @@
 	var _n = i18n ? i18n._n : function ( single, plural, count ) {
 		return count === 1 ? single : plural;
 	};
-	var _n = i18n ? i18n._n : function ( single, plural, count ) {
-		return count === 1 ? single : plural;
-	};
 
 	function format( template ) {
 		var args = Array.prototype.slice.call( arguments, 1 );

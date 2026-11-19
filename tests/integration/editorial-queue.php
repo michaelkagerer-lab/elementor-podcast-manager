@@ -52,7 +52,7 @@ $t->test( 'Upgrade from rc.1 preserves published identities, feeds and chosen wi
 	update_option( 'epm_version', '1.5.0-rc.1' );
 	epm()->maybe_upgrade();
 	for ( $i = 0; $i < 10 && EPM\Upgrade::pending(); ++$i ) { EPM\Upgrade::run( 2 ); }
-	$t->assert( '1.5.0-rc.2' === get_option( 'epm_version' ) );
+	$t->assert( '1.5.0-rc.3' === get_option( 'epm_version' ) );
 	$t->assert( $before === $snapshot(), 'posts, metadata, permalinks, settings, widget data and RSS item identities remain identical' );
 });
 wp_delete_post( $own, true );

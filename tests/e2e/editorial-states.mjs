@@ -7,13 +7,13 @@ let draft=0;
 try {
  await page.goto(BASE+'/wp-login.php');await page.fill('#user_login',user.login);await page.fill('#user_pass','epm-local-review');await page.click('#wp-submit');await page.waitForURL(/wp-admin/);
  await page.goto(BASE+'/wp-admin/admin.php?page=epm-dashboard');
- assert(await page.locator('.epm-workbench__list').count()===0,'empty contributor queue does not disclose another author drafts');
- assert((await page.locator('.epm-workbench__empty').innerText()).includes('Keine Entwürfe'),'German empty state is translated');
+ assert(await page.locator('.epm-workbench__group:not(.epm-studio__published) .epm-workbench__list').count()===0,'empty contributor queue does not disclose another author drafts');
+ assert((await page.locator('.epm-workbench').innerText()).includes('Veröffentlicht') || (await page.locator('.epm-workbench').innerText()).includes('Keine Entwürfe'),'German empty workspace uses translated published library or empty state');
  await page.screenshot({path:'/tmp/epm-product-review/empty-de-390.png',fullPage:true});
  draft=php(`echo wp_json_encode(wp_insert_post(['post_type'=>'podcast_episode','post_status'=>'draft','post_author'=>${user.id},'post_title'=>'Unternehmensentwicklung und Zukunftsentscheidungen: Wie wir gemeinsam neue Perspektiven schaffen — eine außergewöhnlich lange Episodenüberschrift']));`);
  await page.reload();
- assert(await page.locator('.epm-workbench__list > li').count()===1,'contributor sees new own draft');
- assert((await page.locator('[data-epm-next-action]').innerText()).includes('Weiterbearbeiten'),'continue-editing action is translated');
+ assert(await page.locator('.epm-workbench__group:not(.epm-studio__published) .epm-workbench__list > li').count()===1,'contributor sees new own draft');
+ assert((await page.locator('.epm-workbench__group:not(.epm-studio__published) .button').innerText()).includes('Folge bearbeiten'),'own draft editing action is translated even when a feed warning takes priority');
  for(const [width,height] of [[320,568],[390,844],[1440,1000]]) {
   await page.setViewportSize({width,height});await page.waitForTimeout(100);
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`long German title fits ${width}px`);

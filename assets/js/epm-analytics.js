@@ -13,13 +13,21 @@
    consent() && navigator.doNotTrack !== '1' && !navigator.globalPrivacyControl;
  }
  function send(s) {
-  if (!allowed() || s.total < 10 || s.pending || Math.floor(s.total) <= s.sent) return;
+  if (!allowed() || s.total < 10 || (s.nextAttempt || 0) > performance.now() || s.pending || Math.floor(s.total) <= s.sent) return;
   var seconds = Math.min(86400, Math.floor(s.total));
   s.pending = true;
   fetch(window.epmPlayer.analytics.endpoint, { method: 'POST', credentials: 'omit', keepalive: true,
    headers: { 'Content-Type': 'application/json' },
    body: JSON.stringify({ episodeId: s.id, session: s.session, day: s.day, seconds: seconds, consent: true })
-  }).then(function (r) { if (r.ok) s.sent = seconds; }).catch(function () {}).finally(function () { s.pending = false; });
+  }).then(function (r) {
+   if (r.ok) { s.sent = seconds; s.nextAttempt = 0; return; }
+   s.nextAttempt = performance.now() + 30000;
+   if (r.status === 400) return r.json().then(function (body) {
+    // A first delivery delayed too long cannot establish a trustworthy
+    // elapsed-time baseline. Resume measuring future playback, without storage.
+    if (body.code === 'playback_elapsed' && sessions.get(s.id) === s) sessions.delete(s.id);
+   });
+  }).catch(function () { s.nextAttempt = performance.now() + 30000; }).finally(function () { s.pending = false; });
  }
  document.addEventListener('epm:playback', function (event) {
   if (!allowed()) { sessions.clear(); return; }

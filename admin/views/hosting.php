@@ -33,7 +33,7 @@ $epm_when = static function ( int $timestamp ): string {
 		: sprintf( __( '%s ago', 'elementor-podcast-manager' ), human_time_diff( $timestamp ) );
 };
 ?>
-<div class="wrap epm-app" data-epm-hosting>
+<div class="wrap epm-workspace epm-app" data-epm-hosting>
 	<header class="epm-app__header">
 		<div>
 			<h1 class="epm-app__title"><?php esc_html_e( 'Hosting & import', 'elementor-podcast-manager' ); ?></h1>

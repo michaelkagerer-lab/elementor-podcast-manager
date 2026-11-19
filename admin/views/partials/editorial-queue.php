@@ -43,7 +43,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</ul>
 		</div>
 	<?php endforeach; ?>
-	<?php if ( empty( $work_drafts ) && empty( $work_scheduled ) ) : ?>
+	<?php if ( empty( $work_drafts ) && empty( $work_scheduled ) && empty( $work_published ) ) : ?>
 		<p class="epm-workbench__empty"><?php esc_html_e( 'No drafts or scheduled episodes to edit. Start your next episode when you are ready.', 'elementor-podcast-manager' ); ?></p>
+	<?php endif; ?>
+	<?php if ( ! empty( $work_published ) ) : ?>
+	<div class="epm-workbench__group epm-studio__published">
+		<div class="epm-workbench__heading"><h3><?php esc_html_e( 'Published', 'elementor-podcast-manager' ); ?></h3><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=podcast_episode&post_status=publish' ) ); ?>"><?php esc_html_e( 'View all episodes', 'elementor-podcast-manager' ); ?></a></div>
+		<ul class="epm-workbench__list">
+		<?php foreach ( $work_published as $epm_public ) : ?>
+			<?php $epm_public_data = epm()->episodes->get_public_data( $epm_public ); if ( ! $epm_public_data ) { continue; } ?>
+			<li><a class="epm-studio__episode-link" href="<?php echo esc_url( get_permalink( $epm_public ) ); ?>"><div class="epm-workbench__identity">
+				<?php $epm_public_art = $epm_public_data['artwork_url'] ?: $artwork; ?>
+				<?php if ( $epm_public_art ) : ?><img src="<?php echo esc_url( $epm_public_art ); ?>" width="48" height="48" alt="" /><?php endif; ?>
+				<div><span class="epm-workbench__title"><?php echo esc_html( get_the_title( $epm_public ) ); ?></span><p><?php echo esc_html( get_the_date( '', $epm_public ) ); ?></p></div>
+			</div></a></li>
+		<?php endforeach; ?>
+		</ul>
+	</div>
 	<?php endif; ?>
 </section>

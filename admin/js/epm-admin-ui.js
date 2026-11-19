@@ -212,6 +212,7 @@
 
 		// Scoped entrance (see epm-admin.css): never replays on page load.
 		state.removeClass('is-fresh');
+		state.find('audio').each(function () { this.pause(); });
 
 		if (!data) {
 			state.html('<p class="epm-upload__hint">' + escapeHtml(strings.dropHint) + '</p>');
@@ -250,6 +251,7 @@
 		}
 
 		state.addClass('is-fresh').html(html);
+		initEditorAudioPreview();
 		chooseBtn.text(external ? strings.uploadAudio : strings.replaceAudio);
 		removeBtn.prop('hidden', false);
 		updateDurationHint(wrap, external ? 'external' : 'media', data.duration);
@@ -1324,7 +1326,108 @@
 		};
 	}
 
+	/** Keep unsaved settings visible and warn before leaving the form. */
+	function initSettingsSave() {
+		var form = document.getElementById('epm-podcast-settings');
+		if (!form) { return; }
+		var status = form.querySelector('[data-epm-settings-dirty]');
+		var snapshot = function () { return new URLSearchParams(new FormData(form)).toString(); };
+		var initial = snapshot();
+		var submitting = false;
+		function update() { status.textContent = snapshot() !== initial ? status.dataset.label : ''; }
+		$(form).on('input change', update).on('click', function () { window.setTimeout(update, 0); });
+		document.addEventListener('submit', function (event) {
+			if (event.target === form && !event.defaultPrevented) { submitting = true; }
+		});
+		window.addEventListener('pageshow', function () { submitting = false; update(); });
+		window.addEventListener('beforeunload', function (event) {
+			if (!submitting && snapshot() !== initial) { event.preventDefault(); event.returnValue = ''; }
+		});
+	}
+
+	// Anchor navigation keeps every field in the same form and works without JS.
+	function initWorkspaceNavigation() {
+		document.querySelectorAll('.epm-settings-nav a, .epm-episode-basics a').forEach(function (link) {
+			link.addEventListener('click', function () {
+				var target = document.getElementById(link.hash.slice(1));
+				if (!target) { return; }
+				if (target.classList.contains('postbox')) {
+					var visibility = document.getElementById(target.id + '-hide');
+					if (visibility && !visibility.checked) { visibility.click(); }
+					target.classList.remove('closed');
+					var toggle = target.querySelector('.handlediv');
+					if (toggle) { toggle.setAttribute('aria-expanded', 'true'); }
+				}
+				link.parentElement.querySelectorAll('a').forEach(function (a) { a.removeAttribute('aria-current'); });
+				link.setAttribute('aria-current', 'location');
+				target.setAttribute('tabindex', '-1');
+				target.focus({ preventScroll: true });
+			});
+		});
+	}
+
+	function initEditorAudioPreview() {
+		document.querySelectorAll('.epm-upload__preview').forEach(function (audio) {
+			if (audio.closest('[data-epm-preview]')) { return; }
+			var wrapper = document.createElement('div');
+			wrapper.setAttribute('data-epm-preview', '');
+			var button = document.createElement('button');
+			button.type = 'button'; button.className = 'button';
+			button.setAttribute('data-epm-preview-play', '');
+			button.dataset.loading = __('Loading…', 'elementor-podcast-manager');
+			button.dataset.retry = __('Retry', 'elementor-podcast-manager');
+			button.textContent = __('Play episode', 'elementor-podcast-manager');
+			var error = document.createElement('p');
+			error.setAttribute('data-epm-preview-error', ''); error.setAttribute('role', 'alert'); error.hidden = true;
+			error.textContent = __('This audio could not be loaded. Check your connection and try again.', 'elementor-podcast-manager');
+			audio.before(wrapper); wrapper.append(button, error, audio);
+			audio.setAttribute('aria-label', __('Episode audio', 'elementor-podcast-manager'));
+		});
+		initStudioPreview();
+	}
+
+	function initStudioPreview() {
+		$('[data-epm-preview]').each(function () {
+			var audio = this.querySelector('audio');
+			var button = this.querySelector('[data-epm-preview-play]');
+			var error = this.querySelector('[data-epm-preview-error]');
+			if (!audio || !button || !error || this.dataset.previewReady) { return; }
+			this.dataset.previewReady = 'true';
+			audio.hidden = true;
+			button.hidden = false;
+			function fail() {
+				var restoreFocus = document.activeElement === audio;
+				audio.hidden = true;
+				button.hidden = false;
+				button.disabled = false;
+				button.removeAttribute('aria-busy');
+				button.textContent = button.dataset.retry;
+				error.hidden = false;
+				if (restoreFocus) { button.focus(); }
+			}
+			audio.addEventListener('error', fail);
+			button.addEventListener('click', function () {
+				if (button.getAttribute('aria-busy') === 'true') { return; }
+				error.hidden = true;
+				button.setAttribute('aria-busy', 'true');
+				button.textContent = button.dataset.loading;
+				if (audio.error) { audio.load(); }
+				audio.play().then(function () {
+					audio.hidden = false;
+					var restoreFocus = document.activeElement === button;
+					button.hidden = true;
+					button.disabled = false;
+					button.removeAttribute('aria-busy');
+					if (restoreFocus) { audio.focus(); }
+				}).catch(fail);
+			});
+		});
+	}
+
 	$(function () {
+		initEditorAudioPreview();
+		initWorkspaceNavigation();
+		initSettingsSave();
 		$('[data-epm-repeat]').each(function () {
 			updateOrderButtons($(this));
 		});

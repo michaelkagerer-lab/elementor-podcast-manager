@@ -437,6 +437,10 @@ final class ImportJob {
 			return self::running_error();
 		}
 
+		if ( self::move_unfinished() ) {
+			return self::unfinished_move_error();
+		}
+
 		// Leftovers: data of no current job, files 1.3.0 kept in uploads.
 		self::sweep();
 		self::cleanup_legacy_folder();
@@ -506,7 +510,7 @@ final class ImportJob {
 		$replaced = [];
 		$saved    = self::job_update(
 			static function ( array $current ) use ( $job, &$replaced ) {
-				if ( self::is_active( $current ) ) {
+				if ( self::is_active( $current ) || self::move_unfinished( $current ) ) {
 					return null;
 				}
 				$replaced       = $current;
@@ -515,7 +519,7 @@ final class ImportJob {
 			}
 		);
 		if ( null === $saved ) {
-			return self::running_error();
+			return self::move_unfinished() ? self::unfinished_move_error() : self::running_error();
 		}
 		self::discard( $replaced );
 		self::schedule_cleanup( (int) $saved['created'] );
@@ -1470,12 +1474,17 @@ final class ImportJob {
 	 * Whether the last import was a move that is not finished because files
 	 * stayed at the old host (or episodes failed).
 	 *
+	 * @param array<string,mixed>|null $job Atomic snapshot, or read the current job.
 	 * @return bool
 	 */
-	public static function move_unfinished(): bool {
-		$job = self::get();
+	public static function move_unfinished( ?array $job = null ): bool {
+		$job = $job ?? self::get();
 
 		return 'done_with_problems' === ( $job['status'] ?? '' ) && 'move' === ( $job['options']['purpose'] ?? '' );
+	}
+
+	private static function unfinished_move_error(): \WP_Error {
+		return new \WP_Error( 'epm_import_move_unfinished', __( 'Finish or cancel the current move before checking another feed.', 'elementor-podcast-manager' ) );
 	}
 
 	/**

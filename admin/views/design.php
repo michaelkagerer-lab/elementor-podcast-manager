@@ -148,12 +148,12 @@ $epm_style = static function ( array $vars ): string {
 	return esc_attr( implode( ';', $parts ) );
 };
 ?>
-<div class="wrap epm-app epm-design" data-epm-design>
+<div class="wrap epm-workspace epm-app epm-design" data-epm-design>
 	<h1 class="wp-heading-inline"><?php esc_html_e( 'Design', 'elementor-podcast-manager' ); ?></h1>
 	<hr class="wp-header-end" />
 	<p class="epm-design__lede"><?php esc_html_e( 'How the player, episode lists and subscribe links look on your site. Elementor widgets use these values unless you style a widget yourself.', 'elementor-podcast-manager' ); ?></p>
 
-	<p class="epm-design__inheritance" data-epm-design-inheritance><?php esc_html_e( 'These are your podcast defaults. Each Elementor widget can override its layout, details or styles. Choose Podcast design in the widget to inherit again. Save design saves appearance and details together; applying a preset replaces both.', 'elementor-podcast-manager' ); ?></p>
+	<details class="epm-workspace-help"><summary><?php esc_html_e( 'Elementor', 'elementor-podcast-manager' ); ?></summary><p class="epm-design__inheritance" data-epm-design-inheritance><?php esc_html_e( 'These are your podcast defaults. Each Elementor widget can override its layout, details or styles. Choose Podcast design in the widget to inherit again. Save design saves appearance and details together; applying a preset replaces both.', 'elementor-podcast-manager' ); ?></p></details>
 	<?php settings_errors(); ?>
 	<?php if ( 'preset-applied' === $epm_notice ) : ?>
 		<div class="notice notice-success is-dismissible">

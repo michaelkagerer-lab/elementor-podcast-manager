@@ -262,9 +262,13 @@ final class EpisodeMeta {
 		}
 
 		echo '<div class="epm-after-title">';
- echo '<nav class="epm-episode-basics" aria-label="' . esc_attr__( 'Publish an episode', 'elementor-podcast-manager' ) . '"><strong>' . esc_html__( 'Start with audio, then description, then publish.', 'elementor-podcast-manager' ) . '</strong><p><a href="#epm-audio">' . esc_html__( 'Audio', 'elementor-podcast-manager' ) . '</a> · <a href="#postdivrich">' . esc_html__( 'Description', 'elementor-podcast-manager' ) . '</a> · <a href="#submitdiv">' . esc_html__( 'Publish', 'elementor-podcast-manager' ) . '</a></p><details><summary>' . esc_html__( 'Optional episode details', 'elementor-podcast-manager' ) . '</summary><p>' . esc_html__( 'Artwork, episode information, chapters, guest, platform links, transcript and video are available below and in the sidebar. Use Screen Options to show or hide boxes; your arrangement is kept.', 'elementor-podcast-manager' ) . '</p></details></nav>';
+		echo '<nav class="epm-episode-basics" aria-label="' . esc_attr__( 'Edit episode', 'elementor-podcast-manager' ) . '">';
+		foreach ( [ 'epm-audio' => __( 'Audio', 'elementor-podcast-manager' ), 'postdivrich' => __( 'Description', 'elementor-podcast-manager' ), 'epm-notes' => __( 'Show notes', 'elementor-podcast-manager' ), 'epm-chapters' => __( 'Chapters', 'elementor-podcast-manager' ), 'epm-guest' => __( 'Guest', 'elementor-podcast-manager' ), 'epm-transcript' => __( 'Transcript', 'elementor-podcast-manager' ), 'submitdiv' => __( 'Publish', 'elementor-podcast-manager' ) ] as $target => $label ) {
+			echo '<a href="#' . esc_attr( $target ) . '">' . esc_html( $label ) . '</a>';
+		}
+		echo '</nav>';
 		do_meta_boxes( get_current_screen(), 'epm_after_title', $post );
-		echo '<h2 class="epm-description-heading">' . esc_html__( 'Episode description', 'elementor-podcast-manager' ) . '</h2>';
+		echo '<h2 class="epm-description-heading"><label for="content">' . esc_html__( 'Episode description', 'elementor-podcast-manager' ) . '</label></h2>';
 		echo '</div>';
 	}
 

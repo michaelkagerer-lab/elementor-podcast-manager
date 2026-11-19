@@ -245,6 +245,7 @@ final class Admin {
 	 */
 	public static function enqueue_assets(): void {
 		wp_enqueue_style( 'epm-admin', EPM_URL . 'admin/css/epm-admin.css', [ 'dashicons' ], EPM_VERSION );
+		wp_enqueue_style( 'epm-workspace', EPM_URL . 'admin/css/epm-workspace.css', [ 'epm-admin' ], EPM_VERSION );
 		wp_enqueue_script( 'epm-admin', EPM_URL . 'admin/js/epm-admin-ui.js', [ 'jquery', 'wp-a11y', 'wp-i18n' ], EPM_VERSION, true );
 
 		if ( wp_script_is( 'epm-admin', 'done' ) || ! empty( wp_scripts()->get_data( 'epm-admin', 'data' ) ) ) {
@@ -417,6 +418,7 @@ final class Admin {
 
 		$work_drafts = self::dashboard_queue( 'draft' );
 		$work_scheduled = self::dashboard_queue( 'future' );
+		$work_published = get_posts( [ 'post_type' => EpisodePostType::CPT, 'post_status' => 'publish', 'numberposts' => 6, 'offset' => 1, 'orderby' => 'date', 'order' => 'DESC', 'no_found_rows' => true ] );
 		$settings    = epm()->settings;
 		$latest      = epm()->episodes->get_latest();
 		$latest_data = $latest ? epm()->episodes->get_data( $latest ) : null;

@@ -632,10 +632,11 @@ final class Renderer {
 			]
 		);
 
-		if ( $args['show_rss'] ) {
+		$rss_url = Hosting::public_feed_url();
+		if ( $args['show_rss'] && '' !== $rss_url ) {
 			$links[] = [
 				'label'   => __( 'RSS feed', 'elementor-podcast-manager' ),
-				'url'     => Hosting::public_feed_url(),
+				'url'     => $rss_url,
 				'service' => 'rss',
 			];
 		}

@@ -273,15 +273,16 @@ final class MediaDownload {
 		// The transport writes the file and ignores failed writes (a full
 		// disk): each one raises a notice. Catch those for this request and
 		// let the watch stop the transfer instead.
-		set_error_handler( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler
-			static function ( $level, $message ) use ( $watch ) {
-				if ( 0 === strpos( (string) $message, 'fwrite(): Write of' ) ) {
+		$previous = null;
+		$previous = set_error_handler( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler
+			static function ( $level, $message, $file, $line ) use ( $watch, &$previous ) {
+				if ( in_array( $level, [ E_NOTICE, E_WARNING ], true ) && 0 === strpos( (string) $message, 'fwrite(): Write of' ) ) {
 					$watch->write_failed = true;
 					return true;
 				}
-				return false;
+				return is_callable( $previous ) ? $previous( $level, $message, $file, $line ) : false;
 			},
-			E_NOTICE | E_WARNING
+			E_ALL
 		);
 		try {
 			$response = SafeHttp::get(

@@ -170,6 +170,10 @@ final class AdminPages {
 			wp_enqueue_style( 'epm-app', EPM_URL . 'admin/css/epm-app.css', [], EPM_VERSION );
 		}
 
+		if ( 'toplevel_page_epm-dashboard' === $hook ) {
+			wp_enqueue_style( 'epm-studio', EPM_URL . 'admin/css/epm-studio.css', [ 'epm-app', 'epm-admin' ], EPM_VERSION );
+		}
+
 		if ( '' === $key ) {
 			return;
 		}

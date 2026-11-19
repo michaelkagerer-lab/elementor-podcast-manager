@@ -332,7 +332,7 @@ final class Feed {
 
 		if ( '1' === (string) get_query_var( self::ALIAS_VAR ) ) {
 			// phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- the feed may be at the host, by design.
-			wp_redirect( Hosting::public_feed_url(), 301, 'Elementor Podcast Manager' );
+			wp_redirect( Hosting::feed_redirect_target() ?: self::url(), 301, 'Elementor Podcast Manager' );
 			exit;
 		}
 

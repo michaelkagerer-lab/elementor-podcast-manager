@@ -21,10 +21,10 @@ $t->test('network failure retains pending batch',function($t)use($a,$wpdb,$daily
  $t->assert(!get_option('epm_studio_status')['ok'],'truthful failure');
 });
 $t->test('acknowledgement does not discard a concurrent new measurement',function($t)use($a,$wpdb,$daily,$guid,$day,$session){
- $capture=static function($pre,$args,$url)use($a,$guid,$day,$session){
+ $capture=static function($pre,$args,$url)use($a,$guid,$day,$session,$wpdb){
   if($url!==EPM\StudioAnalytics::ENDPOINT)return $pre;
   $b=json_decode($args['body'],true);if($b['rows'][0]['seconds']!==45)throw new Exception('wrong payload');
-  $a->record($guid,$day,$session,75);
+  $wpdb->query("UPDATE {$wpdb->prefix}epm_studio_sessions SET started_at=started_at-60");$a->record($guid,$day,$session,75);
   return ['headers'=>[],'body'=>wp_json_encode(['ok'=>true,'accepted'=>1]),'response'=>['code'=>200,'message'=>'OK']];
  };add_filter('pre_http_request',$capture,10,3);$a->sync();remove_filter('pre_http_request',$capture);
  $r=$wpdb->get_row("SELECT * FROM $daily",ARRAY_A);$t->assert((int)$r['revision']>(int)$r['synced_revision'],'new version stays pending');

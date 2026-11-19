@@ -406,7 +406,7 @@ final class Readiness {
 
 		// A move into this site that is not finished yet.
 		if ( ImportJob::move_unfinished() ) {
-			self::old_host_checks( $add, self::old_host( Episodes::each_public() ) );
+			self::old_host_checks( $add, self::old_host( epm()->episodes->each_public() ) );
 		}
 		if ( Hosting::sync_enabled() ) {
 			if ( Hosting::sync_is_overdue() ) {

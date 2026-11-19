@@ -21,7 +21,7 @@ final class StudioAnalytics {
 		return [ 'enabled' => self::enabled() && ! current_user_can( 'edit_posts' ), 'endpoint' => rest_url( 'epm/v1/analytics/playback' ) ];
 	}
 	public function install(): void {
-		if ( '1' !== get_option( 'epm_studio_schema' ) ) {
+		if ( '2' !== get_option( 'epm_studio_schema' ) ) {
 			global $wpdb;
 			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 			$charset = $wpdb->get_charset_collate();
@@ -29,6 +29,8 @@ final class StudioAnalytics {
 			 id varchar(64) NOT NULL,
 			 day date NOT NULL,
 			 seconds int unsigned NOT NULL DEFAULT 0,
+			 started_at bigint unsigned NOT NULL DEFAULT 0,
+			 start_seconds int unsigned NOT NULL DEFAULT 0,
 			 PRIMARY KEY  (id),
 			 KEY day (day)
 			) ENGINE=InnoDB $charset;" );
@@ -43,28 +45,32 @@ final class StudioAnalytics {
 			 PRIMARY KEY  (id),
 			 KEY day (day)
 			) ENGINE=InnoDB $charset;" );
-			if ( ! $wpdb->last_error ) { update_option( 'epm_studio_schema', '1', false ); }
+			if ( ! $wpdb->last_error ) { update_option( 'epm_studio_schema', '2', true ); }
 		}
 		if ( self::enabled() && ! wp_next_scheduled( self::CRON ) ) { wp_schedule_event( time() + 60, 'hourly', self::CRON ); }
 		if ( ! self::enabled() ) { wp_clear_scheduled_hook( self::CRON ); }
 	}
 	public function receive( \WP_REST_Request $request ) {
-		if ( ! self::enabled() ) { return new \WP_Error( 'disabled', 'Messung deaktiviert.', [ 'status' => 403 ] ); }
+		if ( ! self::enabled() ) { return new \WP_Error( 'disabled', __( 'Analytics is disabled.', 'elementor-podcast-manager' ), [ 'status' => 403 ] ); }
 		$origin = $request->get_header( 'origin' );
 		$site = wp_parse_url( home_url() );
 		$expected = $site['scheme'] . '://' . $site['host'] . ( isset( $site['port'] ) ? ':' . $site['port'] : '' );
-		if ( $origin !== $expected || strlen( $request->get_body() ) > 2048 ) { return new \WP_Error( 'origin', 'Ungültige Anfrage.', [ 'status' => 403 ] ); }
+		if ( $origin !== $expected || strlen( $request->get_body() ) > 2048 ) { return new \WP_Error( 'origin', __( 'Invalid request.', 'elementor-podcast-manager' ), [ 'status' => 403 ] ); }
 		$b = $request->get_json_params();
 		if ( ! is_array( $b ) || ! isset( $b['episodeId'], $b['session'], $b['seconds'], $b['day'], $b['consent'] ) || true !== $b['consent'] || ! is_int( $b['episodeId'] ) || ! is_int( $b['seconds'] ) || $b['seconds'] < 10 || $b['seconds'] > 86400 || ! is_string( $b['session'] ) || ! preg_match( '/^[a-f0-9]{32}$/D', $b['session'] ) || $b['day'] !== gmdate( 'Y-m-d' ) ) {
-			return new \WP_Error( 'invalid', 'Ungültige Messwerte.', [ 'status' => 400 ] );
+			return new \WP_Error( 'invalid', __( 'Invalid playback data.', 'elementor-podcast-manager' ), [ 'status' => 400 ] );
 		}
 		$post = get_post( $b['episodeId'] );
-		if ( ! $post || 'podcast_episode' !== $post->post_type || 'publish' !== $post->post_status || '' !== $post->post_password ) { return new \WP_Error( 'episode', 'Episode nicht öffentlich.', [ 'status' => 404 ] ); }
+		if ( ! $post || 'podcast_episode' !== $post->post_type || 'publish' !== $post->post_status || '' !== $post->post_password ) { return new \WP_Error( 'episode', __( 'This episode is not public.', 'elementor-podcast-manager' ), [ 'status' => 404 ] ); }
 		// No raw IP is persisted: short-lived keyed digest only for abuse throttling.
-		$key = 'epm_sa_' . hash_hmac( 'sha256', (string) ( $_SERVER['REMOTE_ADDR'] ?? '' ) . gmdate( 'YmdHi' ), wp_salt( 'nonce' ) );
-		$rate = (int) get_transient( $key );
-		if ( $rate >= 120 ) { return new \WP_Error( 'rate', 'Bitte später erneut versuchen.', [ 'status' => 429 ] ); }
-		set_transient( $key, $rate + 1, 120 );
+		// Fixed bucket count bounds transient growth even across many addresses.
+		$digest = hash_hmac( 'sha256', (string) ( $_SERVER['REMOTE_ADDR'] ?? '' ), wp_salt( 'nonce' ) );
+		$key = 'epm_sa_bucket_' . ( hexdec( substr( $digest, 0, 6 ) ) % 1024 );
+		$window = gmdate( 'YmdHi' );
+		$bucket = get_transient( $key );
+		$rate = is_array( $bucket ) && ( $bucket['window'] ?? '' ) === $window ? (int) $bucket['count'] : 0;
+		if ( $rate >= 120 ) { return new \WP_Error( 'rate', __( 'Please try again later.', 'elementor-podcast-manager' ), [ 'status' => 429 ] ); }
+		set_transient( $key, [ 'window' => $window, 'count' => $rate + 1 ], 120 );
 		return $this->record( Episodes::get_guid( $post->ID ), $b['day'], $b['session'], $b['seconds'] );
 	}
 	/** Cumulative counters: retries/reordered browser requests cannot double count. */
@@ -79,7 +85,22 @@ final class StudioAnalytics {
 			$this->query( $wpdb->prepare( "INSERT IGNORE INTO $events (id,day,seconds) VALUES (%s,%s,0)", $sid, $day ) );
 			// Lock via no-op update, portable to WordPress' SQLite test adapter.
 			$this->query( $wpdb->prepare( "UPDATE $events SET seconds=seconds WHERE id=%s", $sid ) );
-			$old = (int) $wpdb->get_var( $wpdb->prepare( "SELECT seconds FROM $events WHERE id=%s", $sid ) );
+			$row = $wpdb->get_row( $wpdb->prepare( "SELECT seconds,started_at,start_seconds FROM $events WHERE id=%s", $sid ), ARRAY_A );
+			if ( ! is_array( $row ) ) { throw new \RuntimeException( 'Analytics session unavailable' ); }
+			$old = (int) $row['seconds'];
+			$started = (int) $row['started_at'];
+			$baseline = (int) $row['start_seconds'];
+			if ( 0 === $started ) {
+				$started = time();
+				$baseline = $old; // Existing sessions retain their previously accepted count.
+				$this->query( $wpdb->prepare( "UPDATE $events SET started_at=%d,start_seconds=%d WHERE id=%s", $started, $baseline, $sid ) );
+			}
+			// Browser packets are cumulative. Allow delayed delivery, but never
+			// more playback than elapsed server time plus one minute of grace.
+			if ( $seconds > $baseline + max( 0, time() - $started ) + 60 ) {
+				$this->query( 'ROLLBACK' );
+				return new \WP_Error( 'playback_elapsed', __( 'Invalid playback data.', 'elementor-podcast-manager' ), [ 'status' => 400 ] );
+			}
 			if ( $seconds > $old ) {
 				$this->query( $wpdb->prepare( "INSERT IGNORE INTO $daily (id,guid,day) VALUES (%s,%s,%s)", $id, $guid, $day ) );
 				$this->query( $wpdb->prepare( "UPDATE $daily SET seconds=seconds+%d, plays=plays+%d, revision=revision+1 WHERE id=%s", $seconds - $old, $old < 10 ? 1 : 0, $id ) );
@@ -87,7 +108,7 @@ final class StudioAnalytics {
 			}
 			$this->query( 'COMMIT' );
 			return [ 'ok' => true ];
-		} catch ( \Throwable $e ) { $wpdb->query( 'ROLLBACK' ); return new \WP_Error( 'storage', 'Messung konnte nicht gespeichert werden.', [ 'status' => 503 ] ); }
+		} catch ( \Throwable $e ) { $wpdb->query( 'ROLLBACK' ); return new \WP_Error( 'storage', __( 'Playback data could not be saved.', 'elementor-podcast-manager' ), [ 'status' => 503 ] ); }
 	}
 	private function query( string $sql ): void {
 		global $wpdb;
@@ -132,20 +153,22 @@ final class StudioAnalytics {
 		$s = self::settings(); $status = (array) get_option( 'epm_studio_status', [] );
 		global $wpdb; $pending = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}epm_studio_daily WHERE revision > synced_revision" );
 		?>
-		<div class="wrap"><h1>BUSINESS TUNING STUDIO</h1>
+		<div class="wrap epm-workspace epm-analytics"><h1><?php esc_html_e( 'Studio Analytics', 'elementor-podcast-manager' ); ?></h1>
 		<p><?php esc_html_e( 'Send daily website-player measurements to your Studio automatically. This does not include Spotify, Apple Podcasts, external downloads or unique listeners.', 'elementor-podcast-manager' ); ?></p>
 		<p><?php echo esc_html( sprintf( __( 'Pending daily snapshots: %d', 'elementor-podcast-manager' ), $pending ) ); ?></p>
-		<?php if ( $status ) : ?><div class="notice <?php echo ! empty( $status['ok'] ) ? 'notice-success' : 'notice-error'; ?>"><p><?php echo esc_html( ! empty( $status['ok'] ) ? __( 'Last delivery succeeded.', 'elementor-podcast-manager' ) : __( 'Delivery failed. Check the key, Studio RSS import and network connection. Pending measurements are retained and retried.', 'elementor-podcast-manager' ) ); ?> <?php echo esc_html( $status['at'] ?? '' ); ?></p></div><?php endif; ?>
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+		<?php if ( $status ) : ?><div class="notice <?php echo ! empty( $status['ok'] ) ? 'notice-success' : 'notice-error'; ?>"><p><?php echo esc_html( ! empty( $status['ok'] ) ? __( 'Last delivery succeeded.', 'elementor-podcast-manager' ) : __( 'Delivery failed. Check the key, Studio RSS import and network connection. Pending measurements are retained and retried.', 'elementor-podcast-manager' ) ); ?> <?php echo esc_html( ! empty( $status['at'] ) && false !== strtotime( $status['at'] ) ? wp_date( get_option( 'date_format' ) . ' · ' . get_option( 'time_format' ), strtotime( $status['at'] ) ) : '' ); ?></p></div><?php endif; ?>
+		<form class="epm-analytics-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 		<input type="hidden" name="action" value="epm_studio_analytics"><?php wp_nonce_field( 'epm_studio_analytics' ); ?>
 		<p><label><input type="checkbox" name="enabled" value="1" <?php checked( ! empty( $s['enabled'] ) ); ?>> <?php esc_html_e( 'Enable measurement and hourly delivery', 'elementor-podcast-manager' ); ?></label></p>
-		<p><label for="epm-studio-token"><?php esc_html_e( 'Studio connection key', 'elementor-podcast-manager' ); ?></label><br><input id="epm-studio-token" name="token" type="password" autocomplete="new-password" class="regular-text" value=""><br><?php echo esc_html( empty( $s['token'] ) ? __( 'Create a key in Studio settings and paste it here.', 'elementor-podcast-manager' ) : __( 'A key is stored. Leave empty to keep it.', 'elementor-podcast-manager' ) ); ?></p>
-		<p><?php esc_html_e( 'For Borlabs Cookie 3, create a statistics service with ID epm-studio-analytics. Its consent is detected automatically; no custom opt-in code is needed.', 'elementor-podcast-manager' ); ?></p>
+		<p><label for="epm-studio-token"><?php esc_html_e( 'Studio connection key', 'elementor-podcast-manager' ); ?></label><br><input id="epm-studio-token" name="token" type="password" autocomplete="new-password" pattern="epm_[a-f0-9]{64}" aria-describedby="epm-studio-token-help" class="regular-text" value=""><span id="epm-studio-token-help" class="description"><?php echo esc_html( empty( $s['token'] ) ? __( 'Create a key in Studio settings and paste it here.', 'elementor-podcast-manager' ) : __( 'A key is stored. Leave empty to keep it.', 'elementor-podcast-manager' ) ); ?></span></p>
+		<div class="epm-analytics-privacy"><p><?php esc_html_e( 'For Borlabs Cookie 3, create a statistics service with ID epm-studio-analytics. Its consent is detected automatically; no custom opt-in code is needed.', 'elementor-podcast-manager' ); ?></p>
 		<p><?php esc_html_e( 'Measurement starts only after your consent manager grants window.epmAnalyticsConsent = true. It respects Do Not Track and Global Privacy Control. No analytics cookies or persistent browser identifiers are set. A playback counts after 10 seconds of actual playback; repeated page visits are separate sessions.', 'elementor-podcast-manager' ); ?></p>
+		</div>
+		<div class="epm-analytics-actions">
 		<?php submit_button( __( 'Save connection', 'elementor-podcast-manager' ) ); ?>
 		<button class="button" name="sync" value="1"><?php esc_html_e( 'Send now / test connection', 'elementor-podcast-manager' ); ?></button>
 		<button class="button" name="disconnect" value="1"><?php esc_html_e( 'Disconnect and stop measurement', 'elementor-podcast-manager' ); ?></button>
-		</form></div>
+		</div></form></div>
 		<?php
 	}
 }

@@ -4,7 +4,7 @@ Tags: podcast, elementor, audio player, rss, episodes
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.5.0-rc.2
+Stable tag: 1.5.0-rc.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -90,6 +90,14 @@ Uploads: WebVTT (.vtt) and SubRip (.srt), listed in the feed as captions. Import
 Episodes use the classic screen so the audio upload sits right under the title. Add `add_filter( 'epm_use_block_editor', '__return_true' );` to switch.
 
 == Changelog ==
+
+= 1.5.0-rc.4 (local review candidate) =
+* Refined the episode editor and all podcast settings screens, with section navigation, accessible preview recovery and unsaved-change feedback.
+* Preserved unfinished podcast moves; fixed the related readiness crash and private-feed alias/actions.
+* Validated REST episode values and synchronized derived duration/enclosure data.
+* Pinned feed and media connections to a validated IPv4 address. Remote downloads now require direct PHP cURL; proxy/custom transports fail closed with an actionable error.
+* Bounded analytics rate-limit storage, rejected impossible listening-time jumps, and added retry backoff while retaining consent-first behavior.
+
 
 = 1.4.0 =
 * Fixed: Elementor widget discovery and editor initialization, design inheritance and player controls.

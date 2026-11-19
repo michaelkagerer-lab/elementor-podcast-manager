@@ -1,0 +1,170 @@
+/** Shared studio surfaces. Admin only: never changes saved podcast/player styles. */
+.epm-workspace, .epm-workspace.epm-app {
+ --epm-app-accent:#1d1d1f;--epm-app-accent-strong:#363639;--epm-app-accent-soft:#f5f5f7;
+ --epm-app-text:#1d1d1f;--epm-app-muted:#626268;--epm-app-line:#e4e4e7;--epm-app-radius:12px;--epm-app-shadow:none;
+ --epm-admin-accent:#1d1d1f;
+ box-sizing:border-box;max-width:1240px;margin-top:24px;padding:32px;background:#fff;
+ border:1px solid #e4e4e7;border-radius:16px;color:#1d1d1f;
+ font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;
+}
+.epm-workspace *, .epm-workspace *::before, .epm-workspace *::after {box-sizing:border-box;}
+.epm-workspace.epm-app {max-width:1240px;}
+.epm-workspace.epm-app--narrow,.epm-workspace.epm-analytics {max-width:900px;}
+.epm-workspace h1,.epm-workspace .epm-app__title {font-size:28px;font-weight:650;line-height:1.2;letter-spacing:-.03em;padding:0;margin:0 0 12px;}
+.epm-workspace h2:not(.epm-design-preview__canvas *) {font-size:18px;line-height:1.4;letter-spacing:-.02em;}
+.epm-workspace p:not(.epm-design-preview__canvas *) {line-height:1.6;}
+.epm-workspace > .epm-app__header {padding-bottom:24px;border-bottom:1px solid #e4e4e7;margin-bottom:28px;}
+.epm-workspace .epm-card {box-shadow:none;border-color:#e4e4e7;border-radius:12px;}
+.epm-workspace .epm-card__lede,.epm-workspace .description,.epm-workspace .epm-app__lede {color:#626268;max-width:65ch;}
+.epm-workspace .button {border:1px solid #d2d2d7;border-radius:8px;background:#fff;color:#29292d;min-height:38px;padding:4px 14px;line-height:28px;white-space:normal;text-align:center;box-shadow:none;}
+.epm-workspace .button-primary {background:#1d1d1f;border-color:#1d1d1f;color:#fff;}
+.epm-workspace a:not(.button):not(.epm-design-preview__canvas *) {color:#245ca6;}
+.epm-workspace :is(a,button,input,select,textarea,summary):focus-visible {outline:3px solid #0071e3;outline-offset:3px;box-shadow:none;}
+.epm-workspace :is(input[type=text],input[type=url],input[type=email],input[type=password],input[type=number],select,textarea) {border:1px solid #949499;border-radius:7px;min-height:40px;padding:7px 10px;max-width:100%;font-size:14px;line-height:1.5;}
+.epm-workspace select {padding-inline-end:30px;}
+.epm-workspace :is(input,select,textarea)[aria-invalid=true] {border-color:#b32d2e;}
+.epm-workspace .epm-fold > summary {font-weight:600;padding-block:12px;}
+.epm-workspace .epm-copy {flex-wrap:wrap;border-radius:8px;}
+.epm-workspace .epm-copy__value {overflow-wrap:anywhere;min-width:0;}
+.epm-workspace-help {margin:0 0 28px;max-width:72ch;color:#626268;}
+.epm-workspace-help summary {cursor:pointer;color:#245ca6;padding-block:8px;}
+.epm-workspace-help p {margin-top:8px;}
+/* Show settings: visible sections, direct navigation, one save action. */
+.epm-settings-layout {display:grid;grid-template-columns:160px minmax(0,1fr);gap:40px;margin-top:28px;align-items:start;}
+.epm-settings-nav {display:flex;flex-direction:column;gap:4px;position:sticky;top:52px;}
+.epm-settings-nav a {display:block;padding:10px 12px;line-height:1.5;border-radius:8px;text-decoration:none;color:#626268;}
+.epm-settings-nav a[aria-current] {background:#f0f0f2;color:#1d1d1f;font-weight:600;}
+.epm-settings-section {scroll-margin-top:64px;border-bottom:1px solid #e4e4e7;padding-bottom:32px;margin-bottom:32px;}
+.epm-settings-section h2 {margin:0 0 24px;}
+.epm-settings-fields {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;}
+.epm-settings-field {min-width:0;}
+.epm-settings-field--wide {grid-column:1/-1;}
+.epm-settings-label {font-weight:600;font-size:13px;line-height:1.5;margin-bottom:8px;}
+.epm-settings-control :is(input.regular-text,textarea,select) {width:100%;}
+.epm-settings-control > p {margin:8px 0 0;}
+.epm-settings-control .description {font-size:12px;margin:8px 0 0;}
+.epm-settings-control p > label {display:block;margin-bottom:8px;}
+.epm-settings-control > label {display:block;margin:12px 0;line-height:1.6;}
+.epm-settings-control > label:first-child {margin-top:0;}
+.epm-settings-control .epm-media {display:flex;flex-wrap:wrap;align-items:center;gap:12px;}
+.epm-settings-control .epm-media-preview:empty {display:none;}
+.epm-settings-save {display:flex;justify-content:flex-end;background:#fff;padding:16px 0 0;}
+.epm-settings-save .submit {margin:0;padding:0;}
+.epm-settings-section:last-of-type {margin-bottom:0;}
+.epm-settings-section#epm-settings-feed-status {border-inline-start:3px solid #dba617;padding-inline-start:24px;}
+.epm-settings #epm-podcast-settings {min-width:0;}
+/* Preview remains the real frontend component; only its surrounding controls change. */
+.epm-workspace.epm-design {max-width:1480px;}
+.epm-workspace .epm-design__layout {gap:28px;}
+.epm-workspace .epm-design__main,.epm-workspace .epm-design__form {gap:12px;}
+.epm-workspace .epm-design__section {border:0;border-bottom:1px solid #e4e4e7;border-radius:0;padding-inline:0;}
+.epm-workspace .epm-design__presets,.epm-workspace .epm-design__io {background:#f5f5f7;border:0;}
+.epm-workspace .epm-design__savebar {border:0;box-shadow:none;padding-inline:0;}
+.epm-workspace .epm-design-summary {box-shadow:none;background:transparent;}
+/* Hosting task navigation should look like navigation, not competing submit buttons. */
+.epm-workspace .epm-hosting-tasks {padding-bottom:16px;border-bottom:1px solid #e4e4e7;gap:8px;}
+.epm-workspace .epm-hosting-tasks .button {border:0;background:transparent;color:#626268;}
+.epm-workspace .epm-hosting-tasks [aria-current] {background:#f0f0f2;color:#1d1d1f;box-shadow:none;}
+.epm-workspace[data-epm-hosting] .epm-hosting-layout {grid-template-columns:minmax(0,1fr);max-width:800px;}
+.epm-workspace .epm-choice:has(input:checked) {border-color:#1d1d1f;background:#f5f5f7;box-shadow:0 0 0 1px #1d1d1f;}
+.epm-workspace .epm-distribution__score {display:flex;flex-direction:column;gap:6px;margin:0;}
+.epm-workspace .epm-distribution__score strong {font-size:18px;letter-spacing:-.02em;}
+.epm-workspace .epm-distribution__score span {font-size:12px;color:#626268;}
+.epm-workspace .epm-platform {padding-block:24px;}
+.epm-workspace .epm-platform__text {line-height:1.6;}
+.epm-workspace .epm-platform__details {margin-top:12px;}
+.epm-workspace .epm-badge {border-radius:5px;font-weight:500;}
+.epm-analytics > p {max-width:70ch;color:#626268;}
+.epm-analytics-form {margin-top:28px;padding-top:24px;border-top:1px solid #e4e4e7;}
+.epm-analytics-form > p {margin:0 0 24px;line-height:1.8;}
+.epm-analytics-form input[type=password] {display:block;width:100%;max-width:520px;margin-top:8px;}
+.epm-analytics-form br {display:none;}
+.epm-analytics-privacy {max-width:70ch;padding:16px 20px;background:#f5f5f7;border-radius:12px;margin:24px 0;}
+.epm-analytics-privacy p {margin:0 0 12px;}
+.epm-analytics-privacy p:last-child {margin-bottom:0;}
+.epm-analytics-actions {display:flex;flex-wrap:wrap;align-items:center;gap:12px;}
+.epm-analytics-actions .submit {padding:0;margin:0;}
+.epm-analytics-actions [name=disconnect] {color:#b32d2e;}
+/* Classic episode editor: retain WordPress publishing and saved metabox arrangements. */
+body.post-type-podcast_episode:is(.post-php,.post-new-php) {--epm-admin-accent:#1d1d1f;}
+body.post-type-podcast_episode:is(.post-php,.post-new-php) .wrap {max-width:1480px;}
+body.post-type-podcast_episode #poststuff .postbox {border:1px solid #e4e4e7;border-radius:12px;box-shadow:none;margin-bottom:20px;}
+body.post-type-podcast_episode #poststuff .postbox-header {border-bottom:1px solid #e4e4e7;border-radius:12px 12px 0 0;}
+body.post-type-podcast_episode #poststuff .postbox .inside {padding:16px 20px;margin-top:0;}
+body.post-type-podcast_episode #poststuff .postbox h2 {padding:16px 20px;font-size:14px;}
+body.post-type-podcast_episode #titlewrap #title {height:auto;min-height:54px;font-size:24px;line-height:1.4;padding:10px 14px;border-radius:9px;border-color:#949499;}
+body.post-type-podcast_episode #poststuff :is(input[type=text],input[type=url],input[type=number],select,textarea):not(.wp-editor-area) {border-radius:7px;min-height:38px;max-width:100%;}
+body.post-type-podcast_episode #poststuff .button {border-radius:7px;border-color:#d2d2d7;background:#fff;color:#29292d;box-shadow:none;white-space:normal;}
+body.post-type-podcast_episode #poststuff #publish {background:#1d1d1f;color:white;border-color:#1d1d1f;}
+body.post-type-podcast_episode #poststuff :is(a,button,input,textarea,select,summary):focus-visible {outline:3px solid #0071e3;outline-offset:3px;box-shadow:none;}
+body.post-type-podcast_episode .epm-episode-basics {display:flex;flex-wrap:wrap;gap:4px 8px;margin:20px 0;padding:12px 0;border-block:1px solid #dcdcde;}
+body.post-type-podcast_episode .epm-episode-basics a {display:inline-block;padding:8px 10px;color:#245ca6;text-decoration:none;border-radius:7px;}
+body.post-type-podcast_episode .epm-upload__drop {padding:24px;border:1px dashed #a1a1a6;border-radius:10px;}
+body.post-type-podcast_episode .epm-upload__drop:has(audio) {border-style:solid;border-color:#e4e4e7;background:#f5f5f7;text-align:left;}
+body.post-type-podcast_episode .epm-upload__file {justify-items:start;gap:6px;}
+body.post-type-podcast_episode .epm-upload__preview {max-width:none;margin:16px 0;}
+body.post-type-podcast_episode .epm-upload__note {margin:12px 0;max-width:70ch;}
+body.post-type-podcast_episode .epm-upload__actions {justify-content:flex-start;gap:12px;margin-bottom:0;}
+body.post-type-podcast_episode .epm-upload__duration {padding-top:20px;}
+body.post-type-podcast_episode .epm-upload__duration input {max-width:180px!important;}
+body.post-type-podcast_episode #poststuff :is(.postbox,#postdivrich) {scroll-margin-top:64px;}
+body.post-type-podcast_episode .epm-description-heading {margin:24px 0 16px;padding-left:0!important;}
+body.post-type-podcast_episode .wp-editor-wrap {border-radius:9px;}
+body.post-type-podcast_episode #major-publishing-actions {border-radius:0 0 12px 12px;padding:16px;background:#f5f5f7;}
+body.post-type-podcast_episode .epm-import-note {border:0;padding:0;margin:0 0 16px;color:#626268;}
+@media(hover:hover) {
+ .epm-workspace .button:not(:disabled):hover {background:#f5f5f7;border-color:#949499;color:#1d1d1f;}
+ .epm-workspace .button-primary:not(:disabled):hover {background:#363639;color:white;}
+ .epm-settings-nav a:hover,body.post-type-podcast_episode .epm-episode-basics a:hover {background:#f5f5f7;color:#1d1d1f;}
+}
+@media(max-width:1000px) {
+ .epm-workspace,.epm-workspace.epm-app {padding:24px;}
+ .epm-settings-layout {grid-template-columns:minmax(0,1fr);gap:24px;}
+ .epm-settings-nav {position:static;flex-direction:row;flex-wrap:wrap;border-bottom:1px solid #e4e4e7;padding-bottom:16px;}
+}
+@media(max-width:600px) {
+ .epm-workspace,.epm-workspace.epm-app {padding:20px 16px;margin-inline-start:0;margin-inline-end:10px;border-radius:12px;}
+ .epm-workspace h1 {font-size:24px;}
+ .epm-settings-fields {grid-template-columns:minmax(0,1fr);}
+ .epm-workspace .epm-card {padding:16px;}
+ .epm-workspace :is(input[type=text],input[type=url],input[type=email],input[type=password],select,textarea) {font-size:16px;}
+ .epm-workspace .button {min-height:44px;}
+ .epm-workspace .epm-design__section {padding-inline:0;}
+ .epm-workspace .epm-design__preview {position:static;}
+ body.post-type-podcast_episode #poststuff .postbox .inside {padding:16px;}
+ body.post-type-podcast_episode .epm-upload__drop {padding:16px;}
+ body.post-type-podcast_episode .epm-episode-basics a {min-height:44px;display:inline-flex;align-items:center;}
+}
+@media(forced-colors:active) {.epm-settings-nav a[aria-current] {outline:1px solid CanvasText;}}
+
+/* Saving stays within reach while editing, without covering a focused field. */
+.epm-workspace.epm-settings {max-width:1120px;}
+.epm-settings-save {position:static;gap:16px;align-items:center;justify-content:space-between;border-top:1px solid #e4e4e7;padding:16px 0;margin-top:16px;}
+.epm-settings-save [role=status] {color:#626268;font-size:13px;}
+html:has(.epm-settings) {scroll-padding-bottom:100px;}
+.epm-settings .epm-media__actions {margin:0;}
+.epm-settings .epm-media:has(.epm-media__actions:only-child) {gap:0;}
+@media(max-height:500px) {.epm-settings-save {position:static;}.epm-settings-nav {position:static;}}
+
+.epm-settings-nav > .button {margin-top:16px;}
+.epm-settings .epm-media-preview:empty {display:none;}
+body.post-type-podcast_episode [data-epm-preview] {margin-block:16px;}
+body.post-type-podcast_episode [data-epm-preview-error] {color:#b32d2e;}
+
+@media(max-width:600px) {
+ .epm-workspace[data-epm-hosting] .epm-card,.epm-workspace[data-epm-setup] .epm-card {padding:0;border:0;background:transparent;}
+ .epm-workspace .epm-platform__text,.epm-workspace .epm-platform__details {grid-column:1/-1;}
+ .epm-workspace .epm-app__title {font-size:24px;}
+ .epm-workspace .epm-choice__text {grid-column:1/-1;margin-top:8px;}
+}
+/* Respond to available form space, including browser/text zoom. */
+.epm-settings {container-type:inline-size;}
+.epm-settings code {overflow-wrap:anywhere;}
+@container (max-width:700px) {
+ .epm-settings-layout {grid-template-columns:minmax(0,1fr);gap:24px;}
+ .epm-settings-nav {position:static;flex-direction:row;flex-wrap:wrap;gap:4px;}
+ .epm-settings-nav > .button {margin-top:0;}
+ .epm-settings-fields {grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));}
+}
+/* Core can retain a phone-sized auto-grown editor after the window widens. */
+body.post-type-podcast_episode #content {max-height:max(320px,70vh);overflow-y:auto;}

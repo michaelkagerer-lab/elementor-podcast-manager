@@ -41,3 +41,17 @@ Before installing on the active site: take a files/database backup, test this ZI
 - UI Gate: PASS, with inspected desktop, tablet, phone and short-landscape captures and a recorded false positive for the WordPress core update notice's wrapped inline link bounding box. See sibling `review/ui/ui-gate-review.json` and `review/logs/` for local evidence.
 
 Not exercised: production WordPress/MySQL, real podcast hosting/CDN, licensed Borlabs acceptance, Safari/iOS and assistive-technology testing. No claim of human usability acceptance or production readiness.
+
+## rc.3: studio dashboard and local public-show verification
+
+The user rejected the sage/serif direction and asked for a clean, Apple-like product. Retrieved and visually inspected 21st components 14941 (Dashboard Sidebar) and 31495 (Card); adapted neutral surfaces, spacing and content hierarchy into PHP/CSS, without React dependencies. Apple typography/layout guidance supports system fonts, legibility, consistent hierarchy and content-responsive columns. This is an adaptation for a web WordPress plugin, not native Apple UI.
+
+Changes: compact show identity, contextual primary action, bounded published-episode shelf excluding the featured latest episode, on-demand audio preview with loading/error/retry and `preload=none`, quiet secondary settings links, and container-based reflow. Distribution remains accessible but no longer displaces publishing as the next action on a healthy show. Setup and feed problems still take priority.
+
+Local testing used WordPress 7.1.2, Elementor 4.3.3 and PHP 8.5.11. Imported the seven public BUSINESS TUNING feed entries into the marked disposable test site with remote media preserved. All seven GUIDs and enclosure URL/length/type attributes match the source feed. Real imported episode playback, keyboard seeking and pause passed; dashboard audio preview also plays the real audio. Private live settings and production Elementor page data were not copied or verified. No live writes or deployments.
+
+Regression coverage: 192 core, 361 admin, 8 analytics and 13 preservation assertions passed. Existing frontend/Elementor and player browser suites passed; final editorial, German/empty states and scoped accessibility checks run separately. Upgrade assertions preserve posts, meta, settings, feed identities and Elementor data in the local fixture environment. Upstream Elementor/WP-CLI PHP 8.5 deprecations remain; these are not claimed resolved.
+
+The design review caught a 200% zoom layout that technically had no overflow but squeezed text into narrow columns. Container queries now collapse those columns. The WordPress core update notice produces one known inline-link bounding-box overlap false positive at 320px; its visible text fragments do not overlap.
+
+Second critique repairs and review limits: see `STUDIO-DESIGN-CRITIQUE.md`. The published shelf shows up to six other episodes, using show artwork when an episode has none.

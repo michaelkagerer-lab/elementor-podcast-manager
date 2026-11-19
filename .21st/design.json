@@ -41,7 +41,7 @@
   },
   "constraints": {
     "must": [
-      "Native WordPress admin",
+      "Keep WordPress navigation and editing routes; redesign dashboard as a focused podcast workspace",
       "Preserve stored frontend designs, feeds, GUIDs and URLs",
       "No new frontend dependency"
     ],
@@ -53,6 +53,15 @@
       "sources": [
         "https://mobbin.com/screens/8f05c696-c47c-4754-bef7-7ac629fa02b2",
         "https://21st.dev/@felipemenezes098/components/table-12"
+      ]
+    },
+    {
+      "decision": "User rejected sage/serif dashboard; requests clean Apple-like premium product. Adopt system sans, restrained neutral surfaces, one primary action, useful native audio preview, real artwork and adaptive workspace columns.",
+      "sources": [
+        "https://21st.dev/@arunjdass/components/dashboard-sidebar",
+        "https://21st.dev/@wensity/components/card",
+        "https://developer.apple.com/design/human-interface-guidelines/typography",
+        "https://developer.apple.com/design/human-interface-guidelines/layout"
       ]
     }
   ],

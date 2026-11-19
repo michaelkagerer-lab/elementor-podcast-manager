@@ -366,6 +366,7 @@ final class Plugin {
 
 		// Audio and transcript files set through REST must be readable media.
 		add_filter( 'rest_pre_insert_' . EpisodePostType::CPT, [ $this, 'rest_check_attachment_meta' ], 10, 2 );
+		add_action( 'rest_after_insert_' . EpisodePostType::CPT, [ $this, 'rest_sync_episode_meta' ], 10, 2 );
 	}
 
 	/**
@@ -444,6 +445,22 @@ final class Plugin {
 		}
 
 		$post_id = (int) ( $prepared->ID ?? 0 );
+		// Set server-side on every request; never trust a client-supplied old URL.
+		$request->set_param( '_epm_previous_audio_url', $post_id ? (string) get_post_meta( $post_id, Episodes::META_PREFIX . 'audio_url', true ) : '' );
+		$request->set_param( '_epm_previous_audio_id', $post_id ? (int) get_post_meta( $post_id, Episodes::META_PREFIX . 'audio_id', true ) : 0 );
+		foreach ( [ 'duration', 'episode_type', 'explicit', 'transcript_url', 'canonical_url', 'video_url', 'youtube_url', 'audio_url', 'artwork_url' ] as $field ) {
+			$name = Episodes::META_PREFIX . $field;
+			if ( ! array_key_exists( $name, $meta ) ) { continue; }
+			$value = (string) $meta[ $name ];
+			$valid = true;
+			if ( 'duration' === $field ) { $valid = '' === $value || AudioMetadata::is_valid_duration( $value ); }
+			elseif ( 'episode_type' === $field ) { $valid = in_array( $value, [ '', 'full', 'trailer', 'bonus' ], true ); }
+			elseif ( 'explicit' === $field ) { $valid = in_array( $value, [ '', 'inherit', 'clean', 'explicit' ], true ); }
+			else { $valid = '' === $value || ( in_array( strtolower( (string) wp_parse_url( $value, PHP_URL_SCHEME ) ), [ 'http', 'https' ], true ) && '' !== (string) wp_parse_url( $value, PHP_URL_HOST ) ); }
+			if ( ! $valid ) {
+				return new \WP_Error( 'rest_invalid_meta', __( 'Enter a valid value for this episode field.', 'elementor-podcast-manager' ), [ 'status' => 400, 'params' => [ $name => $field ] ] );
+			}
+		}
 		$checks  = [
 			'audio_id'           => [ AudioMetadata::class, 'is_valid_audio_attachment' ],
 			'transcript_file_id' => [ EpisodeMeta::class, 'is_transcript_attachment' ],
@@ -475,6 +492,27 @@ final class Plugin {
 		}
 
 		return $prepared;
+	}
+
+	/** Keep derived episode values consistent after REST has stored all metadata. */
+	public function rest_sync_episode_meta( $post, $request ): void {
+		$meta = $request->get_param( 'meta' );
+		if ( ! is_array( $meta ) ) { return; }
+		$prefix = Episodes::META_PREFIX;
+		if ( array_key_exists( $prefix . 'audio_id', $meta ) ) {
+			$audio_id = (int) get_post_meta( $post->ID, $prefix . 'audio_id', true );
+			if ( (int) $request->get_param( '_epm_previous_audio_id' ) !== $audio_id ) {
+				delete_post_meta( $post->ID, $prefix . 'audio_size' );
+				if ( ! array_key_exists( $prefix . 'duration', $meta ) ) { delete_post_meta( $post->ID, $prefix . 'duration' ); }
+			}
+			AudioMetadata::refresh( $post->ID );
+		}
+		if ( array_key_exists( $prefix . 'audio_url', $meta ) && (string) $request->get_param( '_epm_previous_audio_url' ) !== (string) get_post_meta( $post->ID, $prefix . 'audio_url', true ) ) {
+			foreach ( [ 'audio_length', 'audio_type' ] as $field ) {
+				if ( ! array_key_exists( $prefix . $field, $meta ) ) { delete_post_meta( $post->ID, $prefix . $field ); }
+			}
+		}
+		Episodes::sync_duration_seconds( $post->ID );
 	}
 
 	/**

@@ -48,7 +48,7 @@ $epm_steps = [
 	'done'    => __( 'Get listed', 'elementor-podcast-manager' ),
 ];
 ?>
-<div class="wrap epm-app epm-app--narrow" data-epm-setup data-path="<?php echo esc_attr( $epm_path ); ?>">
+<div class="wrap epm-workspace epm-app epm-app--narrow" data-epm-setup data-path="<?php echo esc_attr( $epm_path ); ?>">
 	<header class="epm-app__header">
 		<div>
 			<h1 class="epm-app__title"><?php esc_html_e( 'Set up your podcast', 'elementor-podcast-manager' ); ?></h1>

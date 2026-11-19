@@ -35,6 +35,37 @@ final class SafeHttp {
 				throw new \WpOrg\Requests\Exception( $blocked->get_error_message(), $blocked->get_error_code() );
 			}
 		};
+		// A DNS check and a later resolver lookup are different operations.
+		// Pin the actual cURL connection, including each redirected request.
+		$pin = static function ( $handle ) use ( &$blocked ): void {
+			$current = (string) curl_getinfo( $handle, CURLINFO_EFFECTIVE_URL );
+			$host = (string) wp_parse_url( $current, PHP_URL_HOST );
+			$ip = gethostbyname( $host );
+			if ( ! self::public_ip( $ip, $host, $current ) ) {
+				$blocked = new \WP_Error( 'epm_unsafe_url', __( 'The address (or an address it redirects to) is not allowed: it is not a public web address.', 'elementor-podcast-manager' ) );
+				throw new \WpOrg\Requests\Exception( $blocked->get_error_message(), $blocked->get_error_code() );
+			}
+			$port = (int) wp_parse_url( $current, PHP_URL_PORT ) ?: ( 'https' === wp_parse_url( $current, PHP_URL_SCHEME ) ? 443 : 80 );
+			$ok = curl_setopt( $handle, CURLOPT_RESOLVE, [ $host . ':' . $port . ':' . $ip ] )
+				&& curl_setopt( $handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4 )
+				&& curl_setopt( $handle, CURLOPT_PROXY, '' )
+				&& curl_setopt( $handle, CURLOPT_FRESH_CONNECT, true )
+				&& curl_setopt( $handle, CURLOPT_FORBID_REUSE, true );
+			if ( ! $ok ) {
+				$blocked = new \WP_Error( 'epm_http_pin_failed', __( 'The server could not secure this download connection. Ask your web host to check PHP cURL.', 'elementor-podcast-manager' ) );
+				throw new \WpOrg\Requests\Exception( $blocked->get_error_message(), $blocked->get_error_code() );
+			}
+		};
+		$transport = static function ( &$request_url, &$headers, &$data, &$type, &$options ) use ( &$blocked ): void {
+			$chosen = $options['transport'] ?? null;
+			if ( ! \WpOrg\Requests\Transport\Curl::test() || ! empty( $options['proxy'] ) || ( null !== $chosen && ! ( $chosen instanceof \WpOrg\Requests\Transport\Curl ) && ! ( $chosen instanceof DownloadCurlTransport ) ) ) {
+				$blocked = new \WP_Error( 'epm_http_transport', __( 'Secure feed downloads require a direct PHP cURL connection. Ask your web host to enable it. Existing episodes are unchanged.', 'elementor-podcast-manager' ) );
+				throw new \WpOrg\Requests\Exception( $blocked->get_error_message(), $blocked->get_error_code() );
+			}
+			if ( null === $chosen ) { $options['transport'] = new \WpOrg\Requests\Transport\Curl(); }
+		};
+		add_action( 'requests-curl.before_send', $pin, PHP_INT_MAX, 1 );
+		add_action( 'requests-requests.before_request', $transport, PHP_INT_MAX, 5 );
 		add_action( 'requests-requests.before_redirect', $guard, 1, 5 );
 		add_action( 'requests-requests.before_request', $initial, 0, 1 );
 		try {
@@ -45,6 +76,8 @@ final class SafeHttp {
 			}
 			$response = $blocked;
 		} finally {
+			remove_action( 'requests-curl.before_send', $pin, PHP_INT_MAX );
+			remove_action( 'requests-requests.before_request', $transport, PHP_INT_MAX );
 			remove_action( 'requests-requests.before_redirect', $guard, 1 );
 			remove_action( 'requests-requests.before_request', $initial, 0 );
 		}
@@ -73,8 +106,15 @@ final class SafeHttp {
 		if ( ! filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) ) {
 			return true; // Core owns malformed hosts, IPv6 and unresolved-address validation.
 		}
+		return self::public_ip( $ip, $host, $url );
+	}
+
+	/** Validate the exact address used by the socket, never another DNS lookup. */
+	private static function public_ip( string $ip, string $host, string $url ): bool {
+		if ( ! filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) ) { return false; }
 		$p = array_map( 'intval', explode( '.', $ip ) );
-		$restricted = ( 169 === $p[0] && 254 === $p[1] )
+		$restricted = ! filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE )
+			|| ( 169 === $p[0] && 254 === $p[1] )
 			|| ( 100 === $p[0] && 64 <= $p[1] && 127 >= $p[1] )
 			|| ( 192 === $p[0] && 0 === $p[1] && in_array( $p[2], [ 0, 2 ], true ) )
 			|| ( 192 === $p[0] && 88 === $p[1] && 99 === $p[2] )
