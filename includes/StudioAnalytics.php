@@ -5,7 +5,10 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 final class StudioAnalytics {
 	const OPTION = 'epm_studio_analytics';
 	const CRON = 'epm_studio_analytics_sync';
-	const ENDPOINT = 'https://studio-production-1f9b.up.railway.app/api/integrations/podcast';
+	const STUDIO = 'https://studio-production-1f9b.up.railway.app';
+	const ENDPOINT = self::STUDIO . '/api/integrations/podcast';
+	const EPISODES_HOOK = 'epm_studio_episodes_push';
+	const STUDIO_ID = '_epm_studio_id';
 	public function init(): void {
 		add_action( 'init', [ $this, 'install' ] );
 		add_action( 'rest_api_init', function () {
@@ -14,6 +17,76 @@ final class StudioAnalytics {
 		add_action( self::CRON, [ $this, 'sync' ] );
 		add_action( 'admin_menu', function () { add_submenu_page( 'epm-dashboard', 'BUSINESS TUNING STUDIO', __( 'Studio Analytics', 'elementor-podcast-manager' ), 'manage_options', 'epm-studio-analytics', [ $this, 'page' ] ); }, 20 );
 		add_action( 'admin_post_epm_studio_analytics', [ $this, 'save' ] );
+		// Episodes are created here; every change reaches the Studio as a full snapshot shortly after saving.
+		add_action( self::EPISODES_HOOK, [ $this, 'push_episodes' ] );
+		add_action( 'wp_after_insert_post', function ( $post_id, $post ) { $this->queue_episodes( $post ); }, 30, 2 );
+		foreach ( [ 'trashed_post', 'untrashed_post', 'before_delete_post' ] as $hook ) {
+			add_action( $hook, function ( $post_id ) { $this->queue_episodes( get_post( $post_id ) ); } );
+		}
+		add_filter( 'post_row_actions', [ $this, 'row_action' ], 10, 2 );
+	}
+	public function queue_episodes( $post ): void {
+		if ( ! $post instanceof \WP_Post || EpisodePostType::CPT !== $post->post_type || 'auto-draft' === $post->post_status || wp_is_post_revision( $post ) || wp_is_post_autosave( $post ) ) { return; }
+		$s = self::settings();
+		if ( empty( $s['enabled'] ) || empty( $s['token'] ) || wp_next_scheduled( self::EPISODES_HOOK ) ) { return; }
+		wp_schedule_single_event( time() + 10, self::EPISODES_HOOK );
+	}
+	/** Every episode except trash and auto-drafts; the Studio marks anything missing, it never deletes. */
+	public static function episode_snapshot(): array {
+		$ids = get_posts( [ 'post_type' => EpisodePostType::CPT, 'post_status' => [ 'publish', 'future', 'draft', 'pending', 'private' ], 'posts_per_page' => 500, 'fields' => 'ids', 'orderby' => 'ID', 'order' => 'ASC', 'no_found_rows' => true, 'suppress_filters' => true ] );
+		$out = [];
+		foreach ( $ids as $id ) {
+			$p    = get_post( $id );
+			$m    = static function ( string $k ) use ( $id ): string { return trim( wp_strip_all_tags( (string) get_post_meta( $id, Episodes::META_PREFIX . $k, true ) ) ); };
+			$text = static function ( string $v, int $max ): string { return mb_substr( trim( html_entity_decode( wp_strip_all_tags( $v ), ENT_QUOTES, 'UTF-8' ) ), 0, $max ); };
+			$type = in_array( $m( 'episode_type' ), [ 'full', 'trailer', 'bonus' ], true ) ? $m( 'episode_type' ) : 'full';
+			$num  = (int) $m( 'episode_number' );
+			$date = in_array( $p->post_status, [ 'publish', 'future' ], true ) && '0000-00-00 00:00:00' !== $p->post_date_gmt ? gmdate( 'Y-m-d\\TH:i:s\\Z', strtotime( $p->post_date_gmt . ' UTC' ) ) : null;
+			$art  = (string) wp_get_attachment_image_url( (int) $m( 'artwork_id' ) ?: (int) get_post_thumbnail_id( $id ), 'large' );
+			$url  = 'publish' === $p->post_status ? (string) get_permalink( $id ) : '';
+			$out[] = [
+				'guid'         => Episodes::get_guid( $id ),
+				'wpId'         => $id,
+				'status'       => $p->post_status,
+				'type'         => $type,
+				'title'        => $text( $p->post_title, 250 ),
+				'number'       => 'full' === $type && $num > 0 ? $num : null,
+				'date'         => $date,
+				'guestName'    => $text( $m( 'guest_name' ), 200 ),
+				'guestRole'    => $text( $m( 'guest_role' ), 200 ),
+				'guestCompany' => $text( $m( 'guest_company' ), 200 ),
+				'artwork'      => 0 === strpos( $art, 'https://' ) ? $art : '',
+				'url'          => 0 === strpos( $url, 'https://' ) ? $url : '',
+			];
+		}
+		return $out;
+	}
+	public function push_episodes(): void {
+		$s = self::settings();
+		if ( empty( $s['enabled'] ) || empty( $s['token'] ) ) { return; }
+		$episodes = self::episode_snapshot();
+		// Fixed destination, like the analytics delivery: no redirects, token never leaves this request.
+		$response = wp_remote_post( self::ENDPOINT . '/episodes', [ 'timeout' => 20, 'redirection' => 0, 'limit_response_size' => 262144, 'headers' => [ 'Authorization' => 'Bearer ' . $s['token'], 'Content-Type' => 'application/json' ], 'body' => wp_json_encode( [ 'version' => 1, 'feedUrl' => Feed::url(), 'episodes' => $episodes ] ) ] );
+		$code = is_wp_error( $response ) ? 0 : wp_remote_retrieve_response_code( $response );
+		$body = is_wp_error( $response ) ? [] : json_decode( wp_remote_retrieve_body( $response ), true );
+		$ok   = 200 === $code && is_array( $body ) && true === ( $body['ok'] ?? false ) && count( $episodes ) === ( $body['accepted'] ?? -1 );
+		if ( $ok ) {
+			foreach ( $episodes as $e ) {
+				$sid = (string) ( $body['ids'][ $e['guid'] ] ?? '' );
+				if ( preg_match( '/^[a-z0-9]{8,40}$/', $sid ) && get_post_meta( $e['wpId'], self::STUDIO_ID, true ) !== $sid ) { update_post_meta( $e['wpId'], self::STUDIO_ID, $sid ); }
+			}
+		}
+		update_option( 'epm_studio_episodes_status', [ 'at' => gmdate( 'c' ), 'ok' => $ok, 'code' => $code, 'sent' => $ok ? count( $episodes ) : 0 ], false );
+	}
+	public static function studio_url( int $post_id ): string {
+		$sid = (string) get_post_meta( $post_id, self::STUDIO_ID, true );
+		return '' === $sid ? '' : self::STUDIO . '/episoden/' . rawurlencode( $sid );
+	}
+	public function row_action( array $actions, $post ): array {
+		if ( $post instanceof \WP_Post && EpisodePostType::CPT === $post->post_type && current_user_can( 'edit_post', $post->ID ) && self::studio_url( $post->ID ) ) {
+			$actions['epm_studio'] = sprintf( '<a href="%s" target="_blank" rel="noopener">%s</a>', esc_url( self::studio_url( $post->ID ) ), esc_html__( 'Open in Studio', 'elementor-podcast-manager' ) );
+		}
+		return $actions;
 	}
 	public static function settings(): array { return (array) get_option( self::OPTION, [] ); }
 	public static function enabled(): bool { return ! empty( self::settings()['enabled'] ); }
@@ -132,6 +205,7 @@ final class StudioAnalytics {
 			$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->prefix}epm_studio_sessions WHERE day < %s", gmdate( 'Y-m-d', time() - 35 * DAY_IN_SECONDS ) ) );
 		}
 		update_option( 'epm_studio_status', [ 'at' => gmdate( 'c' ), 'ok' => $ok, 'code' => $code, 'sent' => $ok ? count( $rows ) : 0 ], false );
+		$this->push_episodes();
 	}
 	public function save(): void {
 		if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'Insufficient permissions.', 'elementor-podcast-manager' ) ); }
@@ -157,6 +231,7 @@ final class StudioAnalytics {
 		<p><?php esc_html_e( 'Send daily website-player measurements to your Studio automatically. This does not include Spotify, Apple Podcasts, external downloads or unique listeners.', 'elementor-podcast-manager' ); ?></p>
 		<p><?php echo esc_html( sprintf( __( 'Pending daily snapshots: %d', 'elementor-podcast-manager' ), $pending ) ); ?></p>
 		<?php if ( $status ) : ?><div class="notice <?php echo ! empty( $status['ok'] ) ? 'notice-success' : 'notice-error'; ?>"><p><?php echo esc_html( ! empty( $status['ok'] ) ? __( 'Last delivery succeeded.', 'elementor-podcast-manager' ) : __( 'Delivery failed. Check the key, Studio RSS import and network connection. Pending measurements are retained and retried.', 'elementor-podcast-manager' ) ); ?> <?php echo esc_html( ! empty( $status['at'] ) && false !== strtotime( $status['at'] ) ? wp_date( get_option( 'date_format' ) . ' · ' . get_option( 'time_format' ), strtotime( $status['at'] ) ) : '' ); ?></p></div><?php endif; ?>
+		<?php $ep = (array) get_option( 'epm_studio_episodes_status', [] ); if ( $ep ) : ?><div class="notice <?php echo ! empty( $ep['ok'] ) ? 'notice-success' : 'notice-error'; ?>"><p><?php echo esc_html( ! empty( $ep['ok'] ) ? sprintf( _n( '%d episode is up to date in the Studio.', '%d episodes are up to date in the Studio.', (int) $ep['sent'], 'elementor-podcast-manager' ), (int) $ep['sent'] ) : __( 'Episodes could not be sent to the Studio. They are sent again after the next change or within the hour.', 'elementor-podcast-manager' ) ); ?> <?php echo esc_html( ! empty( $ep['at'] ) && false !== strtotime( $ep['at'] ) ? wp_date( get_option( 'date_format' ) . ' · ' . get_option( 'time_format' ), strtotime( $ep['at'] ) ) : '' ); ?></p></div><?php endif; ?>
 		<form class="epm-analytics-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 		<input type="hidden" name="action" value="epm_studio_analytics"><?php wp_nonce_field( 'epm_studio_analytics' ); ?>
 		<p><label><input type="checkbox" name="enabled" value="1" <?php checked( ! empty( $s['enabled'] ) ); ?>> <?php esc_html_e( 'Enable measurement and hourly delivery', 'elementor-podcast-manager' ); ?></label></p>

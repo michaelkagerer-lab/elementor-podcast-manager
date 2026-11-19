@@ -7458,3 +7458,17 @@ msgstr ""
 #: admin/js/epm-setup.js:1176
 msgid "Your show details have unsaved changes."
 msgstr ""
+
+#: includes/StudioAnalytics.php
+msgid "Open in Studio"
+msgstr ""
+
+#: includes/StudioAnalytics.php
+msgid "%d episode is up to date in the Studio."
+msgid_plural "%d episodes are up to date in the Studio."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/StudioAnalytics.php
+msgid "Episodes could not be sent to the Studio. They are sent again after the next change or within the hour."
+msgstr ""

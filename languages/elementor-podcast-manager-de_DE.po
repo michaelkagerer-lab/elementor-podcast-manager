@@ -7458,3 +7458,14 @@ msgstr "Der Server konnte diese Download-Verbindung nicht absichern. Bitte deine
 #: includes/SafeHttp.php:62
 msgid "Secure feed downloads require a direct PHP cURL connection. Ask your web host to enable it. Existing episodes are unchanged."
 msgstr "Sichere Feed-Downloads benötigen eine direkte PHP-cURL-Verbindung. Bitte deinen Webhost, sie zu aktivieren. Bestehende Folgen bleiben unverändert."
+
+msgid "Open in Studio"
+msgstr "Im Studio öffnen"
+
+msgid "%d episode is up to date in the Studio."
+msgid_plural "%d episodes are up to date in the Studio."
+msgstr[0] "%d Folge ist im Studio aktuell."
+msgstr[1] "%d Folgen sind im Studio aktuell."
+
+msgid "Episodes could not be sent to the Studio. They are sent again after the next change or within the hour."
+msgstr "Folgen konnten nicht ans Studio übertragen werden. Sie werden nach der nächsten Änderung oder innerhalb einer Stunde erneut gesendet."
